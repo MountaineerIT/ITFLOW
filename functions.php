@@ -67,3 +67,4 @@ require_once __DIR__ . '/functions/mit_projects.php';
 require_once __DIR__ . '/functions/mit_reply_recipients.php';
 require_once __DIR__ . '/functions/mit_theme.php';
 require_once __DIR__ . '/functions/mit_boards.php';
+require_once __DIR__ . '/functions/mit_ct.php';

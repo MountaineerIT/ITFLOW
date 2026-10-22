@@ -287,6 +287,8 @@ break stock ITFlow, and lists what stops working after a move.
   `mit_leave_rates`, settings in `mit_settings` (ts_*, including the paid-break rule; lunch is a charge code); export the Timesheets & Payroll
   report (both CSVs) before moving. Ticket time is ITFlow's own (ticket replies) and stays. Admin >
   Roles keeps an unused "Timesheets" permission (`module_timesheets` row) – harmless.
+- **Customer Thermometer** – surveys stop going out and the Customer happiness cards and reviews list go away; the surveys and
+  responses stay in `mit_ct_surveys` (and in Customer Thermometer itself). The ticket history lines it wrote stay.
 - **Restore from Admin > Backup** – stock ITFlow restores only on a fresh install (setup wizard) or from the command line
   (`scripts/restore_cli.php`); nothing of ours is stored for it.
 - **Development mode** – stock ITFlow ignores `$config_mit_dev_mode` / `$config_mit_dev_mail_to` in `config.php`: a test copy

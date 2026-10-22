@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.112 - 2026-10-22
+- Customer Thermometer: a satisfaction survey goes out for each ticket resolved on the service boards you pick, from the start date you pick (older tickets are never sent). Each carries the tech's name, the ticket number and its subject. Set up in Admin > Integrations > Customer Thermometer.
+- Responses come back every 15 minutes: "Customer happiness" (Gold + Green share, with the four counts) on the dashboard and each client's overview, a list of every response with its comment, and a line in the ticket's history.
+- In development mode surveys go to the test inbox.
+
 ## 26.10.111 - 2026-10-22
 - Admin > Backup: big backups restore again - they were unpacked in the server's temporary folder, which on newer Debian is a small memory disk ("Could not extract the archive: No error"). They now unpack next to the backups.
 - A restore that fails part way still leaves the backup list right and the database up to date.

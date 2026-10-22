@@ -782,6 +782,23 @@ model: see DEPLOYMENT.md.
   person picker lists only people who may be opened; a per-person approver can be any active agent; changing a reimbursement no
   longer needs Support (same rule as removing); hours changed by someone else notify the person (once an hour). Reports and the
   API are not filtered by board (documented in mit_board_roles.php). Smoke: picker test in `04-permissions.spec.js`.
+- Customer Thermometer (Oct 22, 26.10.112): `functions/mit_ct.php` (ours, required from `functions.php`) - a survey per resolved ticket.
+  Table M036 `mit_ct_surveys` (one per ticket - UNIQUE ticket_id, FK tickets SET NULL so a deleted ticket keeps its review -,
+  blast id, temperature 1 Gold / 2 Green / 3 Yellow / 4 Red, comment, responded_at, raw response); settings `mit_settings` ct_* (API
+  key via mitEncryptSecret, thermometer, recipient list, boards, start, enabled, ct_choices cache, ct_last_sample). API
+  `https://app.customerthermometer.com/api.php?getMethod=...&apiKey=...` (GET): getThermometers / getRecipientLists (pickers),
+  sendEmail (thermometerID, listID, emailAddress, names, companyName, custom1 tech, custom2 ticket number, custom3 subject; no
+  blastID = a one-person blast whose id is returned and kept), getBlastResults / getComments (XML whose element names are not
+  published - read generically by `mitCtXmlRecords` / `mitCtField`; responses matched by blast id, else custom2). Cron job
+  `mit_customer_thermometer` every 5 min (`cron/mit_customer_thermometer.php`, `mitCtRun`: up to 25 sends, responses every 15 min):
+  tickets resolved (or closed unresolved) on / after ct_start, on a ticked board (`mitBoardSql`), contact with email, no survey yet
+  - every ticket (no per-contact limit, user's choice). Score = Happiness (Gold + Green share). UI: Admin > Integrations > Customer
+  Thermometer `admin/mit_customer_thermometer.php` (handlers `admin/post/mit_customer_thermometer.php`, menu
+  `admin/includes/mit_integrations_nav.php`), reviews list `agent/mit_ct_reviews.php` (Support view, client-scoped), hooks - one line
+  each - `mitCtDashCard` in `agent/dashboard.php` (after mitBoardDashCard, last 90 days) and `mitCtClientCard` in
+  `agent/client_overview.php` (before Technical, last 12 months + latest comments). Ticket history gets "survey sent" / "rated".
+  Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by). Test install stand-in
+  `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
 - Restore on a running install (Oct 22, 26.10.108): `functions/mit_backup_restore.php` (ours, required from mit_common.php) -
   Admin > Backup: Restore on a stored backup (`mitRestoreRowButton`, one line in the row actions of `admin/backup.php`) or upload a
   .zip (`admin/includes/mit_restore_card.php`, one require in ITFlow's "Restoring" card, whose "cannot be done from here" sentence

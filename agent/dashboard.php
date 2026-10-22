@@ -129,6 +129,7 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
 <?php if ($my_tickets !== null) { ?>
 
     <?php if (function_exists('mitBoardDashCard')) { echo mitBoardDashCard(); } // Mountaineer IT: service boards ?>
+    <?php if (function_exists('mitCtDashCard')) { echo mitCtDashCard(); } // Mountaineer IT: Customer Thermometer ?>
 
     <h2 class="itflow-dash-section mb-2">Your day</h2>
 

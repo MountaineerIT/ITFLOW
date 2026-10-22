@@ -156,6 +156,15 @@ function cronJobRegistry(): array
             'daily_at' => '00:30',
         ],
         [
+            // Mountaineer IT (functions/mit_ct.php)
+            'name' => 'mit_customer_thermometer',
+            'label' => 'Customer Thermometer',
+            'script' => 'mit_customer_thermometer.php',
+            'description' => 'Sends a Customer Thermometer survey for each newly resolved ticket on the chosen service boards and reads the responses back. Does nothing until it is set up and switched on (Admin > Integrations > Customer Thermometer).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 5,
+        ],
+        [
             // Mountaineer IT (functions/mit_qbo_billing.php)
             'name' => 'mit_qbo_sync',
             'label' => 'QuickBooks Online Payments',
