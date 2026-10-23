@@ -565,6 +565,11 @@ model: see DEPLOYMENT.md.
   the ticket page gets the script through `mitTicketLayoutHtml` (no extra line in agent/ticket.php); one line each in
   `agent/asset.php` and `agent/modals/asset/asset.php` (`mitNinjaAssetButton`). A test install may set `MIT_NINJA_API_BASE` in
   config.php to point at a stand-in API (never on a real one).
+  26.10.121: "Run sync now" (`admin/post/mit_ninjaone.php`) does `session_write_close()` before `mitNinjaSync` and `session_start()` after
+  (a long run used to hold the session lock - every other page of that person waited); the same around QuickBooks Sync now, usage
+  connector Run now and Customer Thermometer Run now. Warranty lookups only for devices of mapped organizations. Unmapped
+  organizations go in the report's `notes` (shown as `[data-mit-ninja-note]` with the list in a <details>), not `errors`. The
+  test install's stand-in (`ninja-mock/index.php`) has `/_slow?seconds=`, `/_calls`, `/_clear`; smoke `22-ninjaone-sync.spec.js`.
 - QuickBooks Online (Oct 2026, first release - steps 1-3 of the billing plan; later: usage billing on agreement lines with an
   inbound API, monthly snapshot and review, then source connectors NinjaOne / Bitwarden / Ingram Micro / Parallels / M365):
   Audit fixes (26.10.101): payments refused for any live batch entry (`mitQboTakesPayments`; hooks also in `cron/nightly_tasks.php` autopay +

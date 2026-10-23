@@ -191,6 +191,14 @@ $badge = function ($outcome) use ($outcomes) {
                 <?php } ?>
                 <?php foreach ((array) ($r['errors'] ?? []) as $line) { ?><div class="alert alert-danger py-2 mb-2"><i class="fas fa-exclamation-triangle me-2"></i><?= escapeHtml($line) ?></div><?php } ?>
                 <?php foreach ((array) ($r['warnings'] ?? []) as $line) { ?><div class="alert alert-warning py-2 mb-2"><i class="fas fa-info-circle me-2"></i><?= escapeHtml($line) ?></div><?php } ?>
+                <?php foreach ((array) ($r['notes'] ?? []) as $line) { ?>
+                    <div class="alert alert-light border py-2 mb-2" data-mit-ninja-note><i class="fas fa-info-circle text-secondary me-2"></i><?= escapeHtml($line) ?>
+                        <?php if (!empty($r['unmapped'])) { ?>
+                            <details class="small mt-1"><summary class="text-secondary">Which organizations</summary>
+                                <?= escapeHtml(implode('; ', array_map(function ($u) { return $u['org'] . ' - ' . intval($u['devices']) . ' device(s)'; }, (array) $r['unmapped']))) ?></details>
+                        <?php } ?>
+                    </div>
+                <?php } ?>
                 <?php
                 $sections = [
                     'same_name' => ['Same name, kept apart', function ($row) {

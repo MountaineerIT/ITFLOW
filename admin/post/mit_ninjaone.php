@@ -106,10 +106,16 @@ if (isset($_POST['mit_ninja_run'])) {
 
     validateCSRFToken();
 
-    // A long sync: let it finish even if the browser gives up
+    // A long sync: let it finish even if the browser gives up, and let go of the session while it runs - otherwise every
+    // other page this person opens waits for it (PHP holds the session file locked for the whole request)
     ignore_user_abort(true);
     set_time_limit(900);
-    $report = mitNinjaSync('manual');
+    session_write_close();
+    try {
+        $report = mitNinjaSync('manual');
+    } finally {
+        session_start();
+    }
     $totals = $report['totals'] ?? [];
     if (in_array($report['outcome'], ['failed', 'busy'], true)) {
         flashAlert(escapeHtml(implode(' ', $report['errors'] ?? ['The sync did not run.'])), 'error');

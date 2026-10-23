@@ -529,7 +529,8 @@ function mitNinjaSyncRun() {
         $live[intval($device['id'])] = true;
     }
 
-    // Warranty is a call per device - at most 150 a run, each device again after a week
+    // Warranty is a call per device - at most 150 a run, each device again after a week, and only for devices of mapped
+    // organizations (the others are never written to an asset, so looking theirs up only made a run slow)
     $warranty = [];
     $known = [];
     $result = mysqli_query($mysqli, "SELECT device_id, warranty_start, warranty_end, warranty_checked_at FROM mit_ninja_devices");
@@ -540,6 +541,10 @@ function mitNinjaSyncRun() {
     $warranty_failures = 0;
     foreach ($devices as $device) {
         $id = intval($device['id']);
+        $device_org = $mapping[intval($device['organizationId'] ?? 0)] ?? null;
+        if (!$device_org || $device_org['status'] !== 'mapped' || !intval($device_org['client_id'])) {
+            continue;
+        }
         $row = $known[$id] ?? null;
         $fresh = $row && $row['warranty_checked_at'] && strtotime($row['warranty_checked_at']) > time() - 7 * 86400;
         if ($fresh) {
@@ -786,12 +791,12 @@ function mitNinjaSyncRun() {
 
     $report['unmapped'] = array_values($report['unmapped']);
     $report['client_problems'] = array_values($report['client_problems']);
-    $errors = $warnings = [];
+    $errors = $warnings = $notes = [];
+    // Organizations not mapped yet are a choice still to make, not a fault (mapping a few to start with is normal) - a note,
+    // listed in full on the report, that does not mark the run as needing attention
     if ($report['unmapped']) {
-        $errors[] = count($report['unmapped']) . ' NinjaOne organization(s) not mapped to an ITFlow client: '
-            . implode('; ', array_map(function ($u) {
-                return "{$u['org']} - {$u['devices']} device(s)";
-            }, $report['unmapped']));
+        $notes[] = count($report['unmapped']) . ' NinjaOne organization(s) are not mapped yet (' . array_sum(array_column($report['unmapped'], 'devices'))
+            . ' device(s)) - their devices were left alone. Map them on the Mapping tab, or set them to not sync.';
     }
     if ($report['client_problems']) {
         $errors[] = count($report['client_problems']) . ' mapping(s) point at an ITFlow client that is gone or archived';
@@ -832,6 +837,7 @@ function mitNinjaSyncRun() {
     $report['failed'] = $done['failed'];
     $report['errors'] = $errors;
     $report['warnings'] = $warnings;
+    $report['notes'] = $notes;
     $report['totals'] = [
         'devices' => count($devices), 'assets_read' => count($assets), 'created' => $done['created'], 'updated' => $done['updated'],
         'unchanged' => $count['unchanged'], 'ignored' => $count['ignored'],

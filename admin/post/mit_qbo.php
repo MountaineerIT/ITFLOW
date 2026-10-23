@@ -84,7 +84,13 @@ if (isset($_POST['mit_qbo_sync_now'])) {
     validateCSRFToken();
 
     try {
-        $report = mitQboPaymentSync();
+        // Let go of the session while it calls out, so the person's other pages don't wait for it
+        session_write_close();
+        try {
+            $report = mitQboPaymentSync();
+        } finally {
+            session_start();
+        }
         flashAlert("Checked {$report['checked']} invoice" . ($report['checked'] === 1 ? '' : 's') . " in QuickBooks - {$report['changed']} changed in ITFlow."
             . ($report['errors'] ? ' ' . escapeHtml(implode(' ', array_slice($report['errors'], 0, 3))) : ''), $report['errors'] ? 'warning' : 'success');
     } catch (Throwable $e) {

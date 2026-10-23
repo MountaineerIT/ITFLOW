@@ -66,10 +66,18 @@ if (isset($_POST['mit_ct_run'])) {
         flashAlert('Surveys are switched off - only responses were read.', 'warning');
     }
     try {
-        if (mitCtSettings()['enabled']) {
-            flashAlert('Customer Thermometer: ' . escapeHtml(mitCtRun(true)) . '.');
-        } else {
-            mitCtFetchResponses();
+        // Let go of the session while it calls out, so the person's other pages don't wait for it
+        session_write_close();
+        try {
+            $result = mitCtSettings()['enabled'] ? mitCtRun(true) : null;
+            if ($result === null) {
+                mitCtFetchResponses();
+            }
+        } finally {
+            session_start();
+        }
+        if ($result !== null) {
+            flashAlert('Customer Thermometer: ' . escapeHtml($result) . '.');
         }
     } catch (Throwable $e) {
         flashAlert(escapeHtml($e->getMessage()), 'error');

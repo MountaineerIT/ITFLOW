@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.121 - 2026-10-23
+- NinjaOne: "Run sync now" no longer locks you out of ITFlow while it runs. Your other pages and tabs keep working, because the sync stops holding your session. The QuickBooks "Sync now", usage connector "Run now" and Customer Thermometer "Run now" buttons got the same fix.
+- NinjaOne: warranties are looked up only for devices in mapped organizations, so a sync with only a few organizations mapped is much quicker. Before, it looked up up to 150 devices a run, mapped or not.
+- NinjaOne: organizations not mapped yet are a note on the sync report (with the list folded away), not a "Needs attention" error. Mapping a few to start with is normal.
+
 ## 26.10.120 - 2026-10-23
 - Admin > Settings > Company Details has "The logo shows the company name". When it's on, the side menu shows the logo on its own, across the room the name took, instead of the logo with the company name beside it. Off (the default) keeps both.
 - Fixed: uploading a company logo when there wasn't one before tried to delete the logo folder (a warning in the log, nothing lost).

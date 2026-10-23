@@ -16,7 +16,13 @@ if (isset($_POST['mit_usage_connector_run'])) {
         redirect('mit_usage_connectors.php');
     }
     try {
-        $report = mitUsageRunConnectors($connector);
+        // Let go of the session while it calls out, so the person's other pages don't wait for it
+        session_write_close();
+        try {
+            $report = mitUsageRunConnectors($connector);
+        } finally {
+            session_start();
+        }
         if (!isset($report[$connector])) {
             flashAlert('Nothing to run - set ' . MIT_USAGE_CONNECTORS[$connector] . ' up first.', 'warning');
         } else {
