@@ -5,6 +5,9 @@
  *   POST save_day=1 user_id start date [times[blocks][i][start|end|gap]] [answers[meal1|meal2|rest_missed]] cells[code_id] notes[code_id] [reason]
  *        saves one day as it is typed - the same checks as the timesheet form (mitTsCaSave, mitTsSaveCells) - and
  *        returns the day again, the summary, leave left and what still stops it being submitted.
+ *   POST save_entry=1 user_id start date reply_id work_start work_end
+ *        a ticket entry's times put right from the day panel (mitReplyTimesQuickSet - the note's own time changes too),
+ *        returning the same as save_day.
  */
 
 require_once "../config.php";
@@ -23,7 +26,7 @@ if (!mitTsOn()) {
     $mit_fail('Timesheets are switched off (Admin > Settings > Modules).', 403);
 }
 
-if (isset($_POST['save_day'])) {
+if (isset($_POST['save_day']) || isset($_POST['save_entry'])) {
 
     validateCSRFToken();
 
@@ -54,6 +57,11 @@ if (isset($_POST['save_day'])) {
         ]);
         exit;
     };
+
+    if (isset($_POST['save_entry'])) {
+        $why = mitReplyTimesQuickSet($_POST['reply_id'] ?? 0, $user_id, $date, $_POST['work_start'] ?? '', $_POST['work_end'] ?? '');
+        $reply($why === '', $why === '' ? 'Ticket time saved' : $why);
+    }
 
     if (mitTsCaOn($user_id, $period['end']) && isset($_POST['times'])) {
         [$ok, $message] = mitTsCaSave($sheet, $period, [$date => (array) $_POST['times']], [$date => (array) ($_POST['answers'] ?? [])], $_POST['reason'] ?? '');

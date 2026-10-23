@@ -66,9 +66,13 @@ function mitTsViewDays($user_id, array $period, array $only = []) {
         }
         // The day's ticket entries in time order, with times and clashes (overlaps, outside the clocked work times)
         $day_entries = [];
+        // Their times can be put right from here (mitReplyTimesQuickSet) when the day is not locked for the signed-in agent
+        $entry_lock = !empty($notes[$date]) ? mitReplyTimesEntryLock($user_id, $date) : '';
         foreach (mitTsDayEntryFlags($notes[$date] ?? [], $ca_days[$date]['periods'] ?? []) as $row) {
             $visible = $see_tickets && (!$row['client_id'] || hasClientAccess($row['client_id']));
             $day_entries[] = [
+                'reply_id' => $row['reply_id'],
+                'editable' => $visible && $entry_lock === '',
                 'ticket' => $visible ? $row['reference'] . ' ' . $row['subject'] : 'A ticket you cannot see',
                 'url' => $visible ? 'ticket.php?' . ($row['client_id'] ? 'client_id=' . $row['client_id'] . '&' : '') . 'ticket_id=' . $row['ticket_id'] : '',
                 'start' => $row['start'] ? substr($row['start'], 11, 5) : null,

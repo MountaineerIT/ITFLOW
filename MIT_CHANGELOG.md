@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.114 - 2026-10-22
+- Timesheets: ticket entries in a day's panel can be fixed in place - click an entry's times to change its start and end (Enter saves, Esc cancels). An overlapping entry offers "Start it at ..., after the one before" (same length). The note on the ticket changes too, and its time worked follows the new times. Days on a submitted, approved or closed timesheet stay locked, as on the ticket. When someone else fixes your entries, you get a notification.
+
 ## 26.10.113 - 2026-10-22
 - Admins can set their own employment (hourly / salary / contractor) in Account > Preferences, under Timesheet - Admin > Users doesn't edit your own account. The change is written to the audit log.
 

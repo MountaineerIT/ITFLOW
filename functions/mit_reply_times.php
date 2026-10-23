@@ -390,3 +390,81 @@ function mitTsDayEntryFlags(array $rows, array $periods) {
     }
     return $out;
 }
+
+/**
+ * Can the signed-in agent change this person's ticket entries on $date from the timesheet's day panel? '' or why not:
+ * Support edit, a timesheet they may change that day (mitTsWhyDayLocked - their own while open, someone else's when they
+ * correct it) and a day that no submitted / approved / closed timesheet holds (mitReplyTimesLocked, as on the ticket).
+ */
+function mitReplyTimesEntryLock($user_id, $date) {
+    if (!mitReplyTimesReady() || lookupUserPermission('module_support') < 2) {
+        return 'Changing ticket time takes Support edit access.';
+    }
+    $why = mitTsWhyDayLocked($user_id, $date);
+    if ($why !== '') {
+        return $why;
+    }
+    $locked = mitReplyTimesLocked($user_id, $date);
+    return $locked ? date('M j', strtotime($date)) . ' ' . mitReplyTimesLockedText($locked) . '.' : '';
+}
+
+/**
+ * The timesheet's quick edit of a ticket entry (agent/mit_timesheet_ajax.php save_entry): a note's start and end on the day
+ * it counts on ($date, the day it is listed under - an end before the start runs past midnight). The length follows the
+ * times, as when the note is edited on the ticket. Same rules as ITFlow's Edit reply (Support edit, the ticket's client)
+ * plus mitReplyTimesEntryLock. Returns '' or why it was not changed.
+ */
+function mitReplyTimesQuickSet($ticket_reply_id, $user_id, $date, $start, $end) {
+    global $mysqli, $session_user_id;
+    $ticket_reply_id = intval($ticket_reply_id);
+    $user_id = intval($user_id);
+    $why = mitReplyTimesEntryLock($user_id, $date);
+    if ($why !== '') {
+        return $why;
+    }
+    $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_type, ticket_reply_created_at, ticket_reply_time_worked, ticket_reply_archived_at,
+        ticket_id, ticket_prefix, ticket_number, ticket_client_id FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id WHERE ticket_reply_id = $ticket_reply_id"));
+    if (!$reply || intval($reply['ticket_reply_by']) !== $user_id || $reply['ticket_reply_archived_at'] !== null || $reply['ticket_reply_type'] === 'Client'
+        || mitReplyTimesSeconds($reply['ticket_reply_time_worked']) <= 0) {
+        return 'That ticket entry is not on this timesheet any more - reload the page.';
+    }
+    if (intval($reply['ticket_client_id']) && !hasClientAccess($reply['ticket_client_id'])) {
+        return 'That ticket is for a client you cannot see.';
+    }
+    // It stays on the day it is listed under
+    $old = mitReplyTimesOf($ticket_reply_id);
+    $old_date = $old ? substr($old['work_start'], 0, 10) : mitTsLocalDate($user_id, $reply['ticket_reply_created_at']);
+    if ($old_date !== $date) {
+        return 'That ticket entry is not on this day any more - reload the page.';
+    }
+    $range = mitReplyTimesParse($date, $start, $end);
+    if (!$range) {
+        return 'Type a start and an end (under 24 hours apart).';
+    }
+    if ($old && substr($old['work_start'], 0, 16) === substr($range[0], 0, 16) && substr($old['work_end'], 0, 16) === substr($range[1], 0, 16)) {
+        return '';
+    }
+    $length = strtotime($range[1]) - strtotime($range[0]);
+    $time_worked = abs($length - mitReplyTimesSeconds($reply['ticket_reply_time_worked'])) < 60 ? $reply['ticket_reply_time_worked'] : mitReplyTimesClock($length);
+    mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_time_worked = '" . escapeSql($time_worked) . "' WHERE ticket_reply_id = $ticket_reply_id");
+    mitReplyTimesPending($range);
+    mitReplyTimesSavePending($ticket_reply_id);
+
+    $period = mitTsPeriodFor($date);
+    $words = substr($range[0], 11, 5) . ' - ' . substr($range[1], 11, 5) . ' on ' . $date;
+    logAudit('Ticket', 'Reply', escapeSql(mitTsWho() . ' set the time of a reply on ticket ' . ticketReference($reply) . " to $words from the timesheet"
+        . ($old ? ' (was ' . substr($old['work_start'], 11, 5) . ' - ' . substr($old['work_end'], 11, 5) . ')' : '')), intval($reply['ticket_client_id']), $ticket_reply_id);
+    if (function_exists('mitTsCaChangedAfterSigning')) {
+        mitTsCaChangedAfterSigning(mitTsSheet($user_id, $period), $period);
+    }
+    if ($user_id !== intval($session_user_id) && intval($session_user_id)) {
+        // The person is told, once an hour while someone works on their sheet (as for hours on codes)
+        $text = mitTsWho() . ' changed hours on your timesheet for ' . $period['label'];
+        $recent = mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM notifications WHERE notification_user_id = $user_id AND notification_type = 'Timesheet'
+            AND notification = '" . escapeSql($text) . "' AND notification_timestamp > NOW() - INTERVAL 1 HOUR LIMIT 1"));
+        if (!$recent) {
+            mitTsNotify($user_id, $text, mitTsLink($user_id, $period), intval(mitTsSheet($user_id, $period)['sheet_id'] ?? 0));
+        }
+    }
+    return '';
+}

@@ -409,6 +409,11 @@ model: see DEPLOYMENT.md.
   else mitTsLocalDate of the posting) feeds `mitTsTicketMinutesLive`, `mitTsDayTickets` and the day panel's entry list
   (`mitTsViewDays` 'entries', `mitTsDayEntryFlags`: overlap between timed entries, outside = not within a California day's clocked
   work periods); `mitTsReplyTimeGuard` uses the work date.
+  Quick fix from the day panel (26.10.114): an entry's times are clickable (`entryForm` / `saveEntry` in `agent/js/mit_timesheet.js`,
+  "after the one before" fills start = the previous entry's end, same length) -> `mit_timesheet_ajax.php` save_entry ->
+  `mitReplyTimesQuickSet` (Support edit, the ticket's client, stays on its day, `mitReplyTimesEntryLock` = `mitTsWhyDayLocked` +
+  `mitReplyTimesLocked`; writes ticket_reply_time_worked + mit_reply_times, audit log, notifies the person when someone else did it).
+  Entries carry `reply_id` / `editable`. No hook in ITFlow's files.
   California non-exempt (M018): `functions/mit_ts_california.php` (ours, required from mit_timesheets.php) - per person
   `mit_timesheet_people.ca_rules` (NULL = on for hourly; People modal), from `mit_settings` ts_ca_start on (set to the day M018
   ran - earlier days and periods keep their old hours; `mitTsCaOn($user_id, $date)`). Typed start / meal / end times per day

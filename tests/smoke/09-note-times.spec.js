@@ -1,6 +1,7 @@
 // Times on ticket notes (functions/mit_reply_times.php) and what the timesheet does with them: a note with time worked
 // must carry its date, start and end; typed times set its length; editing only the length moves the start; the timesheet
-// counts it on the day it was worked and lists it with its times, flagging two that overlap. Also the Contractor pay type
+// counts it on the day it was worked and lists it with its times, flagging two that overlap, and an entry's times can be
+// put right there (the note follows). Also the Contractor pay type
 // (never under California rules) and lost time shown with the codes. Makes its own client and ticket (deleted again,
 // with their notes, even when a step fails); a person's pay type is put back.
 
@@ -117,6 +118,32 @@ test('timesheet: the note counts on the day it was worked, listed with its times
     if (await day.locator('text=Lost time (auto)').count()) {
         await expect(page.locator('[data-auto-lost]'), 'lost time among the codes').toBeVisible();
     }
+
+    // Put right from the timesheet: a wrong end is refused, "after the one before" moves it clear, and the note follows
+    const second = entries.filter({ hasText: '09:30 - 10:00' });
+    await second.locator('[data-entry-edit]').click();
+    const form = page.locator('[data-entry-form]');
+    await form.locator('[data-entry-end]').fill('09:30');
+    await form.locator('[data-entry-save]').click();
+    await expect(form.locator('[data-entry-error]'), 'start = end refused').not.toBeEmpty();
+    await form.locator('[data-entry-after]').click();
+    await expect(form.locator('[data-entry-start]')).toHaveValue('09:45');
+    await expect(form.locator('[data-entry-end]')).toHaveValue('10:15');
+    await form.locator('[data-entry-save]').click();
+    await expect(entries.filter({ hasText: '09:45 - 10:15' }), 'moved after the first').toHaveCount(1);
+    await expect(page.locator('[data-ts-entries] .badge', { hasText: 'Overlaps' }), 'no overlap left').toHaveCount(0);
+    await expect(day, 'the day no longer flagged').not.toContainText('Ticket times overlap');
+    // Its length follows the new times too
+    await entries.filter({ hasText: '08:45 - 09:45' }).locator('[data-entry-edit]').click();
+    await form.locator('[data-entry-end]').fill('09:15');
+    await form.locator('[data-entry-end]').press('Enter');
+    await expect(entries.filter({ hasText: '08:45 - 09:15' }), 'the first one shortened').toHaveCount(1);
+    await expectClean(page, errors);
+
+    await visit(page, `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`, errors);
+    await expect(page.locator('[data-mit-reply-times]', { hasText: '9:45 - 10:15 AM' }), 'the note on the ticket moved').toHaveCount(1);
+    await expect(page.locator('[data-mit-reply-times]', { hasText: '8:45 - 9:15 AM' }), 'and the other shortened').toHaveCount(1);
+    await expect(page.locator('body'), 'the shortened length').toContainText('30m');
     await expectClean(page, errors);
 });
 

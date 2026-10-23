@@ -241,16 +241,8 @@
                 + '<span>' + chip('#198754', 'Ticket time', d.tickets.billable + d.tickets.other) + '</span>'
                 + '<span class="small ms-auto">The tickets <i class="fas fa-external-link-alt"></i></span></a>';
         }
-        // Each ticket entry with when it was worked (ticket notes' times)
-        if ((d.entries || []).length) {
-            html += '<ul class="list-unstyled small mb-3 mit-ts-entries" data-ts-entries>' + d.entries.map(function (e) {
-                const when = e.start ? esc(e.start) + ' - ' + esc(e.end) : '<span class="text-body-tertiary" title="This note has no times - it counts as ending when it was posted">no times</span>';
-                const warn = (e.overlap ? '<span class="badge text-bg-warning ms-1">Overlaps</span>' : '') + (e.outside ? '<span class="badge text-bg-warning ms-1">Outside your times</span>' : '');
-                const name = e.url ? '<a href="' + esc(e.url) + '" target="_blank" rel="noopener">' + esc(e.ticket) + '</a>' : esc(e.ticket);
-                return '<li class="d-flex gap-2 py-1 border-bottom' + (e.overlap || e.outside ? ' mit-ts-entry-warn' : '') + '"><span class="text-nowrap font-monospace">' + when + '</span>'
-                    + '<span class="flex-grow-1 text-truncate">' + name + warn + '</span><span class="text-nowrap">' + hours(e.minutes) + '</span></li>';
-            }).join('') + '</ul>';
-        }
+        // Each ticket entry with when it was worked (ticket notes' times) - its times can be put right here
+        html += entriesHtml(d);
         html += '<div data-codes>' + Object.entries(d.codes).map(([id, e]) => codeRow(id, e)).join('') + '</div>';
         // Unaccounted time, as a row with the codes so it is plain what the day is charged with - it shrinks as time is added
         if (d.auto_lost) {
@@ -271,6 +263,80 @@
         status(readOnly ? '<i class="fas fa-lock me-1"></i>Read only' : '');
         draw();
         panel.show();
+    }
+    function entryRow(e, i) {
+        const when = e.start ? esc(e.start) + ' - ' + esc(e.end) : '<span class="text-body-tertiary" title="This note has no times - it counts as ending when it was posted">no times</span>';
+        const warn = (e.overlap ? '<span class="badge text-bg-warning ms-1">Overlaps</span>' : '') + (e.outside ? '<span class="badge text-bg-warning ms-1">Outside your times</span>' : '');
+        const name = e.url ? '<a href="' + esc(e.url) + '" target="_blank" rel="noopener">' + esc(e.ticket) + '</a>' : esc(e.ticket);
+        const edit = !readOnly && e.editable;
+        return '<li class="d-flex gap-2 py-1 border-bottom align-items-center' + (e.overlap || e.outside ? ' mit-ts-entry-warn' : '') + '" data-entry="' + i + '">'
+            + (edit ? '<button type="button" class="btn btn-link btn-sm p-0 text-nowrap font-monospace text-reset text-decoration-none" data-entry-edit title="Change the times">' + when + ' <i class="fas fa-pencil-alt small text-body-tertiary"></i></button>'
+                : '<span class="text-nowrap font-monospace">' + when + '</span>')
+            + '<span class="flex-grow-1 text-truncate">' + name + warn + '</span><span class="text-nowrap">' + hours(e.minutes) + '</span></li>';
+    }
+    function entriesHtml(d) {
+        if (!(d.entries || []).length) return '';
+        return '<ul class="list-unstyled small mb-3 mit-ts-entries" data-ts-entries>' + d.entries.map(entryRow).join('') + '</ul>';
+    }
+    // A ticket entry's start and end, typed in its row; "After the one before" starts it where the entry before it ends
+    function entryForm(li) {
+        const i = +li.dataset.entry;
+        const e = D.days[current].entries[i];
+        const before = D.days[current].entries.slice(0, i).filter((x) => x.end).pop();
+        const after = before && (!e.start || e.start < before.end) ? before.end : '';
+        li.innerHTML = '<div class="w-100" data-entry-form>'
+            + '<div class="text-truncate mb-1">' + esc(e.ticket) + '</div>'
+            + '<div class="d-flex flex-wrap align-items-center gap-1">'
+            + '<input type="time" class="form-control form-control-sm" style="width: 7.5rem" data-entry-start value="' + esc(e.start || '') + '" aria-label="Start">'
+            + '<span>-</span><input type="time" class="form-control form-control-sm" style="width: 7.5rem" data-entry-end value="' + esc(e.end || '') + '" aria-label="End">'
+            + '<button type="button" class="btn btn-sm btn-primary" data-entry-save>Save</button>'
+            + '<button type="button" class="btn btn-sm btn-light" data-entry-cancel>Cancel</button></div>'
+            + (after ? '<button type="button" class="btn btn-link btn-sm px-0" data-entry-after="' + esc(after) + '">Start it at ' + esc(after) + ', after the one before (same length)</button>' : '')
+            + '<div class="small text-body-secondary">The note on the ticket changes too - its time follows the start and end.</div>'
+            + '<div class="small text-danger" data-entry-error></div></div>';
+        li.querySelector('[data-entry-start]').focus();
+    }
+    function saveEntry(li) {
+        const e = D.days[current].entries[+li.dataset.entry];
+        const start = li.querySelector('[data-entry-start]').value;
+        const end = li.querySelector('[data-entry-end]').value;
+        const error = li.querySelector('[data-entry-error]');
+        if (!start || !end) { error.textContent = 'Type a start and an end.'; return; }
+        const date = current;
+        const form = new FormData();
+        form.append('save_entry', '1');
+        form.append('csrf_token', D.csrf);
+        form.append('user_id', D.user_id);
+        form.append('start', D.start);
+        form.append('date', date);
+        form.append('reply_id', e.reply_id);
+        form.append('work_start', start);
+        form.append('work_end', end);
+        li.querySelectorAll('button, input').forEach((el) => { el.disabled = true; });
+        // Hours typed on codes go first, then the panel is drawn again from what the server worked out
+        flush().then(() => fetch('mit_timesheet_ajax.php', { method: 'POST', body: form, credentials: 'same-origin' }))
+            .then((r) => r.json())
+            .then(function (r) {
+                if (r.error) throw new Error(r.error);
+                if (!r.ok) throw new Error(r.message);
+                D.days[date] = r.day;
+                document.getElementById('mitTsSummary').innerHTML = r.summary;
+                document.getElementById('mitTsLeave').innerHTML = r.leave;
+                if (D.ca) {
+                    document.getElementById('mitTsChanges').innerHTML = r.changes;
+                    D.problems = r.problems;
+                    const list = document.querySelector('[data-mit-ca-problems]');
+                    if (list) list.innerHTML = problemsHtml();
+                }
+                if (current === date) openDay(date);
+                const at = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                status('<i class="fas fa-check-circle text-success me-1"></i>Ticket time saved ' + at);
+                topStatus('<i class="fas fa-check-circle text-success me-1"></i>All changes saved');
+            })
+            .catch(function (x) {
+                li.querySelectorAll('button, input').forEach((el) => { el.disabled = false; });
+                error.textContent = x.message || 'Could not save - check your connection';
+            });
     }
     function fillAdd() {
         const add = body.querySelector('[data-add]');
@@ -476,6 +542,12 @@
         current = null;
         draw();
     });
+    body.addEventListener('keydown', function (e) {
+        const li = e.target.closest('[data-entry-form]') && e.target.closest('[data-entry]');
+        if (!li) return;
+        if (e.key === 'Enter') { e.preventDefault(); saveEntry(li); }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); li.outerHTML = entryRow(D.days[current].entries[+li.dataset.entry], +li.dataset.entry); }
+    });
     body.addEventListener('input', function (e) {
         if (e.target.matches('[data-hours], [data-note], [data-block-start], [data-block-end], [data-reason]')) changed();
     });
@@ -497,6 +569,21 @@
         }
     });
     body.addEventListener('click', function (e) {
+        if (e.target.closest('[data-entry-edit]')) entryForm(e.target.closest('[data-entry]'));
+        if (e.target.closest('[data-entry-cancel]')) {
+            const li = e.target.closest('[data-entry]');
+            li.outerHTML = entryRow(D.days[current].entries[+li.dataset.entry], +li.dataset.entry);
+        }
+        if (e.target.closest('[data-entry-save]')) saveEntry(e.target.closest('[data-entry]'));
+        if (e.target.closest('[data-entry-after]')) {
+            const li = e.target.closest('[data-entry]');
+            const from = e.target.closest('[data-entry-after]').dataset.entryAfter;
+            const m = D.days[current].entries[+li.dataset.entry].minutes;
+            const [h, mm] = from.split(':').map(Number);
+            const to = (h * 60 + mm + m) % 1440;
+            li.querySelector('[data-entry-start]').value = from;
+            li.querySelector('[data-entry-end]').value = String(Math.floor(to / 60)).padStart(2, '0') + ':' + String(to % 60).padStart(2, '0');
+        }
         if (e.target.closest('[data-remove]')) {
             const row = e.target.closest('[data-code]');
             removed.add(row.dataset.code);
