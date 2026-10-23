@@ -166,9 +166,12 @@ model: see DEPLOYMENT.md.
   Entries assigned to agents (26.10.115): `functions/mit_event_agents.php` (ours, required from mit_calendar.php) - ITFlow's own
   attendee agents (`calendar_event_attendees.attendee_user_id`) are the assignment; no tables. New Event from an agent's calendar
   starts with them (`mitEventDefaultAgents` - one line in `agent/modals/calendar/calendar_event_add.php`, `agent_id` sent by
-  `newEvent` in `agent/js/calendar.js`); "Assigned to" under the title (`mitEventAssignField` - one line in
-  `agent/modals/calendar/calendar_event_form.php`, which then skips its own Agents box (`$mit_assign`) and labels the rest
-  "Invite"); `mitEventItemsAgents($items, $opts)` at the end of `calendarEventItems` in `functions/calendar.php` (agents, tech_color
+  `newEvent` in `agent/js/calendar.js`); "Assigned to" beside the title in place of ITFlow's Calendar column (26.10.118 -
+  `mitEventAssignField($form_attendees, $form_calendars, $form_calendar_id)`, one `if / else` around ITFlow's Calendar column in
+  `agent/modals/calendar/calendar_event_form.php`; one calendar = hidden `calendar` input, several = our Calendar picker
+  `[data-mit-event-calendar]`; the form then skips its own Agents box (`$mit_assign`) and labels the rest "Invite"); the quick look
+  shows agents only under Assigned to and the rest as "Invited" (one block around ITFlow's Who list in
+  `agent/modals/calendar/calendar_event.php`, `$mit_who`); `mitEventItemsAgents($items, $opts)` at the end of `calendarEventItems` in `functions/calendar.php` (agents, tech_color
   dot, names in the detail; on one agent's calendar an entry assigned to others is left out even for its maker - also in
   conflicts); quick look "Assigned to" (`mitEventQuickAssign` - one line in `agent/modals/calendar/calendar_event.php`, handler
   `agent/post/mit_event_agents.php` `mit_event_assign`, `mitEventSetAgents` keeps contacts / emails, cancels taken-off invited

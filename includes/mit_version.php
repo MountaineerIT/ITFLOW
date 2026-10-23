@@ -5,4 +5,4 @@
  * merged (26.11.1). Every version gets an entry at the top of MIT_CHANGELOG.md. See CLAUDE.md.
  */
 
-defined('MIT_VERSION') || define('MIT_VERSION', '26.10.117');
+defined('MIT_VERSION') || define('MIT_VERSION', '26.10.118');

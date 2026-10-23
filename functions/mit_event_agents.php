@@ -6,8 +6,10 @@
  * so this file only makes that plain and quick - no tables of its own:
  *  - New Event opened from an agent's calendar (Whose) starts with that agent instead of the one making it
  *    (mitEventDefaultAgents - one line in agent/modals/calendar/calendar_event_add.php; agent/js/calendar.js sends agent_id).
- *  - The form has "Assigned to" under the title (mitEventAssignField - one line in calendar_event_form.php, which then leaves
- *    its own Agents box out and calls the rest "Invite").
+ *  - The form has "Assigned to" beside the title, where ITFlow has Calendar (mitEventAssignField - one line in
+ *    calendar_event_form.php, which then leaves its own Calendar and Agents boxes out and calls the rest "Invite"); Calendar
+ *    shows only when there are several.
+ *  - The quick look lists agents under "Assigned to" and the rest under "Invited" (one block in calendar_event.php).
  *  - Entries are drawn in their agent's color with their names (mitEventItemsAgents - one line at the end of calendarEventItems).
  *  - The quick look changes who it is assigned to (mitEventQuickAssign - one line in modals/calendar/calendar_event.php,
  *    handler agent/post/mit_event_agents.php), and Dispatch's day view drags a one-off entry to another time or agent
@@ -49,18 +51,35 @@ function mitEventAgentActive($user_id) {
     return (bool) mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM users WHERE user_id = " . intval($user_id) . " AND user_type = 1 AND user_status = 1 AND user_archived_at IS NULL"));
 }
 
-/** "Assigned to" for the New / Edit Event form - the agents[] field ITFlow's handler saves. */
-function mitEventAssignField(array $form_attendees) {
+/**
+ * "Assigned to" for the New / Edit Event form - the agents[] field ITFlow's handler saves - as the column beside the title,
+ * where ITFlow has its Calendar picker. ITFlow's calendars are only lists the entries are kept on (for sharing and feeds), so
+ * with one calendar it is a hidden field; with several, its picker follows as another column (it wraps under the title).
+ */
+function mitEventAssignField(array $form_attendees, array $calendars = [], $calendar_id = 0) {
     $chosen = array_map('intval', $form_attendees['agents'] ?? []);
     $options = '';
     foreach (mitEventAgentChoices($chosen) as $user_id => $row) {
         $options .= '<option value="' . $user_id . '"' . selectOptionUser($user_id, $row['user_name'], $row['user_avatar']) . (in_array($user_id, $chosen, true) ? ' selected' : '') . '>'
             . escapeHtml($row['user_name']) . '</option>';
     }
-    return '<div class="mb-3" data-mit-event-assign>'
-        . '<label class="form-label">Assigned to <span class="text-body-secondary small fw-normal">- it shows on their calendar and on Dispatch</span></label>'
+    $html = '<div class="col-md-4" data-mit-event-assign>'
+        . '<label class="form-label">Assigned to</label>'
         . '<div class="input-group"><span class="input-group-text"><i class="fas fa-fw fa-user-tie"></i></span>'
-        . '<select class="form-select select2" name="agents[]" multiple data-placeholder="Agents">' . $options . '</select></div></div>';
+        . '<select class="form-select select2" name="agents[]" multiple data-placeholder="Pick agents">' . $options . '</select></div>'
+        . '<div class="form-text">On their calendar and on Dispatch, in their color.</div></div>';
+    if (count($calendars) <= 1) {
+        return $html . '<input type="hidden" name="calendar" value="' . intval($calendar_id ?: array_key_first($calendars)) . '">';
+    }
+    $options = '';
+    foreach ($calendars as $id => $calendar) {
+        $options .= '<option value="' . intval($id) . '"' . selectOptionColor(calendarColor($calendar['calendar_color'])) . (intval($id) === intval($calendar_id) ? ' selected' : '') . '>'
+            . escapeHtml($calendar['calendar_name']) . '</option>';
+    }
+    return $html . '<div class="col-md-4" data-mit-event-calendar>'
+        . '<label class="form-label">Calendar <span class="text-body-secondary small fw-normal">- the list it is kept on</span></label>'
+        . '<div class="input-group"><span class="input-group-text"><i class="fas fa-fw fa-calendar"></i></span>'
+        . '<select class="form-select select2" name="calendar" required>' . $options . '</select></div></div>';
 }
 
 /** The agents on these entries: event_id => [user_id => name], in name order. */

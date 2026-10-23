@@ -34,6 +34,7 @@ $form_can_email = calendarCanEmail();
             <input type="text" class="form-control" name="title" maxlength="200" value="<?= escapeHtml($form['event_title'] ?? '') ?>" placeholder="Onsite visit, Maintenance window, Quarterly review..." required autofocus>
         </div>
     </div>
+    <?php $mit_assign = function_exists('mitEventAssignField'); if ($mit_assign) { echo mitEventAssignField($form_attendees, $form_calendars, $form_calendar_id); } else { // Mountaineer IT: "Assigned to" here, Calendar only when there are several ?>
     <div class="col-md-4">
         <label class="form-label">Calendar <strong class="text-danger">*</strong></label>
         <div class="input-group">
@@ -45,9 +46,8 @@ $form_can_email = calendarCanEmail();
             </select>
         </div>
     </div>
+    <?php } ?>
 </div>
-
-<?php $mit_assign = function_exists('mitEventAssignField'); if ($mit_assign) { echo mitEventAssignField($form_attendees); } // Mountaineer IT: "Assigned to" up here, not in Who ?>
 
 <div class="itflow-cal-form-when border rounded p-3 mb-3">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">

@@ -102,12 +102,15 @@ ob_start();
             <dd><a href="client_overview.php?client_id=<?= $client_id ?>"><?= escapeHtml($event['client_name']) ?></a></dd>
         <?php } ?>
 
-        <dt>Who</dt>
+        <?php $mit_assign = function_exists('mitEventQuickAssign'); if ($mit_assign) { echo mitEventQuickAssign($event); } // Mountaineer IT: agents under Assigned to, the rest under Invited
+        $mit_who = $mit_assign ? array_values(array_filter($attendees, function ($attendee) { return $attendee['kind'] !== 'agent'; })) : $attendees;
+        if (!$mit_assign || $mit_who) { ?>
+        <dt><?= $mit_assign ? 'Invited' : 'Who' ?></dt>
         <dd class="min-w-0">
-            <?php if (!$attendees) { ?>
+            <?php if (!$mit_who) { ?>
                 <span class="text-body-secondary">Nobody added</span>
             <?php } ?>
-            <?php foreach ($attendees as $attendee) {
+            <?php foreach ($mit_who as $attendee) {
                 if ($attendee['kind'] === 'agent') {
                     $avatar = formatAssignee($attendee['attendee_user_id'], $attendee['user_name'], $attendee['user_avatar']);
                 } elseif ($attendee['kind'] === 'contact') {
@@ -128,7 +131,7 @@ ob_start();
                 </div>
             <?php } ?>
         </dd>
-        <?= function_exists('mitEventQuickAssign') ? mitEventQuickAssign($event) : '' // Mountaineer IT ?>
+        <?php } ?>
 
         <?php if (!empty($event['organizer_name'])) { ?>
             <dt>Added by</dt>

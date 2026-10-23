@@ -46,6 +46,9 @@ test('calendar entries: assigned to the agent whose calendar it was made on, sho
     expect(await modal.locator('[data-mit-event-assign] select option:checked').evaluateAll((o) => o.map((x) => Number(x.value))), 'assigned to them').toEqual([made.other]);
     await expect(modal.locator('label', { hasText: 'Invite' }), 'the rest is Invite').toHaveCount(1);
     await expect(modal.locator('select[name="agents[]"]'), 'one agents field').toHaveCount(1);
+    // Calendar only as a picker when there are several (ITFlow's lists), otherwise a hidden field
+    const calendars = await modal.locator('[name=calendar]').evaluate((el) => el.tagName === 'SELECT' ? el.options.length : 1);
+    await expect(modal.locator('[data-mit-event-calendar]'), 'Calendar picker only with several calendars').toHaveCount(calendars > 1 ? 1 : 0);
     await fillForm(modal, { title: made.title });
     await submit(modal, 'add_event');
     expect(await flash(page)).toContain('added');
@@ -73,6 +76,7 @@ test('calendar entries: assigned to the agent whose calendar it was made on, sho
     // The quick look hands it to me
     await visit(page, 'agent/calendar.php', errors);
     let look = await openModal(page, `modals/calendar/calendar_event.php?id=${made.eventId}`, 'lg');
+    await expect(look.locator('dt', { hasText: /^Who$/ }), 'agents only under Assigned to').toHaveCount(0);
     const form = look.locator('[data-mit-event-quick-assign]');
     await fillForm(form, { 'agents[]': [made.me] });
     await submit(form, 'mit_event_assign');

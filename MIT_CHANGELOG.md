@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.118 - 2026-10-23
+- Calendar entries, clearer: in New / Edit Event, "Assigned to" sits beside the title where "Calendar" was. The Calendar picker shows only when there is more than one calendar; with one, entries go on it without asking.
+- An entry's quick look lists its agents only under "Assigned to". Contacts and email addresses are under "Invited", which is left out when there are none.
+
 ## 26.10.117 - 2026-10-23
 - Calendar and Dispatch: the agent's colour on service and project bookings is a solid bar down the left edge instead of slanted stripes.
 - Calendar: the assigned agent's first name shows beside the time on bookings and entries ("Chris +1" when an entry has more agents; full names show when you hover). In a narrow column it moves under the time.
