@@ -179,10 +179,15 @@ model: see DEPLOYMENT.md.
   Service ticket color (26.10.116): `mitServiceCalendarItems` (functions/mit_calendar.php, last step of `mitCalendarTicketItems`) fills
   booked service tickets / helper bookings (not project ones) with `mit_settings` service_ticket_color (`mitServiceTicketColor`, default
   #0d6efd = ITFlow's Scheduled tickets source color) and puts the agent's color in `extendedProps.tech_color` (none when unassigned).
-  tech_color (service and project bookings) is drawn as slanted stripes: `data-mit-agent` + `--mit-agent` set in eventDidMount
+  tech_color (service and project bookings) is drawn as a bar down the left (inset box-shadow, 26.10.117 - stripes before): `data-mit-agent` + `--mit-agent` set in eventDidMount
   (`agent/js/calendar.js` - only on blocks, `mitStriped`: time grids and all-day; month view's timed items and the list keep the dot -
   and `agent/js/mit_dispatch.js`, also its week chips), CSS `[data-mit-agent]` in `agent/calendar.php` / `agent/mit_dispatch.php`. Card `admin/includes/mit_calendar_card.php` - one require at the end of `admin/settings_ticket.php`, handler
   `admin/post/mit_calendar_settings.php`. Smoke: `08-calendar.spec.js` dispatch test.
+  Agent beside the time (26.10.117): `extendedProps.agent_name` (first name - `mitFirstName`; events "Bob +1") / `agent_full` (tooltip)
+  from `mitServiceCalendarItems` (lead or helper; the lead's name is taken out of ITFlow's ticket detail) and `mitEventItemsAgents`
+  (no longer in the event detail); `agent/js/calendar.js` eventContent puts it with the time in `.mit-cal-when` (flex, wraps under the
+  time in a narrow column - CSS in `agent/calendar.php`), or at the front of the detail when no time is shown. Dispatch shows the
+  agent by column, not on the booking.
 - Microsoft 365 app (Oct 2026): `functions/mit_m365.php` (ours) creates ITFlow's own app in the
   tenant (device-code sign-in as Global Admin, Graph CLI client) or takes a hand-made one, with a
   certificate instead of a secret, renewed 30 days before expiry via Graph `addKey`. Settings in

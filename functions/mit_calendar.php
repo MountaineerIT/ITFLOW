@@ -209,18 +209,68 @@ function mitScheduleConflicts($user_id, $start, $end, $ticket_id = 0) {
     return array_merge($conflicts, mitEventConflicts($user_id, $start, $end));
 }
 
+/** A person's first name ("Chris" from "Chris Thompson") - what the calendar shows beside a booking's time. */
+function mitFirstName($name) {
+    $name = trim((string) $name);
+    return $name === '' ? '' : preg_split('/\s+/', $name)[0];
+}
+
 /** The calendar color of booked service tickets (not in a project) - Admin > Settings > Ticket (admin/includes/mit_calendar_card.php). */
 function mitServiceTicketColor() {
     return calendarColor(mitSetting('service_ticket_color', '#0d6efd'), '#0d6efd');
 }
 
 /**
- * Booked service tickets (and helpers' bookings) in the service color, with a dot in the agent's color (an unassigned
+ * Booked service tickets (and helpers' bookings) in the service color, with the agent's color as a bar (an unassigned
  * ticket has none) - like project bookings (mitProjectCalendarItems, which has already colored those and set 'project').
- * From mitCalendarTicketItems, so the calendar page, Dispatch and the dashboard all get it.
+ * Every booking (service or project) also gets extendedProps.agent_name (first name; agent_full for the tooltip) - shown beside the time by agent/js/calendar.js, so
+ * the lead's name comes out of the detail line underneath. From mitCalendarTicketItems, so the calendar page, Dispatch and
+ * the dashboard all get it.
  */
 function mitServiceCalendarItems(array $items) {
+    global $mysqli;
     $color = mitServiceTicketColor();
+    // Who each booking is for: the ticket's lead, or the helper
+    $ticket_ids = [];
+    $user_ids = [];
+    foreach ($items as $item) {
+        $kind = $item['extendedProps']['kind'] ?? '';
+        if ($kind === 'ticket') {
+            $ticket_ids[] = intval($item['extendedProps']['ticket_id'] ?? 0);
+        } elseif ($kind === 'helper') {
+            $user_ids[] = intval($item['extendedProps']['user_id'] ?? 0);
+        }
+    }
+    $leads = [];
+    $ticket_ids = array_filter(array_unique($ticket_ids));
+    if ($ticket_ids) {
+        $result = mysqli_query($mysqli, "SELECT ticket_id, user_name FROM tickets JOIN users ON user_id = ticket_assigned_to WHERE ticket_id IN (" . implode(',', $ticket_ids) . ")");
+        while ($row = mysqli_fetch_assoc($result)) {
+            $leads[intval($row['ticket_id'])] = $row['user_name'];
+        }
+    }
+    $names = [];
+    $user_ids = array_filter(array_unique($user_ids));
+    if ($user_ids) {
+        $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_id IN (" . implode(',', $user_ids) . ")");
+        while ($row = mysqli_fetch_assoc($result)) {
+            $names[intval($row['user_id'])] = $row['user_name'];
+        }
+    }
+    foreach ($items as &$item) {
+        $kind = $item['extendedProps']['kind'] ?? '';
+        $name = $kind === 'ticket' ? ($leads[intval($item['extendedProps']['ticket_id'] ?? 0)] ?? '')
+            : ($kind === 'helper' ? ($names[intval($item['extendedProps']['user_id'] ?? 0)] ?? '') : '');
+        if ($name !== '') {
+            $item['extendedProps']['agent_name'] = mitFirstName($name);
+            $item['extendedProps']['agent_full'] = $name;
+            if ($kind === 'ticket') {
+                // ITFlow's detail starts with the lead's name ("Bob · Open"); it is beside the time now
+                $item['extendedProps']['detail'] = implode(' · ', array_diff(explode(' · ', (string) ($item['extendedProps']['detail'] ?? '')), [$name]));
+            }
+        }
+    }
+    unset($item);
     foreach ($items as &$item) {
         if (!in_array($item['extendedProps']['kind'] ?? '', ['ticket', 'helper'], true) || isset($item['extendedProps']['project'])) {
             continue;

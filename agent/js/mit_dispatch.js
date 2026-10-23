@@ -712,7 +712,7 @@
                 eventDidMount: function (info) {
                     const props = info.event.extendedProps || {};
                     info.el.dataset.kind = props.kind || '';
-                    if (props.tech_color) { // the tech's color as stripes ([data-mit-agent] in agent/mit_dispatch.php)
+                    if (props.tech_color) { // the tech's color as a bar down the left ([data-mit-agent] in agent/mit_dispatch.php)
                         info.el.dataset.mitAgent = '1';
                         info.el.style.setProperty('--mit-agent', props.tech_color);
                     }

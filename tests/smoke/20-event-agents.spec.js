@@ -58,7 +58,8 @@ test('calendar entries: assigned to the agent whose calendar it was made on, sho
     expect(item, 'on their column').toBeTruthy();
     made.eventId = item.extendedProps.event_id;
     expect(item.extendedProps.agents).toEqual([made.other]);
-    expect(item.extendedProps.detail, 'their name').toContain(made.otherName);
+    expect(item.extendedProps.agent_name, 'their first name, shown beside the time').toBe(made.otherName.split(/\s+/)[0]);
+    expect(item.extendedProps.agent_full, 'their full name in the tooltip').toBe(made.otherName);
     const otherColor = await page.evaluate(async (id) => {
         const opt = [...document.querySelectorAll('[data-tech]')].find((el) => Number(el.dataset.tech) === id);
         return opt ? opt.querySelector('.rounded-circle')?.style.background : null;

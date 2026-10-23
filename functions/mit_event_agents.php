@@ -80,7 +80,8 @@ function mitEventAgents(array $event_ids) {
 
 /**
  * Hook at the end of calendarEventItems(): each entry gets its agents - extendedProps.agents (ids), the color of the agent
- * whose calendar is shown (or the first), and their names ahead of the detail ("Bob", "Bob +1"). On one agent's
+ * whose calendar is shown (or the first), its first name as extendedProps.agent_name ("Bob", "Bob +1") and everyone's full names
+ * as agent_full. On one agent's
  * calendar ($opts user_id) an entry assigned to others is left out even when that agent made it.
  */
 function mitEventItemsAgents(array $items, array $opts = []) {
@@ -103,8 +104,9 @@ function mitEventItemsAgents(array $items, array $opts = []) {
         $first = isset($on[$shown]) ? $shown : array_key_first($on);
         // Filled with the agent's color (ITFlow's calendar color stays for entries with nobody on them)
         $item['color'] = mitAgentColor($first);
-        $names = $on[$first] . (count($on) > 1 ? ' +' . (count($on) - 1) : '');
-        $item['extendedProps']['detail'] = trim($names . ' · ' . ($item['extendedProps']['detail'] ?? ''), ' ·');
+        // First name beside the time (agent/js/calendar.js), everyone's full name in the tooltip
+        $item['extendedProps']['agent_name'] = mitFirstName($on[$first]) . (count($on) > 1 ? ' +' . (count($on) - 1) : '');
+        $item['extendedProps']['agent_full'] = implode(', ', $on);
     }
     unset($item);
     return array_values($items);

@@ -119,6 +119,7 @@ test('dispatch: an agent\'s meetings show beside their bookings, count as a clas
     const serviceColor = await colorField.inputValue();
     expect(booking.color, 'the service color').toBe(serviceColor);
     expect(booking.extendedProps.tech_color, 'the agent color').toMatch(/^#[0-9a-f]{6}$/i);
+    expect(booking.extendedProps.agent_name, 'the agent\'s name, shown beside the time').toBeTruthy();
     await colorField.fill('#123456');
     await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
     const recolored = await page.evaluate(async ([date, me]) => (await (await fetch(`/agent/mit_dispatch_ajax.php?items=1&from=${date}&to=${date}&techs=${me}`)).json()), [tomorrow, me]);
@@ -126,14 +127,14 @@ test('dispatch: an agent\'s meetings show beside their bookings, count as a clas
     await page.locator('#mitServiceTicketColor').fill(serviceColor);
     await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
     expect(recolored.find((i) => i.extendedProps.ticket_id === made.ticketId && i.extendedProps.kind === 'ticket').color, 'a new service color').toBe('#123456');
-    // Drawn as stripes in the agent's color on Dispatch's day view
+    // Drawn with a bar in the agent's color on Dispatch's day view
     await visit(page, `agent/mit_dispatch.php?date=${tomorrow}`, errors);
     await page.click('[data-md-view="day"]');
     const column = page.locator(`.mit-dispatch-col[data-tech="${me}"]`);
     if (await column.count()) {
         const striped = column.locator('[data-mit-agent]').first();
         await striped.waitFor();
-        expect(await striped.evaluate((el) => getComputedStyle(el).backgroundImage), 'agent stripes').toContain('repeating-linear-gradient');
+        expect(await striped.evaluate((el) => getComputedStyle(el).boxShadow), 'the agent bar').toContain('inset');
     }
 
     // Booking over it: the meeting is named as a clash

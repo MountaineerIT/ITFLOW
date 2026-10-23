@@ -44,8 +44,10 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     .mit-dispatch-col:last-child { border-right: 0; }
     .mit-dispatch-col-head { position: sticky; top: 0; padding: .4rem .5rem; border-bottom: 1px solid var(--bs-border-color); background: var(--bs-body-bg); z-index: 3; }
     .mit-dispatch [data-kind="outlook_busy"] { background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, .25) 0 4px, transparent 4px 10px); opacity: .7; cursor: default; }
-    /* Service and project bookings (functions/mit_calendar.php): the tech's color as stripes over the booking's */
-    .mit-dispatch [data-mit-agent] { background-image: repeating-linear-gradient(135deg, var(--mit-agent) 0 6px, transparent 6px 15px); text-shadow: 0 1px 2px rgba(0, 0, 0, .65); }
+    /* Service and project bookings (functions/mit_calendar.php): a bar down the left in the tech's color */
+    .mit-dispatch [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
+    .mit-dispatch [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
+    .mit-dw-chip[data-mit-agent] { padding-left: .65rem; }
     .mit-dispatch [data-kind="helper"] { outline: 2px dashed rgba(255, 255, 255, .75); outline-offset: -3px; }
     .mit-dispatch-week th, .mit-dispatch-week td { vertical-align: top; }
     .mit-dispatch-week td.mit-dw-cell { min-width: 130px; width: 200px; max-width: 200px; height: 70px; padding: .25rem; }

@@ -59,12 +59,15 @@ foreach ($sources as $key => $source) {
         outline: 2px dashed rgba(255, 255, 255, .75);
         outline-offset: -3px;
     }
-    /* Mountaineer IT: a project booking (functions/mit_projects.php) - project color, the tech's color as a dot */
-    /* Mountaineer IT: service and project bookings (functions/mit_calendar.php) - the tech's color as stripes over the booking's */
-    #itflowCalendar [data-mit-agent] {
-        background-image: repeating-linear-gradient(135deg, var(--mit-agent) 0 6px, transparent 6px 15px);
-    }
-    #itflowCalendar [data-mit-agent] .itflow-cal-event { text-shadow: 0 1px 2px rgba(0, 0, 0, .65); }
+    /* Mountaineer IT: the tech's dot where a booking is a line (month view's timed items, the list) */
+    /* Mountaineer IT: service and project bookings (functions/mit_calendar.php) - a bar down the left in the tech's color */
+    #itflowCalendar [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
+    #itflowCalendar [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
+    /* Mountaineer IT: the assigned agent's first name beside the time - under it when the column is too narrow */
+    #itflowCalendar .mit-cal-when { display: inline-flex; flex-wrap: wrap; max-width: 100%; min-width: 0; white-space: nowrap; vertical-align: top; }
+    #itflowCalendar .is-timegrid .mit-cal-when { display: flex; }
+    #itflowCalendar .mit-cal-when .itflow-cal-time { display: inline-block; flex-shrink: 0; }
+    #itflowCalendar .mit-cal-agent { font-weight: 600; margin: 0 .25rem 0 .1rem; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 
