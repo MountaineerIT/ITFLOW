@@ -60,3 +60,55 @@ test('ninjaone: a sync leaves the rest of ITFlow usable, unmapped organizations 
         await mapping(page, 3, was || 'ignore').catch(() => {});
     }
 });
+
+// Preview plans without writing; the safety brake keeps the report - each asset it would have made, and why it matched none
+// (here two stand-in devices with no asset, one named like an existing asset). The limit is set to 1 for the run and put back.
+async function brake(page, value) {
+    await visit(page, 'admin/mit_ninjaone.php?tab=settings');
+    const form = page.locator('form:has(button[name=mit_ninja_save_settings])');
+    const input = form.locator('input[name=ninja_brake]');
+    const was = await input.inputValue();
+    await input.fill(String(value));
+    await submit(form, 'mit_ninja_save_settings');
+    return was;
+}
+
+test('ninjaone: Preview writes nothing, and the safety brake reports what it would have made and why', async ({ page }) => {
+    test.setTimeout(120000);
+    const errors = watch(page);
+    test.skip(!(await mock(page, '/_calls')), 'the NinjaOne stand-in is not installed on this test install');
+    await visit(page, 'admin/mit_ninjaone.php?tab=runs', errors);
+    test.skip(!(await page.locator('button[name=mit_ninja_preview]').count()), 'NinjaOne is not set up on this test install');
+    let was = null;
+    try {
+        await mock(page, '/_extra?on=1');
+        const preview = async () => {
+            await visit(page, 'admin/mit_ninjaone.php?tab=runs');
+            await submit(page.locator('form:has(button[name=mit_ninja_preview])'), 'mit_ninja_preview');
+        };
+        await preview();
+        expect(await flash(page)).toMatch(/Preview done - nothing was written: 2 would be new/);
+        await expect(page.locator('[data-mit-ninja-plan]')).toContainText('would make 2 new assets');
+        await expect(page.locator('[data-mit-ninja-orgs]')).toContainText('Acme Ninja');
+        await expect(page.locator('li', { hasText: 'ACME-NEW' })).toContainText('serial SER-909');
+        await expect(page.locator('li', { hasText: 'device 108' }), 'the same-named asset is shown with what it carries').toContainText(/Same name: .*Front Desk #\d+ has serial SER-303 and NinjaOne Device ID 103 \(another device\)/);
+
+        // Over the limit: nothing written, the report kept
+        was = await brake(page, 1);
+        await visit(page, 'admin/mit_ninjaone.php?tab=runs');
+        await submit(page.locator('form:has(button[name=mit_ninja_run])'), 'mit_ninja_run');
+        expect(await flash(page)).toMatch(/Safety brake: nothing was written - the report lists the 2 assets/);
+        await expect(page.locator('[data-mit-ninja-plan]')).toContainText('Stopped by the safety brake');
+        await expect(page.locator('li', { hasText: 'ACME-NEW' })).toHaveCount(1);
+
+        // Still nothing made: a second preview finds the same two
+        await preview();
+        expect(await flash(page)).toMatch(/2 would be new/);
+        await expectClean(page, errors);
+    } finally {
+        await mock(page, '/_extra?on=0');
+        if (was !== null) {
+            await brake(page, was).catch(() => {});
+        }
+    }
+});

@@ -163,7 +163,7 @@ function mitUsageNinjaCounts() {
 function mitUsageNinjaFreshSync() {
     global $mysqli;
     return (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT MAX(finished_at) FROM mit_ninja_runs WHERE outcome IN ('ok', 'warnings', 'problems')
-        AND finished_at > NOW() - INTERVAL 2 DAY"))[0] ?? '');
+        AND trigger_kind <> 'preview' AND finished_at > NOW() - INTERVAL 2 DAY"))[0] ?? '');
 }
 
 /** Record NinjaOne's counts. Returns [clients counted, problems]. */

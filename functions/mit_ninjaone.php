@@ -480,10 +480,11 @@ function mitNinjaAssets() {
 }
 
 /**
- * Run the sync. $trigger 'cron' | 'manual'. Returns the run's report (also kept in mit_ninja_runs). Only one runs at a
+ * Run the sync. $trigger 'cron' | 'manual'; $preview plans and reports without writing (kept as trigger_kind 'preview', which
+ * the usage connector's freshness check skips). Returns the run's report (also kept in mit_ninja_runs). Only one runs at a
  * time; a run that cannot reach NinjaOne writes nothing.
  */
-function mitNinjaSync($trigger = 'cron') {
+function mitNinjaSync($trigger = 'cron', $preview = false) {
     global $mysqli, $session_user_id;
     if (!mitNinjaConfigured()) {
         return ['outcome' => 'failed', 'errors' => ['NinjaOne is not set up - add the API client ID and secret.']];
@@ -491,10 +492,11 @@ function mitNinjaSync($trigger = 'cron') {
     if (intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT GET_LOCK('mit_ninja_sync', 0)"))[0] ?? 0) !== 1) {
         return ['outcome' => 'busy', 'errors' => ['A sync is already running.']];
     }
-    mysqli_query($mysqli, "INSERT INTO mit_ninja_runs SET trigger_kind = '" . ($trigger === 'manual' ? 'manual' : 'cron') . "', started_by = " . intval($session_user_id ?? 0));
+    $kind = $preview ? 'preview' : ($trigger === 'manual' ? 'manual' : 'cron');
+    mysqli_query($mysqli, "INSERT INTO mit_ninja_runs SET trigger_kind = '$kind', started_by = " . intval($session_user_id ?? 0));
     $run_id = mysqli_insert_id($mysqli);
     try {
-        $report = mitNinjaSyncRun();
+        $report = mitNinjaSyncRun($preview);
     } catch (Throwable $e) {
         $report = ['outcome' => 'failed', 'errors' => [$e->getMessage()], 'warnings' => [], 'totals' => []];
     }
@@ -510,11 +512,21 @@ function mitNinjaSync($trigger = 'cron') {
     return $report;
 }
 
-/** The sync itself (mitNinjaSync wraps it): read both sides, plan, write, report. */
-function mitNinjaSyncRun() {
+/**
+ * The sync itself (mitNinjaSync wraps it): read both sides, plan, write, report. A preview (or a run stopped by the safety
+ * brake) plans and reports only - nothing is written, links included.
+ */
+function mitNinjaSyncRun($preview = false) {
     global $mysqli;
     $settings = mitNinjaSettings();
-    $devices = mitNinjaGetAll('/v2/devices-detailed', [], 500);
+    $devices = [];
+    // Once per device, even if paging hands one back twice (a repeat would find its asset already claimed and be made again)
+    foreach (mitNinjaGetAll('/v2/devices-detailed', [], 500) as $device) {
+        if (isset($device['id']) && !isset($devices[intval($device['id'])])) {
+            $devices[intval($device['id'])] = $device;
+        }
+    }
+    $devices = array_values($devices);
     if (!$devices) {
         throw new RuntimeException('NinjaOne returned no devices - nothing to sync (check the API client has the Monitoring scope).');
     }
@@ -601,7 +613,7 @@ function mitNinjaSyncRun() {
     $claimed = [];
     $report = [
         'unmapped' => [], 'client_problems' => [], 'misplaced' => [], 'archived' => [], 'duplicates' => [], 'serial_conflicts' => [],
-        'same_name' => [], 'orphans' => [], 'deleted' => [], 'per_org' => [],
+        'same_name' => [], 'orphans' => [], 'deleted' => [], 'per_org' => [], 'new' => [],
     ];
     // Devices that were linked to an asset which has since been deleted in ITFlow (the link was cleared by the foreign key):
     // deleting it was a choice, so the sync doesn't make it again
@@ -738,6 +750,12 @@ function mitNinjaSyncRun() {
             if ($named) {
                 $report['same_name'][] = $entry + ['client' => $client_label($client_id), 'existing' => array_map($brief, $named)];
             }
+            // Why it is new: what the same-named assets in the client carry instead (no NinjaOne ID / another one, a different serial)
+            $report['new'][] = $entry + ['client' => $client_label($client_id), 'uid' => $uid, 'near' => array_map(function ($id) use ($assets, $live) {
+                $a = $assets[$id];
+                return ['asset_id' => $id, 'name' => $a['asset_name'], 'serial' => (string) $a['asset_serial'], 'ninja_id' => $a['ninja_id'],
+                    'ninja_live' => $a['ninja_id'] !== null && isset($live[$a['ninja_id']])];
+            }, array_slice($named, 0, 3))];
             $plan[] = ['action' => 'create', 'device' => $device, 'asset_id' => null, 'want' => $want, 'org_id' => $org_id];
             $org_tally($org_id, 'created');
         }
@@ -752,14 +770,14 @@ function mitNinjaSyncRun() {
     $creates = count(array_filter($plan, function ($p) {
         return $p['action'] === 'create';
     }));
-    if ($creates > $settings['brake']) {
-        throw new RuntimeException("Safety brake: this run would make $creates new assets (the limit is {$settings['brake']}), so nothing was written. "
-            . 'If that is expected - a big new client - raise the limit in Settings for one run; otherwise check the mapping.');
-    }
+    // The safety brake (not for a preview) stops the writing but keeps the report, so the list of what it would have made -
+    // and why each one matched nothing - can be read
+    $braked = !$preview && $creates > $settings['brake'];
+    $write = !$preview && !$braked;
 
     // Write
     $done = ['created' => 0, 'updated' => 0, 'failed' => []];
-    foreach ($plan as $step) {
+    foreach ($write ? $plan : [] as $step) {
         $device = $step['device'];
         $asset_id = $step['asset_id'];
         try {
@@ -783,15 +801,26 @@ function mitNinjaSyncRun() {
     foreach ($plan as $step) {
         $planned[intval($step['device']['id'])] = true;
     }
-    foreach ($devices as $device) {
+    foreach ($write ? $devices : [] as $device) {
         if (!isset($planned[intval($device['id'])])) {
             mitNinjaRememberDevice($device, false);
         }
+    }
+    foreach ($report['per_org'] as $org_id => $tally) {
+        $report['per_org'][$org_id] += ['org' => ($org_names[$org_id] ?? '') . " (#$org_id)", 'client' => $client_label(intval($mapping[$org_id]['client_id'] ?? 0))];
     }
 
     $report['unmapped'] = array_values($report['unmapped']);
     $report['client_problems'] = array_values($report['client_problems']);
     $errors = $warnings = $notes = [];
+    if ($braked) {
+        $errors[] = "Safety brake: this run would make $creates new assets (the limit is {$settings['brake']}), so nothing was written. "
+            . 'The list below says what each one would be and why it matched no asset already in ITFlow. If they really are new - a big new client - '
+            . 'raise the limit in Settings for one run; otherwise fix what keeps them from matching (the mapping, serial numbers) first.';
+    }
+    if ($preview) {
+        $notes[] = 'Preview - nothing was written. "New" means the sync would make these assets; "Updated" would change these.';
+    }
     // Organizations not mapped yet are a choice still to make, not a fault (mapping a few to start with is normal) - a note,
     // listed in full on the report, that does not mark the run as needing attention
     if ($report['unmapped']) {
@@ -838,13 +867,18 @@ function mitNinjaSyncRun() {
     $report['errors'] = $errors;
     $report['warnings'] = $warnings;
     $report['notes'] = $notes;
+    $report['preview'] = $preview;
+    $report['braked'] = $braked;
     $report['totals'] = [
         'devices' => count($devices), 'assets_read' => count($assets), 'created' => $done['created'], 'updated' => $done['updated'],
+        'would_create' => $creates, 'would_update' => count(array_filter($plan, function ($p) {
+            return $p['action'] === 'update';
+        })),
         'unchanged' => $count['unchanged'], 'ignored' => $count['ignored'],
         'unmapped' => array_sum(array_column($report['unmapped'], 'devices')), 'warranty_calls' => $warranty_calls,
     ];
-    $report['outcome'] = $errors ? 'problems' : ($warnings ? 'warnings' : 'ok');
-    foreach (['misplaced', 'archived', 'duplicates', 'serial_conflicts', 'same_name', 'orphans', 'deleted', 'failed'] as $list) {
+    $report['outcome'] = $braked ? 'failed' : ($errors ? 'problems' : ($warnings ? 'warnings' : 'ok'));
+    foreach (['misplaced', 'archived', 'duplicates', 'serial_conflicts', 'same_name', 'orphans', 'deleted', 'failed', 'new'] as $list) {
         $report[$list] = array_slice($report[$list], 0, 200);
     }
     return $report;

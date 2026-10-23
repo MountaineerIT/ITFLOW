@@ -39,6 +39,7 @@ $badge = function ($outcome) use ($outcomes) {
         <?php if ($configured) { ?>
             <form action="post.php" method="post" class="d-inline">
                 <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                <button type="submit" name="mit_ninja_preview" class="btn btn-outline-light btn-sm" title="Work out what a sync would do, without writing anything"><i class="fas fa-eye me-2"></i>Preview</button>
                 <button type="submit" name="mit_ninja_run" class="btn btn-light btn-sm"><i class="fas fa-sync-alt me-2"></i>Run sync now</button>
             </form>
         <?php } ?>
@@ -185,7 +186,10 @@ $badge = function ($outcome) use ($outcomes) {
                 $t = $r['totals'] ?? []; ?>
                 <a href="?tab=runs" class="small"><i class="fas fa-arrow-left me-1"></i>All runs</a>
                 <h5 class="mt-2"><?= escapeHtml(date('M j, Y g:i A', strtotime($run['started_at']))) ?> <?= $badge($run['outcome']) ?></h5>
-                <?php if ($t) { ?>
+                <?php if ($t && (!empty($r['preview']) || !empty($r['braked']))) { ?>
+                    <p class="text-muted" data-mit-ninja-plan><strong><?= !empty($r['preview']) ? 'Preview' : 'Stopped by the safety brake' ?> - nothing was written.</strong> <?= intval($t['devices'] ?? 0) ?> NinjaOne devices · would make <?= intval($t['would_create'] ?? 0) ?> new assets ·
+                        would update <?= intval($t['would_update'] ?? 0) ?> · <?= intval($t['unchanged'] ?? 0) ?> unchanged · <?= intval($t['ignored'] ?? 0) ?> in organizations not synced · <?= intval($t['unmapped'] ?? 0) ?> in organizations not mapped</p>
+                <?php } elseif ($t) { ?>
                     <p class="text-muted"><?= intval($t['devices'] ?? 0) ?> NinjaOne devices · <?= intval($t['created'] ?? 0) ?> new assets · <?= intval($t['updated'] ?? 0) ?> updated ·
                         <?= intval($t['unchanged'] ?? 0) ?> unchanged · <?= intval($t['ignored'] ?? 0) ?> in organizations not synced · <?= intval($t['unmapped'] ?? 0) ?> in organizations not mapped</p>
                 <?php } ?>
@@ -199,8 +203,37 @@ $badge = function ($outcome) use ($outcomes) {
                         <?php } ?>
                     </div>
                 <?php } ?>
+                <?php if (!empty($r['per_org'])) {
+                    $planned = !empty($r['preview']) || !empty($r['braked']); ?>
+                    <h6 class="mt-4">By organization</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0 small" data-mit-ninja-orgs>
+                            <thead class="text-muted"><tr><th>NinjaOne organization</th><th>ITFlow client</th><th class="text-end"><?= $planned ? 'Would be new' : 'New' ?></th><th class="text-end"><?= $planned ? 'Would update' : 'Updated' ?></th><th class="text-end">Unchanged</th><th class="text-end">Skipped</th></tr></thead>
+                            <tbody>
+                                <?php foreach ($r['per_org'] as $tally) { ?>
+                                    <tr>
+                                        <td><?= escapeHtml($tally['org'] ?? '') ?></td><td><?= escapeHtml($tally['client'] ?? '') ?></td>
+                                        <td class="text-end <?= !empty($tally['created']) ? 'fw-semibold' : '' ?>"><?= intval($tally['created'] ?? 0) ?></td>
+                                        <td class="text-end"><?= intval($tally['updated'] ?? 0) ?></td><td class="text-end"><?= intval($tally['unchanged'] ?? 0) ?></td><td class="text-end"><?= intval($tally['skipped'] ?? 0) ?></td>
+                                    </tr>
+                                <?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php } ?>
                 <?php
                 $sections = [
+                    'new' => [!empty($r['preview']) || !empty($r['braked']) ? 'Would be made (matched no asset in ITFlow)' : 'Made new', function ($row) {
+                        $why = 'no asset in ' . escapeHtml($row['client']) . ' has NinjaOne Device ID ' . intval($row['device_id'])
+                            . ($row['uid'] !== '' ? ' or UID ' . escapeHtml($row['uid']) : '') . ' in its notes, or serial ' . escapeHtml($row['serial'] ?: '-');
+                        $near = array_map(function ($a) {
+                            return '<a href="/agent/asset.php?asset_id=' . intval($a['asset_id']) . '">' . escapeHtml($a['name']) . ' #' . intval($a['asset_id']) . '</a> has serial '
+                                . escapeHtml($a['serial'] !== '' ? $a['serial'] : '(none)')
+                                . ($a['ninja_id'] !== null ? ' and NinjaOne Device ID ' . intval($a['ninja_id']) . ($a['ninja_live'] ? ' (another device)' : ' (no longer in NinjaOne)') : ' and no NinjaOne ID');
+                        }, (array) ($row['near'] ?? []));
+                        return '<strong>' . escapeHtml($row['name']) . '</strong> <span class="text-muted">(' . escapeHtml($row['org']) . ', device ' . intval($row['device_id']) . ')</span> - ' . $why
+                            . ($near ? '. Same name: ' . implode('; ', $near) : '');
+                    }],
                     'same_name' => ['Same name, kept apart', function ($row) {
                         return escapeHtml($row['name']) . ' in ' . escapeHtml($row['client']) . ' - a new asset was made beside: '
                             . implode(', ', array_map(function ($a) { return '<a href="/agent/asset.php?asset_id=' . intval($a['asset_id']) . '">' . escapeHtml($a['name']) . ' #' . intval($a['asset_id']) . '</a>'; }, $row['existing']));
@@ -246,7 +279,7 @@ $badge = function ($outcome) use ($outcomes) {
                                 <?php foreach ($runs as $row) { ?>
                                     <tr>
                                         <td class="text-nowrap"><?= escapeHtml(date('M j, g:i A', strtotime($row['started_at']))) ?></td>
-                                        <td><?= $row['trigger_kind'] === 'manual' ? escapeHtml($row['user_name'] ?: 'Someone') : 'Schedule' ?></td>
+                                        <td><?= $row['trigger_kind'] === 'cron' ? 'Schedule' : escapeHtml($row['user_name'] ?: 'Someone') . ($row['trigger_kind'] === 'preview' ? ' <span class="badge text-bg-light border">Preview</span>' : '') ?></td>
                                         <td><?= $badge($row['outcome']) ?></td>
                                         <td class="text-end"><?= intval($row['created']) ?></td>
                                         <td class="text-end"><?= intval($row['updated']) ?></td>

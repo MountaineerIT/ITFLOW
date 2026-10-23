@@ -102,7 +102,7 @@ if (isset($_POST['mit_ninja_import'])) {
     redirect('mit_ninjaone.php?tab=mapping');
 }
 
-if (isset($_POST['mit_ninja_run'])) {
+if (isset($_POST['mit_ninja_run']) || isset($_POST['mit_ninja_preview'])) {
 
     validateCSRFToken();
 
@@ -112,13 +112,17 @@ if (isset($_POST['mit_ninja_run'])) {
     set_time_limit(900);
     session_write_close();
     try {
-        $report = mitNinjaSync('manual');
+        $report = mitNinjaSync('manual', isset($_POST['mit_ninja_preview']));
     } finally {
         session_start();
     }
     $totals = $report['totals'] ?? [];
-    if (in_array($report['outcome'], ['failed', 'busy'], true)) {
+    if (!empty($report['braked'])) {
+        flashAlert('Safety brake: nothing was written - the report lists the ' . intval($totals['would_create'] ?? 0) . ' assets it would have made and why each matched nothing.', 'error');
+    } elseif (in_array($report['outcome'], ['failed', 'busy'], true)) {
         flashAlert(escapeHtml(implode(' ', $report['errors'] ?? ['The sync did not run.'])), 'error');
+    } elseif (!empty($report['preview'])) {
+        flashAlert('Preview done - nothing was written: ' . intval($totals['would_create'] ?? 0) . ' would be new, ' . intval($totals['would_update'] ?? 0) . ' updated, ' . intval($totals['unchanged'] ?? 0) . ' unchanged.');
     } else {
         flashAlert('Sync done: ' . intval($totals['created'] ?? 0) . ' new, ' . intval($totals['updated'] ?? 0) . ' updated, ' . intval($totals['unchanged'] ?? 0) . ' unchanged'
             . ($report['errors'] || $report['warnings'] ? ' - see the report' : ''), $report['errors'] ? 'warning' : 'success');

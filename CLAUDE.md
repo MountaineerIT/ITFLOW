@@ -569,7 +569,13 @@ model: see DEPLOYMENT.md.
   (a long run used to hold the session lock - every other page of that person waited); the same around QuickBooks Sync now, usage
   connector Run now and Customer Thermometer Run now. Warranty lookups only for devices of mapped organizations. Unmapped
   organizations go in the report's `notes` (shown as `[data-mit-ninja-note]` with the list in a <details>), not `errors`. The
-  test install's stand-in (`ninja-mock/index.php`) has `/_slow?seconds=`, `/_calls`, `/_clear`; smoke `22-ninjaone-sync.spec.js`.
+  test install's stand-in (`ninja-mock/index.php`) has `/_slow?seconds=`, `/_calls`, `/_clear`, `/_extra?on=1` (two devices with no asset);
+  smoke `22-ninjaone-sync.spec.js`.
+  26.10.122: the safety brake no longer throws - `mitNinjaSyncRun($preview)` plans, then writes nothing (links, remembered devices
+  included) when braked or previewing, and the report keeps `new` (each would-be asset with why: client, NinjaOne ID / UID / serial
+  looked for, and up to 3 same-named assets with their serial / NinjaOne ID) plus `per_org` (org + client labels, shown as "By
+  organization"). "Preview" button (`mit_ninja_preview` -> `mitNinjaSync('manual', true)`, run kept as trigger_kind 'preview', which
+  `mitUsageNinjaFreshSync` skips). Devices are de-duplicated by id.
 - QuickBooks Online (Oct 2026, first release - steps 1-3 of the billing plan; later: usage billing on agreement lines with an
   inbound API, monthly snapshot and review, then source connectors NinjaOne / Bitwarden / Ingram Micro / Parallels / M365):
   Audit fixes (26.10.101): payments refused for any live batch entry (`mitQboTakesPayments`; hooks also in `cron/nightly_tasks.php` autopay +
