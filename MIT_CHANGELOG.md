@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.124 - 2026-10-23
+- Modern look: tick boxes and round option buttons have a darker border, so they are easy to see on white and on shaded rows (light and dark mode). They turn the accent colour when the mouse is over them.
+
 ## 26.10.123 - 2026-10-23
 - Modern look: lists are easier to read row by row. There is a thin line between rows and the alternate-row shading is a little stronger, in light and dark mode. This covers the Tickets list and every other table.
 

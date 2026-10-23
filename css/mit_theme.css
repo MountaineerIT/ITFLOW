@@ -32,6 +32,7 @@
     --mit-line: #e6eaf0;
     --mit-row-alt: #eef2f7;
     --mit-row-line: #dde3eb;
+    --mit-check-border: #8a94a3;
     --mit-field-line: #dfe3ea;
     --mit-text: #1f2937;
     --mit-muted: #6b7280;
@@ -59,6 +60,7 @@
     --mit-line: #2a3649;
     --mit-row-alt: #1a2536;
     --mit-row-line: #314058;
+    --mit-check-border: #7d8ba0;
     --mit-field-line: #334155;
     --mit-text: #e5e9f0;
     --mit-muted: #94a3b8;
@@ -380,6 +382,13 @@ body .app-header.navbar > .container-fluid > .navbar-nav > .nav-item > .nav-link
 }
 
 /* ---------- buttons, tabs, inputs ---------- */
+/* Tick boxes and radios with a border that shows on white and on the row stripe (Bootstrap's is a faint grey) */
+.form-check-input:not(:checked) {
+    border-color: var(--mit-check-border);
+}
+.form-check-input:not(:checked):hover {
+    border-color: var(--mit-accent);
+}
 .btn {
     border-radius: 8px;
     font-weight: 600;
