@@ -33,8 +33,10 @@ if (isset($_POST['edit_company'])) {
 
             move_uploaded_file($file_tmp_path, $dest_path);
 
-            // Delete old file
-            unlink("../uploads/settings/$existing_file_name");
+            // Delete old file - there is none the first time a logo is uploaded
+            if ($existing_file_name !== '' && is_file("../uploads/settings/$existing_file_name")) {
+                unlink("../uploads/settings/$existing_file_name");
+            }
 
             // Set Logo
             mysqli_query($mysqli,"UPDATE companies SET company_logo = '$new_file_name' WHERE company_id = 1");
@@ -53,6 +55,7 @@ if (isset($_POST['edit_company'])) {
     mysqli_query($mysqli,"UPDATE companies SET company_name = '$name', company_address = '$address', company_city = '$city', company_state = '$state', company_zip = '$zip', company_country = '$country', company_phone_country_code = '$phone_country_code', company_phone = '$phone', company_email = '$email', company_website = '$website', company_tax_id = '$tax_id' WHERE company_id = 1");
 
     mysqli_query($mysqli,"UPDATE settings SET config_internal_client_id = $internal_client_id WHERE company_id = 1");
+    if (function_exists('mitBrandLogoSave')) { mitBrandLogoSave($_POST); } // Mountaineer IT
 
     logAudit("Settings", "Edit", "$session_name edited company details");
 

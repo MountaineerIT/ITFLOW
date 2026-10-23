@@ -50,6 +50,7 @@ $company_initials = escapeHtml(initials($company_name));
                                 <label>Upload company logo</label>
                                 <input type="file" class="form-control" name="file" accept=".jpg, .jpeg, .png">
                             </div>
+                            <?= function_exists('mitBrandLogoField') ? mitBrandLogoField() : '' // Mountaineer IT: logo on its own in the side menu ?>
                         </div>
 
                         <div class="col-md-9">

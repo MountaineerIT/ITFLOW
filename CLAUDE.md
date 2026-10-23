@@ -131,7 +131,7 @@ model: see DEPLOYMENT.md.
   client's own customer, portal documents / files record the portal user id; `guest_view_ticket.php` avatar path;
   `guest_download_file.php` checks the item first, quoted filename. Stage 3 (26.10.96): `agent/invoice.php` / `quote.php` /
   `recurring_invoice.php` draw the logo only when one is set (an empty name asked for the uploads/settings/ folder - 403);
-  `client/login_reset.php` reads the user row with `?? 0`; `agent/user/post.php` HTTP_REFERER `?? ''`. 26.10.98: `agent/post/invoice_model.php` discounts `?? 0` (add_invoice posts no recurring_discount).
+  `client/login_reset.php` reads the user row with `?? 0`; `agent/user/post.php` HTTP_REFERER `?? ''`. 26.10.98: `agent/post/invoice_model.php` discounts `?? 0` (add_invoice posts no recurring_discount). 26.10.120: `admin/post/settings_company.php` deletes the old logo only when there is one (the first upload unlinked the folder).
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -753,6 +753,10 @@ model: see DEPLOYMENT.md.
   `.app-sidebar .nav-link.active`, `.card-header.bg-dark`, `.itflow-dash-rail*` (items with `.itflow-dash-rail-label` get the
   one-line tile; others, like the client overview's Financial strip `.itflow-ov-stats`, stay stacked), `.itflow-client-switcher`, `btn-outline-dark`
   / `-info` reply-type toggles.
+  Logo on its own (26.10.120, every look): `mitBrandLogoOnly` / `mitBrandLogoField` / `mitBrandLogoSave` in `functions/mit_theme.php`,
+  `mit_settings` brand_logo_only - one line under the upload field in `admin/settings_company.php`, one in `admin/post/settings_company.php`
+  edit_company, and in `agent/includes/side_nav.php` `$mit_logo_only` (the logo tile gets `data-mit-logo-only` + an inline style to take
+  the width, the name span is left out). Smoke `21-brand-logo.spec.js`.
   Sign-in screens (for everyone, not per agent): `css/mit_login.css` + `css/mit_login_nodes.svg` (a file - login.php sends
   `Content-Security-Policy: default-src 'self'`, which refuses data: images), loaded by `mitLoginHead()` - one line after
   itflow_custom.css in `login.php` and `client/login_reset.php`. Only `.login-box` / the "Powered by" line are lifted over the

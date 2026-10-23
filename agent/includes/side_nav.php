@@ -25,18 +25,19 @@
         $brand_logo = '';
     }
     $brand_name = escapeHtml($session_company_name);
+    $mit_logo_only = $brand_logo !== '' && function_exists('mitBrandLogoOnly') && mitBrandLogoOnly(); // Mountaineer IT: the logo has the name in it
     ?>
 
     <div class="sidebar-brand itflow-brand">
         <a class="brand-link itflow-brand-link" href="<?= $brand_link ?>" title="<?= $brand_name ?>">
             <?php if ($brand_logo) { ?>
-                <span class="itflow-brand-mark itflow-brand-mark-logo">
+                <span class="itflow-brand-mark itflow-brand-mark-logo"<?= $mit_logo_only ? ' data-mit-logo-only style="max-width: none; flex: 1 1 auto; justify-content: flex-start"' : '' ?>>
                     <img src="/uploads/settings/<?= escapeHtml(rawurlencode($brand_logo)) ?>" alt="" decoding="async">
                 </span>
             <?php } else { ?>
                 <span class="itflow-brand-mark itflow-brand-mark-initials" aria-hidden="true"><?= escapeHtml(clientInitials('', $session_company_name)) ?></span>
             <?php } ?>
-            <span class="itflow-brand-name"><?= $brand_name ?></span>
+            <?php if (!$mit_logo_only) { ?><span class="itflow-brand-name"><?= $brand_name ?></span><?php } ?>
         </a>
     </div>
 

@@ -59,4 +59,29 @@ function mitThemeSavePreference($user_id, array $post) {
     }
 }
 
+/*
+ * The company's mark in the side menu (agent/includes/side_nav.php): ITFlow puts the company name beside the logo. When the
+ * logo already has the name in it, Admin > Settings > Company Details > "The logo shows the company name" (mit_settings
+ * brand_logo_only) shows the logo on its own, across the width the name took. For every look.
+ */
+function mitBrandLogoOnly() {
+    return (string) mitSetting('brand_logo_only', '0') === '1';
+}
+
+/** The switch under the logo on Company Details (inside ITFlow's form, saved by mitBrandLogoSave). */
+function mitBrandLogoField() {
+    return '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-only>'
+        . '<input type="hidden" name="mit_brand_logo_present" value="1">'
+        . '<input class="form-check-input" type="checkbox" role="switch" name="mit_brand_logo_only" value="1" id="mitBrandLogoOnly"' . (mitBrandLogoOnly() ? ' checked' : '') . '>'
+        . '<label class="form-check-label" for="mitBrandLogoOnly">The logo shows the company name</label>'
+        . '<div class="form-text">The side menu then shows the logo on its own, without the name beside it.</div></div>';
+}
+
+/** Hook in edit_company (admin/post/settings_company.php): save the switch when the form had it. */
+function mitBrandLogoSave(array $post) {
+    if (!empty($post['mit_brand_logo_present'])) {
+        mitSetSetting('brand_logo_only', empty($post['mit_brand_logo_only']) ? '0' : '1');
+    }
+}
+
 require_once __DIR__ . '/mit_client_tiles.php';
