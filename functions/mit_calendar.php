@@ -293,6 +293,7 @@ function mitCleanCalendarState(array $state) {
 require_once __DIR__ . '/mit_recurring.php';
 require_once __DIR__ . '/mit_ticket_techs.php';
 require_once __DIR__ . '/mit_left_behind.php'; // tickets whose booked day has gone
+require_once __DIR__ . '/mit_event_agents.php'; // calendar entries assigned to agents
 
 /*
  * ---------- Holidays on the calendar ----------

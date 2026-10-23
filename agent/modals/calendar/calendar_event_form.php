@@ -47,6 +47,8 @@ $form_can_email = calendarCanEmail();
     </div>
 </div>
 
+<?php $mit_assign = function_exists('mitEventAssignField'); if ($mit_assign) { echo mitEventAssignField($form_attendees); } // Mountaineer IT: "Assigned to" up here, not in Who ?>
+
 <div class="itflow-cal-form-when border rounded p-3 mb-3">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
         <div class="fw-semibold"><i class="far fa-fw fa-clock text-secondary me-1"></i>When</div>
@@ -169,9 +171,9 @@ $form_can_email = calendarCanEmail();
 </div>
 
 <div class="mb-3">
-    <label class="form-label d-block">Who <span class="text-body-secondary small fw-normal">- agents, the client's contacts, and anyone else by email</span></label>
+    <label class="form-label d-block"><?= $mit_assign ? 'Invite <span class="text-body-secondary small fw-normal">- the client\'s contacts, and anyone else by email</span>' : 'Who <span class="text-body-secondary small fw-normal">- agents, the client\'s contacts, and anyone else by email</span>' ?></label>
     <div class="row g-2">
-        <div class="col-md-6">
+        <div class="col-md-6"<?= $mit_assign ? ' hidden' : '' ?>><?php if (!$mit_assign) { // Mountaineer IT ?>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-fw fa-user-tie"></i></span>
                 <select class="form-select select2" name="agents[]" multiple data-placeholder="Agents">
@@ -184,7 +186,7 @@ $form_can_email = calendarCanEmail();
                     <?php } ?>
                 </select>
             </div>
-        </div>
+        <?php } ?></div>
         <div class="col-md-6" id="eventContactsField" <?= $form_client_id ? '' : 'hidden' ?>>
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-fw fa-address-book"></i></span>

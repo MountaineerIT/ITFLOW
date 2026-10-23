@@ -230,7 +230,8 @@ function mitDispatchItems($from, $to, array $tech_ids) {
             }
             $item['id'] = ($item['id'] ?? '') . ($kind === 'ticket' || $kind === 'helper' ? '' : "-t$tech_id"); // the same event on two agents' columns
             $item['extendedProps']['tech'] = $tech_id;
-            $item['editable'] = $kind === 'ticket' && !empty($item['editable']) && mitDispatchCanEdit(); // Dispatch View: nothing moves
+            // Dispatch View: nothing moves; a one-off calendar entry moves and goes to another agent (mitDispatchEventMove)
+            $item['editable'] = in_array($kind, ['ticket', 'event'], true) && !empty($item['editable']) && mitDispatchCanEdit();
             $item['durationEditable'] = $item['editable'];
             $items[] = $item;
         }

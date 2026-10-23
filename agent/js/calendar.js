@@ -135,6 +135,7 @@
 
     function newEvent(params) {
         const query = new URLSearchParams(params || {});
+        if (agentId()) { query.set('agent_id', agentId()); } // Mountaineer IT: from someone's calendar, it is theirs (functions/mit_event_agents.php)
         if (clientId) {
             query.set('client_id', clientId);
             query.set('lock_client', '1');

@@ -777,6 +777,7 @@ function calendarEventItems(array $calendar_ids, $from, $to, array $opts = []) {
             ];
         }
     }
+    if (function_exists('mitEventItemsAgents')) { $items = mitEventItemsAgents($items, $opts); } // Mountaineer IT: who each entry is assigned to
     return $items;
 }
 

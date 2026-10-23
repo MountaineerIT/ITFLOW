@@ -128,6 +128,7 @@ ob_start();
                 </div>
             <?php } ?>
         </dd>
+        <?= function_exists('mitEventQuickAssign') ? mitEventQuickAssign($event) : '' // Mountaineer IT ?>
 
         <?php if (!empty($event['organizer_name'])) { ?>
             <dt>Added by</dt>

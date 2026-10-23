@@ -163,6 +163,18 @@ model: see DEPLOYMENT.md.
   To schedule on Everyone lists every agent's unscheduled tickets with the agent named (`agent/ajax.php` calendar_unscheduled:
   user_id 0 = all assigned, `user_name`; `agent/js/calendar.js` loadUnscheduled sends `agentId()`), and `agent/calendar.php` loads
   calendar.js through `mitAsset` so browsers fetch our changes.
+  Entries assigned to agents (26.10.115): `functions/mit_event_agents.php` (ours, required from mit_calendar.php) - ITFlow's own
+  attendee agents (`calendar_event_attendees.attendee_user_id`) are the assignment; no tables. New Event from an agent's calendar
+  starts with them (`mitEventDefaultAgents` - one line in `agent/modals/calendar/calendar_event_add.php`, `agent_id` sent by
+  `newEvent` in `agent/js/calendar.js`); "Assigned to" under the title (`mitEventAssignField` - one line in
+  `agent/modals/calendar/calendar_event_form.php`, which then skips its own Agents box (`$mit_assign`) and labels the rest
+  "Invite"); `mitEventItemsAgents($items, $opts)` at the end of `calendarEventItems` in `functions/calendar.php` (agents, tech_color
+  dot, names in the detail; on one agent's calendar an entry assigned to others is left out even for its maker - also in
+  conflicts); quick look "Assigned to" (`mitEventQuickAssign` - one line in `agent/modals/calendar/calendar_event.php`, handler
+  `agent/post/mit_event_agents.php` `mit_event_assign`, `mitEventSetAgents` keeps contacts / emails, cancels taken-off invited
+  agents, invites newcomers when others were invited); Dispatch day view moves one-off entries in time and between agents
+  (`mitDispatchItems` makes kind `event` editable, `moveEntry` in `agent/js/mit_dispatch.js`, POST `event_move` ->
+  `mitDispatchEventMove`). Smoke `20-event-agents.spec.js`.
 - Microsoft 365 app (Oct 2026): `functions/mit_m365.php` (ours) creates ITFlow's own app in the
   tenant (device-code sign-in as Global Admin, Graph CLI client) or takes a hand-made one, with a
   certificate instead of a secret, renewed 30 days before expiry via Graph `addKey`. Settings in

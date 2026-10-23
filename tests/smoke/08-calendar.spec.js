@@ -109,7 +109,7 @@ test('dispatch: an agent\'s meetings show beside their bookings, count as a clas
     const meeting = dispatch.find((i) => i.extendedProps.kind === 'event' && i.title === 'Smoke test meeting');
     expect(meeting, 'the meeting on my Dispatch column').toBeTruthy();
     made.eventId = meeting.extendedProps.event_id;
-    expect(meeting.editable, 'not movable from Dispatch').toBeFalsy();
+    expect(meeting.editable, 'a one-off entry moves on Dispatch (functions/mit_event_agents.php)').toBe(true);
     const booking = dispatch.find((i) => i.extendedProps.kind === 'ticket' && i.extendedProps.ticket_id === made.ticketId);
     expect(booking && ['fa-car', 'fa-headset'], 'the booking says onsite or remote').toContain(booking && booking.extendedProps.icon);
 

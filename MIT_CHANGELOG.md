@@ -4,6 +4,14 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.115 - 2026-10-22
+- Calendar entries are assigned to agents. New Event has "Assigned to" under the title; contacts and email addresses are under "Invite".
+- An entry made while looking at an agent's calendar (Whose) starts assigned to that agent.
+- Entries show their agent's colour dot and name on the calendar and on Dispatch. Once an entry is assigned to others, it no longer sits on the calendar of the person who made it.
+- An entry's quick look has "Assigned to", to hand it to someone else without opening the full form.
+- On Dispatch's day view, a one-off entry can be dragged to another time or to another agent's column, which hands it over. Repeating entries still move from Edit.
+- An agent taken off an entry who had been sent the invitation gets the cancellation. A new agent gets the invitation when others on the entry already have it. People who already have the invitation get the new time.
+
 ## 26.10.114 - 2026-10-22
 - Timesheets: ticket entries in a day's panel can be fixed in place - click an entry's times to change its start and end (Enter saves, Esc cancels). An overlapping entry offers "Start it at ..., after the one before" (same length). The note on the ticket changes too, and its time worked follows the new times. Days on a submitted, approved or closed timesheet stay locked, as on the ticket. When someone else fixes your entries, you get a notification.
 

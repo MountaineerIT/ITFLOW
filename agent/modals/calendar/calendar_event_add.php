@@ -49,7 +49,7 @@ $form = [
     'event_location_id' => $form_client_id ? intval(assetClientOwnedId('location', $_GET['location_id'] ?? 0, $form_client_id)) : 0,
 ];
 $form_attendees = [
-    'agents' => [intval($session_user_id)],
+    'agents' => function_exists('mitEventDefaultAgents') ? mitEventDefaultAgents($_GET, $form_client_id) : [intval($session_user_id)], // Mountaineer IT: the agent whose calendar it came from
     'contacts' => $form_client_id && intval(assetClientOwnedId('contact', $_GET['contact_id'] ?? 0, $form_client_id)) ? [intval($_GET['contact_id'])] : [],
     'emails' => [],
 ];

@@ -419,6 +419,23 @@
         });
     }
 
+    // A calendar entry (not a ticket) dragged to another time, or to another agent's column - it goes to them
+    // (functions/mit_event_agents.php mitDispatchEventMove); repeating entries are not movable here
+    function moveEntry(info, from, to) {
+        const event = info.event;
+        const end = event.end || new Date(event.start.getTime() + 3600000);
+        return request('POST', {
+            event_move: 1, csrf_token: csrf, event_id: event.extendedProps.event_id, all_day: event.allDay ? 1 : 0,
+            start: ymd(event.start) + ' ' + hm(event.start) + ':00', end: ymd(end) + ' ' + hm(end) + ':00', from: from, to: to
+        }).then(function (json) {
+            toast(json.error || json.message, json.error ? 'error' : 'success');
+            if (json.error) {
+                info.revert();
+            }
+            refresh();
+        });
+    }
+
     function confirmUnbook(ticket) {
         return Swal.fire({
             theme: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light',
@@ -723,6 +740,10 @@
                 },
                 // To another time on this tech
                 eventDrop: function (info) {
+                    if (info.event.extendedProps.kind === 'event') {
+                        moveEntry(info, techId, techId);
+                        return;
+                    }
                     const ticket = ticketFromEvent(info.event);
                     const start = new Date(info.event.start.getTime());
                     if (info.event.allDay) {
@@ -735,6 +756,10 @@
                     });
                 },
                 eventResize: function (info) {
+                    if (info.event.extendedProps.kind === 'event') {
+                        moveEntry(info, techId, techId);
+                        return;
+                    }
                     confirmBooking(ticketFromEvent(info.event), info.event.start, techId).then(function (ok) {
                         if (!ok) {
                             info.revert();
@@ -743,6 +768,10 @@
                 },
                 // From another tech's column
                 eventReceive: function (info) {
+                    if (info.event.extendedProps.kind === 'event') {
+                        moveEntry(info, Number(info.event.extendedProps.tech), techId);
+                        return;
+                    }
                     const ticket = ticketFromEvent(info.event);
                     const start = new Date(info.event.start.getTime());
                     if (info.event.allDay) {
@@ -753,7 +782,7 @@
                 // Back onto the queue
                 eventDragStop: function (info) {
                     queueEl.classList.remove('is-drop-target');
-                    if (overQueue(info.jsEvent)) {
+                    if (overQueue(info.jsEvent) && info.event.extendedProps.kind !== 'event') {
                         confirmUnbook(ticketFromEvent(info.event));
                     }
                 },

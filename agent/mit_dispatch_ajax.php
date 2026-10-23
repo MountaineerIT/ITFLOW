@@ -13,6 +13,7 @@
  *   POST merge=1 child_id parent_id comment move_replies         merge one ticket into another (ITFlow's merge)
  *   POST book=1 ticket_id tech_id start minutes onsite contact    assign and book (+ detail_* - saved first)
  *   POST unbook=1 ticket_id                                       take the booking off
+ *   POST event_move=1 event_id start end all_day from to         a calendar entry to another time / agent (mitDispatchEventMove)
  *   POST state=1 view (day | week | workload) hidden weekends board board_techs   the board settings for this agent
  * GETs need Dispatch View, POSTs (but state) Dispatch Edit + Support edit - mitDispatchCan / mitDispatchCanEdit.
  */
@@ -110,6 +111,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['assign'])) {
         [$ok, $message] = mitDispatchAssign($_POST['ticket_id'] ?? 0, $_POST['tech_id'] ?? 0);
+        if (!$ok) {
+            $mit_fail($message);
+        }
+        echo json_encode(['ok' => true, 'message' => $message]);
+        exit;
+    }
+
+    if (isset($_POST['event_move'])) {
+        // Mountaineer IT: a calendar entry to another time and / or agent (functions/mit_event_agents.php)
+        [$ok, $message] = mitDispatchEventMove($_POST['event_id'] ?? 0, (string) ($_POST['start'] ?? ''), (string) ($_POST['end'] ?? ''),
+            !empty($_POST['all_day']), $_POST['from'] ?? 0, $_POST['to'] ?? 0);
         if (!$ok) {
             $mit_fail($message);
         }
