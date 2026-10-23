@@ -30,6 +30,8 @@
     --mit-box: #fff;
     --mit-hover: #eceff4;
     --mit-line: #e6eaf0;
+    --mit-row-alt: #eef2f7;
+    --mit-row-line: #dde3eb;
     --mit-field-line: #dfe3ea;
     --mit-text: #1f2937;
     --mit-muted: #6b7280;
@@ -55,6 +57,8 @@
     --mit-box: #1d293b;
     --mit-hover: #223047;
     --mit-line: #2a3649;
+    --mit-row-alt: #1a2536;
+    --mit-row-line: #314058;
     --mit-field-line: #334155;
     --mit-text: #e5e9f0;
     --mit-muted: #94a3b8;
@@ -355,9 +359,13 @@ body .app-header.navbar > .container-fluid > .navbar-nav > .nav-item > .nav-link
     background: var(--mit-box);
 }
 .table:not(.table-bordered) > tbody > tr:nth-child(even) > * {
-    background: var(--mit-panel);
+    background: var(--mit-row-alt);
 }
-.table:not(.table-bordered) > tbody > tr > td {
+/* A line between rows as well as the stripe, so each row (a ticket with its client, status and activity) reads as one */
+.table:not(.table-bordered):not(.table-borderless) > tbody > tr > * {
+    border-bottom: 1px solid var(--mit-row-line);
+}
+.table:not(.table-bordered) > tbody > tr:last-child > * {
     border-bottom: 0;
 }
 .table-hover > tbody > tr:hover > * {

@@ -745,7 +745,7 @@ model: see DEPLOYMENT.md.
 - Modern look (Oct 2026): `functions/mit_theme.php`, `css/mit_theme.css`, `js/mit_theme.js`, `css/fonts/inter/` (Inter,
   OFL - from @fontsource-variable/inter, latin + latin-ext) - ours. Colours, type and spacing over ITFlow's own styles, no markup
   changes: slate sidebar with a blue active pill, white top bar (the script switches ITFlow's `.app-header` `data-bs-theme="dark"`
-  to light), grey rounded `.card` panels with white boxes inside, `.itflow-dash-rail` counts as pastel icon tiles, small-caps
+  to light), grey rounded `.card` panels with white boxes inside, table rows striped (`--mit-row-alt`) with a line between them (`--mit-row-line`, 26.10.123), `.itflow-dash-rail` counts as pastel icon tiles, small-caps
   table headings, tinted badges (inline-coloured statuses / tags get `--mit-tone` + `.mit-tone` from the script), charts redrawn
   in Inter. Agent / admin / account / report pages only (not the portal, guest pages or login), light and dark (every colour
   is a `--mit-*` variable, set again under `[data-bs-theme="dark"]`; ITFlow's `--itflow-accent` / `--bs-success` ... are set

@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.123 - 2026-10-23
+- Modern look: lists are easier to read row by row. There is a thin line between rows and the alternate-row shading is a little stronger, in light and dark mode. This covers the Tickets list and every other table.
+
 ## 26.10.122 - 2026-10-23
 - NinjaOne: when the safety brake stops a sync, the run's report is kept. It lists each asset the sync wanted to make and why it matched none you already have: no asset in the client has the device's NinjaOne ID or serial number. Assets with the same name are shown with the serial and NinjaOne ID they carry instead. The report also has a table by organization.
 - NinjaOne: new "Preview" button. It works out what a sync would make, update or leave alone, and writes nothing.
