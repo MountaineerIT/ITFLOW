@@ -119,5 +119,6 @@ function mitLeftBehindMark(array $items) {
 function mitCalendarTicketItems(array $items, array $opts = []) {
     $items = function_exists('mitBoardVisibleCalendarItems') ? mitBoardVisibleCalendarItems($items) : $items;
     $items = mitLeftBehindMark($items);
-    return function_exists('mitProjectCalendarItems') ? mitProjectCalendarItems($items, $opts) : $items;
+    $items = function_exists('mitProjectCalendarItems') ? mitProjectCalendarItems($items, $opts) : $items;
+    return mitServiceCalendarItems($items);
 }

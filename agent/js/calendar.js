@@ -133,6 +133,12 @@
         link.remove();
     }
 
+    // Mountaineer IT: drawn as a block (a time grid, or all day outside the list) - those get the tech's stripes, not a dot
+    function mitStriped(arg) {
+        const view = arg.view.type;
+        return view.indexOf('list') !== 0 && (view.indexOf('timeGrid') === 0 || arg.event.allDay);
+    }
+
     function newEvent(params) {
         const query = new URLSearchParams(params || {});
         if (agentId()) { query.set('agent_id', agentId()); } // Mountaineer IT: from someone's calendar, it is theirs (functions/mit_event_agents.php)
@@ -265,7 +271,9 @@
                 time.textContent = arg.event.allDay ? 'All day' : arg.timeText;
                 wrap.appendChild(time);
             }
-            if (props.tech_color) { // Mountaineer IT: a project booking - the tech's color as a dot (functions/mit_projects.php)
+            // Mountaineer IT: a project or service ticket booking - the tech's color as stripes on a block (eventDidMount), as a dot
+            // where FullCalendar draws a line with a dot of its own (month view's timed items, the list) - functions/mit_calendar.php
+            if (props.tech_color && !mitStriped(arg)) {
                 const dot = document.createElement('span');
                 dot.className = 'mit-tech-dot';
                 dot.style.background = props.tech_color;
@@ -293,6 +301,10 @@
             const props = info.event.extendedProps || {};
             info.el.setAttribute('title', info.event.title + (props.detail ? '\n' + props.detail : ''));
             info.el.dataset.kind = props.kind || '';
+            if (props.tech_color && mitStriped(info)) { // Mountaineer IT: the tech's color as stripes ([data-mit-agent] in agent/calendar.php)
+                info.el.dataset.mitAgent = '1';
+                info.el.style.setProperty('--mit-agent', props.tech_color);
+            }
         },
 
         eventClick: function (info) {

@@ -8,7 +8,7 @@
  *    (mitEventDefaultAgents - one line in agent/modals/calendar/calendar_event_add.php; agent/js/calendar.js sends agent_id).
  *  - The form has "Assigned to" under the title (mitEventAssignField - one line in calendar_event_form.php, which then leaves
  *    its own Agents box out and calls the rest "Invite").
- *  - Entries carry their agents' color dot and names (mitEventItemsAgents - one line at the end of calendarEventItems).
+ *  - Entries are drawn in their agent's color with their names (mitEventItemsAgents - one line at the end of calendarEventItems).
  *  - The quick look changes who it is assigned to (mitEventQuickAssign - one line in modals/calendar/calendar_event.php,
  *    handler agent/post/mit_event_agents.php), and Dispatch's day view drags a one-off entry to another time or agent
  *    (mitDispatchEventMove in agent/mit_dispatch_ajax.php).
@@ -79,8 +79,8 @@ function mitEventAgents(array $event_ids) {
 }
 
 /**
- * Hook at the end of calendarEventItems(): each entry gets its agents - extendedProps.agents (ids), the color dot of the
- * agent whose calendar is shown (or the first), and their names ahead of the detail ("Bob", "Bob +1"). On one agent's
+ * Hook at the end of calendarEventItems(): each entry gets its agents - extendedProps.agents (ids), the color of the agent
+ * whose calendar is shown (or the first), and their names ahead of the detail ("Bob", "Bob +1"). On one agent's
  * calendar ($opts user_id) an entry assigned to others is left out even when that agent made it.
  */
 function mitEventItemsAgents(array $items, array $opts = []) {
@@ -101,7 +101,8 @@ function mitEventItemsAgents(array $items, array $opts = []) {
             continue;
         }
         $first = isset($on[$shown]) ? $shown : array_key_first($on);
-        $item['extendedProps']['tech_color'] = mitAgentColor($first);
+        // Filled with the agent's color (ITFlow's calendar color stays for entries with nobody on them)
+        $item['color'] = mitAgentColor($first);
         $names = $on[$first] . (count($on) > 1 ? ' +' . (count($on) - 1) : '');
         $item['extendedProps']['detail'] = trim($names . ' · ' . ($item['extendedProps']['detail'] ?? ''), ' ·');
     }

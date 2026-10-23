@@ -113,6 +113,29 @@ test('dispatch: an agent\'s meetings show beside their bookings, count as a clas
     const booking = dispatch.find((i) => i.extendedProps.kind === 'ticket' && i.extendedProps.ticket_id === made.ticketId);
     expect(booking && ['fa-car', 'fa-headset'], 'the booking says onsite or remote').toContain(booking && booking.extendedProps.icon);
 
+    // A service ticket's booking: the service color (Admin > Settings > Ticket), the agent's color as a dot
+    await visit(page, 'admin/settings_ticket.php', errors);
+    const colorField = page.locator('#mitServiceTicketColor');
+    const serviceColor = await colorField.inputValue();
+    expect(booking.color, 'the service color').toBe(serviceColor);
+    expect(booking.extendedProps.tech_color, 'the agent color').toMatch(/^#[0-9a-f]{6}$/i);
+    await colorField.fill('#123456');
+    await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
+    const recolored = await page.evaluate(async ([date, me]) => (await (await fetch(`/agent/mit_dispatch_ajax.php?items=1&from=${date}&to=${date}&techs=${me}`)).json()), [tomorrow, me]);
+    await visit(page, 'admin/settings_ticket.php');
+    await page.locator('#mitServiceTicketColor').fill(serviceColor);
+    await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
+    expect(recolored.find((i) => i.extendedProps.ticket_id === made.ticketId && i.extendedProps.kind === 'ticket').color, 'a new service color').toBe('#123456');
+    // Drawn as stripes in the agent's color on Dispatch's day view
+    await visit(page, `agent/mit_dispatch.php?date=${tomorrow}`, errors);
+    await page.click('[data-md-view="day"]');
+    const column = page.locator(`.mit-dispatch-col[data-tech="${me}"]`);
+    if (await column.count()) {
+        const striped = column.locator('[data-mit-agent]').first();
+        await striped.waitFor();
+        expect(await striped.evaluate((el) => getComputedStyle(el).backgroundImage), 'agent stripes').toContain('repeating-linear-gradient');
+    }
+
     // Booking over it: the meeting is named as a clash
     await visit(page, 'agent/calendar.php', errors);
     const moved = await book(page, `${tomorrow} 10:30`);

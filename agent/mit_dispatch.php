@@ -44,6 +44,8 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     .mit-dispatch-col:last-child { border-right: 0; }
     .mit-dispatch-col-head { position: sticky; top: 0; padding: .4rem .5rem; border-bottom: 1px solid var(--bs-border-color); background: var(--bs-body-bg); z-index: 3; }
     .mit-dispatch [data-kind="outlook_busy"] { background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, .25) 0 4px, transparent 4px 10px); opacity: .7; cursor: default; }
+    /* Service and project bookings (functions/mit_calendar.php): the tech's color as stripes over the booking's */
+    .mit-dispatch [data-mit-agent] { background-image: repeating-linear-gradient(135deg, var(--mit-agent) 0 6px, transparent 6px 15px); text-shadow: 0 1px 2px rgba(0, 0, 0, .65); }
     .mit-dispatch [data-kind="helper"] { outline: 2px dashed rgba(255, 255, 255, .75); outline-offset: -3px; }
     .mit-dispatch-week th, .mit-dispatch-week td { vertical-align: top; }
     .mit-dispatch-week td.mit-dw-cell { min-width: 130px; width: 200px; max-width: 200px; height: 70px; padding: .25rem; }
@@ -53,8 +55,6 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     /* Solid, so the days scrolling under the names / heading don't show through (the modern look makes headings transparent) */
     .table.mit-dispatch-week > tbody > tr > th, .table.mit-dispatch-week > thead > tr > th { background: var(--mit-panel, var(--bs-body-bg)) !important; }
     .mit-dispatch-week td.mit-dw-cell.is-off { background: var(--bs-tertiary-bg); }
-    /* A project booking (functions/mit_projects.php) - project color, the tech's color as a dot */
-    .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
     .mit-dw-chip { font-size: .78rem; border-radius: .3rem; padding: .15rem .35rem; margin-bottom: .2rem; color: #fff; cursor: grab; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .mit-dw-chip[data-kind="outlook_busy"], .mit-dw-chip[data-kind="helper"] { cursor: default; }
     .mit-dw-cell .sortable-ghost, .mit-dispatch-queue .sortable-ghost { opacity: .4; }

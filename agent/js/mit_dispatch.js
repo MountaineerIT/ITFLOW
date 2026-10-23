@@ -79,13 +79,6 @@
         div.textContent = text == null ? '' : String(text);
         return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
-    // A project booking's tech, as a dot in their color (the booking itself is in the project color)
-    function mitTechDot(color) {
-        const dot = document.createElement('span');
-        dot.className = 'mit-tech-dot';
-        dot.style.background = color;
-        return dot;
-    }
     // The service boards picked: all of them (null), "My boards", or one
     function pickedBoards() {
         if (state.serviceBoard === 'all' || !serviceBoards.length) {
@@ -697,9 +690,7 @@
                         time.textContent = arg.timeText;
                         wrap.appendChild(time);
                     }
-                    if (props.tech_color) {
-                        wrap.appendChild(mitTechDot(props.tech_color));
-                    }
+
                     if (props.icon) {
                         const icon = document.createElement('i');
                         icon.className = 'fas fa-fw ' + props.icon + ' itflow-cal-icon';
@@ -721,6 +712,10 @@
                 eventDidMount: function (info) {
                     const props = info.event.extendedProps || {};
                     info.el.dataset.kind = props.kind || '';
+                    if (props.tech_color) { // the tech's color as stripes ([data-mit-agent] in agent/mit_dispatch.php)
+                        info.el.dataset.mitAgent = '1';
+                        info.el.style.setProperty('--mit-agent', props.tech_color);
+                    }
                     info.el.setAttribute('title', info.event.title + (props.detail ? '\n' + props.detail : ''));
                 },
                 eventClick: function (info) {
@@ -858,10 +853,10 @@
                                 week += minutes;
                             }
                         }
-                        return '<div class="mit-dw-chip" style="background: ' + escapeText(item.color || '#6c757d') + '" data-kind="' + escapeText(props.kind || '') + '"'
+                        return '<div class="mit-dw-chip" style="background-color: ' + escapeText(item.color || '#6c757d') + (props.tech_color ? '; --mit-agent: ' + escapeText(props.tech_color) : '') + '"'
+                            + (props.tech_color ? ' data-mit-agent="1"' : '') + ' data-kind="' + escapeText(props.kind || '') + '"'
                             + (props.kind === 'ticket' && item.editable ? ' data-ticket="' + props.ticket_id + '" data-start="' + escapeText(String(item.start).substring(0, 16)) + '" data-minutes="' + minutes + '" data-onsite="' + (props.icon === 'fa-car' ? 1 : 0) + '"' : '')
                             + ' data-modal="' + escapeText(props.modal || '') + '" title="' + escapeText(item.title + (props.detail ? '\n' + props.detail : '')) + '">'
-                            + (props.tech_color ? mitTechDot(props.tech_color).outerHTML : '')
                             + (props.icon ? '<i class="fas fa-fw ' + escapeText(props.icon) + ' me-1" aria-hidden="true"></i>' : '')
                             + escapeText(startText + ' ' + item.title) + '</div>';
                     }).join('') + '</td>';

@@ -60,6 +60,11 @@ foreach ($sources as $key => $source) {
         outline-offset: -3px;
     }
     /* Mountaineer IT: a project booking (functions/mit_projects.php) - project color, the tech's color as a dot */
+    /* Mountaineer IT: service and project bookings (functions/mit_calendar.php) - the tech's color as stripes over the booking's */
+    #itflowCalendar [data-mit-agent] {
+        background-image: repeating-linear-gradient(135deg, var(--mit-agent) 0 6px, transparent 6px 15px);
+    }
+    #itflowCalendar [data-mit-agent] .itflow-cal-event { text-shadow: 0 1px 2px rgba(0, 0, 0, .65); }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 

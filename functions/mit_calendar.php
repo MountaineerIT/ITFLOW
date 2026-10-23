@@ -209,6 +209,32 @@ function mitScheduleConflicts($user_id, $start, $end, $ticket_id = 0) {
     return array_merge($conflicts, mitEventConflicts($user_id, $start, $end));
 }
 
+/** The calendar color of booked service tickets (not in a project) - Admin > Settings > Ticket (admin/includes/mit_calendar_card.php). */
+function mitServiceTicketColor() {
+    return calendarColor(mitSetting('service_ticket_color', '#0d6efd'), '#0d6efd');
+}
+
+/**
+ * Booked service tickets (and helpers' bookings) in the service color, with a dot in the agent's color (an unassigned
+ * ticket has none) - like project bookings (mitProjectCalendarItems, which has already colored those and set 'project').
+ * From mitCalendarTicketItems, so the calendar page, Dispatch and the dashboard all get it.
+ */
+function mitServiceCalendarItems(array $items) {
+    $color = mitServiceTicketColor();
+    foreach ($items as &$item) {
+        if (!in_array($item['extendedProps']['kind'] ?? '', ['ticket', 'helper'], true) || isset($item['extendedProps']['project'])) {
+            continue;
+        }
+        $unassigned = ($item['extendedProps']['kind'] ?? '') === 'ticket' && strpos((string) ($item['extendedProps']['detail'] ?? ''), 'Unassigned') === 0;
+        if (!$unassigned && !empty($item['color'])) {
+            $item['extendedProps']['tech_color'] = $item['color'];
+        }
+        $item['color'] = $color;
+    }
+    unset($item);
+    return $items;
+}
+
 /** Calendar events the agent organises or is invited to that overlap $start - $end (repeats expanded; all-day ones left out). */
 function mitEventConflicts($user_id, $start, $end) {
     if (!function_exists('calendarEventItems') || !function_exists('calendarList')) {

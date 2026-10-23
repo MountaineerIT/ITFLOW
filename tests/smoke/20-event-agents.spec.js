@@ -1,5 +1,5 @@
 // Calendar entries assigned to agents (functions/mit_event_agents.php): New Event opened from another agent's calendar starts
-// assigned to them ("Assigned to" under the title, the rest is "Invite"); the entry carries its agent's name and color dot; the
+// assigned to them ("Assigned to" under the title, the rest is "Invite"); the entry is drawn in its agent's color with their name; the
 // quick look hands it to someone else; Dispatch moves it to another time and agent. Makes its own entry ("Smoke test ...") and
 // deletes it, even when a step fails; the calendar's Whose choice is put back.
 
@@ -59,7 +59,14 @@ test('calendar entries: assigned to the agent whose calendar it was made on, sho
     made.eventId = item.extendedProps.event_id;
     expect(item.extendedProps.agents).toEqual([made.other]);
     expect(item.extendedProps.detail, 'their name').toContain(made.otherName);
-    expect(item.extendedProps.tech_color, 'their color dot').toMatch(/^#[0-9a-f]{6}$/i);
+    const otherColor = await page.evaluate(async (id) => {
+        const opt = [...document.querySelectorAll('[data-tech]')].find((el) => Number(el.dataset.tech) === id);
+        return opt ? opt.querySelector('.rounded-circle')?.style.background : null;
+    }, made.other);
+    expect(item.color, 'drawn in their color').toMatch(/^#[0-9a-f]{6}$/i);
+    if (otherColor) {
+        expect(await page.evaluate(([a, b]) => { const s = document.createElement('span'); s.style.background = a; const t = document.createElement('span'); t.style.background = b; return s.style.background === t.style.background; }, [item.color, otherColor]), 'their own color').toBe(true);
+    }
     expect(item.editable, 'a one-off entry moves on Dispatch').toBe(true);
 
     // The quick look hands it to me

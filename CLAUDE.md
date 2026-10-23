@@ -174,7 +174,15 @@ model: see DEPLOYMENT.md.
   `agent/post/mit_event_agents.php` `mit_event_assign`, `mitEventSetAgents` keeps contacts / emails, cancels taken-off invited
   agents, invites newcomers when others were invited); Dispatch day view moves one-off entries in time and between agents
   (`mitDispatchItems` makes kind `event` editable, `moveEntry` in `agent/js/mit_dispatch.js`, POST `event_move` ->
-  `mitDispatchEventMove`). Smoke `20-event-agents.spec.js`.
+  `mitDispatchEventMove`). Smoke `20-event-agents.spec.js`. Entries with agents are filled with the shown (or first) agent's color
+  (26.10.116); the calendar's color only for entries with nobody on them.
+  Service ticket color (26.10.116): `mitServiceCalendarItems` (functions/mit_calendar.php, last step of `mitCalendarTicketItems`) fills
+  booked service tickets / helper bookings (not project ones) with `mit_settings` service_ticket_color (`mitServiceTicketColor`, default
+  #0d6efd = ITFlow's Scheduled tickets source color) and puts the agent's color in `extendedProps.tech_color` (none when unassigned).
+  tech_color (service and project bookings) is drawn as slanted stripes: `data-mit-agent` + `--mit-agent` set in eventDidMount
+  (`agent/js/calendar.js` - only on blocks, `mitStriped`: time grids and all-day; month view's timed items and the list keep the dot -
+  and `agent/js/mit_dispatch.js`, also its week chips), CSS `[data-mit-agent]` in `agent/calendar.php` / `agent/mit_dispatch.php`. Card `admin/includes/mit_calendar_card.php` - one require at the end of `admin/settings_ticket.php`, handler
+  `admin/post/mit_calendar_settings.php`. Smoke: `08-calendar.spec.js` dispatch test.
 - Microsoft 365 app (Oct 2026): `functions/mit_m365.php` (ours) creates ITFlow's own app in the
   tenant (device-code sign-in as Global Admin, Graph CLI client) or takes a hand-made one, with a
   certificate instead of a secret, renewed 30 days before expiry via Graph `addKey`. Settings in
