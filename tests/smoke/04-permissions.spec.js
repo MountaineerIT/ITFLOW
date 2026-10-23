@@ -26,6 +26,11 @@ test('the timesheet person picker lists only people the technician may open', as
     }
 });
 
+test('a technician cannot set their own employment', async ({ page }) => {
+    await visit(page, 'agent/user/user_preferences.php');
+    await expect(page.locator('select[name=mit_pay_type]'), 'the Employment field is for admins').toHaveCount(0);
+});
+
 test('a technician cannot open Admin', async ({ page }) => {
     for (const url of ['admin/users.php', 'admin/settings_mail.php', 'admin/mit_timesheets.php', 'admin/mit_procurement_settings.php', 'admin/backup.php']) {
         await page.goto(url);

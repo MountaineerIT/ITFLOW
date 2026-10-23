@@ -20,7 +20,7 @@ async function mock(page, path) {
 }
 
 // Admin > Integrations > Customer Thermometer: save "What to send"
-async function settings(page, { enabled = true, start = day(0), boards = [] }) {
+async function settings(page, { enabled = true, start = day(-1), boards = [] }) {
     await visit(page, 'admin/mit_customer_thermometer.php');
     const form = page.locator('form:has(button[name=mit_ct_save])');
     await form.locator('select[name=ct_thermometer_id]').selectOption('101');
@@ -79,8 +79,9 @@ test('customer thermometer: connect, and a resolved ticket to survey', async ({ 
 
 test('customer thermometer: only from the start date, only the ticked boards, once', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
-    // Start date tomorrow: today's ticket is too old
-    await settings(page, { start: day(1), boards: [made.boardId] });
+    // Start date the day after tomorrow: today's ticket is too old (a day either side, so the test machine's and the
+    // server's time zones can't disagree about "today")
+    await settings(page, { start: day(2), boards: [made.boardId] });
     await runNow(page);
     expect(await sentFor(page), 'nothing before the start date').toHaveLength(0);
 
@@ -90,13 +91,13 @@ test('customer thermometer: only from the start date, only the ticked boards, on
         return page.locator('input[name="ct_boards[]"]').evaluateAll((boxes, id) => boxes.map((b) => b.value).filter((v) => v !== id), made.boardId);
     })();
     if (others.length) {
-        await settings(page, { start: day(0), boards: others });
+        await settings(page, { start: day(-1), boards: others });
         await runNow(page);
         expect(await sentFor(page), 'nothing from a board that is not ticked').toHaveLength(0);
     }
 
-    // Its board ticked, from today
-    expect(await settings(page, { start: day(0), boards: [made.boardId] })).toContain('surveys go out for tickets resolved from');
+    // Its board ticked, from yesterday
+    expect(await settings(page, { start: day(-1), boards: [made.boardId] })).toContain('surveys go out for tickets resolved from');
     expect(await runNow(page)).toMatch(/[1-9]\d* surveys? sent/);
     const sent = await sentFor(page);
     expect(sent, 'one survey for the ticket').toHaveLength(1);

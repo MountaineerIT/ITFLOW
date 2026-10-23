@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.113 - 2026-10-22
+- Admins can set their own employment (hourly / salary / contractor) in Account > Preferences, under Timesheet - Admin > Users doesn't edit your own account. The change is written to the audit log.
+
 ## 26.10.112 - 2026-10-22
 - Customer Thermometer: a satisfaction survey goes out for each ticket resolved on the service boards you pick, from the start date you pick (older tickets are never sent). Each carries the tech's name, the ticket number and its subject. Set up in Admin > Integrations > Customer Thermometer.
 - Responses come back every 15 minutes: "Customer happiness" (Gold + Green share, with the four counts) on the dashboard and each client's overview, a list of every response with its comment, and a line in the ticket's history.

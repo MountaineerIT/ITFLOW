@@ -1924,6 +1924,8 @@ function mitTsPreferenceFields($user_id) {
         . '<option value="week"' . ($view === 'week' ? ' selected' : '') . '>This week (others folded)</option></select></div>'
         . '<div class="col-md-4 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="mit_ts_reminders" value="1" id="mitTsReminders"'
         . (mitTsRemindersOn($user_id) ? ' checked' : '') . '><label class="form-check-label" for="mitTsReminders">Remind me to fill it in</label></div></div>'
+        // Admins set their own pay type here - Admin > Users does not edit your own account
+        . (!empty($GLOBALS['session_is_admin']) ? mitTsPayTypeField($user_id, 'col-md-8') : '')
         . (mitTsZoneColumn() ? '<div class="col-md-8"><label class="form-label" for="mitTsTimeZone">My time zone</label>' . mitTsZoneSelect('mit_ts_time_zone', mitTsOwnZone($user_id), 'mitTsTimeZone')
             . '<div class="form-text">Working remotely? Your timesheet days and the day your ticket time falls on follow this. A change counts from now - after any timesheet you have already submitted - and is logged.</div></div>' : '')
         . '<div class="col-12"><label class="form-label">Charge codes I use</label><div class="d-flex flex-wrap gap-3">';
@@ -1943,6 +1945,10 @@ function mitTsSavePreferences($user_id, array $post) {
     mitSetUserPreference($user_id, 'timesheet.format', in_array($format, ['decimal', 'hm'], true) ? $format : '');
     mitSetUserPreference($user_id, 'timesheet.view', ($post['mit_ts_view'] ?? '') === 'week' ? 'week' : 'period');
     mitSetUserPreference($user_id, 'timesheet.reminders', empty($post['mit_ts_reminders']) ? '0' : '1');
+    if (!empty($GLOBALS['session_is_admin']) && isset($post['mit_pay_type']) && $post['mit_pay_type'] !== mitTsPerson($user_id)['pay_type']) {
+        mitTsSavePayType($user_id, $post);
+        logAudit('User', 'Edit', escapeSql(($GLOBALS['session_name'] ?? '') . ' set their own employment to ' . (MIT_TS_PAY_TYPES[$post['mit_pay_type']] ?? '')));
+    }
     if (isset($post['mit_ts_time_zone']) && mitTsOwnZone($user_id) !== (string) $post['mit_ts_time_zone']) {
         mitTsSaveZone($user_id, $post['mit_ts_time_zone']);
     }
