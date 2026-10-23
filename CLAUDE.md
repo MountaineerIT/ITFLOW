@@ -189,7 +189,7 @@ model: see DEPLOYMENT.md.
   Agent beside the time (26.10.117): `extendedProps.agent_name` (first name - `mitFirstName`; events "Bob +1") / `agent_full` (tooltip)
   from `mitServiceCalendarItems` (lead or helper; the lead's name is taken out of ITFlow's ticket detail) and `mitEventItemsAgents`
   (no longer in the event detail); `agent/js/calendar.js` eventContent puts it with the time in `.mit-cal-when` (flex, wraps under the
-  time in a narrow column - CSS in `agent/calendar.php`), or at the front of the detail when no time is shown. Dispatch shows the
+  time in a narrow column - CSS in `agent/calendar.php`; not on month view's one-line dayGrid items - 26.10.119), or at the front of the detail when no time is shown; in the list the dot comes before it. Dispatch shows the
   agent by column, not on the booking.
 - Microsoft 365 app (Oct 2026): `functions/mit_m365.php` (ours) creates ITFlow's own app in the
   tenant (device-code sign-in as Global Admin, Graph CLI client) or takes a hand-made one, with a

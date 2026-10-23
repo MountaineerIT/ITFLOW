@@ -265,11 +265,23 @@
             const view = arg.view.type;
             const wrap = document.createElement('div');
             wrap.className = 'itflow-cal-event ' + (view.indexOf('list') === 0 ? 'is-list' : (view.indexOf('timeGrid') === 0 && !arg.event.allDay ? 'is-timegrid' : 'is-daygrid'));
+            // Mountaineer IT: a project or service ticket booking - the tech's color as a bar down the left of a block (eventDidMount), as a dot
+            // where FullCalendar draws a line with a dot of its own (month view's timed items, the list) - functions/mit_calendar.php
+            const techDot = props.tech_color && !mitStriped(arg) ? document.createElement('span') : null;
+            if (techDot) {
+                techDot.className = 'mit-tech-dot';
+                techDot.style.background = props.tech_color;
+            }
+            if (techDot && view.indexOf('list') === 0) {
+                wrap.appendChild(techDot); // in the list, ahead of the agent's name
+            }
             if ((arg.timeText && !arg.event.allDay) || (arg.event.allDay && view.indexOf('list') === 0)) {
                 const time = document.createElement('span');
                 time.className = 'itflow-cal-time';
                 time.textContent = arg.event.allDay ? 'All day' : arg.timeText;
-                if (props.agent_name) { // Mountaineer IT: who it is for, on the time's line (functions/mit_calendar.php, mit_event_agents.php)
+                // Mountaineer IT: who it is for, on the time's line (functions/mit_calendar.php, mit_event_agents.php) - not on month view's
+                // one-line items, where it would push the title out (the dot and the tooltip say who)
+                if (props.agent_name && view.indexOf('dayGrid') !== 0) {
                     const when = document.createElement('span');
                     when.className = 'mit-cal-when';
                     const agent = document.createElement('span');
@@ -281,13 +293,8 @@
                     wrap.appendChild(time);
                 }
             }
-            // Mountaineer IT: a project or service ticket booking - the tech's color as a bar down the left of a block (eventDidMount), as a dot
-            // where FullCalendar draws a line with a dot of its own (month view's timed items, the list) - functions/mit_calendar.php
-            if (props.tech_color && !mitStriped(arg)) {
-                const dot = document.createElement('span');
-                dot.className = 'mit-tech-dot';
-                dot.style.background = props.tech_color;
-                wrap.appendChild(dot);
+            if (techDot && view.indexOf('list') !== 0) {
+                wrap.appendChild(techDot);
             }
             if (props.icon) {
                 const icon = document.createElement('i');

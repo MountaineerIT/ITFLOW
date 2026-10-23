@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.119 - 2026-10-23
+- Calendar: in month view the agent's first name no longer pushes a booking's title off its one-line item; the agent's colour dot and the hover text say who. In the list view the agent's dot now comes before their name.
+- Checked the whole calendar with one item from every source (scheduled tickets, helpers, project bookings and dates, service reviews, recurring tickets, renewals, invoices due, Outlook busy times, holidays, entries on three calendars, including a repeating one) in every view, for Everyone, one agent, a client's calendar and a technician. Also checked each item's window, moving and resizing, and the subscription feeds. Everything else was working.
+
 ## 26.10.118 - 2026-10-23
 - Calendar entries, clearer: in New / Edit Event, "Assigned to" sits beside the title where "Calendar" was. The Calendar picker shows only when there is more than one calendar; with one, entries go on it without asking.
 - An entry's quick look lists its agents only under "Assigned to". Contacts and email addresses are under "Invited", which is left out when there are none.
