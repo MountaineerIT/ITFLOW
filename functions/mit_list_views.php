@@ -112,7 +112,15 @@ function mitListViewResetButton($page) {
         return '';
     }
     $html = "<a href='?mit_reset_view=" . rawurlencode(mitListViewResetToken()) . "' class='btn btn-outline-secondary text-nowrap' title='Reset view - back to the default filters and sort'>"
-        . "<i class='fas fa-fw fa-undo'></i><span class='d-none d-xl-inline ms-1'>Reset</span></a>";
+        . "<i class='fas fa-fw fa-undo'></i><span class='d-none d-xl-inline ms-1'>Reset</span></a>"
+        // While tickets are ticked, ITFlow's Bulk Action button joins this row: keep every button on one line (they used to squash
+        // into two-line buttons and push over the filters), with Reset / List / Kanban as icons only (their titles still say what)
+        . "<style>.d-flex:has(> #bulkActionButton:not([hidden])) { flex-wrap: nowrap; align-items: center; }"
+        . ".d-flex:has(> #bulkActionButton:not([hidden])) > * { flex-shrink: 0; white-space: nowrap; }"
+        . ".d-flex:has(> #bulkActionButton:not([hidden])) > :not(#bulkActionButton) .ms-1 { display: none !important; }"
+        // ... and its column takes the width that needs, the filter beside it giving way
+        . "@media (min-width: 992px) { .row > :has(> .d-flex > #bulkActionButton:not([hidden])) { flex: 0 0 auto; width: auto; margin-left: auto; }"
+        . ".row > :has(+ * > .d-flex > #bulkActionButton:not([hidden])) { flex: 1 1 12rem; width: auto; min-width: 0; } }</style>";
     if ($mit_list_view_restored === 'reset') {
         $html .= "<script>history.replaceState(null, '', location.pathname);</script>";
     } elseif ($mit_list_view_restored) {

@@ -684,6 +684,9 @@ model: see DEPLOYMENT.md.
   open, not in a client's ticket list. Hooks in `agent/tickets.php`: one line after `enforceUserPermission`
   (`mitListViewRestore('tickets')`, then filter_header.php runs again so sort / order / dates follow) and
   `mitListViewResetButton('tickets')` before the List / Board group (`?mit_reset_view=<csrf token>`). `functions.php` (require).
+  The Reset button also carries a <style> (26.10.125) for the toolbar while ITFlow's `#bulkActionButton` shows: no wrapping / shrinking,
+  Reset / List / Kanban labels hidden, and from 992 px its column takes its own width (`margin-left: auto`) with the filter before it
+  giving way (`flex: 1 1 12rem`), so a narrow screen puts the toolbar on its own line. Smoke `23-bulk-toolbar.spec.js`.
 - Service boards (Oct 2026, part 1): `functions/mit_boards.php` (ours) - who works a ticket (Service Desk, Tier 1, Tier 2, Sysadmin,
   Sales), apart from its category. Tables M026: `mit_boards` (one `board_is_default`, archived kept), `mit_board_members` (notify
   per member), `mit_ticket_boards` (no row = the default board - `mitBoardSql($alias)`), `mit_board_rules` (mailbox / client /
