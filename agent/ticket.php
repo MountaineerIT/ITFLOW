@@ -543,6 +543,7 @@ if (isset($_GET['ticket_id'])) {
                                             data-confirm-button="Resolve">
                                             <i class="fas fa-fw fa-check me-2"></i>Resolve
                                         </a>
+                                        <?= function_exists('mitNoResponseButton') ? mitNoResponseButton($ticket) : '' // Mountaineer IT: resolve - no response ?>
                                     <?php } ?>
                                 <?php } ?>
 

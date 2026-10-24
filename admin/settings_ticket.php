@@ -105,5 +105,6 @@ require_once "includes/inc_all_admin.php";
 
 <?php
 if (function_exists('mitServiceTicketColor')) { require_once "includes/mit_calendar_card.php"; } // Mountaineer IT: service ticket color on the calendar
+if (function_exists('mitNoResponseReady')) { require_once "includes/mit_no_response_card.php"; } // Mountaineer IT: Resolve - no response
 require_once "../includes/footer.php";
 

@@ -525,6 +525,7 @@ function ticketMailResolved($ticket_id, $note = '') {
     $from_email = escapeSql($config_ticket_from_email);
     $note_html = $note !== '' ? "<br><br>--------------------------------<br>$note<br>--------------------------------" : '';
     $body = "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>Your ticket regarding $subject has been marked as solved and is pending closure.$note_html<br><br>If your request/issue is resolved, you can simply ignore this email. If you need further assistance, please reply or <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>re-open</a> to let us know! <br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status<br>Portal: <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>View ticket</a><br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone";
+    $body = function_exists('mitResolvedMailBody') ? (mitResolvedMailBody($row, $note) ?? $body) : $body; // Mountaineer IT: the company's own wording
     return ticketMailContactAndWatchers($ticket_id, "Ticket resolved - [$reference] - $subject | (pending closure)", $body);
 }
 

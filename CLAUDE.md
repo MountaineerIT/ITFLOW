@@ -852,6 +852,23 @@ model: see DEPLOYMENT.md.
   `agent/client_overview.php` (before Technical, last 12 months + latest comments). Ticket history gets "survey sent" / "rated".
   Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by). Test install stand-in
   `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
+- Resolve - no response (Oct 24, 26.10.126): `functions/mit_no_response.php` (ours, required from `functions.php`) - a split arrow
+  joined onto Resolve (`mitNoResponseButton` - one line after ITFlow's Resolve link in `agent/ticket.php`; menu item "Resolve - no
+  response..." - a separate button wrapped the ⋮ menu onto a second line; `agent/js/mit_ticket_layout.js` skips `.mit-no-response` when it
+  adds Customize layout to the ⋮ menu) opens
+  `agent/modals/mit_no_response/no_response.php` with `mit_settings` no_response_message filled in (`mitNoResponseFill`: [First Name]
+  [Contact] [Client] [Ticket] [Subject] [Agent] [Date]); handler `agent/post/mit_no_response.php` (Support edit, open, tasks done like
+  resolve_ticket) -> `mitNoResponseResolve`: public note, email to contact + watchers instead of ITFlow's ticketMailResolved, ITFlow's
+  `ticketResolve` (history "... - no response from the client"), and a row in `mit_ticket_no_response` (M037: ticket_id PK, FK tickets
+  CASCADE, the `ticket_resolved_at` of that resolution). Resolved, not closed (the user's choice): ITFlow's nightly auto-close closes it
+  (sends nothing), a client reply reopens it. Customer Thermometer skips it: `mitNoResponseNotSql('t')` in `mitCtDueTickets`
+  (`resolved_at <=> ticket_resolved_at`, so a later normal resolution is surveyed). Card `admin/includes/mit_no_response_card.php` (one
+  require at the end of `admin/settings_ticket.php`, "Messages when resolving"), handler `admin/post/mit_no_response_settings.php`.
+  The same card words ITFlow's "Ticket resolved" email: `mit_settings` resolved_message (empty = ITFlow's own; saving ITFlow's wording
+  unchanged keeps it empty), `mitResolvedMailBody($row, $note)` - one guarded line before the return in `functions/ticket.php`
+  ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
+  the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
+  ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
 - Restore on a running install (Oct 22, 26.10.108): `functions/mit_backup_restore.php` (ours, required from mit_common.php) -
   Admin > Backup: Restore on a stored backup (`mitRestoreRowButton`, one line in the row actions of `admin/backup.php`) or upload a
   .zip (`admin/includes/mit_restore_card.php`, one require in ITFlow's "Restoring" card, whose "cannot be done from here" sentence

@@ -499,7 +499,8 @@
         e.preventDefault();
         customise();
     });
-    const menu = root.querySelector('.ticket-layout-header .dropdown-menu');
+    // The ticket's ⋮ menu - not the Resolve arrow's menu (mit_no_response.php) that sits before it
+    const menu = root.querySelector('.ticket-layout-header .dropdown:not(.mit-no-response) .dropdown-menu');
     if (menu) {
         const divider = document.createElement('div');
         divider.className = 'dropdown-divider';

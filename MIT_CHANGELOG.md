@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.126 - 2026-10-24
+- Tickets: Resolve now has a small arrow beside it with "Resolve - no response...", for a client who never answered after several tries. It opens your standard message filled in for the ticket (first name, ticket number, subject...), which you can change before it goes. Sending puts it on the ticket as a public note, emails it to the contact and watchers in place of the usual "Ticket resolved" email, and resolves the ticket. It then closes on its own as usual, and a reply from the client before that reopens it.
+- No Customer Thermometer survey is sent for a ticket resolved this way. If it is reopened and later resolved normally, it is surveyed as usual.
+- The standard message is set under Admin > Settings > Ticket ("Messages when resolving"), with placeholders [First Name], [Contact], [Client], [Ticket], [Subject], [Agent] and [Date].
+- The usual "Ticket resolved" email can now be worded your own way on the same card. It starts as ITFlow's wording and adds [Status], [Ticket Link] (view or re-open) and [Note] (what the agent wrote when resolving, left out when nothing was). Empty the box to go back to ITFlow's email.
+
 ## 26.10.125 - 2026-10-23
 - Tickets list: with tickets ticked, the Bulk Action, Reset, List and Kanban buttons stay one line high. Reset, List and Kanban show as icons only (hover for the name), and on a narrower screen the buttons move to their own line on the right instead of covering the filters.
 

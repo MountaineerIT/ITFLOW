@@ -207,7 +207,7 @@ function mitCtDueTickets($limit = MIT_CT_SEND_BATCH) {
         LEFT JOIN mit_ct_surveys s ON s.ticket_id = t.ticket_id
         WHERE s.survey_id IS NULL AND $done IS NOT NULL AND $done >= '$start' AND t.ticket_archived_at IS NULL
         AND c.contact_email != '' AND c.contact_archived_at IS NULL AND cl.client_archived_at IS NULL
-        AND " . mitBoardSql('t') . " IN ($boards)
+        AND " . mitBoardSql('t') . " IN ($boards) AND " . (function_exists('mitNoResponseNotSql') ? mitNoResponseNotSql('t') : '1') . "
         ORDER BY done_at, t.ticket_id LIMIT " . intval($limit));
     return mysqli_fetch_all($result, MYSQLI_ASSOC);
 }
