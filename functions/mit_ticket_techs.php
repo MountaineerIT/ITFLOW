@@ -59,7 +59,7 @@ function mitTicketTechsTidy() {
 function mitScheduleLeadChanging(array $row, $new_user_id) {
     global $mysqli, $config_smtp_provider, $config_ticket_from_email, $config_ticket_from_name, $config_base_url, $session_company_name;
     $old_user_id = intval($row['ticket_assigned_to'] ?? 0);
-    if (empty($row['ticket_schedule']) || !$old_user_id || $old_user_id === intval($new_user_id) || empty($config_smtp_provider)) {
+    if (empty($row['ticket_schedule']) || !$old_user_id || $old_user_id === intval($new_user_id) || empty($config_smtp_provider) || !mitScheduleNotify($row, 'tech')) {
         return;
     }
     $old = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT user_name, user_email FROM users WHERE user_id = $old_user_id"));
@@ -428,7 +428,7 @@ function mitTicketTechUid($ticket_id, $user_id) {
 /** Email a helper: $kind 'booked' (with the invite), 'cancelled' (its cancellation) or 'added'. */
 function mitTicketTechMail($ticket_id, $user_id, $start, $end, $kind) {
     global $mysqli, $config_smtp_provider, $config_ticket_from_email, $config_ticket_from_name, $config_base_url, $session_company_name;
-    if (empty($config_smtp_provider)) {
+    if (empty($config_smtp_provider) || !mitScheduleNotify($ticket_id, 'tech')) {
         return;
     }
     $ticket_id = intval($ticket_id);
@@ -497,6 +497,9 @@ function mitTicketTechMail($ticket_id, $user_id, $start, $end, $kind) {
  */
 function mitTicketTechsCopyMail($ticket_id, array $mail) {
     global $mysqli;
+    if (!mitNotifyOn('helper_copy')) {
+        return;
+    }
     $client_id = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_client_id FROM tickets WHERE ticket_id = " . intval($ticket_id)))[0] ?? 0);
     // The lead's body greets them by name ("Hello <name>,") - the parser writes the name as HTML, the portal as it is
     $lead = stripslashes((string) $mail['recipient_name']);

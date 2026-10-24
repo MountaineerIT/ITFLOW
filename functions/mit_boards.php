@@ -321,9 +321,11 @@ function mitBoardNotify($ticket_id, $board_id, $why, $reason, $by_user_id) {
         if (!$member['notify'] || $user_id === intval($by_user_id) || !mitAgentCanWorkTicket($user_id, $client_id, 1)) {
             continue;
         }
-        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '" . escapeSql($line) . "',
-            notification_action = '" . escapeSql($url) . "', notification_client_id = $client_id, notification_entity_id = " . intval($ticket['ticket_id']) . ", notification_user_id = $user_id");
-        if ($mail_ok && filter_var($member['user_email'], FILTER_VALIDATE_EMAIL) && $from['email'] !== '') {
+        if (mitNotifyOn('board_app')) {
+            mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '" . escapeSql($line) . "',
+                notification_action = '" . escapeSql($url) . "', notification_client_id = $client_id, notification_entity_id = " . intval($ticket['ticket_id']) . ", notification_user_id = $user_id");
+        }
+        if ($mail_ok && mitNotifyOn('board_email') && filter_var($member['user_email'], FILTER_VALIDATE_EMAIL) && $from['email'] !== '') {
             $body = escapeHtml($line) . ($ticket['client_name'] ? '<br>Client: ' . escapeHtml($ticket['client_name']) : '')
                 . ($reason !== '' ? '<br><br>' . nl2br(escapeHtml($reason)) : '')
                 . '<br><br><a href="' . escapeHtml("https://$base$url") . '">Open the ticket</a>'

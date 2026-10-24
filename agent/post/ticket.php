@@ -1857,6 +1857,7 @@ if (isset($_POST['edit_ticket_schedule'])) {
     $schedule_minutes = max(15, min(24 * 60, intval($_POST['schedule_minutes'] ?? CALENDAR_TICKET_MINUTES)));
     $schedule_end = date('Y-m-d H:i:s', strtotime($schedule) + $schedule_minutes * 60);
 
+    if (function_exists('mitScheduleNotifyFromPost')) { mitScheduleNotifyFromPost($_POST); } // Mountaineer IT: who is emailed for this booking
     $result = ticketSetSchedule($row, $schedule, intval($_POST['onsite'] ?? 0) ? 1 : 0, $schedule_end);
 
     flashAlert("Ticket scheduled for " . escapeHtml($result['when_text']) . (!empty($row['user_name']) ? ' with ' . escapeHtml($row['user_name']) : ''));

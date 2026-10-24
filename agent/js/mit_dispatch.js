@@ -25,6 +25,27 @@
     const firstDay = Number(root.dataset.firstDay) || 0;
     const defaultMinutes = Number(root.dataset.defaultMinutes) || 60;
     const contactDefault = root.dataset.contactDefault === '1';
+    // Who is emailed for a booking: the company's defaults for remote ('0') and onsite ('1') visits (functions/mit_notifications.php)
+    let notifyDefaults = null;
+    try {
+        notifyDefaults = JSON.parse(root.dataset.scheduleNotify || 'null');
+    } catch (e) {
+        notifyDefaults = null;
+    }
+    const notifyWho = {tech: 'Tech', contact: 'Contact', watchers: 'Watchers', site: 'Site contact', primary: 'Primary contact'};
+    function notifyHtml(onsite) {
+        if (!notifyDefaults) {
+            return '<div class="form-check ms-auto"><input class="form-check-input" type="checkbox" id="mdContact"' + (contactDefault ? ' checked' : '') + '><label class="form-check-label" for="mdContact">Email the contact</label></div>';
+        }
+        const set = notifyDefaults[onsite ? '1' : '0'];
+        return '<div class="col-12 mt-2" id="mdNotify"><div class="form-label mb-1">Email</div><div class="d-flex flex-wrap gap-3">'
+            + Object.keys(notifyWho).map(function (who) {
+                return '<div class="form-check"><input class="form-check-input" type="checkbox" id="mdN_' + who + '" data-who="' + who + '"' + (set[who] ? ' checked' : '')
+                    + '><label class="form-check-label" for="mdN_' + who + '">' + notifyWho[who] + '</label></div>';
+            }).join('')
+            + '</div><input type="text" class="form-control form-control-sm mt-1" id="mdN_extra" data-who="extra" placeholder="Also email (commas between)" value="' + escapeText((set.extra || []).join(', ')) + '">'
+            + (contactDefault ? '' : '<div class="text-muted">Client notifications are off - only the tech is emailed.</div>') + '</div>';
+    }
     const lengthOptions = JSON.parse(root.dataset.lengths || '[60]');
     const businessHours = JSON.parse(root.dataset.businessHours || 'true');
     const board = root.querySelector('[data-md-board]');
@@ -320,8 +341,7 @@
             + '<div class="col-12 d-flex gap-3 mt-2">'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdOnsite" value="1"' + (ticket.onsite ? ' checked' : '') + '><label class="form-check-label" for="mdOnsite">Onsite</label></div>'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdRemote" value="0"' + (ticket.onsite ? '' : ' checked') + '><label class="form-check-label" for="mdRemote">Remote</label></div>'
-            + '<div class="form-check ms-auto"><input class="form-check-input" type="checkbox" id="mdContact"' + (contactDefault ? ' checked' : '') + '><label class="form-check-label" for="mdContact">Email the contact</label></div>'
-            + '</div>' + detailsHtml(details) + '</div></div>';
+            + (notifyDefaults ? '</div>' + notifyHtml(ticket.onsite) : notifyHtml(ticket.onsite) + '</div>') + detailsHtml(details) + '</div></div>';
 
         return Swal.fire({
             theme: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light',
@@ -329,6 +349,25 @@
             html: html,
             width: details && !details.error ? '40rem' : undefined,
             didOpen: function () {
+                const notify = document.getElementById('mdNotify');
+                if (notify) {
+                    let touched = false;
+                    notify.addEventListener('input', function () {
+                        touched = true;
+                    });
+                    ['mdOnsite', 'mdRemote'].forEach(function (id) {
+                        document.getElementById(id).addEventListener('change', function () {
+                            const set = notifyDefaults[document.getElementById('mdOnsite').checked ? '1' : '0'];
+                            if (touched || !set) {
+                                return;
+                            }
+                            notify.querySelectorAll('input[type=checkbox][data-who]').forEach(function (tick) {
+                                tick.checked = !!set[tick.dataset.who];
+                            });
+                            document.getElementById('mdN_extra').value = (set.extra || []).join(', ');
+                        });
+                    });
+                }
                 // Another client: its contacts, and a word on what moving it does
                 const client = document.getElementById('mdClient');
                 if (!client) {
@@ -371,8 +410,18 @@
                     start: date + ' ' + time + ':00',
                     minutes: document.getElementById('mdLength').value,
                     onsite: document.getElementById('mdOnsite').checked ? 1 : 0,
-                    contact: document.getElementById('mdContact').checked ? 1 : 0
+                    contact: document.getElementById('mdContact') ? (document.getElementById('mdContact').checked ? 1 : 0) : 1
                 };
+                const notify = document.getElementById('mdNotify');
+                if (notify) {
+                    post.mit_schedule_notify_present = 1;
+                    notify.querySelectorAll('input[type=checkbox][data-who]').forEach(function (tick) {
+                        if (tick.checked) {
+                            post['mit_schedule_notify[' + tick.dataset.who + ']'] = 1;
+                        }
+                    });
+                    post.mit_schedule_notify_extra = document.getElementById('mdN_extra').value;
+                }
                 const subject = document.getElementById('mdSubject');
                 if (subject && !subject.value.trim()) {
                     Swal.showValidationMessage('The ticket needs a title');

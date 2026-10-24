@@ -515,9 +515,11 @@ function mitPoNotifyApprovers(array $po) {
         if ($user_id === intval($session_user_id)) {
             continue;
         }
-        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Purchase Order', notification = '" . escapeSql($text) . "',
-            notification_action = '/agent/mit_purchase_order.php?po_id=" . intval($po['po_id']) . "', notification_user_id = $user_id, notification_entity_id = " . intval($po['po_id']));
-        if (!empty($config_smtp_provider) && filter_var($approver['user_email'], FILTER_VALIDATE_EMAIL)) {
+        if (mitNotifyOn('po_app')) {
+            mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Purchase Order', notification = '" . escapeSql($text) . "',
+                notification_action = '/agent/mit_purchase_order.php?po_id=" . intval($po['po_id']) . "', notification_user_id = $user_id, notification_entity_id = " . intval($po['po_id']));
+        }
+        if (!empty($config_smtp_provider) && mitNotifyOn('po_email') && filter_var($approver['user_email'], FILTER_VALIDATE_EMAIL)) {
             $link = "https://$config_base_url/agent/mit_purchase_order.php?po_id=" . intval($po['po_id']);
             $mails[] = ['from' => escapeSql($config_ticket_from_email), 'from_name' => escapeSql($config_ticket_from_name),
                 'recipient' => escapeSql($approver['user_email']), 'recipient_name' => escapeSql($approver['user_name']),

@@ -4,6 +4,16 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.127 - 2026-10-24
+- Admin > Settings > Notifications has new rows, with app, tech email and client email switches. All are on to start, so nothing changes until you untick one:
+  - Ticket scheduled, moved or cancelled: who is emailed, set separately for remote and onsite visits. Choices are the assigned tech, the ticket contact, the watchers, the site's contact (the location's contact), the client's primary contact, and extra addresses such as a front desk. These are only defaults: the Schedule window and Dispatch's schedule dialog show them as ticks you can change for one booking. Switching a booking between Remote and Onsite switches the ticks to that visit's defaults. Cancellations go to the same people as the booking's type of visit.
+  - Ticket or recurring ticket assigned to a tech: the bell notice and the email.
+  - Ticket landed on or moved to a service board: the bell notice and the email to board members.
+  - Copies of the client's replies to additional techs.
+  - Purchase order waiting for approval: the bell notice and the email.
+  - Timesheet notices: the bell notice and the email.
+- A line at the bottom says where the other notification settings live.
+
 ## 26.10.126 - 2026-10-24
 - Tickets: Resolve now has a small arrow beside it with "Resolve - no response...", for a client who never answered after several tries. It opens your standard message filled in for the ticket (first name, ticket number, subject...), which you can change before it goes. Sending puts it on the ticket as a public note, emails it to the contact and watchers in place of the usual "Ticket resolved" email, and resolves the ticket. It then closes on its own as usual, and a reply from the client before that reopens it.
 - No Customer Thermometer survey is sent for a ticket resolved this way. If it is reopened and later resolved normally, it is surveyed as usual.

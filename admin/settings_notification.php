@@ -103,6 +103,7 @@ require_once "includes/inc_all_admin.php";
                                 </td>
                                 <td></td>
                             </tr>
+                            <?= function_exists('mitNotificationRows') ? mitNotificationRows() : '' // Mountaineer IT: scheduling, assigning and our features ?>
                         </tbody>
                     </table>
                 </div>

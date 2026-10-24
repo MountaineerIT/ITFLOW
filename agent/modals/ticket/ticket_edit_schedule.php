@@ -94,6 +94,8 @@ ob_start();
             </div>
         </div>
 
+        <?= function_exists('mitScheduleNotifyField') ? mitScheduleNotifyField($row) : '' // Mountaineer IT: who is emailed ?>
+
         <?php if ($schedule_agents) { ?>
             <!-- What else the chosen agent has that day, so it is not booked on top of something (agent/js/ticket_schedule_modal.js) -->
             <div class="border rounded p-2 small" id="scheduleAgentDay" data-user="<?= $schedule_tech ?>" data-ticket="<?= $ticket_id ?>" data-name="<?= escapeHtml($row['user_name']) ?>" hidden>

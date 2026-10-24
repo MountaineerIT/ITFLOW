@@ -100,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$ok) {
             $mit_fail($details_message);
         }
+        mitScheduleNotifyFromPost($_POST); // who is emailed for this booking
         [$ok, $message, $conflicts] = mitDispatchBook($_POST['ticket_id'] ?? 0, $_POST['tech_id'] ?? 0, (string) ($_POST['start'] ?? ''),
             $_POST['minutes'] ?? CALENDAR_TICKET_MINUTES, !empty($_POST['onsite']), !empty($_POST['contact']));
         if (!$ok) {

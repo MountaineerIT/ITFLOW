@@ -107,6 +107,7 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     data-lengths="<?= escapeHtml(json_encode(MIT_DISPATCH_LENGTHS)) ?>"
     data-business-hours="<?= escapeHtml(json_encode(mitDispatchBusinessHours())) ?>"
     data-contact-default="<?= intval($config_ticket_client_general_notifications ?? 0) === 1 ? 1 : 0 ?>"
+    data-schedule-notify="<?= function_exists('mitScheduleDefaults') ? escapeHtml(json_encode(['0' => mitScheduleDefaults(false), '1' => mitScheduleDefaults(true)])) : 'null' ?>"
     data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : date('Y-m-d') ?>">
 
     <div class="card mb-3">

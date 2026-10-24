@@ -1148,7 +1148,7 @@ function ticketMailSchedule($row, $cal_str, $cancelled, $when_text) {
     $data = [];
 
     // The agent doing the work
-    if (filter_var($row['user_email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+    if (filter_var($row['user_email'] ?? '', FILTER_VALIDATE_EMAIL) && (!function_exists('mitScheduleNotify') || mitScheduleNotify($row, 'tech'))) { // Mountaineer IT: Admin > Notifications / the booking's ticks
         // Mountaineer IT: a tech whose Outlook is synced gets the booking there - no second copy from an invite
         $agent_from = function_exists('mitOutlookSyncsEmail') && mitOutlookSyncsEmail($row['user_email']) ? ['cal_str' => ''] + $from : $from;
         $data[] = $agent_from + ['recipient' => $sql($row['user_email']), 'recipient_name' => $sql($row['user_name']),
@@ -1157,12 +1157,12 @@ function ticketMailSchedule($row, $cal_str, $cancelled, $when_text) {
 
     if (intval($config_ticket_client_general_notifications) === 1 && empty($GLOBALS['mit_schedule_skip_contact'])) { // Mountaineer IT: Dispatch can leave the contact out
         // The contact
-        if (filter_var($row['contact_email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+        if (filter_var($row['contact_email'] ?? '', FILTER_VALIDATE_EMAIL) && (!function_exists('mitScheduleNotify') || mitScheduleNotify($row, 'contact'))) { // Mountaineer IT: Admin > Notifications / the booking's ticks
             $data[] = $from + ['recipient' => $sql($row['contact_email']), 'recipient_name' => $sql($row['contact_name']),
                 'body' => $sql("<div class='header'>Hello, " . $html($row['contact_name']) . "</div>$what_yours<br><br><a href='$client_link' class='link-button'>Access your ticket here</a><br><br>Please do not reply to this email.<br><br><strong>Ticket:</strong> " . $html($reference) . "<br><strong>Subject:</strong> " . $html($subject) . "<br><br><br>$footer")];
         }
         // And the watchers
-        $watchers = mysqli_query($mysqli, "SELECT watcher_email FROM ticket_watchers WHERE watcher_ticket_id = $ticket_id");
+        $watchers = mysqli_query($mysqli, "SELECT watcher_email FROM ticket_watchers WHERE watcher_ticket_id = $ticket_id" . (function_exists('mitScheduleNotify') && !mitScheduleNotify($row, 'watchers') ? ' AND 0' : '')); // Mountaineer IT
         foreach (ticketWatcherEmails(array_column(mysqli_fetch_all($watchers, MYSQLI_ASSOC), 'watcher_email')) as $watcher_email) {
             if (strcasecmp($watcher_email, (string) ($row['contact_email'] ?? '')) === 0) {
                 continue;
@@ -1170,6 +1170,7 @@ function ticketMailSchedule($row, $cal_str, $cancelled, $when_text) {
             $data[] = $from + ['recipient' => $sql($watcher_email), 'recipient_name' => $sql($watcher_email),
                 'body' => $sql("<div class='header'>Hello,</div>$what<br><br><a href='$client_link' class='link-button'>" . $html($reference) . "</a><br><br>Please do not reply to this email.<br><br><strong>Ticket:</strong> " . $html($reference) . "<br><strong>Subject:</strong> " . $html($subject) . "<br><strong>Portal:</strong> <a href='$client_link'>Access the ticket here</a><br><br>$footer")];
         }
+        $data = function_exists('mitScheduleExtraMail') ? array_merge($data, mitScheduleExtraMail($row, $from, $what, $client_link, $footer, $data)) : $data; // Mountaineer IT: site contact, primary contact, extra addresses
     }
 
     if ($data) {

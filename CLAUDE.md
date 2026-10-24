@@ -869,6 +869,24 @@ model: see DEPLOYMENT.md.
   ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
   the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
   ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
+- Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - rows added to ITFlow's
+  Admin > Settings > Notifications table (`mitNotificationRows` - one line before `</tbody>` in `admin/settings_notification.php`; saved by
+  `mitNotificationsSave($_POST)` - one line in `admin/post/settings_notification.php`, only when `mit_notify_present` is posted). `mit_settings`
+  notify_<key> ('0' off, no row = on); `mitNotifyOn($key)`. Scheduling: defaults per visit kind (`mitScheduleNotifyRows` - a Remote / Onsite table
+  at the top of our rows; `mit_settings` notify_schedule_{remote|onsite}_{tech|contact|watchers|site|primary} '0'/'1' - tech, contact, watchers on by
+  default - and _extra, typed addresses), `mitScheduleDefaults($onsite)`; per booking `$GLOBALS['mit_schedule_notify']` from
+  `mitScheduleNotifyFromPost($_POST)` (one line before ticketSetSchedule in `agent/post/ticket.php` edit_ticket_schedule, and in
+  `agent/mit_dispatch_ajax.php` book), the ticks from `mitScheduleNotifyField($row)` (one line in `agent/modals/ticket/ticket_edit_schedule.php`
+  after Visit, `agent/js/mit_schedule_notify.js` switches them with the Visit until touched) and Dispatch's dialog (`notifyHtml` in
+  `agent/js/mit_dispatch.js`, defaults in `data-schedule-notify` on `agent/mit_dispatch.php`). `mitScheduleChoice` (the booking's choice, else the
+  ticket's `ticket_onsite` defaults; `mit_schedule_skip_contact` still means tech only). Hooks in `functions/ticket.php` ticketMailSchedule: tech
+  (`mitScheduleNotify($row, 'tech')`), contact, watchers (' AND 0' on the watcher query), and `mitScheduleExtraMail` after the watchers (site
+  contact = the ticket's location's `location_contact_id`, primary contact, extra addresses; anyone already emailed left out). Client-side ones
+  still need ITFlow's general client notifications. `mitTicketTechMail` / `mitScheduleLeadChanging` follow the tech tick. Other keys: assign_app / assign_email (guarded lines in
+  `functions/ticket_fields.php` - ticket and recurring ticket assignment), board_app / board_email (`mitBoardNotify`), helper_copy
+  (`mitTicketTechsCopyMail`), po_app / po_email (`mitPoNotifyApprovers`), timesheet_app / timesheet_email (`mitTsNotify`). Re-check the two
+  ITFlow files' hooks if upstream changes ticketMailSchedule or the assignment notices (26.11 rebuilds the Notifications page on its settings
+  frame - move the rows there). Smoke `25-notifications.spec.js`.
 - Restore on a running install (Oct 22, 26.10.108): `functions/mit_backup_restore.php` (ours, required from mit_common.php) -
   Admin > Backup: Restore on a stored backup (`mitRestoreRowButton`, one line in the row actions of `admin/backup.php`) or upload a
   .zip (`admin/includes/mit_restore_card.php`, one require in ITFlow's "Restoring" card, whose "cannot be done from here" sentence

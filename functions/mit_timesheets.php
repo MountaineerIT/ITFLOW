@@ -1631,9 +1631,11 @@ function mitTsApproversFor($user_id) {
 /** An app notification for someone, and an email when they want reminders by email ($email true). */
 function mitTsNotify($user_id, $text, $link, $entity_id, $email = false) {
     global $mysqli, $config_base_url, $config_smtp_provider, $config_mail_from_email, $config_mail_from_name;
-    mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Timesheet', notification = '" . escapeSql($text) . "',
-        notification_action = '" . escapeSql($link) . "', notification_user_id = " . intval($user_id) . ", notification_entity_id = " . intval($entity_id));
-    $user = $email ? (mitTsUsers([$user_id])[intval($user_id)] ?? null) : null;
+    if (mitNotifyOn('timesheet_app')) {
+        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Timesheet', notification = '" . escapeSql($text) . "',
+            notification_action = '" . escapeSql($link) . "', notification_user_id = " . intval($user_id) . ", notification_entity_id = " . intval($entity_id));
+    }
+    $user = $email && mitNotifyOn('timesheet_email') ? (mitTsUsers([$user_id])[intval($user_id)] ?? null) : null;
     if ($user && !empty($config_smtp_provider) && filter_var($user['user_email'], FILTER_VALIDATE_EMAIL)) {
         addToMailQueue([['from' => escapeSql(mitMailFrom()['email']), 'from_name' => escapeSql(mitMailFrom()['name']),
             'recipient' => escapeSql($user['user_email']), 'recipient_name' => escapeSql($user['user_name']), 'subject' => escapeSql($text),
