@@ -82,6 +82,7 @@ $row = mysqli_fetch_assoc($sql_settings);
 
 $company_name          = $row['company_name'];
 $company_logo          = $row['company_logo'];
+if (function_exists('mitBrandScreenLogo')) { $company_logo = mitBrandScreenLogo($company_logo); } // Mountaineer IT: the app logo
 $config_start_page     = escapeHtml($row['config_start_page']);
 $config_login_message  = escapeHtml($row['config_login_message']);
 

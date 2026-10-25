@@ -265,7 +265,8 @@ break stock ITFlow, and lists what stops working after a move.
   choice stays unused in `mit_user_preferences`.
 - **Version number** – the footer and Admin > Update show ITFlow's own release (26.10) again; `MIT_CHANGELOG.md` is ours.
 - **Logo on its own** (Company Details > "The logo shows the company name") – the side menu shows the company name beside the
-  logo again; the setting stays in `mit_settings`.
+  logo again; the setting stays in `mit_settings`. "No light tile behind the logo" goes too, and the logo for ITFlow's screens is
+  no longer used - the company logo shows everywhere (its file stays in `uploads/settings/`).
 - **Project tickets** – they show on the Tickets board, the client's Tickets tab and the Dispatch queue again, and
   calendar bookings go back to the tech's color. They keep no SLA (ours took it off) - set one by hand on a ticket that
   needs it.

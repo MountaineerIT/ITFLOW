@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.134 - 2026-10-25
+- Company Details has a second logo, "Logo for ITFlow's screens": the side menu and the sign-in page show it, while the company logo stays on quotes, invoices, purchase orders and their PDFs. Leave it empty to use the company logo everywhere, as before.
+- New switch "No light tile behind the logo" (Company Details): the side menu and sign-in page show the logo without the white box behind it, for a logo drawn for a dark background.
+
 ## 26.10.133 - 2026-10-25
 - MSP Align takes the place of "Needs attention": on a client's overview (for clients MSP Align has) and on the dashboard. Switch it off on Admin > Integrations > MSP Align to get ITFlow's Needs attention back.
 - The client overview's MSP Align section has a Past SLA tile: the client's open tickets past SLA, opening ITFlow's ticket list.

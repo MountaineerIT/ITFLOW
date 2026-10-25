@@ -778,6 +778,13 @@ model: see DEPLOYMENT.md.
   `mit_settings` brand_logo_only - one line under the upload field in `admin/settings_company.php`, one in `admin/post/settings_company.php`
   edit_company, and in `agent/includes/side_nav.php` `$mit_logo_only` (the logo tile gets `data-mit-logo-only` + an inline style to take
   the width, the name span is left out). Smoke `21-brand-logo.spec.js`.
+  26.10.134: `mitBrandLogoAttrs()` now writes those attributes (the side_nav line calls it) and adds `data-mit-logo-plain` + an inline
+  style with no tile when `mit_settings` brand_logo_plain is on ("No light tile behind the logo"; on the sign-in page via
+  `css/mit_login_plain.css`, loaded by `mitLoginHead` - login.php's CSP refuses inline styles). A second logo for ITFlow's screens
+  (`mitBrandAppLogo`, `mit_settings` brand_app_logo = a random-named JPG / PNG in uploads/settings/, checked with getimagesize; uploaded /
+  removed in `mitBrandLogoField` / `mitBrandAppLogoSave`): `mitBrandScreenLogo($company_logo)` - one guarded line each in
+  `agent/includes/side_nav.php` ($brand_logo) and `login.php` (after $company_logo). The company logo stays ITFlow's for quotes,
+  invoices, POs, PDFs, guest pages and the light pages - client portal, MFA set-up (`agent/user/mfa_enforcement.php` has no dark style).
   Sign-in screens (for everyone, not per agent): `css/mit_login.css` + `css/mit_login_nodes.svg` (a file - login.php sends
   `Content-Security-Policy: default-src 'self'`, which refuses data: images), loaded by `mitLoginHead()` - one line after
   itflow_custom.css in `login.php` and `client/login_reset.php`. Only `.login-box` / the "Powered by" line are lifted over the

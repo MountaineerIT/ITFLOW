@@ -38,7 +38,8 @@ function mitThemeHead() {
 
 /** The sign-in screens' backdrop and card (login.php, client/login_reset.php) - for everyone, before anyone is signed in. */
 function mitLoginHead() {
-    return '<link rel="stylesheet" href="' . mitAsset('/css/mit_login.css') . '">';
+    return '<link rel="stylesheet" href="' . mitAsset('/css/mit_login.css') . '">'
+        . (mitBrandLogoPlain() ? '<link rel="stylesheet" href="' . mitAsset('/css/mit_login_plain.css') . '">' : '');
 }
 
 /** The Look choice on Account > Preferences. */
@@ -68,20 +69,95 @@ function mitBrandLogoOnly() {
     return (string) mitSetting('brand_logo_only', '0') === '1';
 }
 
-/** The switch under the logo on Company Details (inside ITFlow's form, saved by mitBrandLogoSave). */
+/*
+ * A second logo for ITFlow's own screens - the side menu and the sign-in page (both dark) - when the
+ * company logo (ITFlow's, kept for quotes, invoices, PDFs, the guest pages and the light portal / MFA set-up) is drawn for paper. mit_settings brand_app_logo =
+ * a file in uploads/settings/ (a random name, like ITFlow's), uploaded / removed under Company Details (mitBrandLogoField / Save).
+ */
+function mitBrandAppLogo() {
+    $file = basename((string) mitSetting('brand_app_logo', ''));
+    return $file !== '' && is_file(__DIR__ . "/../uploads/settings/$file") ? $file : '';
+}
+
+/** The logo for a screen: the app logo when there is one, else the company logo given. Hooks in side_nav and login. */
+function mitBrandScreenLogo($company_logo) {
+    return mitBrandAppLogo() ?: $company_logo;
+}
+
+/** No light tile behind the logo in the side menu (Company Details switch, mit_settings brand_logo_plain) - for a logo drawn for a dark background. */
+function mitBrandLogoPlain() {
+    return (string) mitSetting('brand_logo_plain', '0') === '1';
+}
+
+/** agent/includes/side_nav.php: attributes for the logo tile - wider for a logo on its own, no tile for a plain one. Inline, so every look gets them. */
+function mitBrandLogoAttrs() {
+    $style = [];
+    $attrs = '';
+    if (mitBrandLogoOnly()) {
+        $attrs .= ' data-mit-logo-only';
+        $style[] = 'max-width: none; flex: 1 1 auto; justify-content: flex-start';
+    }
+    if (mitBrandLogoPlain()) {
+        $attrs .= ' data-mit-logo-plain';
+        $style[] = 'background: transparent; box-shadow: none; padding: 0; border-radius: 0';
+    }
+    return $attrs . ($style ? ' style="' . implode('; ', $style) . '"' : '');
+}
+
+/** The switches under the logo on Company Details (inside ITFlow's form, saved by mitBrandLogoSave). */
 function mitBrandLogoField() {
-    return '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-only>'
+    $app = mitBrandAppLogo();
+    return '<div class="mb-3 text-start" data-mit-brand-app-logo><hr>'
+        . '<label>Logo for ITFlow\'s screens</label>'
+        . ($app !== '' ? '<img class="img-thumbnail d-block mx-auto my-2" style="background: #1e293b" src="../uploads/settings/' . escapeHtml(rawurlencode($app)) . '" alt="App logo">'
+            . '<div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="mit_app_logo_remove" value="1" id="mitAppLogoRemove">'
+            . '<label class="form-check-label" for="mitAppLogoRemove">Remove it (use the company logo)</label></div>' : '')
+        . '<input type="file" class="form-control" name="mit_app_logo" accept=".jpg, .jpeg, .png">'
+        . '<div class="form-text">The side menu and the sign-in page show this one. The company logo above stays on quotes, invoices, '
+        . 'purchase orders and their PDFs. Leave it empty to use the company logo everywhere.</div></div>'
+        . '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-only>'
         . '<input type="hidden" name="mit_brand_logo_present" value="1">'
         . '<input class="form-check-input" type="checkbox" role="switch" name="mit_brand_logo_only" value="1" id="mitBrandLogoOnly"' . (mitBrandLogoOnly() ? ' checked' : '') . '>'
         . '<label class="form-check-label" for="mitBrandLogoOnly">The logo shows the company name</label>'
-        . '<div class="form-text">The side menu then shows the logo on its own, without the name beside it.</div></div>';
+        . '<div class="form-text">The side menu then shows the logo on its own, without the name beside it.</div></div>'
+        . '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-plain>'
+        . '<input class="form-check-input" type="checkbox" role="switch" name="mit_brand_logo_plain" value="1" id="mitBrandLogoPlain"' . (mitBrandLogoPlain() ? ' checked' : '') . '>'
+        . '<label class="form-check-label" for="mitBrandLogoPlain">No light tile behind the logo</label>'
+        . '<div class="form-text">In the side menu and on the sign-in page - for a logo drawn for a dark background.</div></div>';
 }
 
 /** Hook in edit_company (admin/post/settings_company.php): save the switch when the form had it. */
 function mitBrandLogoSave(array $post) {
     if (!empty($post['mit_brand_logo_present'])) {
         mitSetSetting('brand_logo_only', empty($post['mit_brand_logo_only']) ? '0' : '1');
+        mitSetSetting('brand_logo_plain', empty($post['mit_brand_logo_plain']) ? '0' : '1');
+        mitBrandAppLogoSave(!empty($post['mit_app_logo_remove']), $_FILES['mit_app_logo'] ?? null);
     }
+}
+
+/** Store a new app logo (JPG / PNG that really is an image) or remove it; the old file goes. Returns a problem or ''. */
+function mitBrandAppLogoSave($remove, $file) {
+    $dir = __DIR__ . '/../uploads/settings/';
+    $old = mitBrandAppLogo();
+    $new = '';
+    if (is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $name = checkFileUpload($file, ['jpg', 'jpeg', 'png']);
+        $info = $name ? @getimagesize($file['tmp_name']) : false;
+        if (!$name || !$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true) || !move_uploaded_file($file['tmp_name'], $dir . $name)) {
+            flashAlert('The logo for ITFlow\'s screens was not saved - pick a JPG or PNG image.', 'error');
+            return 'not an image';
+        }
+        $new = $name;
+    } elseif (!$remove) {
+        return '';
+    }
+    mitSetSetting('brand_app_logo', $new);
+    if ($old !== '' && $old !== $new) {
+        @unlink($dir . $old);
+    }
+    global $session_name;
+    logAudit('Settings', 'Edit', escapeSql(($session_name ?? 'Someone') . ($new !== '' ? ' uploaded' : ' removed') . ' the logo for ITFlow\'s screens'));
+    return '';
 }
 
 require_once __DIR__ . '/mit_client_tiles.php';

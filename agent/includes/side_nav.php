@@ -20,7 +20,7 @@
      * shrinking it to a postage stamp. The name wraps to two lines, then ellipses -
      * the full name is in the tooltip.
      */
-    $brand_logo = basename((string) ($session_company_logo ?? ''));
+    $brand_logo = basename((string) (function_exists('mitBrandScreenLogo') ? mitBrandScreenLogo($session_company_logo ?? '') : ($session_company_logo ?? ''))); // Mountaineer IT: the app logo
     if ($brand_logo === '' || !is_file(__DIR__ . "/../../uploads/settings/$brand_logo")) {
         $brand_logo = '';
     }
@@ -31,7 +31,7 @@
     <div class="sidebar-brand itflow-brand">
         <a class="brand-link itflow-brand-link" href="<?= $brand_link ?>" title="<?= $brand_name ?>">
             <?php if ($brand_logo) { ?>
-                <span class="itflow-brand-mark itflow-brand-mark-logo"<?= $mit_logo_only ? ' data-mit-logo-only style="max-width: none; flex: 1 1 auto; justify-content: flex-start"' : '' ?>>
+                <span class="itflow-brand-mark itflow-brand-mark-logo"<?= function_exists('mitBrandLogoAttrs') ? mitBrandLogoAttrs() : '' // Mountaineer IT: logo on its own / without the light tile ?>>
                     <img src="/uploads/settings/<?= escapeHtml(rawurlencode($brand_logo)) ?>" alt="" decoding="async">
                 </span>
             <?php } else { ?>
