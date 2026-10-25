@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.139 - 2026-10-25
+- Fix: on MariaDB 11.8 (Debian 13) the dashboard, Products and quote pages were blank after the ITFlow 26.11 merge ("Illegal mix of collations"). Some of ITFlow's tables (quote_items, recurring_invoice_items, task_approvals, asset_tags) had been created with the server's own collation instead of ITFlow's utf8mb4_general_ci, and ITFlow's new "lines at an old price" count joins them with the others. The database updater now converts any such table to ITFlow's collation each time it runs (tables with a deliberate binary column are left and logged). Run `php scripts/update_cli.php --update_db` once to fix an install now.
+
 ## 26.10.138 - 2026-10-25
 - Ticket page: a long subject no longer squeezes the buttons beside it - Resolve, its "no response" arrow and the ⋮ menu stay on one line and the subject wraps instead (they used to stack, with Resolve on two lines).
 - Quotes: our cost, Price by (markup / margin / set price) and % are back on the quote's add-a-line row (ITFlow 26.11's new quote page had them only in the Edit Line window). The price is worked out as you type, the profit shows under the row, and picking a product fills in its cost. Staff only - customers never see them.

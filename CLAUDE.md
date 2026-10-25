@@ -1023,7 +1023,13 @@ model: see DEPLOYMENT.md.
     `admin/database_updates.php` (and `mitRestoreItflowUpdates`) load `functions/mit_db_upgrade.php` and call `mitBeforeItflowUpdate($version)`
     - a file of its own because update_cli loads functions.php before it pulls (26.10.137: a function added to mit_common in the same pull
     was missing, 2.9.4 failed with "Duplicate column", beta stuck at 2.9.3 - `update_cli.php --update_db` puts it right);
-    which renames ours to `mit_old_*` just before 2.9.4; M040 copies them into ITFlow's and drops ours. ITFlow owns cost / vendor / stock
+    which renames ours to `mit_old_*` just before 2.9.4; M040 copies them into ITFlow's and drops ours.
+    Collations (26.10.139): some ITFlow updates create tables without a collation, so on MariaDB 11.8 (Debian 13 - server default
+    utf8mb4_uca1400_ai_ci) they differ from ITFlow's utf8mb4_general_ci and joins / unions with them fail ("Illegal mix of collations" -
+    `productRepriceCount` blanked beta's dashboard, Products, quotes). `mitCollationRepair` at the end of our runner
+    (`admin/database_updates_mountaineerit.php`, defined there, runs every time) converts any table whose default isn't general_ci
+    (skips and logs tables with a *_bin column - calendars / user_calendar_feeds keys are deliberate). The test install is MariaDB 10.11
+    (general_ci default) - to reproduce, CONVERT a table TO ... COLLATE utf8mb4_uca1400_ai_ci. ITFlow owns cost / vendor / stock
     now (0 = none): our product form adds only the image (`mitProductImageField` - one line in `agent/modals/product/product_form.php`),
     `mitProductSave` saves only the image, the product's own price method / % is no longer asked for, `mitProductVendorField` /
     `mitProductVendorSave` stand down (`mitProductItflowFields`), procurement reads cost with `NULLIF(product_cost, 0)`.

@@ -47,6 +47,40 @@ if (!function_exists('mitIndexExists')) {
     }
 }
 
+/**
+ * Tables whose default collation is not ITFlow's utf8mb4_general_ci, converted to it. ITFlow's db.sql names that collation on every
+ * table, but some of its updates create a table without one, which then takes the server's default - on MariaDB 11.8 (Debian 13)
+ * utf8mb4_uca1400_ai_ci. A query joining such a table with the others then fails ("Illegal mix of collations", ITFlow 26.11's
+ * productRepriceCount took the dashboard, Products and quotes down on beta). A table holding a deliberate *_bin column is left and
+ * reported. Defined here, not in functions/, so an updater that loaded the old functions.php before pulling still has it.
+ * Returns ["converted <table>", ...] and adds problems to $problems.
+ */
+if (!function_exists('mitCollationRepair')) {
+    function mitCollationRepair($mysqli, array &$problems = []) {
+        $done = [];
+        $result = mysqli_query($mysqli, "SELECT t.TABLE_NAME AS name,
+                (SELECT COUNT(*) FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.COLLATION_NAME LIKE '%\\_bin') AS bin_columns
+            FROM information_schema.TABLES t
+            WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE' AND t.TABLE_COLLATION LIKE 'utf8mb4\\_%'
+                AND t.TABLE_COLLATION <> 'utf8mb4_general_ci' AND t.TABLE_COLLATION NOT LIKE '%\\_bin'");
+        while ($result && $row = mysqli_fetch_assoc($result)) {
+            $table = str_replace('`', '', $row['name']);
+            if (intval($row['bin_columns']) > 0) {
+                $problems[] = "collation: $table has a *_bin column - not converted";
+                continue;
+            }
+            try {
+                mysqli_query($mysqli, "ALTER TABLE `$table` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+                $done[] = "collation $table";
+            } catch (Throwable $e) {
+                $problems[] = "collation: $table - " . $e->getMessage();
+                error_log("Mountaineer IT collation repair of $table failed: " . $e->getMessage());
+            }
+        }
+        return $done;
+    }
+}
+
 $mit_updates_applied = [];
 $mit_updates_error = null;
 
@@ -81,4 +115,14 @@ foreach ($mit_update_files as $mit_update_file) {
         break;
     }
     $mit_updates_applied[] = $mit_update_name;
+}
+
+// Every run, after ITFlow's updates and ours: tables a newer ITFlow update created with the server's collation (see mitCollationRepair).
+// Problems are only logged - they don't stop the updater.
+$mit_collation_problems = [];
+foreach (mitCollationRepair($mysqli, $mit_collation_problems) as $mit_collation_done) {
+    $mit_updates_applied[] = $mit_collation_done;
+}
+foreach ($mit_collation_problems as $mit_collation_problem) {
+    error_log("Mountaineer IT: $mit_collation_problem");
 }
