@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.137 - 2026-10-25
+- Fix: updating with scripts/update_cli.php (or the Update page) from before 26.10.135 stopped at ITFlow's database update 2.9.4 ("Duplicate column name 'product_cost'"), leaving pages blank - the updater ran with the code from before the download, which did not have our step yet. The step now lives in its own file that the updater loads itself. An install stuck at 2.9.3 is put right by running `php scripts/update_cli.php --update_db`.
+
 ## 26.10.136 - 2026-10-25
 - Fix: Admin > Update's check stopped with "Data too long for column 'config_update_pending_commits'" when many commits with long descriptions were waiting (the 26.11 merge brought 99). It now keeps the newest 100, each description cut to 200 characters.
 

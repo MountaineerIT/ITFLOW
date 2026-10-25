@@ -1018,8 +1018,10 @@ model: see DEPLOYMENT.md.
   and global search's LIKE over every reply (about 1 s at 300,000 replies).
 - Upstream develop merged again (Oct 25, 26.10.135 - 98 commits, ITFlow DB 2.8.9 -> 3.4.7; APP_VERSION still 26.10). Where things
   moved - this supersedes the file names above where they differ:
-  - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). One line in
-    `admin/database_updates.php` (and `mitRestoreItflowUpdates`) calls `mitBeforeItflowUpdate($version)` (functions/mit_common.php),
+  - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). Two lines in
+    `admin/database_updates.php` (and `mitRestoreItflowUpdates`) load `functions/mit_db_upgrade.php` and call `mitBeforeItflowUpdate($version)`
+    - a file of its own because update_cli loads functions.php before it pulls (26.10.137: a function added to mit_common in the same pull
+    was missing, 2.9.4 failed with "Duplicate column", beta stuck at 2.9.3 - `update_cli.php --update_db` puts it right);
     which renames ours to `mit_old_*` just before 2.9.4; M040 copies them into ITFlow's and drops ours. ITFlow owns cost / vendor / stock
     now (0 = none): our product form adds only the image (`mitProductImageField` - one line in `agent/modals/product/product_form.php`),
     `mitProductSave` saves only the image, the product's own price method / % is no longer asked for, `mitProductVendorField` /

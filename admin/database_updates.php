@@ -42,6 +42,9 @@ foreach (glob(__DIR__ . "/database_updates/*.php") as $file) {
 }
 uksort($database_update_files, "version_compare");
 
+// Mountaineer IT: our steps around ITFlow's updates (functions/mit_db_upgrade.php) - loaded here, as update_cli loaded the code before the pull
+if (is_file(__DIR__ . '/../functions/mit_db_upgrade.php')) { require_once __DIR__ . '/../functions/mit_db_upgrade.php'; }
+
 // Apply everything newer than the current database version, in order
 // (CURRENT_DATABASE_VERSION is a constant frozen at page load, so track progress in a variable)
 $database_current_version = CURRENT_DATABASE_VERSION;
