@@ -611,6 +611,13 @@ model: see DEPLOYMENT.md.
   stand-in at `qbo-mock/index.php` (not in the repo; `MIT_QBO_AUTH_URL` / `_TOKEN_URL` / `_REVOKE_URL` / `_API_BASE` in its
   config.php - never on a real one); smoke `10-qbo.spec.js`. Not yet: portal / guest Stripe pay is not blocked for invoices in
   QuickBooks (turn ITFlow's Stripe off), statements still come from ITFlow.
+  Already in QuickBooks (26.10.130, M038 `mit_qbo_manual`: invoice_id PK FK invoices CASCADE, marked_by / marked_at): invoices entered in
+  QuickBooks by hand - the user chose "just mark it", no lookup or link, so their payments are recorded in ITFlow as usual (not locked, not
+  synced). `mitQboMarkManual` (open, in scope, not in a live batch entry) / `mitQboUnmarkManual` (history + audit), `mitQboNotManualSql()`
+  on the approvals page, `mitQboReadyInvoices`, `mitQboNavCounts`; approve and batch add refuse them. Buttons: invoice strip ("Already in
+  QuickBooks" / Undo, `[data-mit-qbo-mark-manual]` / `[data-mit-qbo-manual]`), Invoice Approvals bulk + tab `?show=manual` (put back =
+  `mit_qbo_unmark_manual_bulk`), Batches page under Add to batch (`[data-mit-qbo-mark-bulk]`); handlers at the end of `agent/post/mit_qbo.php`;
+  list badge "QBO (by hand)". Smoke: last test in `10-qbo.spec.js`.
 - Usage billing (Oct 2026, step 4 of the billing plan; step 5 = source connectors reporting through its API): `functions/mit_usage.php`
   (ours, required from `functions.php`). Tables M032: `mit_usage_lines` (a recurring invoice line billed by a count - source
   manual / api / tag, usage name `line_metric` - tag lines "tag:<id>" -, optional minimum; FK recurring_invoice_items /

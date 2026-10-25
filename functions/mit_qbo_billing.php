@@ -17,7 +17,10 @@
  *   nightly job neither sends recurring invoices nor reminders) and takes the payments (ITFlow refuses payments on invoices in
  *   QuickBooks - mitQboGuardPayment). mitQboPaymentSync (cron job mit_qbo_sync, hourly, or "Check payments now") keeps one
  *   ITFlow payment per QuickBooks invoice equal to what has been paid there.
- * Permission: Financial edit approves, batches and sends; Sales view (as for Invoices) sees the pages.
+ * - Already in QuickBooks (mit_qbo_manual, M038): an invoice someone entered in QuickBooks by hand is marked so it leaves the
+ *   approval and batch lists and can't be batched. Nothing links it to the QuickBooks invoice - its payments are recorded in
+ *   ITFlow as usual. Undo puts it back in the queue (with whatever approval it had).
+ * Permission: Financial edit approves, batches, sends and marks; Sales view (as for Invoices) sees the pages.
  */
 
 const MIT_QBO_ENTRY_STATUSES = [
@@ -98,6 +101,10 @@ function mitInvoiceApprove(array $invoice_ids) {
             $refused[$invoice_id] = $why;
             continue;
         }
+        if (mitQboManualRows([$invoice_id])) {
+            $refused[$invoice_id] = 'marked as already in QuickBooks (undo that first)';
+            continue;
+        }
         $fingerprint = mitInvoiceFingerprint($invoice_id);
         $amount = floatval($invoice['invoice_amount']);
         $by = intval($session_user_id);
@@ -127,6 +134,93 @@ function mitInvoiceUnapprove($invoice_id) {
     if (mysqli_affected_rows($mysqli)) {
         mysqli_query($mysqli, "INSERT INTO history SET history_status = (SELECT invoice_status FROM invoices WHERE invoice_id = $invoice_id),
             history_description = 'Approval for QuickBooks taken back by " . escapeSql(stripslashes($session_name)) . "', history_invoice_id = $invoice_id");
+    }
+    return '';
+}
+
+/*
+ * ---------- already in QuickBooks (entered there by hand) ----------
+ */
+
+/** Has M038 run? */
+function mitQboManualReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE 'mit_qbo_manual'")) === 1;
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
+}
+
+/** " AND <the invoice is not marked as already in QuickBooks>" for the approval / batch lists and counts. */
+function mitQboNotManualSql($alias = 'invoices') {
+    return mitQboManualReady() ? " AND NOT EXISTS (SELECT 1 FROM mit_qbo_manual m WHERE m.invoice_id = $alias.invoice_id)" : '';
+}
+
+/** Marked invoices among these: invoice_id => [marked_at, user_name]. */
+function mitQboManualRows(array $invoice_ids) {
+    global $mysqli;
+    $ids = array_values(array_filter(array_unique(array_map('intval', $invoice_ids))));
+    $rows = [];
+    if (!$ids || !mitQboManualReady()) {
+        return $rows;
+    }
+    $result = mysqli_query($mysqli, "SELECT m.invoice_id, m.marked_at, user_name FROM mit_qbo_manual m LEFT JOIN users ON user_id = m.marked_by
+        WHERE m.invoice_id IN (" . implode(',', $ids) . ")");
+    while ($row = mysqli_fetch_assoc($result)) {
+        $rows[intval($row['invoice_id'])] = $row;
+    }
+    return $rows;
+}
+
+/** Mark invoices as already in QuickBooks. Returns [marked, refused => [invoice_id => why]]. */
+function mitQboMarkManual(array $invoice_ids) {
+    global $mysqli, $session_user_id, $session_name;
+    $marked = 0;
+    $refused = [];
+    if (!mitQboManualReady()) {
+        return [0, [0 => 'QuickBooks Online needs the database update - Admin > Update.']];
+    }
+    foreach (array_unique(array_map('intval', $invoice_ids)) as $invoice_id) {
+        $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_id, invoice_status FROM invoices
+            WHERE invoice_id = $invoice_id AND " . MIT_QBO_BATCHABLE_SQL . clientScopeSql('invoices.invoice_client_id')));
+        if (!$invoice) {
+            $refused[$invoice_id] = 'not an open invoice you can see (paid, cancelled, non-billable or archived)';
+            continue;
+        }
+        if (mitQboActiveEntry($invoice_id)) {
+            $refused[$invoice_id] = 'in a QuickBooks batch - take it out of the batch first';
+            continue;
+        }
+        mysqli_query($mysqli, "INSERT IGNORE INTO mit_qbo_manual SET invoice_id = $invoice_id, marked_by = " . intval($session_user_id));
+        if (mysqli_affected_rows($mysqli)) {
+            mysqli_query($mysqli, "INSERT INTO history SET history_status = '" . escapeSql($invoice['invoice_status']) . "',
+                history_description = 'Marked as already in QuickBooks (entered there by hand) by " . escapeSql(stripslashes($session_name)) . "', history_invoice_id = $invoice_id");
+            $marked++;
+        }
+    }
+    if ($marked) {
+        logAudit('Invoice', 'Edit', escapeSql(stripslashes($session_name)) . " marked $marked invoice" . ($marked === 1 ? '' : 's') . ' as already in QuickBooks');
+    }
+    return [$marked, $refused];
+}
+
+/** Undo "already in QuickBooks": the invoice goes back in the queue. Returns '' or the problem. */
+function mitQboUnmarkManual($invoice_id) {
+    global $mysqli, $session_name;
+    $invoice_id = intval($invoice_id);
+    if (!mitQboManualReady() || !mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM invoices WHERE invoice_id = $invoice_id" . clientScopeSql('invoices.invoice_client_id')))) {
+        return 'That invoice is not one you can see.';
+    }
+    mysqli_query($mysqli, "DELETE FROM mit_qbo_manual WHERE invoice_id = $invoice_id");
+    if (mysqli_affected_rows($mysqli)) {
+        mysqli_query($mysqli, "INSERT INTO history SET history_status = (SELECT invoice_status FROM invoices WHERE invoice_id = $invoice_id),
+            history_description = 'No longer marked as already in QuickBooks - by " . escapeSql(stripslashes($session_name)) . "', history_invoice_id = $invoice_id");
+        logAudit('Invoice', 'Edit', escapeSql(stripslashes($session_name)) . " took the \"already in QuickBooks\" mark off invoice $invoice_id");
     }
     return '';
 }
@@ -243,7 +337,7 @@ function mitQboReadyInvoices($client_id = 0, $limit = 500) {
             invoice_currency_code, client_id, client_name
         FROM invoices JOIN mit_invoice_approvals a ON a.invoice_id = invoices.invoice_id JOIN clients ON client_id = invoice_client_id
         WHERE " . MIT_QBO_BATCHABLE_SQL . $client_sql . clientScopeSql('invoices.invoice_client_id') . "
-            AND NOT EXISTS (SELECT 1 FROM mit_qbo_batch_invoices e WHERE e.invoice_id = invoices.invoice_id AND e.entry_status != 'removed')
+            AND NOT EXISTS (SELECT 1 FROM mit_qbo_batch_invoices e WHERE e.invoice_id = invoices.invoice_id AND e.entry_status != 'removed')" . mitQboNotManualSql() . "
         ORDER BY invoice_date DESC, invoice_number DESC LIMIT " . intval($limit));
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[intval($row['invoice_id'])] = $row;
@@ -288,6 +382,10 @@ function mitQboBatchAdd($batch_id, array $invoice_ids) {
             }
             if (mitQboActiveEntry($invoice_id)) {
                 $refused[$invoice_id] = 'already in a batch';
+                continue;
+            }
+            if (mitQboManualRows([$invoice_id])) {
+                $refused[$invoice_id] = 'marked as already in QuickBooks';
                 continue;
             }
             if (mitInvoiceApprovalState($invoice_id) !== 'approved') {
@@ -672,8 +770,9 @@ function mitQboInvoiceStates(array $invoice_ids) {
     if (!$ids || !mitQboReady()) {
         return $states;
     }
+    $manual = mitQboManualRows($ids);
     foreach (mitInvoiceApprovalStates($ids) as $id => $approval) {
-        $states[$id] = ['approval' => $approval, 'entry' => null];
+        $states[$id] = ['approval' => $approval, 'entry' => null, 'manual' => isset($manual[$id])];
     }
     $result = mysqli_query($mysqli, "SELECT invoice_id, entry_status FROM mit_qbo_batch_invoices WHERE invoice_id IN (" . implode(',', $ids) . ") AND entry_status != 'removed'");
     while ($row = mysqli_fetch_assoc($result)) {
@@ -715,6 +814,9 @@ function mitQboListBadge($invoice_id, array $page_ids = []) {
     if ($state['entry']) {
         return '<span class="badge text-bg-info ms-1" title="In a QuickBooks batch"><i class="fas fa-lock me-1"></i>Batched</span>';
     }
+    if (!empty($state['manual'])) {
+        return '<span class="badge text-bg-success ms-1" title="Entered in QuickBooks by hand - not linked, payments are recorded in ITFlow">QBO (by hand)</span>';
+    }
     if ($state['approval'] === 'approved') {
         return '<span class="badge text-bg-primary ms-1" title="Approved for QuickBooks">Approved</span>';
     }
@@ -728,13 +830,15 @@ function mitQboListBadge($invoice_id, array $page_ids = []) {
 function mitQboInvoiceBar($invoice_id) {
     global $mysqli;
     $invoice_id = intval($invoice_id);
-    if (!mitQboReady() || !mitQboConnected() && !mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_invoice_approvals WHERE invoice_id = $invoice_id"))) {
+    if (!mitQboReady() || !mitQboConnected() && !mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_invoice_approvals WHERE invoice_id = $invoice_id"))
+        && !mitQboManualRows([$invoice_id])) {
         return '';
     }
     $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_status FROM invoices WHERE invoice_id = $invoice_id"));
     $entry = mitQboActiveEntry($invoice_id);
     $approval = mitInvoiceApprovalState($invoice_id);
     $approval_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT a.approved_at, user_name FROM mit_invoice_approvals a LEFT JOIN users ON user_id = a.approved_by WHERE a.invoice_id = $invoice_id"));
+    $manual = mitQboManualRows([$invoice_id])[$invoice_id] ?? null;
     $csrf = $_SESSION['csrf_token'];
     $can = mitQboCan(2);
     $batchable = in_array($invoice['invoice_status'] ?? '', ['Draft', 'Sent', 'Viewed'], true);
@@ -747,6 +851,13 @@ function mitQboInvoiceBar($invoice_id) {
             . ($entry['entry_status'] === 'sent' ? ' as ' . escapeHtml((string) $entry['qbo_doc_number'])
                 . ($entry['emailed_at'] ? ', emailed by QuickBooks' : '') . ($entry['qbo_balance'] !== null ? ' - balance there ' . number_format(floatval($entry['qbo_balance']), 2) : '') : '')
             . ($entry['entry_status'] === 'failed' && $entry['error'] ? ' - <span class="text-danger">' . escapeHtml($entry['error']) . '</span>' : '');
+    } elseif ($manual) {
+        $parts[] = '<span class="badge text-bg-success" data-mit-qbo-manual>Already in QuickBooks</span> - entered there by hand, marked by '
+            . escapeHtml((string) ($manual['user_name'] ?? 'someone')) . ' on ' . date('M j, g:i A', strtotime($manual['marked_at']))
+            . '. Not linked: record its payments here.';
+        if ($can) {
+            $buttons .= '<a class="btn btn-sm btn-outline-secondary" href="/agent/post.php?mit_qbo_unmark_manual=' . $invoice_id . '&csrf_token=' . $csrf . '">Undo</a>';
+        }
     } elseif ($approval === 'approved') {
         $parts[] = '<span class="badge text-bg-primary">Approved</span> for QuickBooks by ' . escapeHtml((string) ($approval_row['user_name'] ?? 'someone'))
             . ' on ' . date('M j, g:i A', strtotime($approval_row['approved_at'])) . ' - ready for a batch';
@@ -760,8 +871,13 @@ function mitQboInvoiceBar($invoice_id) {
     } else {
         $parts[] = 'Not for QuickBooks (' . escapeHtml((string) $invoice['invoice_status']) . ')';
     }
-    if (!$entry && $approval !== 'approved' && $batchable && $can) {
+    if (!$entry && !$manual && $approval !== 'approved' && $batchable && $can) {
         $buttons .= '<a class="btn btn-sm btn-primary" href="/agent/post.php?mit_invoice_approve=' . $invoice_id . '&csrf_token=' . $csrf . '"><i class="fas fa-check me-1"></i>Approve</a>';
+    }
+    if (!$entry && !$manual && $batchable && $can && mitQboManualReady()) {
+        $buttons .= '<a class="btn btn-sm btn-outline-success confirm-link" data-mit-qbo-mark-manual data-confirm-title="Already in QuickBooks?"'
+            . ' data-confirm-text="Use this when the invoice was entered in QuickBooks by hand. It leaves the approval and batch lists and is never sent from here. Its payments are recorded in ITFlow."'
+            . ' data-confirm-button="Mark it" data-confirm-icon="question" href="/agent/post.php?mit_qbo_mark_manual=' . $invoice_id . '&csrf_token=' . $csrf . '">Already in QuickBooks</a>';
     }
     // While QuickBooks handles them, ITFlow's own email and (for invoices in QuickBooks) payment buttons and edits are hidden;
     // the handlers refuse them anyway
@@ -782,9 +898,9 @@ function mitQboNavCounts() {
     global $mysqli;
     $scope = clientScopeSql('invoices.invoice_client_id');
     $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT
-        (SELECT COUNT(*) FROM invoices WHERE " . MIT_QBO_BATCHABLE_SQL . " AND invoices.invoice_status = 'Draft'$scope
+        (SELECT COUNT(*) FROM invoices WHERE " . MIT_QBO_BATCHABLE_SQL . " AND invoices.invoice_status = 'Draft'$scope" . mitQboNotManualSql() . "
             AND NOT EXISTS (SELECT 1 FROM mit_invoice_approvals a WHERE a.invoice_id = invoices.invoice_id)),
         (SELECT COUNT(*) FROM invoices JOIN mit_invoice_approvals a ON a.invoice_id = invoices.invoice_id WHERE " . MIT_QBO_BATCHABLE_SQL . "$scope
-            AND NOT EXISTS (SELECT 1 FROM mit_qbo_batch_invoices e WHERE e.invoice_id = invoices.invoice_id AND e.entry_status != 'removed'))"));
+            AND NOT EXISTS (SELECT 1 FROM mit_qbo_batch_invoices e WHERE e.invoice_id = invoices.invoice_id AND e.entry_status != 'removed')" . mitQboNotManualSql() . ")"));
     return ['awaiting' => intval($row[0]), 'ready' => intval($row[1])];
 }

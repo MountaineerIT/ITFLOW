@@ -252,8 +252,8 @@ break stock ITFlow, and lists what stops working after a move.
 - **QuickBooks Online** – disconnect it first (Admin > Integrations > QuickBooks Online). Stock ITFlow has no invoice
   approvals, batches or QuickBooks link: invoices in batches unlock, ITFlow's own invoice emails, reminders, late fees and
   recurring auto-send come back, and payments made in QuickBooks stop coming back. Payments already brought back are
-  ordinary ITFlow payments (method "QuickBooks Online") and stay; the approvals, batches and mappings stay unused in `mit_qbo_*` /
-  `mit_invoice_approvals`.
+  ordinary ITFlow payments (method "QuickBooks Online") and stay; the approvals, batches, "Already in QuickBooks" marks and
+  mappings stay unused in `mit_qbo_*` / `mit_invoice_approvals`.
 - **Usage billing** – recurring invoices bill the fixed quantity on their lines again (update it by hand each month); the
   counts, `api/v1/mit_usage/` and Usage Review go (the data stays in `mit_usage_*`). Invoices already made keep their
   quantities. Systems reporting counts through the API get "resource not mapped" errors - switch them off. The usage

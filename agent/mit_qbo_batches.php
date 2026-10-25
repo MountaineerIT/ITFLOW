@@ -2,7 +2,8 @@
 
 /*
  * Mountaineer IT - Billing > QuickBooks Batches (functions/mit_qbo_billing.php): approved invoices waiting for a batch (tick
- * them and add them to a new or open batch), and the batches (open, partly sent, sent) - each opens agent/mit_qbo_batch.php.
+ * them and add them to a new or open batch, or mark ones entered in QuickBooks by hand as "Already in QuickBooks"), and the
+ * batches (open, partly sent, sent) - each opens agent/mit_qbo_batch.php.
  */
 
 require_once "includes/inc_all.php";
@@ -99,6 +100,13 @@ $batches = mysqli_fetch_all(mysqli_query($mysqli, "SELECT b.*, u.user_name AS cr
                         <button type="submit" name="mit_qbo_batch_add" class="btn btn-primary btn-sm w-100"><i class="fas fa-plus me-1"></i>Add to batch</button>
                     </div>
                 </div>
+                <?php if (mitQboManualReady()) { ?>
+                    <div class="mt-2 small text-muted">Entered some of these in QuickBooks by hand?
+                        <button type="submit" name="mit_qbo_mark_manual" class="btn btn-outline-success btn-sm ms-1 confirm-link" data-mit-qbo-mark-bulk
+                            data-confirm-title="Already in QuickBooks?" data-confirm-button="Mark them" data-confirm-icon="question"
+                            data-confirm-text="The ticked invoices leave this list and are never sent from here. Their payments are recorded in ITFlow."><i class="fas fa-check-double me-1"></i>Already in QuickBooks</button>
+                        <a href="/agent/mit_invoice_approvals.php?show=manual" class="ms-2">See marked invoices</a></div>
+                <?php } ?>
                 <script>
                     document.getElementById('mitBatchTarget').addEventListener('change', function () {
                         document.querySelectorAll('[data-mit-new-batch]').forEach(el => el.classList.toggle('d-none', this.value !== '0'));

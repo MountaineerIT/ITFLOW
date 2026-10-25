@@ -1,6 +1,6 @@
 // QuickBooks Online, end to end against the test install's stand-in for Intuit (qbo-mock - never a real company): connect,
 // map items, approve an invoice, batch it and send it (the invoice locks), take it out with a void, send it again, and
-// payments made "in QuickBooks" coming back (Partial, then Paid). Makes its own client and invoice and deletes them, and
+// payments made "in QuickBooks" coming back (Partial, then Paid), and "Already in QuickBooks" for one entered there by hand. Makes its own client and invoice and deletes them, and
 // disconnects again (while connected ITFlow's own invoice emails stop), also when a step fails.
 // Skipped when the stand-in is not installed (MIT_QBO_* in config.php - see README).
 
@@ -10,7 +10,7 @@ const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, exp
 test.describe.configure({ mode: 'serial' });
 
 const MOCK = 'http://127.0.0.1/qbo-mock/index.php';
-const made = { clientName: smokeName('QBO client'), clientId: 0, invoiceId: 0, docNumber: '', connected: false, batchIds: [] };
+const made = { clientName: smokeName('QBO client'), clientId: 0, invoiceId: 0, manualId: 0, docNumber: '', connected: false, batchIds: [] };
 const invoicePage = () => `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoiceId}`;
 const bar = (page) => page.locator('[data-mit-qbo-bar]');
 
@@ -198,6 +198,55 @@ test('payments made in QuickBooks come back: Partial, then Paid', async ({ page 
     await expectClean(page, errors);
 });
 
+test('already in QuickBooks: marked by hand it leaves the queues, is never batched, and Undo puts it back', async ({ page }) => {
+    test.skip(!made.connected || !made.clientId, 'not connected');
+    const errors = watch(page);
+    await visit(page, `agent/invoices.php?client_id=${made.clientId}`, errors);
+    const add = await openModal(page, `modals/invoice/invoice_add.php?client_id=${made.clientId}`);
+    await add.locator('select[name=category]').selectOption({ index: 1 });
+    await fillForm(add, { scope: 'Smoke test entered by hand' });
+    await submit(add, 'add_invoice');
+    made.manualId = Number(new URL(page.url()).searchParams.get('invoice_id'));
+    expect(made.manualId, 'second invoice').toBeGreaterThan(0);
+    const manualPage = `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.manualId}`;
+    const row = (p) => p.locator(`[data-mit-approvals] input[name="invoice_ids[]"][value="${made.manualId}"]`);
+
+    // From the invoice page (with ITFlow's confirm window)
+    await visit(page, manualPage, errors);
+    await bar(page).locator('[data-mit-qbo-mark-manual]').click();
+    await Promise.all([page.waitForNavigation(), page.locator('.swal2-confirm').click()]);
+    expect(await flash(page)).toContain('1 invoice marked as already in QuickBooks');
+    await expect(bar(page).locator('[data-mit-qbo-manual]'), 'the strip says so').toHaveCount(1);
+    await expect(bar(page).locator('a', { hasText: 'Approve' }), 'no Approve').toHaveCount(0);
+
+    // Out of the approval lists, on its own list; approving or batching it is refused
+    await visit(page, `agent/mit_invoice_approvals.php?show=all&client=${made.clientId}`, errors);
+    await expect(row(page), 'not in All open').toHaveCount(0);
+    await post(page, '/agent/post.php', { mit_invoice_approve_bulk: '1', 'invoice_ids[]': String(made.manualId) });
+    await visit(page, `agent/mit_invoice_approvals.php?show=manual&client=${made.clientId}`, errors);
+    await expect(row(page), 'on the Already in QuickBooks list').toHaveCount(1);
+    await visit(page, manualPage, errors);
+    await expect(bar(page).locator('[data-mit-qbo-manual]'), 'still marked, not approved').toHaveCount(1);
+
+    // Undo from that list: back awaiting approval; approve it, then mark it from the batches page
+    await visit(page, `agent/mit_invoice_approvals.php?show=manual&client=${made.clientId}`, errors);
+    await row(page).check();
+    await submit(page.locator('#mitApproveForm'), 'mit_qbo_unmark_manual_bulk');
+    expect(await flash(page)).toContain('Back in the QuickBooks queue');
+    await visit(page, `agent/mit_invoice_approvals.php?show=awaiting&client=${made.clientId}`, errors);
+    await row(page).check();
+    await submit(page.locator('#mitApproveForm'), 'mit_invoice_approve_bulk');
+    await visit(page, 'agent/mit_qbo_batches.php', errors);
+    const ready = page.locator(`[data-mit-ready] input[name="invoice_ids[]"][value="${made.manualId}"]`);
+    await expect(ready, 'approved, waiting for a batch').toHaveCount(1);
+    await page.locator('#mitBatchAddForm input[name="invoice_ids[]"]').evaluateAll((boxes, id) => boxes.forEach((b) => { b.checked = b.value === String(id); }), made.manualId);
+    await page.locator('[data-mit-qbo-mark-bulk]').click();
+    await Promise.all([page.waitForNavigation(), page.locator('.swal2-confirm').click()]);
+    expect(await flash(page)).toContain('1 invoice marked');
+    await expect(ready, 'gone from the batch list').toHaveCount(0);
+    await expectClean(page, errors);
+});
+
 test.afterAll(async ({ browser }) => {
     const use = test.info().project.use;
     const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
@@ -212,6 +261,9 @@ test.afterAll(async ({ browser }) => {
             await post(page, '/agent/post.php', { entry_id: entry, mit_qbo_entry_remove: 'unlink' });
         }
         await action(page, `delete_invoice=${made.invoiceId}`, invoicePage());
+    }
+    if (made.manualId) {
+        await action(page, `delete_invoice=${made.manualId}`, `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.manualId}`).catch(() => {});
     }
     for (const batchId of made.batchIds) {
         await page.goto(`agent/mit_qbo_batch.php?batch_id=${batchId}`);

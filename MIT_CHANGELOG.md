@@ -4,6 +4,16 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.130 - 2026-10-25
+- QuickBooks Online: invoices you entered in QuickBooks by hand can be marked "Already in QuickBooks", so they stop waiting for approval or a batch. You can mark them in three places:
+  - the QuickBooks strip on the invoice;
+  - Billing > Invoice Approvals: tick them, then "Already in QuickBooks";
+  - Billing > QuickBooks Batches, under "Add to batch".
+- A marked invoice leaves the approval and batch lists and side-menu counts, can't be approved or batched, and shows "QBO (by hand)" in the invoice list.
+- A marked invoice isn't linked to the QuickBooks invoice, so ITFlow doesn't bring back its payments. Record them in ITFlow as usual.
+- Invoice Approvals has a new "Already in QuickBooks" tab. From there, or with Undo on the invoice, you can put an invoice back in the queue.
+- Database update M038 (a new table, `mit_qbo_manual`).
+
 ## 26.10.129 - 2026-10-25
 - Customer happiness (the responses page opened from the dashboard and client cards) has a client picker beside its heading to switch clients, or go back to All Clients. It lists the clients with survey responses. The heading now says "last 12 months" to match its button.
 - A client's overview still shows its 3 newest survey comments, and when there are more it adds an "All N comments" link to that client's responses for the last 12 months. The comments shown are from those 12 months too, like the score above them.

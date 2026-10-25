@@ -138,3 +138,41 @@ if (isset($_POST['mit_qbo_batch_delete'])) {
     flashAlert('Batch deleted - its invoices are unlocked (and still approved).');
     redirect('mit_qbo_batches.php');
 }
+
+if (isset($_GET['mit_qbo_mark_manual']) || isset($_POST['mit_qbo_mark_manual']) || isset($_GET['mit_qbo_unmark_manual']) || isset($_POST['mit_qbo_unmark_manual_bulk'])) {
+
+    validateCSRFToken();
+    enforceUserPermission('module_sales');
+    enforceUserPermission('module_financial', 2);
+
+    // Undo: one from the invoice page, or ticked on Invoice Approvals' "Already in QuickBooks" list
+    if (isset($_GET['mit_qbo_unmark_manual']) || isset($_POST['mit_qbo_unmark_manual_bulk'])) {
+        $ids = isset($_GET['mit_qbo_unmark_manual']) ? [intval($_GET['mit_qbo_unmark_manual'])] : array_map('intval', (array) ($_POST['invoice_ids'] ?? []));
+        if (!$ids) {
+            flashAlert('Tick the invoices to put back.', 'error');
+            redirect();
+        }
+        $problems = [];
+        foreach ($ids as $id) {
+            if (($why = mitQboUnmarkManual($id)) !== '') {
+                $problems[] = $why;
+            }
+        }
+        flashAlert($problems ? escapeHtml(implode(' ', array_unique($problems))) : (count($ids) === 1 ? 'Back in the QuickBooks queue.' : count($ids) . ' invoices are back in the QuickBooks queue.'),
+            $problems ? 'error' : 'success');
+        redirect();
+    }
+
+    $ids = isset($_GET['mit_qbo_mark_manual']) ? [intval($_GET['mit_qbo_mark_manual'])] : array_map('intval', (array) ($_POST['invoice_ids'] ?? []));
+    if (!$ids) {
+        flashAlert('Tick the invoices that are already in QuickBooks.', 'error');
+        redirect();
+    }
+    [$marked, $refused] = mitQboMarkManual($ids);
+    $message = "$marked invoice" . ($marked === 1 ? '' : 's') . ' marked as already in QuickBooks - out of the approval and batch lists.';
+    if ($refused) {
+        $message .= ' Not marked: ' . escapeHtml(implode('; ', array_unique($refused)));
+    }
+    flashAlert($message, $refused ? ($marked ? 'warning' : 'error') : 'success');
+    redirect();
+}

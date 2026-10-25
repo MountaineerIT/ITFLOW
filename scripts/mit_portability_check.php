@@ -246,8 +246,8 @@ if ($n = $count("SELECT COUNT(*) FROM mit_boards WHERE board_assign = 'round_rob
 if ($n = $count("SELECT COUNT(*) FROM mit_role_board_access WHERE limited = 1")) {
     $after[] = "Boards by role: $n role" . ($n === 1 ? ' is' : 's are') . " limited to chosen service boards - in stock ITFlow every role sees every ticket again (ITFlow's own permissions and client access stay).";
 }
-if ($n = $count("SELECT COUNT(*) FROM mit_qbo_batch_invoices WHERE entry_status != 'removed'") + $count("SELECT COUNT(*) FROM mit_invoice_approvals")) {
-    $after[] = "QuickBooks Online: $n invoice approvals / batch entries - stock ITFlow has no approvals, batches or QuickBooks link, so invoices unlock, ITFlow emails invoices and reminders again, and payments made in QuickBooks stop coming back (the ones already brought back are ordinary ITFlow payments and stay). Disconnect QuickBooks first (Admin > Integrations).";
+if ($n = $count("SELECT COUNT(*) FROM mit_qbo_batch_invoices WHERE entry_status != 'removed'") + $count("SELECT COUNT(*) FROM mit_invoice_approvals") + $count("SELECT COUNT(*) FROM mit_qbo_manual")) {
+    $after[] = "QuickBooks Online: $n invoice approvals / batch entries / invoices marked \"Already in QuickBooks\" - stock ITFlow has no approvals, batches or QuickBooks link, so invoices unlock, ITFlow emails invoices and reminders again, and payments made in QuickBooks stop coming back (the ones already brought back are ordinary ITFlow payments and stay). Disconnect QuickBooks first (Admin > Integrations).";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_usage_links")) {
     $after[] = "Usage connectors: $n Bitwarden / Ingram Micro link" . ($n === 1 ? '' : 's') . " - the daily counts from NinjaOne, Bitwarden and Ingram Micro stop (the keys stay encrypted in mit_usage_links / mit_settings; delete them if you move).";
