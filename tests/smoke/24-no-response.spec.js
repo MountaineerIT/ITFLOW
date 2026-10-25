@@ -50,7 +50,9 @@ test('no response: resolves with the message, emails it, and sends no survey', a
     made.clientId = Number(new URL(href, page.url()).searchParams.get('client_id'));
     for (const what of ['no reply', 'normal']) {
         modal = await openModal(page, `modals/ticket/ticket_add.php?client_id=${made.clientId}`, 'lg');
-        await fillForm(modal, { subject: smokeName(what), details: 'Opened by the smoke tests.', priority: 'Low' });
+        // The first has a long subject: Resolve, its arrow and the ⋮ menu must stay on one line beside it
+        const subject = what === 'no reply' ? `${what} - Fwd: Renewal Reminder: Your Google Workspace Business Starter subscription for example.org renews on November 11, 2026` : what;
+        await fillForm(modal, { subject: smokeName(subject), details: 'Opened by the smoke tests.', priority: 'Low' });
         await submit(modal, 'add_ticket');
         made.tickets.push(Number(new URL(page.url()).searchParams.get('ticket_id')));
         made.refs.push((await page.locator('title').textContent()).match(/[A-Z]+-\d+/)?.[0] || '');
@@ -60,6 +62,13 @@ test('no response: resolves with the message, emails it, and sends no survey', a
 
     // No response on the first: the window has the message filled in for the ticket, and can be changed
     await visit(page, ticketPage(made.tickets[0]), errors);
+    for (const width of [1500, 800]) {
+        await page.setViewportSize({ width, height: 900 });
+        const tops = await page.evaluate(() => ['#ticket_close', '.mit-no-response > .btn', '.ticket-actions > .dropdown:last-child > .btn']
+            .map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.top), Math.round(r.height)]; }));
+        expect(new Set(tops.map((t) => t.join())).size, `Resolve, its arrow and the menu on one line at ${width}px: ${JSON.stringify(tops)}`).toBe(1);
+    }
+    await page.setViewportSize({ width: 1400, height: 1000 });
     await page.click('.mit-no-response > .dropdown-toggle');
     await page.click('[data-mit-no-response]');
     const box = page.locator('.modal.show textarea[name=message]');

@@ -896,7 +896,8 @@ model: see DEPLOYMENT.md.
 - Resolve - no response (Oct 24, 26.10.126): `functions/mit_no_response.php` (ours, required from `functions.php`) - a split arrow
   joined onto Resolve (`mitNoResponseButton` - one line after ITFlow's Resolve link in `agent/ticket.php`; menu item "Resolve - no
   response..." - a separate button wrapped the ⋮ menu onto a second line; `agent/js/mit_ticket_layout.js` skips `.mit-no-response` when it
-  adds Customize layout to the ⋮ menu) opens
+  adds Customize layout to the ⋮ menu; from 768 px its <style> keeps ITFlow's `.ticket-actions` from shrinking / wrapping, so a long subject
+  wraps instead of pushing the arrow and ⋮ under Resolve - 26.10.138) opens
   `agent/modals/mit_no_response/no_response.php` with `mit_settings` no_response_message filled in (`mitNoResponseFill`: [First Name]
   [Contact] [Client] [Ticket] [Subject] [Agent] [Date]); handler `agent/post/mit_no_response.php` (Support edit, open, tasks done like
   resolve_ticket) -> `mitNoResponseResolve`: public note, email to contact + watchers instead of ITFlow's ticketMailResolved, ITFlow's

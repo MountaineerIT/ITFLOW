@@ -65,8 +65,11 @@ function mitNoResponseButton(array $ticket) {
         return '';
     }
     // A split arrow joined onto ITFlow's Resolve button (#ticket_close, just before it) - a button of its own made the action row
-    // wrap the ⋮ menu onto a second line
-    return '<style>.ticket-actions #ticket_close:has(+ .mit-no-response) { border-top-right-radius: 0; border-bottom-right-radius: 0; }'
+    // wrap the ⋮ menu onto a second line. ITFlow's action group may shrink and wrap, so a long subject squeezed it until the arrow
+    // and ⋮ fell under Resolve: from md up (where the header keeps one row) it keeps its width and one line, the subject wraps instead
+    return '<style>@media (min-width: 768px) { .ticket-actions:has(> .mit-no-response) { flex-shrink: 0; flex-wrap: nowrap !important; } }'
+        . '.ticket-actions:has(> .mit-no-response) > .btn { white-space: nowrap; }'
+        . '.ticket-actions #ticket_close:has(+ .mit-no-response) { border-top-right-radius: 0; border-bottom-right-radius: 0; }'
         . '.ticket-actions .mit-no-response { margin-left: calc(-.5rem - 1px); }'
         . '.ticket-actions .mit-no-response > .btn { border-top-left-radius: 0; border-bottom-left-radius: 0; border-left: 1px solid rgba(255,255,255,.35); }</style>'
         . '<div class="dropdown mit-no-response"><button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"'

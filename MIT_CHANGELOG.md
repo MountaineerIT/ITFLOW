@@ -5,6 +5,7 @@ again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > 
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
 ## 26.10.138 - 2026-10-25
+- Ticket page: a long subject no longer squeezes the buttons beside it - Resolve, its "no response" arrow and the ⋮ menu stay on one line and the subject wraps instead (they used to stack, with Resolve on two lines).
 - Quotes: our cost, Price by (markup / margin / set price) and % are back on the quote's add-a-line row (ITFlow 26.11's new quote page had them only in the Edit Line window). The price is worked out as you type, the profit shows under the row, and picking a product fills in its cost. Staff only - customers never see them.
 
 ## 26.10.137 - 2026-10-25
