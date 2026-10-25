@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.136 - 2026-10-25
+- Fix: Admin > Update's check stopped with "Data too long for column 'config_update_pending_commits'" when many commits with long descriptions were waiting (the 26.11 merge brought 99). It now keeps the newest 100, each description cut to 200 characters.
+
 ## 26.10.135 - 2026-10-25
 - ITFlow's latest work (its 26.11 public beta, database 3.4.7) merged in. New from ITFlow: contracts (SLA, rates and terms for a client, prepaid hours), one shared page for invoices, quotes and recurring invoices with lines edited in place and a new PDF look, products with cost, vendor and stock tracking, trips paid back for mileage and expenses paid personally, bank statement import and account reconciling, rebuilt settings pages, ticket statuses, payment methods and providers, custom links and AI providers, portal invites and self sign-up, ticket emails that carry the conversation, a "Get started" guide for new installs, and a security sweep.
 - Products: cost and vendor are now ITFlow's own fields - your values were copied over by the update. The product window keeps our picture; its own markup % setting is gone (quote lines start with the company default).
