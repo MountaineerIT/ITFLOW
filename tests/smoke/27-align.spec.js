@@ -82,7 +82,8 @@ test('MSP Align: connect, sync, and its data on the client, asset and license pa
     await expect(card.locator('[data-mit-align-health="82"]'), 'the health score').toContainText('Healthy');
     await expect(card.locator('[data-mit-align-devices="1"]'), 'devices to act on').toContainText('of 4 devices');
     await expect(card.locator('[data-mit-align-meeting]')).toContainText('Quarterly business review');
-    await expect(card.locator('[data-mit-align-links] a'), 'quick links').toHaveCount(9);
+    await expect(card.locator('[data-mit-align-links] a'), 'quick links').toHaveCount(10);
+    await expect(card.locator('[data-mit-align-links] a', { hasText: 'Backups' })).toHaveAttribute('href', `${MOCK}/clients/71/backups`);
     await expect(card.locator('[data-mit-align-links] a', { hasText: 'Roadmap' })).toHaveAttribute('href', `${MOCK}/clients/71/roadmap`);
 
     // Asset list badge (and the client header's link, on the client's other pages) and the asset page's button

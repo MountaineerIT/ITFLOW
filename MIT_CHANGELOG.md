@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.132 - 2026-10-25
+- MSP Align: the client overview's quick links include Backups, opening the client's backup review in MSP Align (after Compliance).
+
 ## 26.10.131 - 2026-10-25
 - New: MSP Align, read only (Admin > Integrations > MSP Align). Type its address and an API key made in MSP Align under Settings > API (read scopes only). ITFlow then copies from MSP Align every hour, or on "Sync now". It only ever reads, so it can't change anything in MSP Align.
 - Clients, assets and licenses are matched by the ITFlow ids MSP Align already keeps, so there is nothing to map. If linked clients have different names in the two programs, the admin page lists them, in case MSP Align was filled from another ITFlow.

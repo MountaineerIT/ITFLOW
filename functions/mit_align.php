@@ -28,6 +28,7 @@ const MIT_ALIGN_CLIENT_PAGES = [
     '/devices' => ['Devices', 'fa-laptop'],
     '/licenses' => ['Licenses', 'fa-key'],
     '/compliance' => ['Compliance', 'fa-clipboard-check'],
+    '/backups' => ['Backups', 'fa-hdd'],
     '/alignment' => ['Alignment', 'fa-bullseye'],
     '/meetings' => ['Meetings', 'fa-handshake'],
     '/reports' => ['Reports', 'fa-file-alt'],
