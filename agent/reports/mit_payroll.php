@@ -137,7 +137,9 @@ $columns += [
     'miles' => ['label' => 'Miles', 'type' => 'decimal', 'decimals' => 1, 'screen' => $any_reimb, 'title' => 'Miles logged on tickets'],
     'mileage' => ['label' => 'Mileage', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Miles at the rate each was logged at'],
     'purchases' => ['label' => 'Purchases', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Things bought for tickets and paid for by the person'],
-    'reimburse' => ['label' => 'Reimburse', 'type' => 'money', 'screen' => $any_reimb, 'class' => 'fw-semibold', 'title' => 'Mileage plus purchases - paid back with this payroll'],
+    'reimburse' => mitReimbItflowPaysBack()
+        ? ['label' => 'Paid back in ITFlow', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Mileage plus purchases - paid back through ITFlow (Trips, Expenses > Reimburse), not with this payroll']
+        : ['label' => 'Reimburse', 'type' => 'money', 'screen' => $any_reimb, 'class' => 'fw-semibold', 'title' => 'Mileage plus purchases - paid back with this payroll'],
 ];
 foreach ($banks as $bank_id => $bank) {
     $columns["bank_$bank_id"] = ['label' => $bank['bank_name'] . ' left', 'type' => 'hours', 'decimals' => 2, 'title' => $bank['bank_name'] . ' balance at the end of these dates'];
@@ -162,6 +164,7 @@ if (reportExporting('detail')) {
     $all_days = mitTsDays(array_keys($people), $from, $to);
     $entries = mitTsEntries(array_keys($people), $from, $to);
     $reimb_rows = mitReimbOn() ? mitReimbForUsers(array_keys($people), $from, $to) : [];
+    $reimb_trips = mitReimbOn() ? mitReimbItflowTrips(array_keys($people), $from, $to) : [];
     $all_ca_days = mitTsCaDays(array_keys($people), $from, $to);
     foreach ($people as $user_id => $person) {
         $days = [];
@@ -215,7 +218,11 @@ if (reportExporting('detail')) {
         }
         foreach ($reimb_rows[$user_id] ?? [] as $entry) {
             $days[] = ['date' => $entry['entry_date'], 'code' => ($entry['kind'] === 'mileage' ? 'Mileage' : 'Purchase') . ' - ' . mitReimbTicketText($entry),
-                'kind' => 'Reimbursement', 'paid' => 'Yes', 'hours' => null, 'amount' => (float) $entry['amount'], 'note' => mitReimbWhat($entry)];
+                'kind' => 'Reimbursement', 'paid' => mitReimbItflowPaysBack() ? 'In ITFlow' : 'Yes', 'hours' => null, 'amount' => (float) $entry['amount'], 'note' => mitReimbWhat($entry)];
+        }
+        foreach ($reimb_trips[$user_id] ?? [] as $trip) {
+            $days[] = ['date' => $trip['trip_date'], 'code' => 'Mileage - Trips', 'kind' => 'Reimbursement', 'paid' => 'In ITFlow', 'hours' => null,
+                'amount' => (float) $trip['value'], 'note' => rtrim(rtrim(number_format((float) $trip['trip_miles'], 1), '0'), '.') . ' mi ' . trim((string) $trip['trip_purpose'])];
         }
         usort($days, function ($a, $b) {
             return [$a['date'], $a['code']] <=> [$b['date'], $b['code']];
@@ -279,7 +286,7 @@ $with_hours = array_values(array_filter($rows, function ($r) {
             'sub' => '<span class="text-body-tertiary">' . escapeHtml(reportHours($sum['regular'] * 60, 2)) . ' h regular</span>']] : [])
         + ($approval ? [6 => ['label' => 'Not approved', 'value' => reportCount($not_approved), 'tone' => $not_approved ? 'warning' : 'success',
             'sub' => '<span class="text-body-tertiary">' . ($not_approved ? 'people with a period still open' : 'Every timesheet approved') . '</span>', 'url' => '/agent/mit_timesheets.php?start=' . $from]] : [])
-        + ($any_reimb ? [7 => ['label' => 'Reimburse', 'value' => reportMoney(array_sum(array_column($rows, 'reimburse'))),
+        + ($any_reimb ? [7 => ['label' => mitReimbItflowPaysBack() ? 'Paid back in ITFlow' : 'Reimburse', 'value' => reportMoney(array_sum(array_column($rows, 'reimburse'))),
             'sub' => escapeHtml(rtrim(rtrim(number_format(array_sum(array_column($rows, 'miles')), 1), '0'), '.')) . ' <span class="text-body-tertiary">miles, plus purchases</span>']] : [])) ?>
 
     <?php if ($with_hours) { ?>

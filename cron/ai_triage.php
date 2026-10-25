@@ -32,6 +32,7 @@ if (intval($row['config_enable_cron'] ?? 0) === 0) {
     cronJobStop("Cron: is not enabled -- Quitting..");
 }
 
+if (function_exists('mitDevMode') && mitDevMode()) { cronJobStop(); } // Mountaineer IT: development mode - no AI calls with production's key, no changes to tickets
 [$triaged, $failed] = aiTriageNewTickets(5);
 if ($failed) {
     logApp('AI', 'warning', "AI triage: $failed new ticket" . ($failed === 1 ? '' : 's') . " couldn't be triaged - see AI Usage");

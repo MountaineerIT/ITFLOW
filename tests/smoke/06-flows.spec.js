@@ -166,6 +166,10 @@ test('mileage on the ticket shows in its Reimbursements box', async ({ page }) =
     expect(rate, `rate per mile in "${text}"`).toBeGreaterThan(0);
     expect(text).toContain('$' + (Math.round(12.5 * rate * 100) / 100).toFixed(2));
     await expect(card.locator('.card-title .badge')).toHaveText('1');
+    // Paid back through ITFlow: the entry says where it waits, and new driving goes in ITFlow's own Trips box (Log a trip)
+    await expect(card.locator('[data-mit-reimb-state]')).toHaveText('Waiting in Trips');
+    await expect(card.locator('[title="Log mileage"]'), 'ITFlow\'s Log a trip instead').toHaveCount(0);
+    await expect(card.locator('[title="Add a purchase"]')).toHaveCount(1);
 
     // ITFlow 26.11 pays it back: the trip is one driven in their own vehicle, waiting under Trips > To pay back
     await visit(page, 'agent/trips.php?show=to_pay');

@@ -14,7 +14,8 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Fix: email replies now also go to client contacts who asked ITFlow for every update, and each person is greeted by their own name.
 - Fix: changing a calendar entry's agents, or moving it on Dispatch, now needs the same rights as ITFlow's Edit event; moving a ticket to another client from Dispatch takes its trips along.
 - Fix: no double "Ticket Scheduled" email to a contact who asked for every update; the guest page's "Add to calendar" keeps the booking's real length.
-- Development mode now also stops ITFlow's new log forwarding (so a test copy can't send to production's log server).
+- Paying people back: through ITFlow only (your choice). Mileage waits in Trips > To pay back and purchases in Expenses > Reimburse; the payroll report shows them as "Paid back in ITFlow" (not payroll money), each entry says where it is (Waiting in Trips, Waiting in Expenses > Reimburse, Paid back on a date), and driving is logged with ITFlow's own "Log a trip" on the ticket - those trips still count on the timesheet and in the report.
+- Development mode now also stops ITFlow's new log forwarding (so a test copy can't send to production's log server) and its AI triage of new tickets (which would use production's AI key).
 - The quote profit box shows one-time and monthly / quarterly / yearly lines separately; "send to procurement" lists one-time lines only.
 - Admin > Roles explains what each level of Procurement, Timesheets and Dispatch allows; Admin > Modules and Company say what changed when only our settings changed; the mileage rate field follows ITFlow's rate.
 - Faster: database update M041 adds indexes for a count ITFlow 26.11 runs on every page and for the audit log's filters (measured on a 50,000-ticket copy: Unbilled Time 241 to 118 ms, Audit logs 1.5 to 1.2 s, most pages 10-40% quicker).

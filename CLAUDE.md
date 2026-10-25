@@ -1061,7 +1061,11 @@ model: see DEPLOYMENT.md.
   - Reimbursements are paid back through ITFlow (`mitReimbItflowPaysBack`): our mileage trips are `trip_own_vehicle = 1` (Trips > To pay
     back, at ITFlow's mileage rate, which our timesheet then shows), approved purchases become expenses `expense_paid_by` the person on no
     account (vendor matched by name, else "Staff purchases") for Expenses > Reimburse; settled entries lock (`mitReimbPaidBack`). Bulk
-    trip edits / deletes skip our trips (agent/post/trip.php).
+    trip edits / deletes skip our trips (agent/post/trip.php). 26.10.140 (user's choice - pay back through ITFlow only): the payroll report's
+    money column is "Paid back in ITFlow" (not payroll) and its detail rows say "In ITFlow"; `mitReimbState` puts where each entry is (Waiting
+    in Trips / Expenses > Reimburse / Paid back <date>) on the timesheet and ticket lists; the ticket box drops "Log mileage" on tickets with a
+    client (ITFlow's Trips box "Log a trip") and `mitReimbItflowTrips` counts own-vehicle trips logged in ITFlow (not ours) on the timesheet
+    box, in `mitReimbTotals` and the payroll detail. Development mode also stops `cron/ai_triage.php` (one guarded line) - the user's choice.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
     with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.
