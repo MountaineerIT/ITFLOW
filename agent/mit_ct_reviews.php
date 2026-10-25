@@ -30,6 +30,10 @@ $where = "s.temperature IS NOT NULL" . ($days ? " AND s.responded_at >= NOW() - 
 $rows = mysqli_query($mysqli, "SELECT s.*, cl.client_name FROM mit_ct_surveys s LEFT JOIN clients cl ON cl.client_id = s.client_id
     WHERE $where ORDER BY s.responded_at DESC LIMIT 500");
 $score = mitCtScore($client_filter, $days);
+// The client picker: clients with a survey response (and the one shown), as the agent may see them
+$picker_clients = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients
+    WHERE (client_id IN (SELECT client_id FROM mit_ct_surveys WHERE temperature IS NOT NULL) OR client_id = $client_filter)" . clientScopeSql('clients.client_id') . "
+    ORDER BY client_name ASC");
 $query = function (array $change) use ($client_filter, $temperature, $days) {
     $params = array_merge(['client_id' => $client_filter, 'temperature' => $temperature, 'days' => $days], $change);
     return '?' . http_build_query(array_filter($params, function ($value, $name) {
@@ -40,8 +44,20 @@ $query = function (array $change) use ($client_filter, $temperature, $days) {
 ?>
 
 <section class="mb-3" data-mit-ct-reviews>
-    <h2 class="itflow-dash-section mb-2">Customer happiness<?= $client_name !== '' ? ' - ' . escapeHtml($client_name) : '' ?>
-        <span class="small text-body-secondary fw-normal"><?= $days ? "last $days days" : 'all time' ?></span></h2>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <h2 class="itflow-dash-section mb-0 me-auto">Customer happiness<?= $client_name !== '' ? ' - ' . escapeHtml($client_name) : '' ?>
+            <span class="small text-body-secondary fw-normal"><?= $days === 365 ? 'last 12 months' : ($days ? "last $days days" : 'all time') ?></span></h2>
+        <form method="get" autocomplete="off" style="min-width: 16rem;" data-mit-ct-client-pick>
+            <input type="hidden" name="days" value="<?= $days ?>">
+            <?php if ($temperature) { ?><input type="hidden" name="temperature" value="<?= $temperature ?>"><?php } ?>
+            <select class="form-select form-select-sm select2" name="client_id" onchange="this.form.submit()" aria-label="Client">
+                <option value="">- All Clients -</option>
+                <?php while ($row = mysqli_fetch_assoc($picker_clients)) { ?>
+                    <option value="<?= intval($row['client_id']) ?>" <?= intval($row['client_id']) === $client_filter ? 'selected' : '' ?><?= selectOptionClient($row['client_id'], $row['client_name'], $row['client_abbreviation'] ?? '') ?>><?= escapeHtml($row['client_name']) ?></option>
+                <?php } ?>
+            </select>
+        </form>
+    </div>
     <?= mitCtRail($score, $query(['temperature' => 0])) ?>
 </section>
 

@@ -125,6 +125,7 @@ test('customer thermometer: a response shows on the client, the dashboard and th
     await expect(card.locator('[data-mit-ct-happiness]'), 'the client\'s score').toHaveAttribute('data-mit-ct-happiness', '100');
     await expect(card, 'the comment').toContainText('Great work, thanks!');
     await expect(card.locator('[data-mit-ct-count="1"] .itflow-dash-rail-count')).toHaveText('1');
+    await expect(card.locator('[data-mit-ct-more]'), 'no "All comments" link for one comment').toHaveCount(0);
 
     await visit(page, 'agent/dashboard.php', errors);
     await expect(page.locator('[data-mit-ct-dash] [data-mit-ct-happiness]'), 'the dashboard score').toHaveCount(1);
@@ -133,6 +134,13 @@ test('customer thermometer: a response shows on the client, the dashboard and th
     await expect(page.locator('[data-mit-ct-reviews]')).toContainText(made.clientName);
     await expect(page.locator('table')).toContainText('Great work, thanks!');
     await expect(page.locator('table')).toContainText(made.ref);
+
+    // The client picker: lists the client, and "All Clients" goes back to everyone
+    const pick = page.locator('[data-mit-ct-client-pick] select[name=client_id]');
+    await expect(pick, 'the client picked').toHaveValue(String(made.clientId));
+    await Promise.all([page.waitForNavigation(), pick.evaluate((select) => { select.value = ''; select.dispatchEvent(new Event('change', { bubbles: true })); })]);
+    expect(new URL(page.url()).searchParams.get('client_id') || '', 'all clients').toBe('');
+    await expect(page.locator('[data-mit-ct-reviews] h2')).not.toContainText(made.clientName);
 
     await visit(page, ticketPage(), errors);
     await expect(page.locator('body'), 'the ticket\'s history').toContainText('Customer Thermometer: rated Gold');

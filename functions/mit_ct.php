@@ -26,6 +26,7 @@ const MIT_CT_TEMPERATURES = [
 ];
 const MIT_CT_SEND_BATCH = 25;          // surveys sent per run at most
 const MIT_CT_POLL_MINUTES = 15;        // how often responses are read
+const MIT_CT_CLIENT_COMMENTS = 3;      // comments shown on the client overview - the rest on the responses page
 const MIT_CT_SUMMARY_LENGTH = 100;     // custom3 (the ticket's subject) cut to this
 
 /** Has M036 run? */
@@ -440,7 +441,10 @@ function mitCtClientCard($client_id) {
     $html = '<section class="mb-4" data-mit-ct-client><h2 class="itflow-dash-section mb-2">Customer happiness <span class="small text-body-secondary fw-normal">last 12 months</span></h2>'
         . mitCtRail($score, "/agent/mit_ct_reviews.php?client_id=$client_id");
     $result = mysqli_query($mysqli, "SELECT * FROM mit_ct_surveys WHERE client_id = $client_id AND temperature IS NOT NULL AND comment IS NOT NULL
-        ORDER BY responded_at DESC LIMIT 3");
+        AND responded_at >= NOW() - INTERVAL 365 DAY
+        ORDER BY responded_at DESC LIMIT " . MIT_CT_CLIENT_COMMENTS);
+    $comments = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM mit_ct_surveys WHERE client_id = $client_id
+        AND temperature IS NOT NULL AND comment IS NOT NULL AND responded_at >= NOW() - INTERVAL 365 DAY"))[0]);
     if (mysqli_num_rows($result)) {
         $html .= '<div class="card mt-2 mb-0"><ul class="list-group list-group-flush">';
         while ($row = mysqli_fetch_assoc($result)) {
@@ -449,7 +453,13 @@ function mitCtClientCard($client_id) {
                 . ($row['ticket_id'] ? '<a href="/agent/ticket.php?client_id=' . $client_id . '&ticket_id=' . intval($row['ticket_id']) . '">' . escapeHtml($row['ticket_ref']) . '</a>' : escapeHtml($row['ticket_ref']))
                 . '</span><div class="mt-1">' . nl2br(escapeHtml($row['comment'])) . '</div></li>';
         }
-        $html .= '</ul></div>';
+        $html .= '</ul>';
+        // The rest on the responses page (the Happiness tile goes there too)
+        if ($comments > MIT_CT_CLIENT_COMMENTS) {
+            $html .= '<div class="card-footer py-2 small" data-mit-ct-more><a href="/agent/mit_ct_reviews.php?client_id=' . $client_id . '&days=365">All '
+                . $comments . ' comments <i class="fas fa-arrow-right ms-1"></i></a></div>';
+        }
+        $html .= '</div>';
     }
     return $html . '</section>';
 }

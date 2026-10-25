@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.129 - 2026-10-25
+- Customer happiness (the responses page opened from the dashboard and client cards) has a client picker beside its heading to switch clients, or go back to All Clients. It lists the clients with survey responses. The heading now says "last 12 months" to match its button.
+- A client's overview still shows its 3 newest survey comments, and when there are more it adds an "All N comments" link to that client's responses for the last 12 months. The comments shown are from those 12 months too, like the score above them.
+
 ## 26.10.128 - 2026-10-24
 - Full check of the whole build: every agent, admin, account, report, guest, client portal and sign-in page opened as an administrator and as a technician, on a desktop and on a phone. No PHP errors or browser errors, and no failed requests apart from the ones fixed below. The full smoke suite and the portability check pass.
 - The customer's quote and invoice pages (the links in emails) no longer ask for the logo folder when no company logo is set. That request was refused and logged as an error on every view.

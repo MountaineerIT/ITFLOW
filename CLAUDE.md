@@ -849,7 +849,8 @@ model: see DEPLOYMENT.md.
   Thermometer `admin/mit_customer_thermometer.php` (handlers `admin/post/mit_customer_thermometer.php`, menu
   `admin/includes/mit_integrations_nav.php`), reviews list `agent/mit_ct_reviews.php` (Support view, client-scoped), hooks - one line
   each - `mitCtDashCard` in `agent/dashboard.php` (after mitBoardDashCard, last 90 days) and `mitCtClientCard` in
-  `agent/client_overview.php` (before Technical, last 12 months + latest comments). Ticket history gets "survey sent" / "rated".
+  `agent/client_overview.php` (before Technical, last 12 months + the newest `MIT_CT_CLIENT_COMMENTS` comments, then an "All N comments" link
+  `[data-mit-ct-more]` - 26.10.129). The reviews page has a client picker (`[data-mit-ct-client-pick]`, clients with responses, 26.10.129). Ticket history gets "survey sent" / "rated".
   Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by). Test install stand-in
   `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
 - Resolve - no response (Oct 24, 26.10.126): `functions/mit_no_response.php` (ours, required from `functions.php`) - a split arrow
