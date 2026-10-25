@@ -57,7 +57,7 @@ $query = function (array $change) use ($client_filter, $temperature, $days) {
             <a class="btn btn-sm btn-light" href="<?= escapeHtml($query(['client_id' => 0, 'temperature' => 0])) ?>"><i class="fas fa-times me-1"></i>Everyone, every rating</a>
         <?php } ?>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body p-0 table-responsive">
         <table class="table table-sm table-hover mb-0">
             <thead><tr><th>Responded</th><th>Rating</th><th>Comment</th><th>Client</th><th>Ticket</th><th>Tech</th></tr></thead>
             <tbody>

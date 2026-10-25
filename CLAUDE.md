@@ -131,7 +131,7 @@ model: see DEPLOYMENT.md.
   client's own customer, portal documents / files record the portal user id; `guest_view_ticket.php` avatar path;
   `guest_download_file.php` checks the item first, quoted filename. Stage 3 (26.10.96): `agent/invoice.php` / `quote.php` /
   `recurring_invoice.php` draw the logo only when one is set (an empty name asked for the uploads/settings/ folder - 403);
-  `client/login_reset.php` reads the user row with `?? 0`; `agent/user/post.php` HTTP_REFERER `?? ''`. 26.10.98: `agent/post/invoice_model.php` discounts `?? 0` (add_invoice posts no recurring_discount). 26.10.120: `admin/post/settings_company.php` deletes the old logo only when there is one (the first upload unlinked the folder).
+  `client/login_reset.php` reads the user row with `?? 0`; `agent/user/post.php` HTTP_REFERER `?? ''`. 26.10.98: `agent/post/invoice_model.php` discounts `?? 0` (add_invoice posts no recurring_discount). 26.10.120: `admin/post/settings_company.php` deletes the old logo only when there is one (the first upload unlinked the folder). 26.10.128: `guest/guest_view_quote.php` / `guest_view_invoice.php` draw the logo only when one is set (same as the agent pages); `guest_view_invoice.php`, `client/recurring_invoices.php`, `client/unpaid_invoices.php` read the Stripe row with `?? 0` (no provider = warnings).
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -887,6 +887,10 @@ model: see DEPLOYMENT.md.
   (`mitTicketTechsCopyMail`), po_app / po_email (`mitPoNotifyApprovers`), timesheet_app / timesheet_email (`mitTsNotify`). Re-check the two
   ITFlow files' hooks if upstream changes ticketMailSchedule or the assignment notices (26.11 rebuilds the Notifications page on its settings
   frame - move the rows there). Smoke `25-notifications.spec.js`.
+- Portal tables on a phone (26.10.128): `js/mit_portal_tables.js` (ours) wraps each portal `table.table` not already in one in
+  Bootstrap's `.table-responsive` - one script line in `client/includes/footer.php` after http.js (before DataTables). ITFlow's portal
+  pages send `Content-Security-Policy: default-src 'self'`, so it must stay a file. (Their footer's inline TinyMCE init is refused by
+  that CSP on those pages - ITFlow's, harmless there, moved to a file in upstream develop.) Smoke `26-portal-phone.spec.js`.
 - Restore on a running install (Oct 22, 26.10.108): `functions/mit_backup_restore.php` (ours, required from mit_common.php) -
   Admin > Backup: Restore on a stored backup (`mitRestoreRowButton`, one line in the row actions of `admin/backup.php`) or upload a
   .zip (`admin/includes/mit_restore_card.php`, one require in ITFlow's "Restoring" card, whose "cannot be done from here" sentence

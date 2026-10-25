@@ -108,6 +108,11 @@ test('timesheet: the note counts on the day it was worked, listed with its times
     await visit(page, `agent/mit_timesheet.php?start=${yesterday}`, errors);
     test.skip(await page.locator('text=Timesheets need the database update').count() > 0, 'Timesheets not set up');
     const day = page.locator(`[data-date="${yesterday}"]`).first();
+    // The page opens on today's week - yesterday may be in the week before (today a Sunday)
+    const weeks = page.locator('button[data-week]');
+    for (let i = 0; i < await weeks.count() && await day.count() === 0; i++) {
+        await weeks.nth(i).click();
+    }
     test.skip(await day.count() === 0, 'yesterday is not on this timesheet page');
     await expect(day, 'flagged on the day').toContainText('Ticket times overlap');
     await day.click();

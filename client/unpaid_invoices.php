@@ -20,9 +20,9 @@ $invoices_sql = mysqli_query($mysqli, "SELECT invoice_amount, invoice_date, invo
 // Payment Provider Active Query
 $sql_payment_provider = mysqli_query($mysqli, "SELECT payment_provider_active, payment_provider_id, payment_provider_threshold FROM payment_providers WHERE payment_provider_active = 1 LIMIT 1;");
 $row = mysqli_fetch_assoc($sql_payment_provider);
-$payment_provider_id = intval($row['payment_provider_id']);
-$payment_provider_active = intval($row['payment_provider_active']);
-$payment_provider_threshold = floatval($row['payment_provider_threshold']);
+$payment_provider_id = intval($row['payment_provider_id'] ?? 0);
+$payment_provider_active = intval($row['payment_provider_active'] ?? 0);
+$payment_provider_threshold = floatval($row['payment_provider_threshold'] ?? 0);
 
 // Saved Payment Methods
 $sql_saved_payment_methods = mysqli_query($mysqli, "

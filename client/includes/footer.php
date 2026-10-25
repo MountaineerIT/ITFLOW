@@ -40,6 +40,7 @@
 <script src="/js/itflow_select.js"></script>
 <script src="/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="/js/http.js"></script>
+<script src="/js/mit_portal_tables.js"></script>
 
 <!--- TinyMCE -->
 <script src="/libs/tinymce/tinymce.min.js" referrerpolicy="origin"></script>

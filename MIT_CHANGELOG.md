@@ -4,6 +4,15 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.128 - 2026-10-24
+- Full check of the whole build: every agent, admin, account, report, guest, client portal and sign-in page opened as an administrator and as a technician, on a desktop and on a phone. No PHP errors or browser errors, and no failed requests apart from the ones fixed below. The full smoke suite and the portability check pass.
+- The customer's quote and invoice pages (the links in emails) no longer ask for the logo folder when no company logo is set. That request was refused and logged as an error on every view.
+- The client portal's lists (assets, invoices, statement, activity, all tickets ...) scroll sideways inside their box on a phone. Before, a wide table made the whole page wider than the screen.
+- The customer's invoice page and the portal's invoice pages no longer log PHP warnings when Stripe is not set up.
+- The smoke tests' last check also fails when the server refused a file a page asked for, which is how the logo problem above had gone unnoticed.
+- Smoke tests: Dispatch workload no longer skips when the admin is on a service board, the note-times timesheet test no longer skips on a Sunday, and the ticket SLA pick waits for its page reload (it failed now and then). New test for the portal on a phone.
+- Admin > Integrations > Customer Thermometer's survey list and the Customer reviews list scroll sideways on a phone instead of making the whole page wider than the screen.
+
 ## 26.10.127 - 2026-10-24
 - Admin > Settings > Notifications has new rows, with app, tech email and client email switches. All are on to start, so nothing changes until you untick one:
   - Ticket scheduled, moved or cancelled: who is emailed, set separately for remote and onsite visits. Choices are the assigned tech, the ticket contact, the watchers, the site's contact (the location's contact), the client's primary contact, and extra addresses such as a front desk. These are only defaults: the Schedule window and Dispatch's schedule dialog show them as ticks you can change for one booking. Switching a booking between Remote and Onsite switches the ticks to that visit's defaults. Cancellations go to the same people as the booking's type of visit.

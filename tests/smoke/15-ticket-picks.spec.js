@@ -52,7 +52,10 @@ test('ticket picks: category, SLA and board change in place', async ({ page }) =
 
     // SLA - only when the SLA line is there (SLAs in use)
     if (await page.locator('button[data-quick-pick="mit_sla"]').count()) {
+        // An SLA change reloads the page (the timers start again) - wait for it before going on
+        const reloaded = page.waitForNavigation();
         const sla = await pickOther(page, 'mit_sla');
+        await reloaded;
         await expect(prop('SLA'), 'the SLA plan shown').toContainText(sla);
         await visit(page, ticketPage(), errors);
         await expect(prop('SLA'), 'the SLA plan saved').toContainText(sla);

@@ -121,7 +121,7 @@ $due = $settings['enabled'] && $missing === '' ? count(mitCtDueTickets(100)) : 0
 <div class="card">
     <div class="card-header py-2"><h3 class="card-title mt-1">Latest surveys
         <span class="small text-muted ms-2"><?= intval($counts['sent']) ?> sent · <?= intval($counts['answered']) ?> answered<?= intval($counts['other']) ? ' · ' . intval($counts['other']) . ' not sent' : '' ?></span></h3></div>
-    <div class="card-body p-0">
+    <div class="card-body p-0 table-responsive">
         <table class="table table-sm table-hover mb-0" data-mit-ct-surveys>
             <thead><tr><th>Sent</th><th>Ticket</th><th>Client</th><th>To</th><th>Tech</th><th>Status</th><th>Response</th></tr></thead>
             <tbody>

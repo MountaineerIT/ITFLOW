@@ -161,7 +161,8 @@ test('Dispatch workload', async ({ page }) => {
     await expect(page.locator('[data-md-board]')).toContainText('Team average');
 
     const techs = JSON.parse(await page.locator('#mitDispatch').getAttribute('data-techs')).map((t) => t.id);
-    const workload = await getJson(page, `mit_dispatch_ajax.php?workload=1&techs=${techs.join(',')}`);
+    // Every board - the admin's own default is "My boards" once they are on one
+    const workload = await getJson(page, `mit_dispatch_ajax.php?workload=1&board=all&techs=${techs.join(',')}`);
     expect(workload.techs.length, 'a row per agent').toBe(techs.length);
     for (const t of workload.techs) {
         expect(Object.keys(t.sla).sort()).toEqual(['at_risk', 'breached', 'none', 'paused', 'running']);
@@ -179,7 +180,7 @@ test('Dispatch workload', async ({ page }) => {
         method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams({assign: 1, csrf_token: token, ticket_id: id, tech_id: tech}).toString()})).json(), [ticket.id, tech, token]);
     expect((await assign(other)).ok, 'moved').toBe(true);
-    const after = await getJson(page, `mit_dispatch_ajax.php?workload=1&techs=${other}`);
+    const after = await getJson(page, `mit_dispatch_ajax.php?workload=1&board=all&techs=${other}`);
     expect(after.techs[0].tickets.some((k) => k.id === ticket.id), 'on the other agent now').toBe(true);
     expect((await assign(owner.id)).ok, 'moved back').toBe(true);
     await expectClean(page, errors);

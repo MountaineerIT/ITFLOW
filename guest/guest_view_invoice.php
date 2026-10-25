@@ -97,9 +97,9 @@ $config_invoice_footer = escapeHtml($row['config_invoice_footer']);
 // Get Payment Provide Details
 $sql = mysqli_query($mysqli, "SELECT payment_provider_id, payment_provider_name, payment_provider_threshold FROM payment_providers WHERE payment_provider_active = 1 AND payment_provider_name = 'Stripe' LIMIT 1");
 $row = mysqli_fetch_assoc($sql);
-$payment_provider_id = $stripe_provider_id = intval($row['payment_provider_id']);
-$payment_provider_name = escapeHtml($row['payment_provider_name']);
-$payment_provider_threshold = floatval($row['payment_provider_threshold']);
+$payment_provider_id = $stripe_provider_id = intval($row['payment_provider_id'] ?? 0);
+$payment_provider_name = escapeHtml($row['payment_provider_name'] ?? '');
+$payment_provider_threshold = floatval($row['payment_provider_threshold'] ?? 0);
 
 
 // Get client's Stripe customer ID
@@ -216,12 +216,12 @@ if ($balance > 0) {
     <div class="card-body">
 
         <div class="row mb-3">
-            <?php if (file_exists("../uploads/settings/$company_logo")) { ?>
+            <?php if (!empty($company_logo) && file_exists("../uploads/settings/$company_logo")) { ?>
             <div class="col-sm-2">
                 <img class="img-fluid" src="<?= "../uploads/settings/$company_logo" ?>" alt="Company logo">
             </div>
             <?php } ?>
-            <div class="col-sm-6 <?php if (!file_exists("../uploads/settings/$company_logo")) { echo "col-sm-8"; } ?>">
+            <div class="col-sm-6 <?php if (empty($company_logo) || !file_exists("../uploads/settings/$company_logo")) { echo "col-sm-8"; } ?>">
                 <ul class="list-unstyled">
                     <li><h4><strong><?= $company_name ?></strong></h4></li>
                     <li><?= formatAddress($company_address, $company_city, $company_state, $company_zip, $company_country, '<br>') ?></li>
