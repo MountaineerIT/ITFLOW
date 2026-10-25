@@ -12,7 +12,8 @@
  * Everything is read in full each time (MSP Align works lifecycle status out from today's date, so a status changes without
  * the device changing - updated_since would miss it). Rows MSP Align no longer has are removed; a part the key can't read
  * (403) is skipped and its rows left alone. 429 waits for Retry-After.
- * Shown: mitAlignClientCard (client overview), mitAlignClientButton (client header), mitAlignAssetBadge (asset list),
+ * Shown: mitAlignClientCard (client overview) and mitAlignDashCard (dashboard) - in place of ITFlow's Needs attention while
+ * mitAlignReplacesAttention -, mitAlignClientButton (client header), mitAlignAssetBadge (asset list),
  * mitAlignAssetPanel (asset page / window), mitAlignLicenseLine (license list). Admin > Integrations > MSP Align
  * (admin/mit_align.php, handlers admin/post/mit_align.php). Settings mit_settings align_* (the key via mitEncryptSecret).
  * Development mode: reads are allowed (mitHttp lets GET through); nothing is ever written to MSP Align.
@@ -358,30 +359,59 @@ function mitAlignBandTone($band) {
         : ($band === 'at risk' ? 'var(--bs-danger)' : 'var(--bs-secondary)'));
 }
 
-/** agent/client_overview.php (one line): the client's MSP Align health, alignment, devices, next meeting and quick links. */
-function mitAlignClientCard($client_id) {
+/** One tile of an MSP Align rail. MSP Align pages open in a new tab, ITFlow's own lists ($blank false) in this one. */
+function mitAlignTile($link, $count, $label, $icon, $detail, $tone, $data, $blank = true) {
+    return '<a href="' . escapeHtml($link) . '"' . ($blank ? ' target="_blank" rel="noopener"' : '') . ' class="itflow-dash-rail-item" ' . $data
+        . ' style="--itflow-dash-tone: ' . $tone . '">'
+        . '<span class="itflow-dash-rail-count">' . $count . '</span>'
+        . '<span class="itflow-dash-rail-label"><i class="fas fa-fw ' . $icon . '" aria-hidden="true"></i>' . escapeHtml($label) . '</span>'
+        . ($detail !== '' ? '<span class="itflow-dash-rail-detail">' . escapeHtml($detail) . '</span>' : '') . '</a>';
+}
+
+/** The SLA tile: open tickets past SLA (ITFlow's own rule and list), red when any. */
+function mitAlignSlaTile($count, $url) {
+    $count = intval($count);
+    return mitAlignTile($url, number_format($count), 'Past SLA', 'fa-stopwatch', $count ? 'Open tickets' : 'All open tickets in SLA',
+        $count ? 'var(--bs-danger)' : 'var(--bs-success)', 'data-mit-align-sla="' . $count . '"', false);
+}
+
+/**
+ * Does MSP Align take the place of ITFlow's "Needs attention" strip (client overview and dashboard)? mit_settings
+ * align_replace_attention, on unless switched off on Admin > Integrations > MSP Align.
+ */
+function mitAlignReplacesAttention() {
+    return mitAlignOn() && mitSetting('align_replace_attention', '1') === '1';
+}
+
+/**
+ * agent/client_overview.php (one line, in front of Needs attention): the client's MSP Align health, alignment, devices, next
+ * meeting, open tickets past SLA (when $tickets - the agent's Support access) and quick links. '' when the client isn't in MSP Align.
+ */
+function mitAlignClientCard($client_id, $tickets = false) {
     $row = mitAlignClient($client_id);
     if (!$row) {
         return '';
     }
+    $client_id = intval($client_id);
     $url = $row['url'];
-    $tile = function ($link, $count, $label, $icon, $detail, $tone, $data) {
-        return '<a href="' . escapeHtml($link) . '" target="_blank" rel="noopener" class="itflow-dash-rail-item" ' . $data . ' style="--itflow-dash-tone: ' . $tone . '">'
-            . '<span class="itflow-dash-rail-count">' . $count . '</span>'
-            . '<span class="itflow-dash-rail-label"><i class="fas fa-fw ' . $icon . '" aria-hidden="true"></i>' . escapeHtml($label) . '</span>'
-            . ($detail !== '' ? '<span class="itflow-dash-rail-detail">' . escapeHtml($detail) . '</span>' : '') . '</a>';
-    };
+    $sla = '';
+    if ($tickets && function_exists('clientOverviewSlaBreachedSql')) {
+        $sla = mitAlignSlaTile(dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE ticket_client_id = $client_id AND ticket_resolved_at IS NULL
+            AND ticket_closed_at IS NULL AND " . clientOverviewSlaBreachedSql() . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : '')),
+            "/agent/tickets.php?client_id=$client_id&sla=breached");
+    }
     $html = '<section class="mb-4" data-mit-align-client><h2 class="itflow-dash-section mb-2">MSP Align '
         . '<span class="small text-body-secondary fw-normal">as of ' . escapeHtml(date('M j, g:i A', strtotime($row['synced_at']))) . '</span></h2>'
         . '<div class="card mb-0 overflow-hidden"><div class="itflow-dash-rail">'
-        . $tile($url, $row['health_score'] === null ? '-' : intval($row['health_score']), 'Health score', 'fa-heartbeat', (string) ($row['health_band'] ?? 'No score'),
+        . mitAlignTile($url, $row['health_score'] === null ? '-' : intval($row['health_score']), 'Health score', 'fa-heartbeat', (string) ($row['health_band'] ?? 'No score'),
             mitAlignBandTone($row['health_band']), 'data-mit-align-health="' . ($row['health_score'] ?? '') . '"')
-        . $tile("$url/alignment", $row['alignment_score'] === null ? '-' : intval($row['alignment_score']) . '%', 'Alignment', 'fa-bullseye',
+        . mitAlignTile("$url/alignment", $row['alignment_score'] === null ? '-' : intval($row['alignment_score']) . '%', 'Alignment', 'fa-bullseye',
             (string) ($row['alignment_band'] ?? 'No review yet'), mitAlignBandTone($row['alignment_band']), 'data-mit-align-alignment')
-        . $tile("$url/devices", $row['devices_attention'] === null ? '-' : intval($row['devices_attention']), 'Devices to act on', 'fa-laptop-medical',
+        . mitAlignTile("$url/devices", $row['devices_attention'] === null ? '-' : intval($row['devices_attention']), 'Devices to act on', 'fa-laptop-medical',
             $row['devices_total'] === null ? '' : 'of ' . intval($row['devices_total']) . ' devices',
             intval($row['devices_attention']) > 0 ? 'var(--bs-warning)' : 'var(--bs-success)', 'data-mit-align-devices="' . ($row['devices_attention'] ?? '') . '"')
-        . $tile("$url/meetings", $row['next_meeting_at'] ? escapeHtml(date('M j', strtotime($row['next_meeting_at']))) : '-', 'Next meeting', 'fa-handshake',
+        . $sla
+        . mitAlignTile("$url/meetings", $row['next_meeting_at'] ? escapeHtml(date('M j', strtotime($row['next_meeting_at']))) : '-', 'Next meeting', 'fa-handshake',
             (string) ($row['next_meeting_title'] ?? ($row['next_meeting_at'] ? '' : 'None scheduled')), 'var(--bs-info)', 'data-mit-align-meeting')
         . '</div><div class="card-footer d-flex flex-wrap gap-2 py-2" data-mit-align-links>';
     foreach (MIT_ALIGN_CLIENT_PAGES as $path => [$label, $icon]) {
@@ -389,6 +419,57 @@ function mitAlignClientCard($client_id) {
             . '<i class="fas fa-fw ' . $icon . ' me-1"></i>' . $label . '</a>';
     }
     return $html . '</div></div></section>';
+}
+
+/**
+ * agent/dashboard.php (one line, in front of Needs attention): every client the agent can see that MSP Align has - open tickets
+ * past SLA (ITFlow's count from $attention, which follows the dashboard's board), clients at risk with the average health,
+ * devices to act on and meetings in the next 7 days. '' when MSP Align doesn't replace Needs attention or has none of their clients.
+ */
+function mitAlignDashCard($attention, array $access) {
+    global $mysqli;
+    if (!mitAlignReplacesAttention()) {
+        return '';
+    }
+    $sum = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(*) AS clients, MAX(a.synced_at) AS synced,
+            SUM(a.health_band = 'At risk') AS at_risk, SUM(a.health_band = 'Needs attention') AS needs, ROUND(AVG(a.health_score)) AS health,
+            SUM(a.devices_attention) AS devices, SUM(a.devices_total) AS devices_total,
+            SUM(a.next_meeting_at BETWEEN NOW() AND NOW() + INTERVAL 7 DAY) AS meetings
+        FROM mit_align_clients a JOIN clients c ON c.client_id = a.client_id
+        WHERE c.client_archived_at IS NULL " . clientScopeSql('c.client_id')));
+    if (!$sum || !intval($sum['clients'])) {
+        return '';
+    }
+    $base = mitAlignSettings()['url'];
+    $next = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT a.next_meeting_at, c.client_name FROM mit_align_clients a JOIN clients c ON c.client_id = a.client_id
+        WHERE c.client_archived_at IS NULL AND a.next_meeting_at >= NOW() " . clientScopeSql('c.client_id') . " ORDER BY a.next_meeting_at LIMIT 1"));
+    $sla = '';
+    if (!empty($access['tickets'])) {
+        $item = null;
+        foreach ((array) $attention as $candidate) {
+            if (($candidate['icon'] ?? '') === 'stopwatch') {
+                $item = $candidate;
+            }
+        }
+        $sla = mitAlignSlaTile($item['count'] ?? 0, $item['url'] ?? '/agent/tickets.php?sla=breached');
+    }
+    $at_risk = intval($sum['at_risk']);
+    $devices = intval($sum['devices']);
+    return '<section class="mb-4" data-mit-align-dash><h2 class="itflow-dash-section mb-2">MSP Align '
+        . '<span class="small text-body-secondary fw-normal">' . intval($sum['clients']) . ' client' . (intval($sum['clients']) === 1 ? '' : 's')
+        . ' · as of ' . escapeHtml(date('M j, g:i A', strtotime($sum['synced']))) . '</span></h2>'
+        . '<div class="card mb-0 overflow-hidden"><div class="itflow-dash-rail">'
+        . $sla
+        . mitAlignTile("$base/clients", number_format($at_risk), 'Clients at risk', 'fa-heartbeat',
+            ($sum['health'] === null ? 'No health scores' : 'Average health ' . intval($sum['health'])) . (intval($sum['needs']) ? ' · ' . intval($sum['needs']) . ' to watch' : ''),
+            $at_risk ? 'var(--bs-danger)' : (intval($sum['needs']) ? 'var(--bs-warning)' : 'var(--bs-success)'), 'data-mit-align-at-risk="' . $at_risk . '"')
+        . mitAlignTile("$base/devices", number_format($devices), 'Devices to act on', 'fa-laptop-medical',
+            $sum['devices_total'] === null ? '' : 'of ' . number_format(intval($sum['devices_total'])) . ' devices',
+            $devices ? 'var(--bs-warning)' : 'var(--bs-success)', 'data-mit-align-devices="' . $devices . '"')
+        . mitAlignTile($base, number_format(intval($sum['meetings'])), 'Meetings this week', 'fa-handshake',
+            $next ? 'Next: ' . html_entity_decode((string) $next['client_name']) . ', ' . date('M j', strtotime($next['next_meeting_at'])) : 'None scheduled',
+            'var(--bs-info)', 'data-mit-align-meetings')
+        . '</div></div></section>';
 }
 
 /** agent/includes/inc_client_top_head.php (one line): a small link to the client in MSP Align. */

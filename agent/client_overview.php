@@ -92,7 +92,8 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
         </div>
     </div>
 
-    <?php if ($attention) { ?>
+    <?php $mit_align_card = function_exists('mitAlignClientCard') ? mitAlignClientCard($client_id, $access['tickets']) : ''; // Mountaineer IT: MSP Align, in place of Needs attention ?>
+    <?php if ($attention && !($mit_align_card !== '' && mitAlignReplacesAttention())) { ?>
         <section class="mb-4" aria-labelledby="ovAttention">
             <h2 id="ovAttention" class="itflow-dash-section mb-2">Needs attention</h2>
             <div class="card mb-0 overflow-hidden">
@@ -110,8 +111,8 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
         </section>
     <?php } ?>
 
+    <?= $mit_align_card ?? '' ?>
     <?= $access['tickets'] && function_exists('mitCtClientCard') ? mitCtClientCard($client_id) : '' // Mountaineer IT: Customer Thermometer ?>
-    <?= function_exists('mitAlignClientCard') ? mitAlignClientCard($client_id) : '' // Mountaineer IT: MSP Align ?>
 
     <h2 class="itflow-dash-section mb-2">Technical</h2>
 

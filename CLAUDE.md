@@ -875,7 +875,12 @@ model: see DEPLOYMENT.md.
   Integrations > MSP Align `admin/mit_align.php` (handlers `admin/post/mit_align.php`: save tests the key first; menu
   `admin/includes/mit_integrations_nav.php`). Hooks, one line each: `mitAlignClientCard` in `agent/client_overview.php` (after the Customer
   Thermometer card: health / alignment / devices to act on / next meeting tiles + quick links to the client's Overview, Roadmap, Budget,
-  Devices, Licenses, Compliance, Backups (26.10.132), Alignment, Meetings, Reports - `MIT_ALIGN_CLIENT_PAGES`), `mitAlignClientButton` after tagPills in
+  Devices, Licenses, Compliance, Backups (26.10.132), Alignment, Meetings, Reports - `MIT_ALIGN_CLIENT_PAGES`; a Past SLA tile -
+  `mitAlignSlaTile`, ITFlow's rule and list - 26.10.133). In place of Needs attention (26.10.133, `mitAlignReplacesAttention` = on + `mit_settings`
+  align_replace_attention, default on, switch on the admin page): `agent/client_overview.php` builds `$mit_align_card` before ITFlow's Needs
+  attention block (one line + one condition on its `if`; the card is echoed where it was), and `agent/dashboard.php` echoes `mitAlignDashCard($attention, $access)`
+  (portfolio: past SLA from ITFlow's own `$attention` stopwatch item, clients at risk / average health, devices to act on, meetings in 7 days;
+  clientScopeSql) and skips Needs attention when it returned something (one line + one condition), `mitAlignClientButton` after tagPills in
   `agent/includes/inc_client_top_head.php` (not on the overview, which has its own header), `mitAlignAssetBadge($asset_id, array_keys($assets))`
   in `agent/assets.php`'s name cell, `mitAlignAssetPanel` beside the NinjaOne button in `agent/asset.php` / `agent/modals/asset/asset.php`,
   `mitAlignLicenseLine` in `agent/software.php`'s name cell (links to the client's licenses page - MSP Align has none per license).

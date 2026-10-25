@@ -93,7 +93,8 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
     <?php } ?>
 </div>
 
-<?php if ($attention !== null) { ?>
+<?php $mit_align_dash = $attention !== null && function_exists('mitAlignDashCard') ? mitAlignDashCard($attention, $access) : ''; echo $mit_align_dash; // Mountaineer IT: MSP Align, in place of Needs attention ?>
+<?php if ($attention !== null && $mit_align_dash === '') { ?>
 
     <section class="mb-4" aria-labelledby="dashAttentionHeading">
         <h2 id="dashAttentionHeading" class="itflow-dash-section mb-2">Needs attention</h2>

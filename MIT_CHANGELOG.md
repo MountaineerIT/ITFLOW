@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.133 - 2026-10-25
+- MSP Align takes the place of "Needs attention": on a client's overview (for clients MSP Align has) and on the dashboard. Switch it off on Admin > Integrations > MSP Align to get ITFlow's Needs attention back.
+- The client overview's MSP Align section has a Past SLA tile: the client's open tickets past SLA, opening ITFlow's ticket list.
+- The dashboard shows MSP Align across your clients: open tickets past SLA (following the dashboard's board), clients at risk with the average health score, devices to act on, and meetings in the next 7 days.
+
 ## 26.10.132 - 2026-10-25
 - MSP Align: the client overview's quick links include Backups, opening the client's backup review in MSP Align (after Compliance).
 

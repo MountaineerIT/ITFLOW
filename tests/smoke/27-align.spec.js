@@ -56,7 +56,9 @@ test('MSP Align: connect, sync, and its data on the client, asset and license pa
     await post(page, '/agent/post.php', { add_asset: '1', client_id: String(made.clientId), name: 'Smoke laptop', type: 'Laptop' });
     await visit(page, `agent/assets.php?client_id=${made.clientId}`, errors);
     made.assetId = Number(new URL(await page.locator('a[href*="asset.php?"]', { hasText: 'Smoke laptop' }).first().getAttribute('href'), page.url()).searchParams.get('asset_id'));
-    await post(page, '/agent/post.php', { add_software: '1', client_id: String(made.clientId), name: 'Smoke license' });
+    // Renewing within ITFlow's 45 days, so the client has something under "Needs attention" for MSP Align to take the place of
+    const soon = new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
+    await post(page, '/agent/post.php', { add_software: '1', client_id: String(made.clientId), name: 'Smoke license', expire: soon });
     await visit(page, `agent/software.php?client_id=${made.clientId}`, errors);
     const licenseHref = await page.locator('a.stretched-link', { hasText: 'Smoke license' }).first().getAttribute('href');
     made.softwareId = Number((licenseHref.match(/software_id=(\d+)/) || [])[1] || 0);
@@ -85,6 +87,16 @@ test('MSP Align: connect, sync, and its data on the client, asset and license pa
     await expect(card.locator('[data-mit-align-links] a'), 'quick links').toHaveCount(10);
     await expect(card.locator('[data-mit-align-links] a', { hasText: 'Backups' })).toHaveAttribute('href', `${MOCK}/clients/71/backups`);
     await expect(card.locator('[data-mit-align-links] a', { hasText: 'Roadmap' })).toHaveAttribute('href', `${MOCK}/clients/71/roadmap`);
+    // In place of Needs attention, with an SLA tile linking to ITFlow's own list
+    await expect(page.locator('#ovAttention'), 'Needs attention replaced').toHaveCount(0);
+    await expect(card.locator('[data-mit-align-sla="0"]'), 'the SLA tile').toHaveAttribute('href', `/agent/tickets.php?client_id=${made.clientId}&sla=breached`);
+
+    // The dashboard: MSP Align across the agent's clients, in place of Needs attention
+    await visit(page, 'agent/dashboard.php', errors);
+    const dash = page.locator('[data-mit-align-dash]');
+    await expect(dash.locator('[data-mit-align-sla]'), 'SLA tile on the dashboard').toHaveCount(1);
+    await expect(dash.locator('[data-mit-align-at-risk]'), 'clients at risk').toContainText('Average health');
+    await expect(page.locator('#dashAttentionHeading')).toHaveCount(0);
 
     // Asset list badge (and the client header's link, on the client's other pages) and the asset page's button
     await visit(page, `agent/assets.php?client_id=${made.clientId}`, errors);
@@ -118,6 +130,15 @@ test('MSP Align: a key without health:read leaves the score out; a device MSP Al
     await expect(page.locator('[data-mit-align-client] [data-mit-align-health=""]'), 'no score without health:read').toHaveCount(1);
     await visit(page, `agent/assets.php?client_id=${made.clientId}`, errors);
     await expect(page.locator(`[data-mit-align-asset="${made.assetId}"]`)).toHaveCount(0);
+
+    // Switched off: ITFlow's Needs attention comes back, MSP Align's client section stays below it
+    await post(page, '/admin/post.php', { mit_align_save: '1', align_url: MOCK, align_key: '', align_enabled: '1' });
+    await visit(page, `agent/client_overview.php?client_id=${made.clientId}`, errors);
+    await expect(page.locator('#ovAttention'), 'Needs attention is back').toHaveCount(1);
+    await expect(page.locator('[data-mit-align-client]')).toHaveCount(1);
+    await visit(page, 'agent/dashboard.php', errors);
+    await expect(page.locator('[data-mit-align-dash]')).toHaveCount(0);
+    await expect(page.locator('#dashAttentionHeading')).toHaveCount(1);
     await expectClean(page, errors);
 });
 
@@ -128,7 +149,7 @@ test.afterAll(async ({ browser }) => {
     if (made.connected) {
         // Switched off again (the stand-in's address and key stay, unused)
         await page.goto('admin/mit_align.php');
-        await post(page, '/admin/post.php', { mit_align_save: '1', align_url: MOCK, align_key: '' }).catch(() => {});
+        await post(page, '/admin/post.php', { mit_align_save: '1', align_url: MOCK, align_key: '', align_replace_attention: '1' }).catch(() => {});
     }
     if (made.clientId) {
         await action(page, `delete_client=${made.clientId}`, `agent/client_overview.php?client_id=${made.clientId}`).catch(() => {});

@@ -69,6 +69,11 @@ $writes = array_values(array_filter($settings['scopes'], fn($scope) => str_ends_
                     <input class="form-check-input" type="checkbox" role="switch" name="align_enabled" value="1" id="alignEnabled" <?= $settings['enabled'] ? 'checked' : '' ?>>
                     <label class="form-check-label" for="alignEnabled">Copy from MSP Align every hour and show it in ITFlow</label>
                 </div>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" name="align_replace_attention" value="1" id="alignReplaceAttention" <?= mitSetting('align_replace_attention', '1') === '1' ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="alignReplaceAttention">Show MSP Align in place of "Needs attention" on the dashboard and on client overviews</label>
+                    <div class="form-text">With an SLA tile (open tickets past SLA). A client MSP Align doesn't have keeps ITFlow's Needs attention.</div>
+                </div>
             </div>
             <div class="col-12">
                 <button type="submit" name="mit_align_save" class="btn btn-primary"><i class="fas fa-plug me-2"></i>Save and test</button>
