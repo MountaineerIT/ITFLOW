@@ -676,6 +676,7 @@ function documentHtmlPurify($html) {
         $config = HTMLPurifier_Config::createDefault();
         $config->set('Cache.DefinitionImpl', null);
         $config->set('URI.AllowedSchemes', ['data' => true, 'src' => true, 'http' => true, 'https' => true]);
+        $config->set('Attr.ForbiddenClasses', ['ajax-modal']); // a link in stored / AI HTML must not open as an ITFlow window
         $purifier = new HTMLPurifier($config);
     }
     return $purifier->purify((string) $html);

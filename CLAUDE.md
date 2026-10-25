@@ -1060,6 +1060,23 @@ model: see DEPLOYMENT.md.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
     with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.
+  - Post-merge review (Oct 25, 26.10.140 - 5 reviewers + a sign-in crawl as 9 users / the portal, ~3,900 pages, 0 errors). Hooks added in
+    ITFlow files: `client/includes/check_login.php` our archived / session check skipped for ITFlow's "View portal as" (`$portal_view_as` -
+    it signed the agent out); `functions/log_forward.php` logForwardOn / logForwardSend off in development mode; `functions/files.php`
+    documentHtmlPurify forbids class `ajax-modal` (stored / AI HTML - our old `mitPurifyHtml` fix, upstream replaced those handlers);
+    `functions/roles.php` roleModuleInfo `+ mitRoleModuleInfo()` (our modules' level texts, Dispatch max 2); `guest/guest_post.php`
+    ticket_calendar passes `ticket_schedule_end`; `functions/income_import.php` (bank import skips invoices in a QuickBooks batch, 2 lines);
+    `agent/post/billing.php` unbilled_invoice / unbilled_invoice_clients QuickBooks lock; `functions/products.php` productRepriceApply
+    refuses locked invoices; `functions/dashboard.php` "Resolved, not invoiced" counts every ticket (as Unbilled Time lists them);
+    `functions/ticket.php` recurringTicketMailAssigned follows assign_email. add_ticket_reply's hook passes ITFlow's email content (not
+    built HTML): `mitReplyRecipientsMail` sends through `emailQueue` (per-person greeting and why-you-get-this line) and offers ITFlow's
+    "every update" contacts (`ticketColleagueRecipients`, group colleague, ticked). Ours: event Assigned-to / Dispatch moves need
+    `calendarEventCan(..,'edit')`; Dispatch's client change moves the ticket's trips; schedule extras skip ITFlow's colleagues, previews show
+    every recipient; the layout script knows fill_ins / trips / ai_triage; stock goes through ITFlow's tracking (`mitProductTracksStock`,
+    `mitStockMove` -> productStockMove; quote-sourced lines put back on receipt too; received assets carry asset_invoice_id / _item_id /
+    _product_id); usage and parts invoices use billingLineTax / billingRecalc / billingInvoiceCreate; the quote profit box is per billing
+    frequency; the convert window lists one-time lines only; module / company settings report our changes to settingsSaid; mileage rate
+    read-only when ITFlow's is set; client tile seats = softwareSeatsUsedSql. Smoke `28-post-merge.spec.js`.
   - Left for later: our settings pages are not on ITFlow's Settings overview (`settingsPages()`), our notification rows sit in their own
     table on the new page, roles / company say "unchanged" when only our fields change. ITFlow 26.11 also bills per user / device seats on
     recurring lines (close to our usage by tag) and has its own product margin (beside our quote profit box).

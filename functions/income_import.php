@@ -92,6 +92,7 @@ function incomeImportOpenInvoices() {
         HAVING balance > 0.004
         ORDER BY invoice_due ASC, invoice_id ASC");
     while ($row = mysqli_fetch_assoc($sql)) {
+        if (function_exists('mitQboTakesPayments') && mitQboTakesPayments($row['invoice_id'])) { continue; } // Mountaineer IT: paid in QuickBooks, synced back
         $invoices[intval($row['invoice_id'])] = [
             'invoice_id' => intval($row['invoice_id']),
             'client_id' => intval($row['invoice_client_id']),
@@ -756,6 +757,7 @@ function incomeImportSave(array $import, array $picks, array $opts, &$error = ''
             foreach ($item['payments'] as $part) {
                 $invoice = $part['invoice'];
                 $invoice_id = $invoice['invoice_id'];
+                if (function_exists('mitQboTakesPayments') && mitQboTakesPayments($invoice_id)) { continue; } // Mountaineer IT
                 $amount = number_format($part['cents'] / 100, 2, '.', '');
                 mysqli_query($mysqli, "INSERT INTO payments SET payment_date = '$date', payment_amount = $amount, payment_currency_code = '" . escapeSql($invoice['currency'] ?: $currency) . "',
                     payment_account_id = $account_id, payment_method = " . ($method === '' ? 'NULL' : "'" . escapeSql($method) . "'") . ", payment_reference = '" . escapeSql($reference) . "',

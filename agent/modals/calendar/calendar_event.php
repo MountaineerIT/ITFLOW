@@ -105,7 +105,7 @@ ob_start();
             <dd><?php if (lookupUserPermission('module_client') >= 1) { ?><a href="client_overview.php?client_id=<?= $client_id ?>"><?= escapeHtml($event['client_name']) ?></a><?php } else { ?><?= escapeHtml($event['client_name']) ?><?php } ?></dd>
         <?php } ?>
 
-        <?php $mit_assign = function_exists('mitEventQuickAssign'); if ($mit_assign) { echo mitEventQuickAssign($event); } // Mountaineer IT: agents under Assigned to, the rest under Invited
+        <?php $mit_assign = function_exists('mitEventQuickAssign') && $can_edit; if ($mit_assign) { echo mitEventQuickAssign($event); } // Mountaineer IT: agents under Assigned to, the rest under Invited
         $mit_who = $mit_assign ? array_values(array_filter($attendees, function ($attendee) { return $attendee['kind'] !== 'agent'; })) : $attendees;
         if (!$mit_assign || $mit_who) { ?>
         <dt><?= $mit_assign ? 'Invited' : 'Who' ?></dt>

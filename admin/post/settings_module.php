@@ -40,8 +40,8 @@ if (isset($_POST['edit_module_settings'])) {
         settingsRefuse('module', $errors);
     }
 
-    if (function_exists('mitModulesSave')) { mitModulesSave($_POST); } // Mountaineer IT: Procurement, Timesheets, Dispatch switches
-    settingsSave('module', $before, $after);
+    $mit_lines = function_exists('mitModulesSave') ? (array) mitModulesSave($_POST) : []; // Mountaineer IT: Procurement, Timesheets, Dispatch switches
+    settingsSave('module', $before, $after, 'settings', $mit_lines);
 
     redirect();
 

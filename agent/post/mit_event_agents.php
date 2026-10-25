@@ -12,7 +12,7 @@ if (isset($_POST['mit_event_assign'])) {
 
     validateCSRFToken();
 
-    $event = calendarEventForRequest($_POST['event_id'] ?? 0);
+    $event = calendarEventForRequest($_POST['event_id'] ?? 0, 'edit');
     [$added, $removed, $sent] = mitEventSetAgents($event, (array) ($_POST['agents'] ?? []));
     $words = mitEventAgentsText($added, $removed);
 

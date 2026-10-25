@@ -258,17 +258,19 @@ $company_week = mitTsCompanySchedule();
                         <?php $mit_itflow_pays = mitReimbItflowPaysBack(); ?>
                         <?php if ($mit_itflow_pays) { ?>
                             <div class="col-12"><div class="alert alert-info small mb-0" data-mit-reimb-itflow>People are paid back through ITFlow: mileage waits under
-                                Trips (driven in their own vehicle) at ITFlow's mileage rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Admin &gt; Trips; until then the rate here is used)' ?>,
+                                Trips (driven in their own vehicle) at ITFlow's mileage rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Settings &gt; Invoices and billing; until then the rate here is used)' ?>,
                                 and approved purchases wait under Expenses &gt; Reimburse as paid personally - no account is needed for them.</div></div>
                         <?php } ?>
+                        <?php $mit_rate_itflow = $mit_itflow_pays && mitReimbItflowRate() > 0; // ITFlow's own rate wins - shown, changed there ?>
                         <div class="col-md-4">
                             <label class="form-label">Mileage rate</label>
                             <div class="input-group">
                                 <span class="input-group-text"><?= escapeHtml($session_company_currency) ?></span>
-                                <input type="text" inputmode="decimal" class="form-control" name="mileage_rate" value="<?= $reimb['rate'] ? escapeHtml(rtrim(rtrim(number_format($reimb['rate'], 4, '.', ''), '0'), '.')) : '' ?>" placeholder="0.70" aria-label="Rate per mile">
+                                <input type="text" inputmode="decimal" class="form-control" <?= $mit_rate_itflow ? 'readonly data-mit-rate-itflow' : 'name="mileage_rate"' ?> value="<?= $reimb['rate'] ? escapeHtml(rtrim(rtrim(number_format($reimb['rate'], 4, '.', ''), '0'), '.')) : '' ?>" placeholder="0.70" aria-label="Rate per mile">
                                 <span class="input-group-text">a mile</span>
                             </div>
-                            <div class="form-text">Mileage logged on tickets keeps the rate of the day it was logged.</div>
+                            <div class="form-text"><?php if ($mit_rate_itflow) { ?>ITFlow's rate - change it in <a href="settings_invoice.php#setting=config_mileage_rate">Settings &gt; Invoices and billing</a>.<?php } ?>
+                                Mileage logged on tickets keeps the rate of the day it was logged.</div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Record purchases as expenses in</label>

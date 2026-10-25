@@ -449,7 +449,11 @@ function mitReimbRecordExpenses($user_id, array $period) {
     $currency = $session_company_currency ?: (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT company_currency FROM companies WHERE company_id = 1"))[0];
     $done = 0;
     foreach (mitReimbForUsers([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [] as $row) {
-        if ($row['kind'] !== 'purchase' || intval($row['expense_id'])) {
+        if ($row['kind'] !== 'purchase') {
+            continue;
+        }
+        // Already an expense - unless that expense was deleted in ITFlow (Expenses), then it is recorded again
+        if (intval($row['expense_id']) && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM expenses WHERE expense_id = " . intval($row['expense_id'])))) {
             continue;
         }
         $receipt = '';

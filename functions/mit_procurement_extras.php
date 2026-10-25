@@ -99,6 +99,11 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
             }
             $asset_ids = [];
             $done['capped'] = intval($qty) > 50 ? 1 : 0;
+            // Bought on an invoice line: say so on the asset (ITFlow 26.11's invoice Hardware box then counts it as on the client's assets)
+            $sale = '';
+            if ($proc && intval($proc['invoice_id']) && mitColumnReady('assets', 'asset_invoice_id')) {
+                $sale = ", asset_invoice_id = " . intval($proc['invoice_id']) . ", asset_invoice_item_id = " . intval($proc['invoice_item_id']) . ", asset_product_id = " . intval($proc['product_id']);
+            }
             for ($i = 0; $i < min(50, intval($qty)); $i++) {
                 $serial = $serial_list[$i] ?? '';
                 // Several of the same: "Laptop #1", "Laptop #2" so they can be told apart until they are renamed
@@ -108,7 +113,7 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
                     asset_status = 'Ready to Deploy', asset_purchase_reference = '" . escapeSql($po_reference) . "',
                     asset_purchase_date = " . ($po && $po['order_date'] ? "'" . escapeSql($po['order_date']) . "'" : 'CURDATE()') . ",
                     asset_vendor_id = " . intval($po['vendor_id'] ?? 0) . ", asset_client_id = $client_id,
-                    asset_notes = '" . escapeSql("Received on $po_reference") . "'");
+                    asset_notes = '" . escapeSql("Received on $po_reference") . "'$sale");
                 $asset_id = mysqli_insert_id($mysqli);
                 $asset_ids[] = $asset_id;
                 if ($ticket_id) {
@@ -131,8 +136,8 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
     }
 
     // Our stock: into the product's stock (not a ticket's part - that goes to the ticket, even one without a client)
-    if (!empty($options['stock']) && !$client_id && $proc && $proc['source'] !== 'ticket' && intval($proc['product_id']) && getFieldById('products', intval($proc['product_id']), 'product_type') === 'product') {
-        mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . intval(round($qty)) . ", stock_note = '" . escapeSql("Received on $po_reference") . "', stock_product_id = " . intval($proc['product_id']));
+    if (!empty($options['stock']) && !$client_id && $proc && $proc['source'] !== 'ticket' && intval($proc['product_id']) && mitProductTracksStock(intval($proc['product_id']))) {
+        mitStockMove(intval($proc['product_id']), intval(round($qty)), 'received', "Received on $po_reference", ['unit_cost' => $line['unit_cost'] ?? null]);
         logAudit('Product', 'Edit', escapeSql(mitProcWho() . ' added ' . intval(round($qty)) . " to stock, received on $po_reference"), 0, intval($proc['product_id']));
         $done['stock'] += intval(round($qty));
     }
@@ -146,12 +151,14 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
      * item for the rest of the line still finds it (mitProcInvoiceLineProducts). A deleted line had its stock returned
      * by ITFlow already - nothing to do then.
      */
-    if ($proc && $proc['source'] === 'invoice' && intval($proc['invoice_item_id']) && mitProductIsTangible(intval($proc['product_id']))) {
+    // Quote lines invoiced (ITFlow 26.11's quoteConvert keeps the product, so it takes stock too) are treated the same
+    if ($proc && in_array($proc['source'], ['invoice', 'quote'], true) && intval($proc['invoice_item_id']) && mitProductTracksStock(intval($proc['product_id']))) {
         $invoice_item_id = intval($proc['invoice_item_id']);
         $product_id = intval($proc['product_id']);
         $invoice_line = mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_product_id FROM invoice_items WHERE item_id = $invoice_item_id"));
         if ($invoice_line && in_array(intval($invoice_line[0]), [0, $product_id], true)) {
-            mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . intval(round($qty)) . ", stock_note = '" . escapeSql("Ordered on $po_reference for the invoice instead of taken from stock") . "', stock_product_id = $product_id");
+            mitStockMove($product_id, intval(round($qty)), 'returned', "Ordered on $po_reference for the invoice instead of taken from stock",
+                ['invoice_id' => intval($proc['invoice_id']), 'item_id' => $invoice_item_id]);
             mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = 0 WHERE item_id = $invoice_item_id");
         }
     }

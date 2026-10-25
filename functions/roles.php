@@ -56,7 +56,7 @@ function roleModuleInfo() {
             'label' => 'AI', 'icon' => 'fa-robot', 'about' => 'Rewording, summaries and drafts, by the AI providers in Admin - each needs access to what it works on too',
             'levels' => [1 => 'Use AI'], 'max' => 1,
         ],
-    ];
+    ] + (function_exists('mitRoleModuleInfo') ? mitRoleModuleInfo() : []); // Mountaineer IT: Procurement, Timesheets, Dispatch
 }
 
 /*

@@ -1042,6 +1042,10 @@ function productRepriceApply(array $changes, &$error = '') {
             $error = 'A line picked is no longer on a recurring invoice, draft or draft quote you can change - nothing was updated.';
             return null;
         }
+        if ($kind === 'invoice' && function_exists('mitQboInvoiceLock') && ($why = mitQboInvoiceLock($line['doc_id'])) !== '') { // Mountaineer IT: QuickBooks batch lock
+            $error = "{$line['number']}: $why Nothing was updated.";
+            return null;
+        }
         $price = billingNumberInput($raw);
         if ($price === null || $price < 0 || $price >= 1e11) {
             $error = "The new price for {$line['item_name']} on {$line['number']} has to be a number, zero or more - nothing was updated.";

@@ -92,7 +92,9 @@ if ($portal_mfa_setup_needed && !in_array(basename($_SERVER['PHP_SELF']), ['prof
 }
 
 // The portal switched off, the client or the contact archived, or (Mountaineer IT) the password changed since this
-// sign-in: the session ends - offboarding a customer must end the sign-ins they already have
+// sign-in: the session ends - offboarding a customer must end the sign-ins they already have. Not for an agent's "View as contact"
+// (portalViewAsAccess above checks that on every page, and this is the agent's own session)
+if (!$portal_view_as) {
 $portal_row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT c.contact_archived_at, cl.client_archived_at, s.config_client_portal_enable
     FROM contacts c JOIN clients cl ON cl.client_id = c.contact_client_id JOIN settings s ON s.company_id = 1
     WHERE c.contact_id = " . intval($_SESSION['contact_id'] ?? 0) . " AND c.contact_client_id = " . intval($_SESSION['client_id'] ?? 0)));
@@ -101,6 +103,7 @@ if (!$portal_row || $portal_row[0] !== null || $portal_row[1] !== null || intval
     session_unset();
     session_destroy();
     redirect("/login.php");
+}
 }
 
 // Load company session vars

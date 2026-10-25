@@ -407,7 +407,8 @@ function mitQuoteItemExtras($quote_id) {
     }
     if (!isset($cache[$quote_id])) {
         $cache[$quote_id] = [];
-        $result = mysqli_query($mysqli, "SELECT item_id, item_cost, item_price_method, item_price_percent, item_image, item_quantity, item_price
+        $frequency = function_exists('mitColumnReady') && mitColumnReady('quote_items', 'item_frequency') ? 'item_frequency' : "'' AS item_frequency";
+        $result = mysqli_query($mysqli, "SELECT item_id, item_cost, item_price_method, item_price_percent, item_image, item_quantity, item_price, $frequency
             FROM quote_items WHERE item_quote_id = $quote_id");
         while ($row = mysqli_fetch_assoc($result)) {
             $cache[$quote_id][intval($row['item_id'])] = $row;
@@ -831,37 +832,57 @@ function mitQuoteProfitBox($quote_id, $currency_format, $currency_code) {
     if (!mitQuoteColumnsReady()) {
         return '';
     }
-    $cost = 0;
-    $priced = 0;
+    // ITFlow 26.11 quotes bill lines once or each month / quarter / year - each is summed on its own (never added together)
+    $labels = ['' => 'One-time', 'month' => 'Each month', 'quarter' => 'Each quarter', 'year' => 'Each year'];
+    $groups = [];
     $missing = 0;
     foreach (mitQuoteItemExtras($quote_id) as $extra) {
+        $frequency = function_exists('quoteFrequency') ? quoteFrequency($extra['item_frequency'] ?? '') : '';
+        $groups[$frequency] = $groups[$frequency] ?? ['cost' => 0.0, 'priced' => 0.0, 'discount' => 0.0];
         $line = (float) $extra['item_price'] * (float) $extra['item_quantity'];
         if ($extra['item_cost'] === null) {
             if (mitPriceMethod($extra['item_price_method']) !== 'price') {
                 $missing++;
             }
-            $priced += $line;  // set-price lines (labour) count as all profit
+            $groups[$frequency]['priced'] += $line;  // set-price lines (labour) count as all profit
             continue;
         }
-        $cost += (float) $extra['item_cost'] * (float) $extra['item_quantity'];
-        $priced += $line;
+        $groups[$frequency]['cost'] += (float) $extra['item_cost'] * (float) $extra['item_quantity'];
+        $groups[$frequency]['priced'] += $line;
     }
-    $discount = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT quote_discount_amount FROM quotes WHERE quote_id = " . intval($quote_id)));
-    $discount = (float) ($discount['quote_discount_amount'] ?? 0);
-    $priced -= $discount;
-    if ($priced <= 0) {
+    if (!$groups) {
         return '';
     }
-    $profit = $priced - $cost;
+    $groups = array_intersect_key(array_replace(array_fill_keys(array_keys($labels), null), $groups), $groups);
+    // The quote's discount comes off the one-time lines, else the first group billed again (as ITFlow's quote totals)
+    $discount = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT quote_discount_amount FROM quotes WHERE quote_id = " . intval($quote_id)));
+    $discount = (float) ($discount['quote_discount_amount'] ?? 0);
+    if ($discount > 0) {
+        $first = array_key_first($groups);
+        $groups[$first]['discount'] = $discount;
+        $groups[$first]['priced'] -= $discount;
+    }
     $money = function ($n) use ($currency_format, $currency_code) {
         return numfmt_format_currency($currency_format, $n, $currency_code);
     };
-    return '<div class="border border-warning-subtle bg-warning-subtle rounded p-3 mt-3 small d-print-none">'
-        . '<div class="small fw-bold mb-2 text-warning-emphasis">PROFIT - ONLY STAFF SEE THIS</div>'
-        . '<div class="d-flex justify-content-between"><span>Our cost</span><span>' . $money($cost) . '</span></div>'
-        . '<div class="d-flex justify-content-between"><span>Customer price' . ($discount > 0 ? ' (after ' . $money($discount) . ' discount)' : '') . '</span><span>' . $money($priced) . '</span></div>'
-        . '<div class="d-flex justify-content-between fw-bold border-top mt-1 pt-1 ' . ($profit < 0 ? 'text-danger' : 'text-success-emphasis') . '"><span>Profit</span><span>' . $money($profit) . '</span></div>'
-        . '<div class="d-flex justify-content-between ' . ($profit < 0 ? 'text-danger' : 'text-success-emphasis') . '"><span>Margin</span><span>' . number_format($profit / $priced * 100, 1) . '%</span></div>'
+    $html = '';
+    foreach ($groups as $frequency => $g) {
+        if ($g['priced'] <= 0) {
+            continue;
+        }
+        $profit = $g['priced'] - $g['cost'];
+        $tone = $profit < 0 ? 'text-danger' : 'text-success-emphasis';
+        $html .= (count($groups) > 1 ? '<div class="fw-semibold mt-2" data-mit-profit-group="' . escapeHtml($frequency ?: 'once') . '">' . $labels[$frequency] . '</div>' : '')
+            . '<div class="d-flex justify-content-between"><span>Our cost</span><span>' . $money($g['cost']) . '</span></div>'
+            . '<div class="d-flex justify-content-between"><span>Customer price' . ($g['discount'] > 0 ? ' (after ' . $money($g['discount']) . ' discount)' : '') . '</span><span>' . $money($g['priced']) . '</span></div>'
+            . '<div class="d-flex justify-content-between fw-bold border-top mt-1 pt-1 ' . $tone . '"><span>Profit</span><span>' . $money($profit) . '</span></div>'
+            . '<div class="d-flex justify-content-between ' . $tone . '"><span>Margin</span><span>' . number_format($profit / $g['priced'] * 100, 1) . '%</span></div>';
+    }
+    if ($html === '') {
+        return '';
+    }
+    return '<div class="border border-warning-subtle bg-warning-subtle rounded p-3 mt-3 small d-print-none" data-mit-profit-box>'
+        . '<div class="small fw-bold mb-2 text-warning-emphasis">PROFIT - ONLY STAFF SEE THIS</div>' . $html
         . ($missing ? '<div class="small text-body-secondary mt-1">' . $missing . ' line' . ($missing === 1 ? ' has' : 's have') . ' no cost entered - counted as all profit.</div>' : '')
         . '</div>';
 }

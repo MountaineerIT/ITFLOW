@@ -128,11 +128,22 @@ function mitBrandLogoField() {
 
 /** Hook in edit_company (admin/post/settings_company.php): save the switch when the form had it. */
 function mitBrandLogoSave(array $post) {
+    $lines = []; // what changed, in words - for ITFlow's settingsSaid
     if (!empty($post['mit_brand_logo_present'])) {
-        mitSetSetting('brand_logo_only', empty($post['mit_brand_logo_only']) ? '0' : '1');
-        mitSetSetting('brand_logo_plain', empty($post['mit_brand_logo_plain']) ? '0' : '1');
+        foreach (['brand_logo_only' => ['mit_brand_logo_only', 'Logo on its own in the side menu'], 'brand_logo_plain' => ['mit_brand_logo_plain', 'No light tile behind the logo']] as $key => [$field, $label]) {
+            $on = empty($post[$field]) ? '0' : '1';
+            if ((string) mitSetting($key, '0') !== $on) {
+                $lines[] = "$label " . ($on === '1' ? 'on' : 'off');
+            }
+            mitSetSetting($key, $on);
+        }
+        $before = mitBrandAppLogo();
         mitBrandAppLogoSave(!empty($post['mit_app_logo_remove']), $_FILES['mit_app_logo'] ?? null);
+        if (mitBrandAppLogo() !== $before) {
+            $lines[] = mitBrandAppLogo() !== '' ? 'Logo for ITFlow\'s screens uploaded' : 'Logo for ITFlow\'s screens removed';
+        }
     }
+    return $lines;
 }
 
 /** Store a new app logo (JPG / PNG that really is an image) or remove it; the old file goes. Returns a problem or ''. */

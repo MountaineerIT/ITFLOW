@@ -228,6 +228,12 @@ function mitUsageSetItemQty($invoice_item_id, $qty) {
         return;
     }
     $qty = round(floatval($qty), 2);
+    if (function_exists('billingLineTax')) {
+        // ITFlow 26.11's tax engine (multi-part and compound rates); billingRecalc puts the invoice right after
+        [$subtotal, $tax] = billingLineTax($qty, floatval($item['item_price']), intval($item['item_tax_id']));
+        mysqli_query($mysqli, "UPDATE invoice_items SET item_quantity = $qty, item_subtotal = $subtotal, item_tax = $tax, item_total = " . round($subtotal + $tax, 2) . " WHERE item_id = $invoice_item_id");
+        return;
+    }
     $subtotal = round($qty * floatval($item['item_price']), 2);
     $tax_percent = intval($item['item_tax_id']) ? floatval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT tax_percent FROM taxes WHERE tax_id = " . intval($item['item_tax_id'])))[0] ?? 0) : 0;
     $tax = round($subtotal * $tax_percent / 100, 2);
@@ -238,6 +244,10 @@ function mitUsageSetItemQty($invoice_item_id, $qty) {
 function mitUsageRecalcInvoice($invoice_id) {
     global $mysqli;
     $invoice_id = intval($invoice_id);
+    if (function_exists('billingRecalc')) {
+        billingRecalc('invoice', $invoice_id); // ITFlow's: taxes (discount before tax), total
+        return;
+    }
     mysqli_query($mysqli, "UPDATE invoices SET invoice_amount = (SELECT COALESCE(SUM(item_total), 0) FROM invoice_items WHERE item_invoice_id = $invoice_id AND item_archived_at IS NULL)
         - invoice_discount_amount WHERE invoice_id = $invoice_id");
 }

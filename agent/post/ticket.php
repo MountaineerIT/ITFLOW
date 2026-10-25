@@ -1162,8 +1162,8 @@ if (isset($_POST['add_ticket_reply'])) {
                 $mit_row = ticketRow($ticket_id);
                 $mit_resolved = $ticket_status === TICKET_STATUS_RESOLVED;
                 $mit_subject = ($mit_resolved ? 'Ticket resolved' : 'Ticket update') . " - [" . ticketReference($mit_row) . "] - " . $mit_row['ticket_subject'] . ($mit_resolved ? ' | (pending closure)' : '');
-                $mit_body = emailHtml(array_merge(ticketEmailContent($mit_row, $mit_resolved ? 'resolved' : 'reply', ['message' => $reply_html, 'by' => stripslashes($session_name)]), ['name' => (string) $mit_row['contact_name']]));
-                mitReplyRecipientsMail($ticket_id, $_POST, mysqli_real_escape_string($mysqli, $mit_subject), mysqli_real_escape_string($mysqli, $mit_body), $emailable_attachments['send']);
+                $mit_content = ticketEmailContent($mit_row, $mit_resolved ? 'resolved' : 'reply', ['message' => $reply_html, 'by' => stripslashes($session_name)]);
+                mitReplyRecipientsMail($ticket_id, $_POST, $mit_subject, $mit_content, $emailable_attachments['send']);
             } else {
                 ticketMailReply($ticket_id, $reply_html, stripslashes($session_name),
                     $ticket_status === TICKET_STATUS_RESOLVED, $emailable_attachments['send']);

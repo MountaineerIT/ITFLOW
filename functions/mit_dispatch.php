@@ -492,6 +492,8 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
             ticket_vendor_id = $vendor_id, ticket_project_id = $project_id WHERE ticket_id = $ticket_id LIMIT 1");
         mysqli_query($mysqli, "DELETE FROM ticket_assets WHERE ticket_id = $ticket_id");
         mitTicketClientMoved($ticket_id, $client_id);
+        // As ITFlow's change_client_ticket: the driving for it goes with it - not to the old client's site
+        mysqli_query($mysqli, "UPDATE trips SET trip_client_id = $client_id, trip_location_id = 0 WHERE trip_ticket_id = $ticket_id");
         $old_name = $old_client_id ? (string) $row['client_name'] : 'no client';
         logTicketHistory($ticket_id, "$session_name moved the ticket from " . escapeSql($old_name) . " to " . escapeSql($client_name));
         logAudit("Ticket", "Change", "$session_name moved ticket $reference from " . escapeSql($old_name) . " to " . escapeSql($client_name), $client_id, $ticket_id);

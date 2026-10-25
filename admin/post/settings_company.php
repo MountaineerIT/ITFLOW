@@ -70,8 +70,8 @@ if (isset($_POST['edit_company'])) {
     }
 
     $changed = settingsWrite('companies', $before, $after) + settingsWrite('settings', $before_settings, ['config_internal_client_id' => $internal_client_id]);
-    settingsSaid('company', settingsChangeLines($before + $before_settings, $changed));
-    if (function_exists('mitBrandLogoSave')) { mitBrandLogoSave($_POST); } // Mountaineer IT
+    $mit_lines = function_exists('mitBrandLogoSave') ? (array) mitBrandLogoSave($_POST) : []; // Mountaineer IT
+    settingsSaid('company', array_merge(settingsChangeLines($before + $before_settings, $changed), $mit_lines));
 
     redirect();
 

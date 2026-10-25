@@ -202,6 +202,9 @@ function mitDispatchEventMove($event_id, $start, $end, $all_day, $from, $to) {
     if (intval($event['event_client_id']) && !hasClientAccess($event['event_client_id'])) {
         return [false, 'You do not have access to that client.'];
     }
+    if (function_exists('calendarEventCan') && !calendarEventCan($event, 'edit')) {
+        return [false, permissionRefusedText('module_client', 2, intval(lookupUserPermission('module_client')))];
+    }
     if (calendarEventRepeats($event)) {
         return [false, 'A repeating entry is moved from Edit, so the whole series moves together.'];
     }

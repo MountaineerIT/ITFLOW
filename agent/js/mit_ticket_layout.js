@@ -120,22 +120,24 @@
     // ITFlow's boxes, known by the icon in their title
     const ICONS = {
         'fa-align-left': 'description', 'fa-sliders-h': 'details', 'fa-user': 'contact', 'fa-layer-group': 'also_open',
-        'fa-map-marker-alt': 'site', 'fa-tasks': 'tasks', 'fa-microchip': 'parts', 'fa-receipt': 'reimburse', 'fa-link': 'linked', 'fa-history': 'history'
+        'fa-map-marker-alt': 'site', 'fa-tasks': 'tasks', 'fa-microchip': 'parts', 'fa-receipt': 'reimburse', 'fa-link': 'linked', 'fa-history': 'history',
+        'fa-pen-square': 'fill_ins', 'fa-route': 'trips'
     };
     const NAMES = {
         description: 'Description', reply: 'Reply box', conversation: 'Conversation', details: 'Details', contact: 'Contact',
-        also_open: 'Also open', site: 'Site', tasks: 'Tasks', parts: 'Parts', reimburse: 'Reimbursements', linked: 'Linked', history: 'History'
+        also_open: 'Also open', site: 'Site', tasks: 'Tasks', parts: 'Parts', reimburse: 'Reimbursements', linked: 'Linked', history: 'History',
+        fill_ins: 'Fill-ins', trips: 'Trips', ai_triage: 'AI suggestions'
     };
     // ITFlow's own layout - where a box goes back to, and where a saved layout slots a box it never saw
     const DEFAULT = {
         columns: '',
         left: [],
-        main: ['description', 'reply', 'conversation'],
-        side: ['details', 'contact', 'also_open', 'site', 'tasks', 'parts', 'reimburse', 'linked', 'history'],
+        main: ['ai_triage', 'description', 'fill_ins', 'reply', 'conversation'],
+        side: ['details', 'contact', 'also_open', 'site', 'trips', 'tasks', 'parts', 'reimburse', 'linked', 'history'],
         collapsed: ['history'],
         half: []
     };
-    const NO_COLLAPSE = ['reply', 'conversation'];
+    const NO_COLLAPSE = ['reply', 'conversation', 'ai_triage'];
 
     function boxes() {
         const found = {};
@@ -151,6 +153,11 @@
         Array.prototype.forEach.call(column.children, function (el) {
             if (el.querySelector('#replyComposer')) {
                 el.dataset.mitBox = 'reply';
+                return;
+            }
+            // ITFlow's AI triage suggestions (a banner, not a card) - stays above the description
+            if (el.matches('[data-ai-triage]')) {
+                el.dataset.mitBox = 'ai_triage';
                 return;
             }
             const icon = el.classList.contains('card') && el.querySelector(':scope > .card-header .card-title i.fas');

@@ -100,7 +100,7 @@ function mitNotificationsSave(array $post) {
  * Defaults per kind of visit (remote / onsite) on the Notifications page; the Schedule window and Dispatch's dialog show them as ticks to
  * change for one booking ($GLOBALS['mit_schedule_notify'], set by mitScheduleNotifyFromPost). Read in ITFlow's ticketMailSchedule through
  * mitScheduleNotify (tech, contact, watchers) and mitScheduleExtraRecipients (site contact, client's primary contact, extra addresses). Everyone
- * but the tech also needs ITFlow's "Send clients general notification emails". Cancellations follow the booking's kind.
+ * but the tech also needs ITFlow's "Email clients about their tickets". Cancellations follow the booking's kind.
  */
 
 const MIT_SCHEDULE_WHO = ['tech' => 'Assigned tech', 'contact' => 'Ticket contact', 'watchers' => 'Watchers', 'site' => "The site's contact",
@@ -138,6 +138,12 @@ function mitScheduleChoice($ticket_id) {
     } else {
         $onsite = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_onsite FROM tickets WHERE ticket_id = " . intval($ticket_id)))[0] ?? 0);
         $choice = mitScheduleDefaults($onsite);
+    }
+    // Admin > Mail previews show every email the booking can send, whatever is ticked
+    if (function_exists('emailCapturing') && emailCapturing()) {
+        foreach (array_keys(MIT_SCHEDULE_WHO) as $who) {
+            $choice[$who] = true;
+        }
     }
     // Dispatch's / the helper invite's "tech only"
     if (!empty($GLOBALS['mit_schedule_skip_contact'])) {
@@ -206,6 +212,12 @@ function mitScheduleExtraRecipients(array $row, $contact_sent, $watchers_sent) {
         while ($watcher = mysqli_fetch_row($result)) {
             $have[strtolower(trim((string) $watcher[0]))] = true;
         }
+        // ITFlow's ticketMailSend also emails the client's primary / technical contacts who asked for every update
+        if (function_exists('ticketColleagueRecipients')) {
+            foreach (array_keys(ticketColleagueRecipients($ticket_id, 'update')) as $colleague) {
+                $have[strtolower(trim((string) $colleague))] = true;
+            }
+        }
     }
     $people = [];
     foreach (mitScheduleOtherContacts($ticket_id) as $who => [$email, $name]) {
@@ -236,7 +248,7 @@ function mitScheduleNotifyRows() {
     $html = '<tr data-mit-notify-section><th colspan=5>Scheduling</th></tr><tr><th colspan=5 class="fw-normal">'
         . '<div class="mb-2"><i class="fas fa-fw fa-calendar-alt me-2"></i><strong>Ticket scheduled, moved or cancelled</strong> - who is emailed, with a calendar invite.'
         . ' These are the defaults; the Schedule window and Dispatch show them as ticks to change for one booking. Everyone but the tech also needs'
-        . ' "Send clients general notification emails" on. Techs whose Outlook calendar is synced get the booking there either way.</div>'
+        . ' "Email clients about their tickets" on. Techs whose Outlook calendar is synced get the booking there either way.</div>'
         . '<table class="table table-sm table-bordered mb-0 small" data-mit-schedule-defaults style="max-width: 40rem"><thead><tr><th>Who</th>'
         . '<th class="text-center"><i class="fas fa-headset me-1"></i>Remote</th><th class="text-center"><i class="fas fa-car me-1"></i>Onsite</th></tr></thead><tbody>';
     foreach (MIT_SCHEDULE_WHO as $who => $label) {

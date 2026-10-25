@@ -16,7 +16,7 @@
 // The query keys each page remembers
 function mitListViewKeys($page) {
     $keys = [
-        'tickets' => ['board', 'view', 'show', 'assigned', 'client', 'status', 'priority', 'category', 'project', 'sla', 'billing', 'canned_date', 'dtf', 'dtt', 'sort', 'order', 'state', 'billable', 'unbilled'],
+        'tickets' => ['board', 'view', 'show', 'assigned', 'client', 'status', 'priority', 'category', 'project', 'sla', 'billing', 'canned_date', 'dtf', 'dtt', 'sort', 'order', 'state', 'billable', 'unbilled', 'tags'],
     ];
     return $keys[$page] ?? [];
 }

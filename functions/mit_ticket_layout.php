@@ -10,7 +10,7 @@
  * Layout: {"columns": '' | even | side | single | three, "left": [box ids] (the third column),
  * "main": [...], "side": [...], "collapsed": [...], "half": [...] (half width - two sit side by side)}.
  * Box ids are the script's names for the boxes (description, reply, conversation, details, contact,
- * also_open, site, tasks, parts - our Parts box, procurement -, reimburse - our Reimbursements box -, linked, history). A box a layout does
+ * also_open, site, tasks, parts - our Parts box, procurement -, reimburse - our Reimbursements box -, linked, history; ITFlow 26.11 added fill_ins, trips and the ai_triage banner). A box a layout does
  * not mention stays where ITFlow puts it.
  */
 

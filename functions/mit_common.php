@@ -28,6 +28,62 @@ function mitProductIsTangible($product_id) {
     return intval($product_id) > 0 && getFieldById('products', intval($product_id), 'product_type') === 'product';
 }
 
+/** Admin > Roles: what each level of our modules lets a role do (ITFlow's roleModuleInfo, one guarded line). */
+function mitRoleModuleInfo() {
+    return [
+        'module_procurement' => [
+            'label' => 'Procurement', 'icon' => 'fa-truck-loading', 'about' => 'Items to order, purchase orders and receiving',
+            'levels' => [1 => 'See them', 2 => 'Add items, make, send and receive purchase orders', 3 => 'Approve and cancel purchase orders'],
+        ],
+        'module_timesheets' => [
+            'label' => 'Timesheets', 'icon' => 'fa-user-clock', 'about' => 'Everyone keeps their own - this is for other people\'s',
+            'levels' => [1 => 'See everyone\'s and the payroll report', 2 => 'Correct them', 3 => 'Approve them'],
+        ],
+        'module_dispatch' => [
+            'label' => 'Dispatch', 'icon' => 'fa-th-list', 'about' => 'The dispatch board - booking needs Support at Modify too',
+            'levels' => [1 => 'See the board', 2 => 'Book, move, assign and merge tickets'], 'max' => 2,
+        ],
+    ];
+}
+
+/** Does an ITFlow table have this column (a newer ITFlow added it)? Once per request. */
+function mitColumnReady($table, $column) {
+    global $mysqli;
+    static $known = [];
+    $key = "$table.$column";
+    if (!isset($known[$key])) {
+        $known[$key] = mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM `" . str_replace('`', '', $table) . "` LIKE '" . mysqli_real_escape_string($mysqli, $column) . "'")) > 0;
+    }
+    return $known[$key];
+}
+
+/**
+ * Does ITFlow keep a stock count for this product? ITFlow 26.11 moves stock only for products with product_track_stock on
+ * (billingItemSave, billingCopyLines, billingItemDelete); before it, every product (not service) had stock.
+ */
+function mitProductTracksStock($product_id) {
+    if (!mitColumnReady('products', 'product_track_stock')) {
+        return mitProductIsTangible($product_id);
+    }
+    return intval($product_id) > 0 && intval(getFieldById('products', intval($product_id), 'product_track_stock')) === 1;
+}
+
+/**
+ * A stock movement, through ITFlow's own record (productStockMove: type, who, cost, invoice, the reorder notice) when it has one.
+ * $qty: + onto the shelf, - off it. $type: received | sold | returned | adjusted | written_off.
+ */
+function mitStockMove($product_id, $qty, $type, $note, array $opts = []) {
+    global $mysqli;
+    if (!mitProductTracksStock($product_id) || round((float) $qty, 2) == 0) {
+        return;
+    }
+    if (function_exists('productStockMove')) {
+        productStockMove($product_id, $qty, $type, $opts + ['note' => $note]);
+        return;
+    }
+    mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . round((float) $qty) . ", stock_note = '" . escapeSql(mb_substr($note, 0, 500)) . "', stock_product_id = " . intval($product_id));
+}
+
 /**
  * Is one of our modules switched on (Admin > Settings > Modules - admin/includes/mit_modules_fields.php)?
  * $name: procurement | timesheets | dispatch. On unless switched off; saved in mit_settings as module_<name>.
@@ -88,11 +144,17 @@ function mitAdminSettingsPages() {
 
 /** Save our module switches from Admin > Settings > Modules (hook in admin/post/settings_module.php). */
 function mitModulesSave(array $post) {
+    $lines = []; // what changed, in words - for ITFlow's settingsSave (its "Nothing changed" otherwise)
     foreach (['procurement', 'timesheets', 'dispatch'] as $name) {
         if (isset($post["mit_module_$name"])) {
-            mitSetSetting("module_$name", $post["mit_module_$name"] === '1' ? '1' : '0');
+            $on = $post["mit_module_$name"] === '1' ? '1' : '0';
+            if ((string) mitSetting("module_$name", "1") !== $on) {
+                $lines[] = ucfirst($name) . ($on === '1' ? ' turned on' : ' turned off');
+            }
+            mitSetSetting("module_$name", $on);
         }
     }
+    return $lines;
 }
 
 /**

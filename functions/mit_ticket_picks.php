@@ -32,8 +32,13 @@ function mitTicketPickHtml($field, $ticket_id) {
         $name = mysqli_fetch_row(mysqli_query($mysqli, "SELECT sla_name FROM tickets JOIN slas ON sla_id = ticket_sla_id WHERE ticket_id = $ticket_id"))[0] ?? null;
         return $name === null ? "<span class='text-muted'>None</span>" : escapeHtml($name);
     }
-    $name = mysqli_fetch_row(mysqli_query($mysqli, "SELECT category_name FROM tickets JOIN categories ON category_id = ticket_category WHERE ticket_id = $ticket_id"))[0] ?? null;
-    return $name === null ? "<span class='text-muted'>None</span>" : escapeHtml($name);
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT category_name, category_color, category_icon FROM tickets JOIN categories ON category_id = ticket_category WHERE ticket_id = $ticket_id"));
+    if (!$row) {
+        return "<span class='text-muted'>None</span>";
+    }
+    // Drawn as agent/ticket.php does: the category's mark, then its name
+    $mark = function_exists('categoryMarkHtml') ? categoryMarkHtml($row[1] ?? '', $row[2] ?? '', '<i class="fas fa-circle itflow-ticket-dot"%s aria-hidden="true"></i>') : '';
+    return $mark . escapeHtml($row[0]);
 }
 
 /** agent/ajax.php quick_pick_options (Support edit already checked): the choices, or null when the field is not ours. */

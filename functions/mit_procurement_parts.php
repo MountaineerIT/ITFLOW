@@ -119,7 +119,9 @@ function mitProcQuoteConvertFields($quote_id, $client_id) {
         return '';
     }
     $quote_id = intval($quote_id);
-    $lines = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_name, item_quantity, item_product_id FROM quote_items WHERE item_quote_id = $quote_id ORDER BY item_order, item_id"), MYSQLI_ASSOC);
+    // One-time lines only - ITFlow 26.11 puts lines billed each month / quarter / year on a recurring invoice, which nothing is ordered from
+    $once = function_exists('mitColumnReady') && mitColumnReady('quote_items', 'item_frequency') ? " AND (item_frequency IS NULL OR item_frequency = '')" : '';
+    $lines = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_name, item_quantity, item_product_id FROM quote_items WHERE item_quote_id = $quote_id$once ORDER BY item_order, item_id"), MYSQLI_ASSOC);
     if (!$lines) {
         return '';
     }
@@ -444,13 +446,8 @@ function mitTicketPartsCard(array $ticket, $can_edit) {
 
 /** Take (or put back, with a negative $qty) a tangible product from stock. */
 function mitProductStockTake($product_id, $qty, $note) {
-    global $mysqli;
-    $product_id = intval($product_id);
-    if (!mitProductIsTangible($product_id)) {
-        return;
-    }
-    // product_stock.stock_qty is whole units (ITFlow's column), so part quantities are rounded for it
-    mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . (0 - round((float) $qty)) . ", stock_note = '" . escapeSql(mb_substr($note, 0, 500)) . "', stock_product_id = $product_id");
+    // Only products ITFlow keeps a stock count for; used on a ticket = sold (it is billed with the ticket's parts), back = returned
+    mitStockMove($product_id, 0 - (float) $qty, (float) $qty > 0 ? 'sold' : 'returned', $note);
 }
 
 /** May the signed-in agent see what we pay (costs on ticket parts)? Procurement or Sales access. */
@@ -541,7 +538,7 @@ function mitTicketPartSave(array $ticket, array $post, $part_id = 0) {
     }
 
     $warning = '';
-    if ($source === 'stock' && mitProductIsTangible($product_id)) {
+    if ($source === 'stock' && mitProductTracksStock($product_id)) {
         $left = mitProductStock($product_id) - round($qty);
         mitProductStockTake($product_id, $qty, "Used on ticket $reference");
         if ($left < 0) {
@@ -624,9 +621,13 @@ function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invo
         $posted = str_replace([',', '$'], '', trim((string) ($prices[$part_id] ?? '')));
         $price = $posted !== '' && is_numeric($posted) ? round((float) $posted, 2) : (float) $part['unit_price'];
         $qty = (float) $part['quantity'];
-        $subtotal = round($price * $qty, 2);
-        $tax_percent = intval($part['tax_id']) ? (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT tax_percent FROM taxes WHERE tax_id = " . intval($part['tax_id'])))[0] ?? 0) : 0;
-        $tax = round($subtotal * $tax_percent / 100, 2);
+        if (function_exists('billingLineTax')) {
+            [$subtotal, $tax] = billingLineTax($qty, $price, intval($part['tax_id'])); // ITFlow 26.11's tax engine
+        } else {
+            $subtotal = round($price * $qty, 2);
+            $tax_percent = intval($part['tax_id']) ? (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT tax_percent FROM taxes WHERE tax_id = " . intval($part['tax_id'])))[0] ?? 0) : 0;
+            $tax = round($subtotal * $tax_percent / 100, 2);
+        }
         // invoice_items money columns are decimal(15,2)
         if ($price < 0 || abs($subtotal + $tax) >= 1e12) {
             return [0, 'Check the price of ' . $part['name'] . ' - it is below zero or too large.'];
@@ -638,6 +639,13 @@ function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invo
     try {
         if (!$invoice_id) {
             $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date) ? $date : date('Y-m-d');
+        }
+        if (!$invoice_id && function_exists('billingInvoiceCreate')) {
+            // ITFlow's own new draft (its numbering, the contract's net terms, its history line)
+            $invoice_id = billingInvoiceCreate($client_id, $date, intval($category_id), 'Parts for ticket ' . ticketReference($ticket), mitProcWho() . ' from the parts on ticket ' . ticketReference($ticket));
+            $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_prefix, invoice_number FROM invoices WHERE invoice_id = " . intval($invoice_id)));
+        }
+        if (!$invoice_id) {
             $net_terms = intval(getFieldById('clients', $client_id, 'client_net_terms')) ?: intval($config_default_net_terms);
             // The same numbering ITFlow uses (agent/post/ticket.php add_invoice_from_ticket)
             mysqli_query($mysqli, "UPDATE settings SET config_invoice_next_number = LAST_INSERT_ID(config_invoice_next_number), config_invoice_next_number = config_invoice_next_number + 1 WHERE company_id = 1");
@@ -658,8 +666,10 @@ function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invo
                 item_tax_id = " . intval($part['tax_id']) . ", item_invoice_id = $invoice_id");
             mysqli_query($mysqli, "UPDATE mit_ticket_parts SET invoice_id = $invoice_id, invoice_item_id = " . mysqli_insert_id($mysqli) . ", unit_price = {$line['price']}, billed_at = NOW() WHERE part_id = " . intval($part_id));
         }
-        // The invoice's amount: its lines less its discount (as ITFlow's add-item does)
-        mysqli_query($mysqli, "UPDATE invoices SET invoice_amount = (SELECT COALESCE(SUM(item_total), 0) FROM invoice_items WHERE item_invoice_id = $invoice_id) - invoice_discount_amount WHERE invoice_id = $invoice_id");
+        // The invoice's amount: ITFlow's own sums (taxes with the discount, the total), else its lines less its discount
+        if (function_exists('billingRecalc')) {
+            billingRecalc('invoice', $invoice_id);
+        } else mysqli_query($mysqli, "UPDATE invoices SET invoice_amount = (SELECT COALESCE(SUM(item_total), 0) FROM invoice_items WHERE item_invoice_id = $invoice_id) - invoice_discount_amount WHERE invoice_id = $invoice_id");
         mysqli_commit($mysqli);
     } catch (Throwable $e) {
         mysqli_rollback($mysqli);

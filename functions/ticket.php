@@ -878,6 +878,7 @@ function ticketMailAssigned($user_id, array $ticket_ids, $by) {
  */
 function recurringTicketMailAssigned($user_id, array $subjects, $by) {
     global $session_user_id, $config_app_name, $config_base_url;
+    if (function_exists('mitNotifyOn') && !mitNotifyOn('assign_email') && !(function_exists('emailCapturing') && emailCapturing())) { return 0; } // Mountaineer IT: Admin > Notifications (not for a preview)
     $agent = intval($user_id) !== intval($session_user_id ?? 0) ? ticketMailAgent($user_id) : null;
     if (!$agent || !$subjects) {
         return 0;

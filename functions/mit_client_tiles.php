@@ -65,7 +65,9 @@ function mitClientTiles($kind, $client_id) {
         $has_expiry = "software_expire IS NOT NULL AND software_expire != '0000-00-00'";
         $total = mitTileCount("SELECT COUNT(*) FROM software WHERE $where");
         $seats = mitTileCount("SELECT COALESCE(SUM(software_seats), 0) FROM software WHERE $where");
-        $used = mitTileCount("SELECT (SELECT COUNT(*) FROM software_contacts JOIN software USING (software_id) WHERE $where)
+        // ITFlow's own count (archived assets / contacts left out), the one its Over seats tab uses
+        $used = function_exists('softwareSeatsUsedSql') ? mitTileCount("SELECT COALESCE(SUM(" . softwareSeatsUsedSql('software.software_id') . "), 0) FROM software WHERE $where")
+            : mitTileCount("SELECT (SELECT COUNT(*) FROM software_contacts JOIN software USING (software_id) WHERE $where)
             + (SELECT COUNT(*) FROM software_assets JOIN software USING (software_id) WHERE $where)");
         $expired = mitTileCount("SELECT COUNT(*) FROM software WHERE $where AND $has_expiry AND software_expire < CURDATE()");
         $renewing = mitTileCount("SELECT COUNT(*) FROM software WHERE $where AND $has_expiry AND software_expire BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)");

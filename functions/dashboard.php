@@ -289,7 +289,7 @@ function dashboardAttention($access) {
         }
         if ($access['tickets']) {
             $items[] = [
-                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE " . billingUnbilledSql() . " $ticket_scope"),
+                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE " . billingUnbilledSql() . clientScopeSql('ticket_client_id')), // Mountaineer IT: every ticket, as Unbilled Time lists them
                 'label' => 'Resolved, not invoiced', 'icon' => 'receipt', 'tone' => 'info',
                 'url' => '/agent/unbilled_time.php',
             ];

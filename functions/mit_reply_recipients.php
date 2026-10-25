@@ -52,6 +52,10 @@ function mitReplyRecipients($ticket_id) {
     while ($row = mysqli_fetch_assoc($result)) {
         $add($row['watcher_email'], '', 'watcher', true);
     }
+    // ITFlow 26.11: the client's primary / technical contacts who asked (in the portal) for every update on their company's tickets
+    foreach (function_exists('ticketColleagueRecipients') ? ticketColleagueRecipients($ticket_id, 'update') : [] as $email => $colleague) {
+        $add($email, $colleague['name'], 'colleague', true);
+    }
     $lead = intval($ticket['ticket_assigned_to']);
     if ($lead) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT user_name, user_email FROM users WHERE user_id = $lead AND user_archived_at IS NULL"));
@@ -95,7 +99,7 @@ function mitReplyRecipientsField($ticket_id, $can_email = true) {
     if (!$can_email || !mitReplyRecipientsReady()) {
         return $notify === '' ? '' : $notify . '<script src="' . mitAsset('/agent/js/mit_reply_recipients.js') . '"></script>';
     }
-    $groups = ['contact' => 'Contact', 'watcher' => 'Watcher', 'agent' => 'Our team', 'added' => 'Added before', 'client' => 'Contact at the client'];
+    $groups = ['contact' => 'Contact', 'watcher' => 'Watcher', 'colleague' => 'Asked for every update', 'agent' => 'Our team', 'added' => 'Added before', 'client' => 'Contact at the client'];
     $options = '';
     foreach (mitReplyRecipients($ticket_id) as $email => $r) {
         $name = $r['name'];
@@ -150,7 +154,33 @@ function mitReplyRecipientsMail($ticket_id, array $post, $subject, $body, array 
         }
     }
 
-    if (empty($config_smtp_provider) || !$ticked) {
+    if (!$ticked) {
+        return 0;
+    }
+    // ITFlow 26.11: its email builder - each one greeted by name, with why they get it (as ticketMailSend), $body its content
+    if (is_array($body) && function_exists('emailQueue')) {
+        $ref = (string) ($body['reference'] ?? '');
+        $company_name = function_exists('billingCompany') ? (string) (billingCompany()['company_name'] ?? 'us') : 'us';
+        $why = [
+            'contact' => "You get this as the contact on this ticket with $company_name.",
+            'watcher' => "You get this because you are watching this ticket - ask $company_name if you would like to stop.",
+            'colleague' => "You get this because you asked for every update on your company's tickets - change that under Your account in the client portal.",
+            'agent' => 'You get this because you work on this ticket.',
+        ];
+        $recipients = [];
+        foreach (array_slice(array_keys($ticked), 0, 50) as $email) {
+            $group = $list[$email]['group'] ?? 'added';
+            $name = ($list[$email]['name'] ?? '') !== '' ? preg_replace('/ \((assigned|helping)\)$/', '', $list[$email]['name']) : '';
+            $recipients[] = ['email' => $email, 'name' => $name, 'greet' => in_array($group, ['contact', 'colleague', 'client', 'agent'], true) ? $name : '',
+                'footnote' => $why[$group] ?? "You get this because you were copied on this ticket with $company_name."];
+        }
+        $sent = emailQueue($recipients, $subject, $body, ['from' => function_exists('ticketEmailFrom') ? ticketEmailFrom() : null, 'attachments' => $attachments]);
+        if ($sent) {
+            logTicketHistory($ticket_id, escapeSql("Reply emailed to " . mb_substr(implode(', ', $sent), 0, 400)));
+        }
+        return count($sent);
+    }
+    if (empty($config_smtp_provider)) {
         return 0;
     }
     $from_email = escapeSql($config_ticket_from_email);

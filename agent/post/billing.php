@@ -394,6 +394,7 @@ if (isset($_POST['unbilled_invoice'])) {
 
     $client_id = intval($_POST['client_id'] ?? 0);
     enforceClientAccess();
+    if (intval($_POST['invoice_id'] ?? 0) && function_exists('mitQboGuardInvoice')) { mitQboGuardInvoice(intval($_POST['invoice_id'])); } // Mountaineer IT: QuickBooks batch lock
 
     $hours = [];
     foreach (array_unique(array_filter(array_map('intval', (array) ($_POST['ticket_ids'] ?? [])))) as $ticket_id) {
@@ -447,7 +448,7 @@ if (isset($_POST['unbilled_invoice_clients'])) {
         }
         $c = $by_client[$bill_client_id];
         $result = expenseBillWithTime($bill_client_id, array_fill_keys(array_keys($c['tickets']), null), array_fill_keys(array_keys($c['expenses'] ?? []), null), [
-            'invoice_id' => $use_draft && $c['drafts'] ? intval(array_key_first($c['drafts'])) : 0,
+            'invoice_id' => $use_draft && $c['drafts'] && !(function_exists('mitQboInvoiceLock') && mitQboInvoiceLock(intval(array_key_first($c['drafts'])))) ? intval(array_key_first($c['drafts'])) : 0, // Mountaineer IT: a draft in a QuickBooks batch gets a new one instead
             'date' => (string) ($_POST['date'] ?? ''),
             'category_id' => intval($_POST['category'] ?? 0),
             'scope' => (string) ($_POST['scope'] ?? ''),
