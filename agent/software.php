@@ -416,6 +416,7 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                                     <?php if ($software_favorite) { ?><i class="fas fa-star text-warning ms-1" title="Favorite"></i><?php } ?>
                                     <?php if ($software_archived_at) { ?><span class="badge rounded-pill text-bg-secondary fw-normal ms-1">Archived</span><?php } ?>
                                     <div class="small text-body-secondary text-truncate itflow-asset-desc" title="<?= $software_description ?: $software_type ?>"><?= $software_description ?: $software_type ?></div>
+                                    <?= function_exists('mitAlignLicenseLine') ? mitAlignLicenseLine($software_id) : '' // Mountaineer IT: MSP Align renewal ?>
                                 </div>
                             </div>
                         </td>

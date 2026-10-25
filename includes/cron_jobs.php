@@ -165,6 +165,15 @@ function cronJobRegistry(): array
             'interval_minutes' => 5,
         ],
         [
+            // Mountaineer IT (functions/mit_align.php)
+            'name' => 'mit_align_sync',
+            'label' => 'MSP Align',
+            'script' => 'mit_align_sync.php',
+            'description' => 'Copies health and alignment scores, device lifecycle status and license renewals from MSP Align for the clients, assets and licenses it has from ITFlow. Only reads from MSP Align. Does nothing until it is set up (Admin > Integrations > MSP Align).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 60,
+        ],
+        [
             // Mountaineer IT (functions/mit_qbo_billing.php)
             'name' => 'mit_qbo_sync',
             'label' => 'QuickBooks Online Payments',

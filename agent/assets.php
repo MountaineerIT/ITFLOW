@@ -575,6 +575,7 @@ $search_noun = $type_filter ? $asset_type_tabs[$type_filter]['label'] : 'assets'
                                     <a class="fw-semibold text-body stretched-link" href="asset.php?client_id=<?= $client_id ?>&asset_id=<?= $asset_id ?>"><?= $asset_name ?></a>
                                     <?php if ($asset_favorite) { ?><i class="fas fa-star text-warning ms-1" title="Favorite"></i><?php } ?>
                                     <?php if ($asset_archived_at) { ?><span class="badge rounded-pill text-bg-secondary fw-normal ms-1">Archived</span><?php } ?>
+                                    <?= function_exists('mitAlignAssetBadge') ? mitAlignAssetBadge($asset_id, array_keys($assets)) : '' // Mountaineer IT: MSP Align lifecycle ?>
                                     <?php if ($asset_description) { ?>
                                         <div class="small text-body-secondary text-truncate itflow-asset-desc" title="<?= $asset_description ?>"><?= $asset_description ?></div>
                                     <?php } ?>

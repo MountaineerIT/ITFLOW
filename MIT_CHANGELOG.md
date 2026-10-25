@@ -4,6 +4,16 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.131 - 2026-10-25
+- New: MSP Align, read only (Admin > Integrations > MSP Align). Type its address and an API key made in MSP Align under Settings > API (read scopes only). ITFlow then copies from MSP Align every hour, or on "Sync now". It only ever reads, so it can't change anything in MSP Align.
+- Clients, assets and licenses are matched by the ITFlow ids MSP Align already keeps, so there is nothing to map. If linked clients have different names in the two programs, the admin page lists them, in case MSP Align was filled from another ITFlow.
+- Client overview: a new MSP Align section with the health score and band, alignment score, devices to act on, and the next meeting. It has quick links to the client's MSP Align Overview, Roadmap, Budget, Devices, Licenses, Compliance, Alignment, Meetings and Reports pages.
+- On the client's other pages, the client header has a small "MSP Align" link.
+- Assets: the asset list shows MSP Align's lifecycle status (Replace now, OS unsupported, Out of warranty, Healthy …), with warranty and replacement dates on hover. The asset page and window have an "MSP Align" button showing the status.
+- Licenses list: each license MSP Align has shows its renewal or contract-end date and its yearly cost, linking to the client's licenses in MSP Align.
+- Database update M039 (three new tables).
+- Smoke tests: the portal-on-a-phone test now signs in from its own empty browser. It had signed in on top of the admin's shared test session, which signed the admin out for any test after it.
+
 ## 26.10.130 - 2026-10-25
 - QuickBooks Online: invoices you entered in QuickBooks by hand can be marked "Already in QuickBooks", so they stop waiting for approval or a batch. You can mark them in three places:
   - the QuickBooks strip on the invoice;

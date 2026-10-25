@@ -274,6 +274,7 @@ if (mysqli_num_rows($sql) == 0) {
                     </a>
                 <?php } ?>
                 <?= function_exists('mitNinjaAssetButton') ? mitNinjaAssetButton($asset_id) : '' // Mountaineer IT: open in NinjaOne ?>
+                <?= function_exists('mitAlignAssetPanel') ? mitAlignAssetPanel($asset_id) : '' // Mountaineer IT: MSP Align ?>
                 <?php if ($can_edit) { ?>
                     <div class="dropdown">
                         <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-plus me-2"></i>New</button>

@@ -31,7 +31,10 @@ test('portal: tables fit a phone screen', async ({ page, browser }) => {
 
     // The contact on a phone
     const use = test.info().project.use;
-    const context = await browser.newContext({ baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors, viewport: { width: 390, height: 844 } });
+    // Its own empty cookie jar: browser.newContext() in a test takes the project's admin storageState, and signing in there would
+    // replace the admin's session for the tests after this one
+    const context = await browser.newContext({ baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors, viewport: { width: 390, height: 844 },
+        storageState: { cookies: [], origins: [] } });
     const phone = await context.newPage();
     await phone.goto('login.php');
     await phone.fill('input[name=email]', email);

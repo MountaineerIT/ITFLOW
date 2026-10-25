@@ -860,6 +860,27 @@ model: see DEPLOYMENT.md.
   `[data-mit-ct-more]` - 26.10.129). The reviews page has a client picker (`[data-mit-ct-client-pick]`, clients with responses, 26.10.129). Ticket history gets "survey sent" / "rated".
   Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by). Test install stand-in
   `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
+- MSP Align, read only (Oct 25, 26.10.131): `functions/mit_align.php` (ours, required from `functions.php`) - the user's own self-hosted
+  vCIO toolkit (github.com/MSP-ALIGN/MSP-ALIGN, API docs `docs/API.md` there, read at 2.25.0). MSP Align keeps ITFlow's ids on what it
+  pulls from ITFlow (`psa_id` on clients / licenses, `psa_asset_id` on devices - text, the old `itflow_*` aliases are numbers), so no mapping
+  screen. GET only on `<address>/api/v1` with `Authorization: Bearer msa_...` (`mitAlignCall` via `mitHttp`; 403 = scope missing ->
+  that part skipped and its rows left; 429 waits). Hourly cron job `mit_align_sync` (`cron/mit_align_sync.php`, entry in
+  `includes/cron_jobs.php`) / "Sync now" -> `mitAlignSync` under `mitLock('align_sync')`: GET /clients (all pages, include_excluded) then per
+  matched client /clients/{id} (summary: devices total / healthy, alignment, next_meeting) and /clients/{id}/health (score, band); /devices
+  (lifecycle status / label / health tone, warranty end, end of life, replace by, planned quarter, OS support end); /licenses (expiry,
+  contract end, renegotiate by, auto renew, annual). Read in full every time (MSP Align works lifecycle out from today - updated_since
+  would miss status changes); rows it no longer has are pruned. Tables M039 `mit_align_clients` / `_devices` / `_licenses` (FK clients /
+  assets / software CASCADE); settings `mit_settings` align_* (url, key via mitEncryptSecret, enabled, scopes / key_name from GET /api/v1,
+  last_run / last_result, report - linked clients whose names differ, shown on the admin page as a "different ITFlow?" warning). Admin >
+  Integrations > MSP Align `admin/mit_align.php` (handlers `admin/post/mit_align.php`: save tests the key first; menu
+  `admin/includes/mit_integrations_nav.php`). Hooks, one line each: `mitAlignClientCard` in `agent/client_overview.php` (after the Customer
+  Thermometer card: health / alignment / devices to act on / next meeting tiles + quick links to the client's Overview, Roadmap, Budget,
+  Devices, Licenses, Compliance, Alignment, Meetings, Reports - `MIT_ALIGN_CLIENT_PAGES`), `mitAlignClientButton` after tagPills in
+  `agent/includes/inc_client_top_head.php` (not on the overview, which has its own header), `mitAlignAssetBadge($asset_id, array_keys($assets))`
+  in `agent/assets.php`'s name cell, `mitAlignAssetPanel` beside the NinjaOne button in `agent/asset.php` / `agent/modals/asset/asset.php`,
+  `mitAlignLicenseLine` in `agent/software.php`'s name cell (links to the client's licenses page - MSP Align has none per license).
+  Shown to anyone on those pages (they already see the client). Development mode: reads allowed. Test stand-in `align-mock/index.php` (not in the
+  repo; the address is typed in the admin page, no constant); smoke `27-align.spec.js`.
 - Resolve - no response (Oct 24, 26.10.126): `functions/mit_no_response.php` (ours, required from `functions.php`) - a split arrow
   joined onto Resolve (`mitNoResponseButton` - one line after ITFlow's Resolve link in `agent/ticket.php`; menu item "Resolve - no
   response..." - a separate button wrapped the ⋮ menu onto a second line; `agent/js/mit_ticket_layout.js` skips `.mit-no-response` when it

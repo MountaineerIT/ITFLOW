@@ -428,6 +428,7 @@ ob_start();
 
 <div class="modal-footer">
     <?= function_exists('mitNinjaAssetButton') ? mitNinjaAssetButton($asset_id, true) : '' // Mountaineer IT: open in NinjaOne ?>
+    <?= function_exists('mitAlignAssetPanel') ? mitAlignAssetPanel($asset_id, true) : '' // Mountaineer IT: MSP Align ?>
     <a href="asset.php?client_id=<?= $client_id ?>&asset_id=<?= $asset_id ?>" class="btn btn-primary text-bold"><i class="fas fa-arrow-right me-2"></i>Open asset</a>
     <?php if ($can_edit) { ?>
         <button type="button" class="btn btn-outline-secondary ajax-modal" data-modal-size="lg" data-modal-url="modals/asset/asset_edit.php?id=<?= $asset_id ?>"><i class="fas fa-edit me-2"></i>Edit</button>

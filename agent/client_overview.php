@@ -111,6 +111,7 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
     <?php } ?>
 
     <?= $access['tickets'] && function_exists('mitCtClientCard') ? mitCtClientCard($client_id) : '' // Mountaineer IT: Customer Thermometer ?>
+    <?= function_exists('mitAlignClientCard') ? mitAlignClientCard($client_id) : '' // Mountaineer IT: MSP Align ?>
 
     <h2 class="itflow-dash-section mb-2">Technical</h2>
 
