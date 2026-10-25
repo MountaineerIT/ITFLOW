@@ -23,7 +23,8 @@
  *     require_once "../../includes/footer.php";
  *
  * Money is counted the way the dashboard counts it: income is what came in -
- * invoice payments, and revenues with a category; spending is expenses with a
+ * invoice payments, and other income that isn't a transfer, categorised or
+ * not (functions/income.php); spending is expenses with a
  * vendor, as an expense with no vendor is the out side of a transfer between
  * accounts. Anything tied to a client goes through clientScopeSql(), so an
  * agent restricted to some clients only ever sees those clients' rows; the
@@ -70,11 +71,11 @@ function reportCatalog() {
                 ],
                 'tax_summary' => [
                     'title' => 'Tax Collected', 'icon' => 'fa-percent', 'module' => 'module_financial', 'feature' => ['accounting'],
-                    'description' => 'Tax collected on paid invoices, and the sales it was collected on, by month or quarter.',
+                    'description' => 'Tax on sales by part of each rate, invoiced or paid, with taxable, exempt and non-taxable sales and the tax paid on purchases, by month or quarter.',
                 ],
                 'mileage' => [
                     'title' => 'Mileage', 'icon' => 'fa-route', 'module' => 'module_financial', 'feature' => ['accounting'],
-                    'description' => 'Miles driven by agent and client, with a reimbursement estimate at your rate.',
+                    'description' => 'Distance driven by agent and client, with what it comes to at your mileage rate.',
                 ],
             ],
         ],
@@ -100,6 +101,10 @@ function reportCatalog() {
                 'quote_pipeline' => [
                     'title' => 'Quotes Pipeline', 'icon' => 'fa-comment-dollar', 'module' => 'module_sales', 'feature' => ['accounting'],
                     'description' => 'Open quotes, your win rate, and the value won and lost.',
+                ],
+                'inventory' => [
+                    'title' => 'Inventory', 'icon' => 'fa-warehouse', 'module' => 'module_sales', 'feature' => ['accounting'],
+                    'description' => 'Stock on the shelf and what it is worth, what came in and went out at cost, and what to reorder.',
                 ],
                 'tickets_unbilled' => [
                     'title' => 'Unbilled Work', 'icon' => 'fa-receipt', 'module' => 'module_sales', 'feature' => ['accounting', 'ticketing'],
@@ -144,6 +149,14 @@ function reportCatalog() {
                     'title' => 'Customer Satisfaction', 'icon' => 'fa-smile', 'module' => 'module_support', 'feature' => ['ticketing'],
                     'description' => 'How clients rated their closed tickets, by agent and client.',
                 ],
+                'ticket_templates' => [
+                    'title' => 'Ticket Templates', 'icon' => 'fa-cube', 'module' => 'module_support', 'feature' => ['ticketing'],
+                    'description' => 'How often each template is used and how - by agents, from the client portal, on a schedule or by projects - with the time spent and how long its tickets take, and the ones not used.',
+                ],
+                'canned_responses' => [
+                    'title' => 'Canned Responses', 'icon' => 'fa-comment-dots', 'module' => 'module_support', 'feature' => ['ticketing'],
+                    'description' => 'How often each canned response goes into a reply, on how many tickets and by whom, which agents reach for them, and the ones not used.',
+                ],
             ],
         ],
         'clients' => [
@@ -165,9 +178,30 @@ function reportCatalog() {
                     'title' => 'Documentation Coverage', 'icon' => 'fa-tasks', 'module' => 'module_support', 'feature' => ['itdoc'],
                     'description' => 'What is documented for each client, and what is missing.',
                 ],
+                'document_templates' => [
+                    'title' => 'Document Templates', 'icon' => 'fa-file-alt', 'module' => 'module_support', 'feature' => ['itdoc'],
+                    'description' => 'How often each document template is used, how many of the clients that should have a document from one do, and the documents due a review - by template and by client.',
+                ],
+                'license_templates' => [
+                    'title' => 'License Templates', 'icon' => 'fa-cube', 'module' => 'module_support', 'feature' => ['itdoc'],
+                    'description' => 'How much each license template is used, the seats on its licenses against the ones bought, how many of the clients that should have one do, and how many are billed - by template and by client.',
+                ],
+                'vendor_templates' => [
+                    'title' => 'Vendor Templates', 'icon' => 'fa-building', 'module' => 'module_client', 'feature' => [],
+                    'description' => 'How many clients have a vendor from each template, how many of the clients that should have one do, which are out of step with their template, and the licenses, assets, cases and spend on their vendors - by template and by client.',
+                ],
                 'credential_rotation' => [
                     'title' => 'Credential Rotation', 'icon' => 'fa-key', 'module' => 'module_credential', 'feature' => ['itdoc'],
                     'description' => 'Passwords that have not changed in a while, oldest first.',
+                ],
+            ],
+        ],
+        'activity' => [
+            'label' => 'Activity',
+            'reports' => [
+                'audit_activity' => [
+                    'title' => 'Audit Activity', 'icon' => 'fa-history', 'module' => 'module_client', 'feature' => [],
+                    'description' => 'What was done in ITFlow - changes, deletions, passwords looked at, exports and sign-ins - over time, out of hours, and by person, client and kind of record.',
                 ],
             ],
         ],
@@ -212,6 +246,12 @@ function reportCan(array $report) {
         }
     }
     return reportPermission('module_reporting') >= 1 && reportPermission($report['module']) >= 1;
+}
+
+/** May this user open the report with this key (its file's name)? For links into a report from other pages. */
+function reportCanOpen($key) {
+    $report = reportFind($key);
+    return $report !== null && reportCan($report);
 }
 
 /** The catalogue with only the reports this user may open, and only the groups left with any. */
@@ -970,12 +1010,15 @@ function reportCsv($name, array $columns, array $rows, array $totals = null) {
     if ($totals) {
         $values = [];
         foreach ($columns as $key => $column) {
+            // A total is its value as given - a column's csv function reads a row's fields, which the totals don't have
+            unset($column['csv']);
             $values[] = escapeCsvFormula(array_key_exists($key, $totals) ? reportCsvValue($column, $totals, $key) : '');
         }
         fputcsv($out, $values, ',', '"', '\\');
     }
 
-    logAudit('Report', 'Export', escapeSql("$session_name exported the $name report"));
+    // $session_name is SQL-safe already - escaping it again kept the backslash ("O\'Brien")
+    logAudit('Report', 'Export', "$session_name exported the " . escapeSql($name) . " report");
 
     fseek($out, 0);
     header('Content-Type: text/csv; charset=utf-8');
@@ -1465,7 +1508,7 @@ function reportCategoryChartSeries(array $categories, array $grid, $months_shown
  * the year and its share, a totals row, and each amount opening the list it
  * came from ($list: income.php or expenses.php).
  */
-function reportCategoryYearTable(array $categories, array $grid, $year, $list, $total_label) {
+function reportCategoryYearTable(array $categories, array $grid, $year, $list, $total_label, $uncategorised = '') {
     $columns = reportYearColumns('month');
     $totals = reportGridTotals($grid);
     $html = '<div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0 itflow-report-table itflow-report-grid" data-report-sort>'
@@ -1483,10 +1526,10 @@ function reportCategoryYearTable(array $categories, array $grid, $year, $list, $
             . (!empty($category['category_archived_at']) ? ' <span class="badge bg-secondary-subtle text-secondary-emphasis fw-normal">Archived</span>' : '') . '</td>';
         foreach ($columns as $i => [$label, $first, $last]) {
             [$dtf, $dtt] = reportColumnDates($year, $first, $last);
-            $url = $cat ? "/agent/$list?category=$cat&canned_date=custom&dtf=$dtf&dtt=$dtt" : '';
+            $url = $cat || $uncategorised !== '' ? "/agent/$list?" . ($cat ? "category=$cat" : $uncategorised) . "&canned_date=custom&dtf=$dtf&dtt=$dtt" : '';
             $html .= '<td class="text-end" data-value="' . round($row['months'][$i], 2) . '">' . reportGridAmount($row['months'][$i], $url) . '</td>';
         }
-        $url = $cat ? "/agent/$list?category=$cat&canned_date=custom&dtf=$year-01-01&dtt=$year-12-31" : '';
+        $url = $cat || $uncategorised !== '' ? "/agent/$list?" . ($cat ? "category=$cat" : $uncategorised) . "&canned_date=custom&dtf=$year-01-01&dtt=$year-12-31" : '';
         $share = reportShare($row['total'], $totals['total'], 1);
         $html .= '<td class="text-end fw-semibold" data-value="' . round($row['total'], 2) . '">' . reportGridAmount($row['total'], $url) . '</td>'
             . '<td class="text-end text-body-secondary" data-value="' . ($share ?? 0) . '">' . reportPercent($share) . '</td></tr>';

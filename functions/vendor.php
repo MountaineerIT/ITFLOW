@@ -121,7 +121,11 @@ function vendorWebsiteUrl($website) {
     if ($website === '') {
         return '';
     }
-    return preg_match('#^[a-z][a-z0-9+.-]*://#i', $website) ? $website : "https://$website";
+    // Only a web address is a link - one saved with any other scheme isn't
+    if (preg_match('#^([a-z][a-z0-9+.-]*)://#i', $website, $scheme)) {
+        return in_array(strtolower($scheme[1]), ['http', 'https'], true) ? $website : '';
+    }
+    return "https://$website";
 }
 
 /** The website without its scheme or a trailing slash - how it reads on a page. Raw in, raw out. */
@@ -173,7 +177,8 @@ function vendorRow($vendor_id) {
 
 /**
  * The vendor fields a New / Edit form posts, as a SQL SET list - phone
- * numbers as digits, the website without its scheme, only a template that
+ * numbers as digits, the website, status page and portal without their
+ * scheme or a trailing slash, only a template that
  * exists. Null when there is no name. Fields missing from the post are blank.
  */
 function vendorFormSet($post) {
@@ -194,7 +199,9 @@ function vendorFormSet($post) {
     if ($template_id && !mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM vendor_templates WHERE vendor_template_id = $template_id"))) {
         $template_id = 0;
     }
-    $website = mb_substr(preg_replace('#^https?://#i', '', trim((string) ($post['website'] ?? ''))), 0, 200);
+    $site = function ($field) use ($post) {
+        return "'" . escapeSql(mb_substr(rtrim(preg_replace('#^https?://#i', '', trim((string) ($post[$field] ?? ''))), '/'), 0, 200)) . "'";
+    };
 
     $fields = [
         'vendor_name' => $text('name'),
@@ -209,7 +216,9 @@ function vendorFormSet($post) {
         'vendor_phone' => $digits('phone'),
         'vendor_extension' => $digits('extension'),
         'vendor_email' => $text('email'),
-        'vendor_website' => "'" . escapeSql($website) . "'",
+        'vendor_website' => $site('website'),
+        'vendor_status_page' => $site('status_page'),
+        'vendor_portal' => $site('portal'),
         'vendor_hours' => $text('hours'),
         'vendor_sla' => $text('sla'),
         'vendor_notes' => $text('notes', 0),
@@ -223,17 +232,9 @@ function vendorFormSet($post) {
     return implode(', ', $set);
 }
 
-/** Replace a vendor's tags with these - vendor tags (type 6) only. */
+/** Replace a vendor's tags with these - vendor tags only, and an admin can type a new one in (tagSetForRecord()). */
 function vendorSetTags($vendor_id, $tag_ids) {
-    global $mysqli;
-    $vendor_id = intval($vendor_id);
-    mysqli_query($mysqli, "DELETE FROM vendor_tags WHERE vendor_id = $vendor_id");
-    $tag_ids = array_values(array_unique(array_filter(array_map('intval', (array) $tag_ids))));
-    if (!$tag_ids) {
-        return;
-    }
-    mysqli_query($mysqli, "INSERT IGNORE INTO vendor_tags (vendor_id, tag_id)
-        SELECT $vendor_id, tag_id FROM tags WHERE tag_type = 6 AND tag_id IN (" . implode(',', $tag_ids) . ")");
+    tagSetForRecord('vendor', $vendor_id, (array) $tag_ids);
 }
 
 /** A template's fields as they go on a vendor - for New from template. Raw, or null. */
@@ -260,6 +261,11 @@ function vendorTemplateFormFields($template) {
         'extension' => $template['vendor_template_extension'] ?? '',
         'email' => $template['vendor_template_email'] ?? '',
         'website' => $template['vendor_template_website'] ?? '',
+        'status_page' => $template['vendor_template_status_page'] ?? '',
+        'portal' => $template['vendor_template_portal'] ?? '',
+        'contact_phone_country_code' => $template['vendor_template_contact_phone_country_code'] ?? '',
+        'contact_phone' => $template['vendor_template_contact_phone'] ?? '',
+        'contact_email' => $template['vendor_template_contact_email'] ?? '',
         'hours' => $template['vendor_template_hours'] ?? '',
         'sla' => $template['vendor_template_sla'] ?? '',
         'notes' => $template['vendor_template_notes'] ?? '',
@@ -424,20 +430,4 @@ function vendorSpend($vendor_id) {
             MAX(expense_date)
         FROM expenses WHERE expense_vendor_id = $vendor_id AND expense_archived_at IS NULL"));
     return ['year' => floatval($row[0]), 'last_year' => floatval($row[1]), 'total' => floatval($row[2]), 'count' => intval($row[3]), 'last' => $row[4]];
-}
-
-/** Who did what to a vendor - its audit log entries, newest first. */
-function vendorHistory($vendor_id, $limit = 50) {
-    global $mysqli;
-    $vendor_id = intval($vendor_id);
-    $limit = max(1, intval($limit));
-    $sql = mysqli_query($mysqli, "SELECT log_action, log_description, log_created_at, user_name FROM logs
-        LEFT JOIN users ON user_id = log_user_id
-        WHERE log_type = 'Vendor' AND log_entity_id = $vendor_id
-        ORDER BY log_id DESC LIMIT $limit");
-    $rows = [];
-    while ($row = mysqli_fetch_assoc($sql)) {
-        $rows[] = $row;
-    }
-    return $rows;
 }

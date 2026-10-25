@@ -47,7 +47,7 @@ ob_start();
                 <select class="form-select select2" name="product_id" data-mit-product>
                     <option value="0">- Type it in below -</option>
                     <?php foreach ($products as $product) { ?>
-                        <option value="<?= intval($product['product_id']) ?>" data-name="<?= escapeHtml($product['product_name']) ?>" data-cost="<?= $product['product_cost'] === null ? '' : number_format((float) $product['product_cost'], 2, '.', '') ?>"><?= escapeHtml($product['product_name']) ?></option>
+                        <option value="<?= intval($product['product_id']) ?>" data-name="<?= escapeHtml($product['product_name']) ?>" data-cost="<?= (float) $product['product_cost'] <= 0 ? '' : number_format((float) $product['product_cost'], 2, '.', '') ?>"><?= escapeHtml($product['product_name']) ?></option>
                     <?php } ?>
                 </select>
             </div>

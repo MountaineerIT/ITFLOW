@@ -166,6 +166,10 @@ test('mileage on the ticket shows in its Reimbursements box', async ({ page }) =
     expect(rate, `rate per mile in "${text}"`).toBeGreaterThan(0);
     expect(text).toContain('$' + (Math.round(12.5 * rate * 100) / 100).toFixed(2));
     await expect(card.locator('.card-title .badge')).toHaveText('1');
+
+    // ITFlow 26.11 pays it back: the trip is one driven in their own vehicle, waiting under Trips > To pay back
+    await visit(page, 'agent/trips.php?show=to_pay');
+    await expect(page.locator('body'), 'the mileage waits to be paid back in ITFlow').toContainText('Smoke client');
 });
 
 test('an additional agent on the ticket, then taken off', async ({ page, browser }) => {
@@ -308,24 +312,27 @@ test('quote line priced from our cost and markup; the customer view hides the co
     expect(made.quoteId, `quote page after saving (${await flash(page)})`).toBeGreaterThan(0);
     await visit(page, `agent/quote.php?quote_id=${made.quoteId}`, errors);
 
-    // The add-item row (its form sits in a table row, so work from the row)
-    const row = page.locator('tr', { has: page.locator('button[name=add_quote_item]') });
-    test.skip(await row.locator('input[name=item_cost]').count() === 0, 'quote pricing columns missing (database update?)');
-    await row.locator('input[name=name]').fill(smokeName('quote line'));
-    await row.locator('input[name=qty]').fill('2');
-    await row.locator('select[name=item_price_method]').selectOption('markup');
-    await row.locator('input[name=item_cost]').fill('87.31');
-    await row.locator('input[name=item_price_percent]').fill('25');
+    // ITFlow 26.11's add-a-line row on the document, then our cost and markup in its Edit Line window
+    const add = page.locator('[data-billing-add]');
+    await add.locator('input[name=name]').fill(smokeName('quote line'));
+    await add.locator('input[name=qty]').fill('2');
+    await add.locator('input[name=price]').fill('100');
+    await Promise.all([page.waitForNavigation(), add.locator('button[type=submit]').click()]);
+    const lineRow = page.locator('tr[data-item-id]', { hasText: 'Smoke test quote line' });
+    await expect(lineRow).toHaveCount(1);
+    const itemId = await lineRow.getAttribute('data-item-id');
+    const edit = await openModal(page, `modals/billing/billing_item.php?type=quote&doc_id=${made.quoteId}&item_id=${itemId}`);
+    test.skip(await edit.locator('input[name=item_cost]').count() === 0, 'quote pricing columns missing (database update?)');
+    await edit.locator('select[name=item_price_method]').selectOption('markup');
+    await edit.locator('input[name=item_cost]').fill('87.31');
+    await edit.locator('input[name=item_price_percent]').fill('25');
     // 87.31 + 25% = 109.1375
-    await expect(row.locator('input[name=price]'), 'price worked out from cost and markup').toHaveValue('109.14');
-    // Every field of the row goes with its form (a field moved in the page by a script loses its form - and is not sent)
-    const unsent = await row.evaluate((tr) => [...tr.querySelectorAll('input[name], select[name], textarea[name]')].filter((f) => !f.form).map((f) => f.name));
-    expect(unsent, 'add-item row fields the form does not send').toEqual([]);
-    await submit(row, 'add_quote_item');
+    await expect(edit.locator('input[name=price]'), 'price worked out from cost and markup').toHaveValue('109.14');
+    await Promise.all([page.waitForNavigation(), edit.locator('button[type=submit]').click()]);
 
-    const line = page.locator('tr', { hasText: 'Smoke test quote line' }).filter({ hasNot: page.locator('button[name=add_quote_item]') });
+    const line = page.locator('tr[data-item-id]', { hasText: 'Smoke test quote line' });
     await expect(line).toHaveCount(1);
-    await expect(line).toContainText('$87.31'); // our cost, staff only
+    await expect(line.locator('[data-mit-line-cost]')).toContainText('$87.31'); // our cost, staff only
     await expect(line).toContainText('$109.14');
     await expect(line).toContainText('$218.28');
     await expectClean(page, errors);

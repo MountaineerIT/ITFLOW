@@ -81,7 +81,7 @@ if (isset($_GET['client_id'])) {
 
         // Client Tags - raw rows, drawn by tagPills() (functions/tags.php)
         $client_tags = [];
-        $sql_client_tags = mysqli_query($mysqli, "SELECT tags.tag_id, tag_name, tag_color, tag_icon FROM client_tags JOIN tags ON client_tags.tag_id = tags.tag_id WHERE client_id = $client_id ORDER BY tag_name ASC");
+        $sql_client_tags = mysqli_query($mysqli, "SELECT tags.tag_id, tag_name, tag_description, tag_color, tag_icon FROM client_tags JOIN tags ON client_tags.tag_id = tags.tag_id WHERE client_id = $client_id ORDER BY tag_name ASC");
         while ($row = mysqli_fetch_assoc($sql_client_tags)) {
             $client_tags[] = $row;
         }
@@ -154,19 +154,25 @@ if (isset($_GET['client_id'])) {
 
         $num_income = $num_payments + intval($row['num']);
 
-        // Recurring invoices - the monthly and yearly totals and the count.
-        // The two totals key off recurring_invoice_status, the count off
+        // Recurring invoices - what the running ones bring in a month, and the
+        // count. The total keys off recurring_invoice_status, the count off
         // recurring_invoice_archived_at, so neither test can sit in the WHERE.
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT
-            COALESCE(SUM(CASE WHEN recurring_invoice_status = 1 AND recurring_invoice_frequency = 'month' THEN recurring_invoice_amount END), 0) AS recurring_monthly_total,
-            COALESCE(SUM(CASE WHEN recurring_invoice_status = 1 AND recurring_invoice_frequency = 'year' THEN recurring_invoice_amount END), 0) AS recurring_yearly_total,
+            COALESCE(SUM(CASE WHEN recurring_invoice_status = 1 THEN " . recurringInvoiceMonthlySql() . " END), 0) AS recurring_monthly,
             COALESCE(SUM(recurring_invoice_archived_at IS NULL), 0) AS num_recurring_invoices
             FROM recurring_invoices WHERE recurring_invoice_client_id = $client_id"));
 
-        $recurring_monthly_total = floatval($row['recurring_monthly_total']);
-        $recurring_yearly_total = floatval($row['recurring_yearly_total']) / 12;
-        $recurring_monthly = $recurring_monthly_total + $recurring_yearly_total;
+        $recurring_monthly = floatval($row['recurring_monthly']);
         $num_recurring_invoices = intval($row['num_recurring_invoices']);
+
+        // Contracts in force
+        $num_contracts = contractClientCount($client_id);
+
+        // Billable tickets done and not invoiced yet, for Unbilled Time
+        $num_unbilled_tickets = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM tickets WHERE " . billingUnbilledSql() . " AND ticket_client_id = $client_id"))[0]);
+        // ...and their expenses to bill on, for those who can see expenses
+        $num_unbilled_expenses = lookupUserPermission('module_financial') >= 1 ? expenseUnbilledCount($client_id)['count'] : 0;
+        $num_unbilled_trips = lookupUserPermission('module_financial') >= 1 ? tripUnbilledCount($client_id)['count'] : 0;
 
         // Get Credit Balance
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COALESCE(SUM(credit_amount), 0) AS credit_balance
@@ -258,13 +264,19 @@ if (isset($_GET['client_id'])) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(document_id) AS num FROM documents WHERE document_archived_at IS NULL AND document_client_id = $client_id"));
         $num_documents = intval($row['num']);
 
+        // Shared links still to do something about - open, or a login sent back and not saved yet
+        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(*) AS num, COALESCE(SUM(item_type = 'Request' AND item_received_at IS NOT NULL), 0) AS received
+            FROM shared_items WHERE item_client_id = $client_id AND item_type IN (" . shareVisibleTypesSql() . ") AND " . shareLiveSql()));
+        $num_shares = intval($row['num']);
+        $num_shares_received = intval($row['received']);
+
         // What is coming up - events still ahead, and series still running
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(event_id) AS num FROM calendar_events WHERE event_client_id = $client_id AND event_archived_at IS NULL
             AND (COALESCE(event_end, event_start) >= CURDATE() OR (event_repeat <> '' AND (event_repeat_until IS NULL OR event_repeat_until >= CURDATE())))"));
         $num_calendar_events = intval($row['num']);
 
-        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(trip_id) AS num FROM trips WHERE trip_archived_at IS NULL AND trip_client_id = $client_id"));
-        $num_trips = intval($row['num']);
+        // The trips this agent may see - all of them with Financial access, else their own
+        [$num_trips] = tripTotalsFor('trip_client_id', $client_id);
 
     }
 }

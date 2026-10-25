@@ -5,7 +5,8 @@
  * Move each renewal date on by a term - from its current date, or from today
  * if there is none or it has passed - or set one date for all of them. The
  * new date for each shows before you save. Optionally record the new order
- * or invoice reference.
+ * or invoice reference. Licenses from license templates that renew on the
+ * same term start on that term; the rest on a year.
  */
 
 require_once '../../../includes/modal_header.php';
@@ -30,7 +31,14 @@ if (!$licenses) {
 }
 
 $single = count($licenses) === 1;
-$default_term = '1y';
+
+// The term their templates renew on, when they all share one
+$terms = [];
+foreach ($licenses as $row) {
+    $term = intval($row['software_template_id'] ?? 0) ? (string) getFieldById('software_templates', $row['software_template_id'], 'software_template_term') : '';
+    $terms[$term] = true;
+}
+$default_term = count($terms) === 1 && isset(SOFTWARE_RENEWAL_TERMS[(string) array_key_first($terms)]) ? (string) array_key_first($terms) : '1y';
 
 ob_start();
 
@@ -39,7 +47,7 @@ ob_start();
     <h5 class="modal-title text-truncate"><i class="fas fa-fw fa-redo-alt me-2"></i>Renew <?= $single ? '<strong>' . escapeHtml($licenses[0]['software_name']) . '</strong>' : '<strong>' . count($licenses) . '</strong> licenses' ?></h5>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
-<form action="post.php" method="post" autocomplete="off" data-renew-form>
+<form action="/agent/post.php" method="post" autocomplete="off" data-renew-form>
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <?php foreach ($licenses as $row) { ?><input type="hidden" name="software_ids[]" value="<?= intval($row['software_id']) ?>"><?php } ?>
     <input type="hidden" name="renew_mode" value="extend" data-renew-mode>

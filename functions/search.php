@@ -116,8 +116,9 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'client_id, client_name, client_type, client_abbreviation',
         'from' => 'clients',
         'where' => "client_archived_at IS NULL
-            AND (client_name LIKE '%$like%' OR client_abbreviation LIKE '%$like%' OR client_website LIKE '%$like%')",
+            AND (client_name LIKE '%$like%' OR client_abbreviation LIKE '%$like%' OR client_website LIKE '%$like%' " . tagSearchSql('client', $like, 'clients.client_id') . ")",
         'scope' => 'clients.client_id',
+        'tags' => ['client', 'clients.client_id'],
         'order' => "(client_name = '$eq') DESC, (client_name LIKE '$like%') DESC, client_accessed_at DESC, client_name",
         'list_url' => '/agent/clients.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -140,9 +141,11 @@ function globalSearchGroups($terms, $deep) {
             LEFT JOIN clients ON ticket_client_id = client_id
             LEFT JOIN ticket_statuses ON ticket_status = ticket_status_id',
         'where' => "ticket_archived_at IS NULL
-            AND (ticket_subject LIKE '%$like%' OR CONCAT(ticket_prefix, ticket_number) LIKE '%$like%' $ticket_number_match $ticket_deep_match)"
+            AND (ticket_subject LIKE '%$like%' OR CONCAT(ticket_prefix, ticket_number) LIKE '%$like%' $ticket_number_match $ticket_deep_match
+                " . tagSearchSql('ticket', $like, 'tickets.ticket_id') . ")"
             . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : ''), // Mountaineer IT: boards the role sees
         'scope' => 'ticket_client_id',
+        'tags' => ['ticket', 'tickets.ticket_id'],
         'order' => ($ticket_number !== null ? "(ticket_number = $ticket_number) DESC, " : '') . "(ticket_closed_at IS NULL) DESC, ticket_id DESC",
         'exact' => $ticket_number !== null ? "ticket_number = $ticket_number" : null,
         'list_url' => '/agent/tickets.php?' . http_build_query(['state' => 'all', 'q' => $q]),
@@ -190,8 +193,10 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'contact_id, contact_name, contact_title, contact_email, contact_photo, contact_client_id, client_name',
         'from' => 'contacts LEFT JOIN clients ON contact_client_id = client_id',
         'where' => "contact_archived_at IS NULL
-            AND (contact_name LIKE '%$like%' OR contact_email LIKE '%$like%' OR contact_title LIKE '%$like%' $contact_phone_match)",
+            AND (contact_name LIKE '%$like%' OR contact_email LIKE '%$like%' OR contact_title LIKE '%$like%' $contact_phone_match
+                " . tagSearchSql('contact', $like, 'contacts.contact_id') . ")",
         'scope' => 'contact_client_id',
+        'tags' => ['contact', 'contacts.contact_id'],
         'order' => "(contact_name = '$eq') DESC, (contact_name LIKE '$like%') DESC, contact_name",
         'list_url' => '/agent/contacts.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -213,8 +218,10 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'location_id, location_name, location_address, location_city, location_state, location_zip, location_primary, location_client_id, client_name',
         'from' => 'locations LEFT JOIN clients ON location_client_id = client_id',
         'where' => "location_archived_at IS NULL
-            AND (location_name LIKE '%$like%' OR location_address LIKE '%$like%' OR location_city LIKE '%$like%' OR location_zip LIKE '%$like%' $location_phone_match)",
+            AND (location_name LIKE '%$like%' OR location_address LIKE '%$like%' OR location_city LIKE '%$like%' OR location_zip LIKE '%$like%' $location_phone_match
+                " . tagSearchSql('location', $like, 'locations.location_id') . ")",
         'scope' => 'location_client_id',
+        'tags' => ['location', 'locations.location_id'],
         'order' => "(location_name = '$eq') DESC, (location_name LIKE '$like%') DESC, location_primary DESC, location_name",
         'list_url' => '/agent/locations.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -246,8 +253,10 @@ function globalSearchGroups($terms, $deep) {
                 OR asset_description LIKE '%$like%'
                 OR EXISTS (SELECT 1 FROM asset_interfaces
                     WHERE interface_asset_id = asset_id AND interface_archived_at IS NULL
-                    AND (interface_ip LIKE '%$like%' OR interface_nat_ip LIKE '%$like%' OR interface_ipv6 LIKE '%$like%' OR interface_mac LIKE '%$like%' $asset_mac_match)))",
+                    AND (interface_ip LIKE '%$like%' OR interface_nat_ip LIKE '%$like%' OR interface_ipv6 LIKE '%$like%' OR interface_mac LIKE '%$like%' $asset_mac_match))
+                " . tagSearchSql('asset', $like, 'assets.asset_id') . ")",
         'scope' => 'asset_client_id',
+        'tags' => ['asset', 'assets.asset_id'],
         // An exact address beats every partial one: 192.168.10.1 before 192.168.10.14
         'order' => "EXISTS (SELECT 1 FROM asset_interfaces WHERE interface_asset_id = asset_id
                 AND (interface_ip = '$eq' OR interface_nat_ip = '$eq')) DESC,
@@ -281,8 +290,10 @@ function globalSearchGroups($terms, $deep) {
         'where' => "network_archived_at IS NULL
             AND (network_name LIKE '%$like%' OR network_description LIKE '%$like%' OR network_type LIKE '%$like%' OR network LIKE '%$like%'
                 OR network_gateway LIKE '%$like%' OR network_primary_dns LIKE '%$like%' OR network_secondary_dns LIKE '%$like%'
-                OR network_dhcp_range LIKE '%$like%' $vlan_match OR $contains)",
+                OR network_dhcp_range LIKE '%$like%' $vlan_match OR $contains
+                " . tagSearchSql('network', $like, 'networks.network_id') . ")",
         'scope' => 'network_client_id',
+        'tags' => ['network', 'networks.network_id'],
         'order' => "(network_name = '$eq') DESC, $contains DESC, CAST(SUBSTRING_INDEX(network, '/', -1) AS UNSIGNED) DESC, (network_name LIKE '$like%') DESC, network_name",
         'list_url' => '/agent/networks.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -332,8 +343,10 @@ function globalSearchGroups($terms, $deep) {
         'where' => "software_archived_at IS NULL
             AND (software_name LIKE '%$like%' OR software_description LIKE '%$like%' OR software_key LIKE '%$like%'
                 OR software_purchase_reference LIKE '%$like%' OR vendor_name LIKE '%$like%'
-                OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$like%'))",
+                OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$like%')
+                " . tagSearchSql('license', $like, 'software.software_id') . ")",
         'scope' => 'software_client_id',
+        'tags' => ['license', 'software.software_id'],
         'order' => "(software_key = '$eq') DESC, (software_name = '$eq') DESC, (software_name LIKE '$like%') DESC, software_name",
         'list_url' => '/agent/software.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -354,8 +367,10 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'service_id, service_name, service_description, service_category, service_importance, service_client_id, client_name',
         'from' => 'services LEFT JOIN clients ON service_client_id = client_id',
         'where' => "service_archived_at IS NULL
-            AND (service_name LIKE '%$like%' OR service_description LIKE '%$like%' OR service_category LIKE '%$like%' $service_deep_match)",
+            AND (service_name LIKE '%$like%' OR service_description LIKE '%$like%' OR service_category LIKE '%$like%' $service_deep_match
+                " . tagSearchSql('service', $like, 'services.service_id') . ")",
         'scope' => 'service_client_id',
+        'tags' => ['service', 'services.service_id'],
         'order' => "(service_name = '$eq') DESC, (service_name LIKE '$like%') DESC, FIELD(service_importance, 'High', 'Medium', 'Low'), service_name",
         'list_url' => '/agent/services.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -377,8 +392,10 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'credential_id, credential_name, credential_description, credential_client_id, client_name',
         'from' => 'credentials LEFT JOIN clients ON credential_client_id = client_id',
         'where' => "credential_archived_at IS NULL
-            AND (credential_name LIKE '%$like%' OR credential_description LIKE '%$like%' OR credential_uri LIKE '%$like%' OR credential_uri_2 LIKE '%$like%')",
+            AND (credential_name LIKE '%$like%' OR credential_description LIKE '%$like%' OR credential_uri LIKE '%$like%' OR credential_uri_2 LIKE '%$like%'
+                " . tagSearchSql('credential', $like, 'credentials.credential_id') . ")",
         'scope' => 'credential_client_id',
+        'tags' => ['credential', 'credentials.credential_id'],
         'order' => "(credential_name = '$eq') DESC, (credential_name LIKE '$like%') DESC, credential_name",
         'list_url' => '/agent/credentials.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -397,8 +414,9 @@ function globalSearchGroups($terms, $deep) {
         'key' => 'domains', 'label' => 'Domains', 'icon' => 'globe', 'module' => 'module_support',
         'select' => 'domain_id, domain_name, domain_description, domain_expire, domain_auto_renew, domain_client_id, client_name',
         'from' => 'domains LEFT JOIN clients ON domain_client_id = client_id',
-        'where' => "domain_archived_at IS NULL AND (domain_name LIKE '%$like%' OR domain_description LIKE '%$like%')",
+        'where' => "domain_archived_at IS NULL AND (domain_name LIKE '%$like%' OR domain_description LIKE '%$like%' " . tagSearchSql('domain', $like, 'domains.domain_id') . ")",
         'scope' => 'domain_client_id',
+        'tags' => ['domain', 'domains.domain_id'],
         'order' => "(domain_name = '$eq') DESC, (domain_name LIKE '$like%') DESC, domain_name",
         'list_url' => '/agent/domains.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -445,8 +463,10 @@ function globalSearchGroups($terms, $deep) {
         'select' => 'document_id, document_name, document_description, document_client_id, client_name',
         'from' => 'documents LEFT JOIN clients ON document_client_id = client_id',
         'where' => "document_archived_at IS NULL
-            AND (document_name LIKE '%$like%' OR document_description LIKE '%$like%' $document_deep_match)",
+            AND (document_name LIKE '%$like%' OR document_description LIKE '%$like%' $document_deep_match
+                " . tagSearchSql('document', $like, 'documents.document_id') . ")",
         'scope' => 'document_client_id',
+        'tags' => ['document', 'documents.document_id'],
         'order' => "(document_name LIKE '$like%') DESC, document_updated_at DESC",
         'list_url' => null,
         'item' => function ($row) {
@@ -511,7 +531,7 @@ function globalSearchGroups($terms, $deep) {
     $quote_number_match = $quote_number !== null ? "OR quote_number = $quote_number" : '';
     $groups[] = [
         'key' => 'quotes', 'label' => 'Quotes', 'icon' => 'comment-dollar', 'module' => 'module_sales', 'enabled' => $accounting,
-        'select' => 'quote_id, quote_prefix, quote_number, quote_scope, quote_status, quote_amount,
+        'select' => 'quote_id, quote_prefix, quote_number, quote_scope, quote_status, quote_amount, quote_monthly_amount,
             quote_currency_code, quote_client_id, client_name',
         'from' => 'quotes LEFT JOIN clients ON quote_client_id = client_id',
         'where' => "quote_archived_at IS NULL
@@ -525,10 +545,61 @@ function globalSearchGroups($terms, $deep) {
             return [
                 'ref' => $row['quote_prefix'] . $row['quote_number'],
                 'title' => $row['quote_scope'] ?: 'Quote',
-                'subtitle' => globalSearchMoney($row['quote_amount'], $row['quote_currency_code']),
+                'subtitle' => globalSearchMoney($row['quote_amount'], $row['quote_currency_code'])
+                    . (floatval($row['quote_monthly_amount']) != 0 ? ' + ' . globalSearchMoney($row['quote_monthly_amount'], $row['quote_currency_code']) . '/mo' : ''),
                 'context' => $row['client_name'],
                 'badge' => ['text' => $row['quote_status'], 'variant' => $quote_badge_variants[$row['quote_status']] ?? 'secondary'],
                 'url' => globalSearchClientUrl('quote.php', $row['quote_client_id'], ['quote_id' => intval($row['quote_id'])]),
+            ];
+        },
+    ];
+
+    // Expenses by what they were for, their reference, or the amount ("149.99", "$1,250")
+    $expense_amount_text = str_replace([',', '$'], '', $q);
+    $expense_amount = preg_match('/^-?\d+(\.\d{1,2})?$/', $expense_amount_text) ? abs(round(floatval($expense_amount_text), 2)) : 0;
+    $expense_amount_match = $expense_amount > 0 ? "OR ABS(expense_amount) = $expense_amount" : '';
+    $groups[] = [
+        'key' => 'expenses', 'label' => 'Expenses', 'icon' => 'shopping-cart', 'module' => 'module_financial', 'enabled' => $accounting,
+        'select' => 'expense_id, expense_date, expense_amount, expense_currency_code, expense_description, expense_reference, vendor_name, client_name',
+        'from' => 'expenses LEFT JOIN vendors ON expense_vendor_id = vendor_id LEFT JOIN clients ON expense_client_id = client_id',
+        'where' => "expense_vendor_id > 0
+            AND (expense_description LIKE '%$like%' OR expense_reference LIKE '%$like%' $expense_amount_match)",
+        'scope' => 'expense_client_id',
+        'order' => ($expense_amount > 0 ? "(ABS(expense_amount) = $expense_amount) DESC, " : '') . 'expense_date DESC, expense_id DESC',
+        'list_url' => '/agent/expenses.php?' . http_build_query(['q' => $q]),
+        'item' => function ($row) {
+            $description = trim((string) $row['expense_description']);
+            return [
+                'title' => $description !== '' ? mb_strimwidth($description, 0, 80, '...') : ($row['vendor_name'] ?: 'Expense'),
+                'subtitle' => globalSearchMoney($row['expense_amount'], $row['expense_currency_code']) . ' · ' . $row['expense_date']
+                    . ($row['expense_reference'] ? ' · #' . $row['expense_reference'] : ''),
+                'context' => implode(' · ', array_filter([$row['vendor_name'], $row['client_name']])),
+                'url' => '/agent/expenses.php?open=' . intval($row['expense_id']),
+            ];
+        },
+    ];
+
+    // Income - other income by what it was or its reference, a payment by its reference (check or
+    // transaction number), either by the amount. The union is already in the agent's client scope.
+    $income_amount_match = $expense_amount > 0 ? "OR ABS(income.income_amount) = $expense_amount" : '';
+    $groups[] = [
+        'key' => 'income', 'label' => 'Income', 'icon' => 'hand-holding-usd', 'module' => 'module_financial', 'enabled' => $accounting,
+        'select' => 'income.*',
+        'from' => '(' . incomeUnionSql() . ') AS income',
+        'where' => "((income.income_type = 'revenue' AND income.income_description LIKE '%$like%') OR income.income_reference LIKE '%$like%' $income_amount_match)",
+        'scope' => null,
+        'order' => ($expense_amount > 0 ? "(ABS(income.income_amount) = $expense_amount) DESC, " : '') . 'income.income_date DESC, income.income_id DESC',
+        'list_url' => '/agent/income.php?' . http_build_query(['q' => $q]),
+        'item' => function ($row) {
+            $payment = $row['income_type'] === 'payment';
+            $what = trim(strtok((string) $row['income_description'], "\n"));
+            return [
+                'title' => $payment ? 'Payment on ' . ($row['invoice_number'] !== null ? $row['invoice_prefix'] . $row['invoice_number'] : 'an invoice since deleted')
+                    : ($what !== '' ? mb_strimwidth($what, 0, 80, '...') : ($row['category_name'] ?: 'Other income')),
+                'subtitle' => globalSearchMoney($row['income_amount'], $row['income_currency_code']) . ' · ' . $row['income_date']
+                    . ($row['income_reference'] ? ' · #' . $row['income_reference'] : ''),
+                'context' => implode(' · ', array_filter([$row['client_name'], $payment ? '' : (string) $row['category_name']])),
+                'url' => '/agent/income.php?open=' . $row['income_type'] . '-' . intval($row['income_id']),
             ];
         },
     ];
@@ -540,8 +611,10 @@ function globalSearchGroups($terms, $deep) {
         'from' => 'vendors LEFT JOIN clients ON vendor_client_id = client_id',
         'where' => "vendor_archived_at IS NULL
             AND (vendor_name LIKE '%$like%' OR vendor_description LIKE '%$like%' OR vendor_account_number LIKE '%$like%'
-                OR vendor_contact_name LIKE '%$like%' OR vendor_email LIKE '%$like%' OR vendor_contact_email LIKE '%$like%' $vendor_phone_match)",
+                OR vendor_contact_name LIKE '%$like%' OR vendor_email LIKE '%$like%' OR vendor_contact_email LIKE '%$like%' $vendor_phone_match
+                " . tagSearchSql('vendor', $like, 'vendors.vendor_id') . ")",
         'scope' => 'vendor_client_id',
+        'tags' => ['vendor', 'vendors.vendor_id'],
         'order' => "(vendor_name = '$eq') DESC, (vendor_name LIKE '$like%') DESC, vendor_favorite DESC, vendor_name",
         'list_url' => '/agent/vendors.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
@@ -576,18 +649,19 @@ function globalSearchGroups($terms, $deep) {
 
     $groups[] = [
         'key' => 'products', 'label' => 'Products', 'icon' => 'box-open', 'module' => 'module_sales', 'enabled' => $accounting,
-        'select' => 'product_id, product_name, product_code, product_price, product_currency_code',
+        'select' => 'product_id, product_name, product_type, product_code, product_vendor_part, product_price, product_currency_code, product_frequency, product_seat_source',
         'from' => 'products',
         'where' => "product_archived_at IS NULL
-            AND (product_name LIKE '%$like%' OR product_code LIKE '%$like%' OR product_description LIKE '%$like%')",
+            AND (product_name LIKE '%$like%' OR product_code LIKE '%$like%' OR product_vendor_part LIKE '%$like%' OR product_description LIKE '%$like%')",
         'scope' => null,
         'order' => "(product_name = '$eq') DESC, (product_name LIKE '$like%') DESC, product_name",
         'list_url' => '/agent/products.php?' . http_build_query(['q' => $q]),
         'item' => function ($row) {
             return [
                 'title' => $row['product_name'],
-                'subtitle' => implode(' · ', array_filter([$row['product_code'], globalSearchMoney($row['product_price'], $row['product_currency_code'])])),
-                'url' => '/agent/products.php?' . http_build_query(['q' => $row['product_name']]),
+                'subtitle' => implode(' · ', array_filter([$row['product_code'], globalSearchMoney($row['product_price'], $row['product_currency_code'])
+                    . ($row['product_frequency'] ? ' ' . strtolower(productBilledText($row['product_frequency'], $row['product_seat_source'])) : '')])),
+                'url' => '/agent/product.php?' . http_build_query(['product_id' => intval($row['product_id'])]),
             ];
         },
     ];
@@ -618,6 +692,35 @@ function globalSearchGroups($terms, $deep) {
         ];
     }
 
+    // Tags by name or description - each opens its kind's list filtered by it,
+    // for the kinds this agent can open. Tag names aren't a client's, so no scope
+    $tag_types = [];
+    foreach (tagKinds() as $tag_type => $tag_entity) {
+        if (lookupUserPermission(tagEntity($tag_entity)['module']) >= 1) {
+            $tag_types[] = $tag_type;
+        }
+    }
+    $groups[] = [
+        'key' => 'tags', 'label' => 'Tags', 'icon' => 'tags', 'module' => null, 'enabled' => (bool) $tag_types,
+        'select' => 'tag_id, tag_name, tag_description, tag_type, tag_color, tag_icon',
+        'from' => 'tags',
+        'where' => "tag_archived_at IS NULL AND tag_type IN (" . implode(',', $tag_types ?: [0]) . ")
+            AND (tag_name LIKE '%$like%' OR tag_description LIKE '%$like%')",
+        'scope' => '',
+        'order' => "(tag_name = '$eq') DESC, (tag_name LIKE '$like%') DESC, tag_name, tag_type",
+        'list_url' => null,
+        'item' => function ($row) {
+            $config = tagEntityByType($row['tag_type']);
+            return [
+                'title' => $row['tag_name'],
+                'subtitle' => implode(' · ', array_filter([$config['title'] . ' tag', $row['tag_description']])),
+                'url' => tagListUrl($config['entity'], $row),
+                // Drawn in place of the group icon - the tag's own colour and icon
+                'tag' => tagSearchSpec($row),
+            ];
+        },
+    ];
+
     return $groups;
 }
 
@@ -639,26 +742,39 @@ function globalSearch($raw_query, $limit = 5, $deep = false, $with_totals = fals
 
     $limit = max(1, intval($limit));
     $results = [];
+    $matched_tag_ids = [];
 
     foreach (globalSearchGroups($terms, $deep) as $group) {
         if (array_key_exists('enabled', $group) && !$group['enabled']) {
             continue;
         }
-        if (lookupUserPermission($group['module']) < 1) {
+        // A group with no module (Tags) checks access in its own query
+        if ($group['module'] !== null && lookupUserPermission($group['module']) < 1) {
             continue;
         }
 
         $scope = $group['scope'] ? clientScopeSql($group['scope']) : '';
         $where = "{$group['where']} $scope";
 
+        // A record found by a tag says which - the ids of its tags that match
+        $select = $group['select'];
+        if (!empty($group['tags'])) {
+            $select .= ', ' . tagMatchSql($group['tags'][0], $terms['like'], $group['tags'][1]) . ' AS q_tag_ids';
+        }
+
         $sql = mysqli_query(
             $mysqli,
-            "SELECT {$group['select']} FROM {$group['from']} WHERE $where ORDER BY {$group['order']} LIMIT " . ($limit + 1)
+            "SELECT $select FROM {$group['from']} WHERE $where ORDER BY {$group['order']} LIMIT " . ($limit + 1)
         );
 
         $items = [];
         while ($row = mysqli_fetch_assoc($sql)) {
-            $items[] = $group['item']($row);
+            $item = $group['item']($row);
+            if (!empty($row['q_tag_ids'])) {
+                $item['tag_ids'] = array_map('intval', explode(',', $row['q_tag_ids']));
+                $matched_tag_ids = array_merge($matched_tag_ids, $item['tag_ids']);
+            }
+            $items[] = $item;
         }
 
         if (!$items) {
@@ -691,6 +807,25 @@ function globalSearch($raw_query, $limit = 5, $deep = false, $with_totals = fals
             'list_url' => $group['list_url'],
             'exact' => $exact,
         ];
+    }
+
+    // The matching tags as the page draws them, in one query for every group
+    if ($matched_tag_ids) {
+        $specs = [];
+        $sql = mysqli_query($mysqli, "SELECT tag_id, tag_name, tag_color, tag_icon FROM tags WHERE tag_id IN (" . implode(',', array_unique($matched_tag_ids)) . ")");
+        while ($row = mysqli_fetch_assoc($sql)) {
+            $specs[intval($row['tag_id'])] = tagSearchSpec($row);
+        }
+        foreach ($results as &$result) {
+            foreach ($result['items'] as &$item) {
+                if (isset($item['tag_ids'])) {
+                    $item['tags'] = array_values(array_intersect_key($specs, array_flip($item['tag_ids'])));
+                    unset($item['tag_ids']);
+                }
+            }
+            unset($item);
+        }
+        unset($result);
     }
 
     // Exact record-number hits first; otherwise keep display order (usort is stable in PHP 8)
@@ -767,12 +902,13 @@ function globalSearchPages($raw_query) {
         ['Income', '/agent/income.php', $financial && $accounting],
         ['Expenses', '/agent/expenses.php', $financial && $accounting],
         ['Recurring Expenses', '/agent/recurring_expenses.php', $financial && $accounting],
-        ['Trips', '/agent/trips.php', $financial && $accounting],
+        ['Trips', '/agent/trips.php', $accounting],
         ['Accounts', '/agent/accounts.php', $financial && $accounting],
         ['Transactions', '/agent/transactions.php', $financial && $accounting],
-        ['Transfers', '/agent/transfers.php', $financial && $accounting],
+        ['Transfers', '/agent/transactions.php?show=transfers', $financial && $accounting],
         ['Reports', '/agent/reports/', lookupUserPermission('module_reporting') >= 1],
         ['Administration', '/admin/', (bool) $session_is_admin],
+        ['Mail Queue', '/admin/mail_queue.php', (bool) $session_is_admin],
         ['My Account', '/agent/user/user_details.php', true],
     ];
 

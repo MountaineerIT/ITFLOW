@@ -5,9 +5,10 @@
  *
  * The license itself, its seats (the devices and users on it), its individual
  * keys and who each is handed to, renewals one at a time or in bulk, and the
- * export. Every handler checks the license's own client, and every device,
- * user and vendor a form names must be that client's - a form posting another
- * client's asset id gets nothing. Links to documents, files and credentials,
+ * export - and a license made from a license template (Admin > License
+ * Templates), which it remembers. Every handler checks the license's own
+ * client, and every device, user and vendor a form names must be that
+ * client's - a form posting another client's asset id gets nothing. Links to documents, files and credentials,
  * and single seats from the asset and contact pages, go through post/link.php.
  */
 
@@ -55,23 +56,35 @@ if (isset($_POST['add_software'])) {
 
     enforceClientAccess();
 
-    $set = softwareFormSet($_POST, $client_id);
-    if ($set === null) {
+    if (trim((string) ($_POST['name'] ?? '')) === '') {
         flashAlert('A license needs a name.', 'error');
         redirect();
     }
 
-    mysqli_query($mysqli, "INSERT INTO software SET $set, software_client_id = $client_id");
+    // A template's vendor the client hasn't got yet is made for them from its vendor template - by someone who can add vendors
+    $vendor_made = false;
+    if (preg_match('/^template:(\d+)$/', (string) ($_POST['vendor'] ?? ''), $match)) {
+        $_POST['vendor'] = softwareVendorFromTemplate($match[1], $client_id, intval(lookupUserPermission('module_client')) >= 2, $vendor_made);
+    }
+    $set = softwareFormSet($_POST, $client_id);
+
+    // Started from a template, it remembers which
+    mysqli_query($mysqli, "INSERT INTO software SET $set, software_client_id = $client_id, software_template_id = " . softwareTemplateLiveId($_POST['software_template_id'] ?? 0));
     $software_id = mysqli_insert_id($mysqli);
 
     $changes = softwareSyncSeats($software_id, $client_id, $_POST['assets'] ?? [], $_POST['contacts'] ?? []);
     $keys_added = softwareAddKeys($software_id, $_POST['keys'] ?? '');
+    tagSetForRecord('license', $software_id, (array) ($_POST['tags'] ?? []));
 
     $name = trim($_POST['name']);
+    $vendor_name = $vendor_made ? (string) getFieldById('vendors', $_POST['vendor'], 'vendor_name') : '';
+    if ($vendor_made) {
+        logAudit("Vendor", "Create", "$session_name created vendor " . escapeSql($vendor_name) . " from a template for license " . escapeSql($name), $client_id, intval($_POST['vendor']));
+    }
     logAudit("Software", "Create", "$session_name created license " . escapeSql($name . softwareSeatChangeText($changes)), $client_id, $software_id);
 
     $warning = softwareSeatWarning($software_id);
-    flashAlert("License <strong>$name</strong> created" . ($keys_added ? " with $keys_added key" . ($keys_added === 1 ? '' : 's') : '') . $warning, $warning ? 'warning' : 'success');
+    flashAlert("License <strong>$name</strong> created" . ($keys_added ? " with $keys_added key" . ($keys_added === 1 ? '' : 's') : '') . ($vendor_made ? ", and vendor <strong>" . escapeHtml($vendor_name) . "</strong> added for the client" : '') . $warning, $warning ? 'warning' : 'success');
 
     redirect();
 
@@ -83,36 +96,32 @@ if (isset($_POST['add_software_from_template'])) {
 
     enforceUserPermission('module_support', 2);
 
+    // From a license template - Admin's New license for a client: its details from the template, the seats, key and dates from the window
     $client_id = intval($_POST['client_id'] ?? 0);
-    $software_template_id = intval($_POST['software_template_id'] ?? 0);
 
     enforceClientAccess();
 
-    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT software_template_description, software_template_license_type, software_template_name,
-        software_template_notes, software_template_type, software_template_version FROM software_templates
-        WHERE software_template_id = $software_template_id AND software_template_archived_at IS NULL"));
-    if (!$row) {
-        flashAlert('That template no longer exists.', 'error');
+    if (!mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM clients WHERE client_id = $client_id AND client_archived_at IS NULL"))) {
+        flashAlert('Pick the client it is for.', 'error');
+        redirect();
+    }
+    $template = softwareTemplateRow($_POST['software_template_id'] ?? 0);
+    $software_id = softwareTemplateMakeLicense($_POST['software_template_id'] ?? 0, $client_id, $_POST, intval(lookupUserPermission('module_client')) >= 2, $vendor_made);
+    if (!$software_id) {
+        flashAlert('That license template is gone or archived.', 'error');
         redirect();
     }
 
-    $name = escapeSql($row['software_template_name']);
-    $version = escapeSql($row['software_template_version']);
-    $description = escapeSql($row['software_template_description']);
-    $type = escapeSql($row['software_template_type']);
-    $license_type = escapeSql($row['software_template_license_type']);
-    $notes = escapeSql($row['software_template_notes']);
-    $vendor = assetClientOwnedId('vendor', $_POST['vendor'] ?? 0, $client_id);
+    $vendor_id = intval(getFieldById('software', $software_id, 'software_vendor_id'));
+    $vendor_name = $vendor_made ? (string) getFieldById('vendors', $vendor_id, 'vendor_name') : '';
+    if ($vendor_made) {
+        logAudit("Vendor", "Create", "$session_name created vendor " . escapeSql($vendor_name) . " from a template for license " . escapeSql($template['software_template_name']), $client_id, $vendor_id);
+    }
+    logAudit("Software", "Create", "$session_name created license " . escapeSql($template['software_template_name']) . " from template " . escapeSql($template['software_template_name']), $client_id, $software_id);
 
-    mysqli_query($mysqli, "INSERT INTO software SET software_name = '$name', software_version = '$version', software_description = '$description', software_type = '$type', software_license_type = '$license_type', software_notes = '$notes', software_vendor_id = $vendor, software_client_id = $client_id");
+    flashAlert("License <strong>" . escapeHtml($template['software_template_name']) . "</strong> created from template <strong>" . escapeHtml($template['software_template_name']) . "</strong>" . ($vendor_made ? ", with vendor <strong>" . escapeHtml($vendor_name) . "</strong> added for the client" : '') . " - put its devices and users on it");
 
-    $software_id = mysqli_insert_id($mysqli);
-
-    logAudit("Software", "Create", "$session_name created license $name from a template", $client_id, $software_id);
-
-    flashAlert("License <strong>{$row['software_template_name']}</strong> created from template");
-
-    redirect();
+    redirect("/agent/software.php?client_id=$client_id");
 
 }
 
@@ -137,6 +146,10 @@ if (isset($_POST['edit_software'])) {
     $changes = ['added' => [], 'removed' => []];
     if (isset($_POST['seats_form'])) {
         $changes = softwareSyncSeats($software_id, $client_id, $_POST['assets'] ?? [], $_POST['contacts'] ?? []);
+    }
+    // ...and the tags
+    if (isset($_POST['tags_form'])) {
+        tagSetForRecord('license', $software_id, (array) ($_POST['tags'] ?? []));
     }
 
     $name = trim($_POST['name']);
@@ -500,12 +513,23 @@ if (isExportRequest('export_software')) {
         $filter_summary['Showing'] = $status_filters[$status]['label'];
     }
 
+    // Software type
+    $software_type_filter = trim(strip_tags((string) ($_POST['software_type'] ?? '')));
+    $software_type_query = '';
+    if ($software_type_filter !== '') {
+        $software_type_query = "AND software_type = '" . escapeSql($software_type_filter) . "'";
+        $filter_summary['Software Type'] = $software_type_filter;
+    }
+
     // License type
     $license_type_query = '';
     if (!empty($_POST['license_type'])) {
         $license_type_query = "AND software_license_type = '" . escapeSql($_POST['license_type']) . "'";
         $filter_summary['License Type'] = $_POST['license_type'];
     }
+
+    // Tags - a license with any of them
+    $tag_query = tagExportFilterSql('license', $_POST['tags'] ?? [], $filter_summary, 'software.software_id');
 
     // Search Filter
     $q = escapeSql($_POST['q'] ?? '');
@@ -525,17 +549,21 @@ if (isExportRequest('export_software')) {
             JOIN assets ON assets.asset_id = sa.asset_id AND asset_archived_at IS NULL WHERE sa.software_id = software.software_id) AS assigned_to_assets,
         (SELECT GROUP_CONCAT(contact_name ORDER BY contact_name SEPARATOR ', ') FROM software_contacts AS sc
             JOIN contacts ON contacts.contact_id = sc.contact_id AND contact_archived_at IS NULL WHERE sc.software_id = software.software_id) AS assigned_to_contacts,
-        (SELECT GROUP_CONCAT(sk.software_key ORDER BY sk.software_key_id SEPARATOR ', ') FROM software_keys AS sk WHERE sk.software_key_software_id = software.software_id) AS software_keys_list
+        (SELECT GROUP_CONCAT(sk.software_key ORDER BY sk.software_key_id SEPARATOR ', ') FROM software_keys AS sk WHERE sk.software_key_software_id = software.software_id) AS software_keys_list,
+        " . tagNamesSql('license', 'software.software_id') . " AS software_tags
         FROM software
         LEFT JOIN clients ON client_id = software_client_id
         LEFT JOIN vendors ON vendor_id = software_vendor_id
         WHERE (software_name LIKE '%$q%' OR software_type LIKE '%$q%' OR software_key LIKE '%$q%' OR client_name LIKE '%$q%' OR vendor_name LIKE '%$q%'
-            OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$q%'))
+            OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$q%')
+            " . tagSearchSql('license', $q, 'software.software_id') . ")
         AND $archive_query
         " . clientScopeSql('software_client_id') . "
         $client_query
+        $tag_query
         $expire_query
         $status_query
+        $software_type_query
         $license_type_query
         ORDER BY software_name ASC"
     );
@@ -552,6 +580,7 @@ if (isExportRequest('export_software')) {
             $row['assigned_to_assets'] = (string) $row['assigned_to_assets'];
             $row['assigned_to_contacts'] = (string) $row['assigned_to_contacts'];
             $row['software_keys_list'] = (string) $row['software_keys_list'];
+            $row['software_tags'] = (string) $row['software_tags'];
             addExportRow($export, $row);
         }
 

@@ -29,6 +29,8 @@
             'quote.php' => 'quotes.php',
             'rack.php' => 'racks.php',
             'recurring_invoice.php' => 'recurring_invoices.php',
+            'contract.php' => 'contracts.php',
+            'contract_document.php' => 'contracts.php',
             'ticket.php' => 'tickets.php',
         ];
         $client_switch_page = basename($_SERVER['PHP_SELF']);
@@ -119,6 +121,13 @@
                                 <span class="right badge text-light"><?= $num_calendar_events ?></span>
                             <?php } ?>
                         </p>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="/agent/audit_log.php?client_id=<?= $client_id ?>" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "audit_log.php") { echo "active"; } ?>">
+                        <i class="nav-icon fas fa-history"></i>
+                        <p>Audit Log</p>
                     </a>
                 </li>
 
@@ -254,6 +263,18 @@
                             </a>
                         </li>
 
+                        <li class="nav-item">
+                            <a href="/agent/shares.php?client_id=<?= $client_id ?>" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "shares.php") { echo "active"; } ?>">
+                                <i class="nav-icon fas fa-share-alt"></i>
+                                <p>
+                                    Shared Links
+                                    <?php if (!empty($num_shares)) { ?>
+                                        <span class="right badge <?= !empty($num_shares_received) ? 'bg-warning text-dark' : 'text-light' ?>" <?= !empty($num_shares_received) ? 'title="A login was sent back - save it"' : '' ?>><?= $num_shares ?></span>
+                                    <?php } ?>
+                                </p>
+                            </a>
+                        </li>
+
                         <li class="nav-header mt-3">DOCUMENTATION</li>
 
                         <li class="nav-item">
@@ -332,6 +353,20 @@
                             </a>
                         </li>
 
+                        <?php if ($config_module_enable_ticketing == 1 || lookupUserPermission('module_financial') >= 1) { ?>
+                            <li class="nav-item">
+                                <a href="/agent/unbilled_time.php?client_id=<?= $client_id ?>" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "unbilled_time.php") { echo "active"; } ?>">
+                                    <i class="nav-icon fas fa-user-clock"></i>
+                                    <p>
+                                        Unbilled Time
+                                        <?php if ($num_unbilled_tickets || !empty($num_unbilled_expenses) || !empty($num_unbilled_trips)) { ?>
+                                            <span class="right badge text-light"><?= $num_unbilled_tickets + intval($num_unbilled_expenses ?? 0) + intval($num_unbilled_trips ?? 0) ?></span>
+                                        <?php } ?>
+                                    </p>
+                                </a>
+                            </li>
+                        <?php } ?>
+
                         <li class="nav-item">
                             <a href="/agent/recurring_invoices.php?client_id=<?= $client_id ?>" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "recurring_invoices.php" || basename($_SERVER["PHP_SELF"]) == "recurring_invoice.php") { echo "active"; } ?>">
                                 <i class="nav-icon fas fa-redo-alt"></i>
@@ -340,6 +375,18 @@
                                     <?php
                                     if ($num_recurring_invoices) { ?>
                                         <span class="right badge"><?= $num_recurring_invoices ?></span>
+                                    <?php } ?>
+                                </p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="/agent/contracts.php?client_id=<?= $client_id ?>" class="nav-link <?php if (in_array(basename($_SERVER["PHP_SELF"]), ['contracts.php', 'contract.php', 'contract_document.php'], true)) { echo "active"; } ?>">
+                                <i class="nav-icon fas fa-file-contract"></i>
+                                <p>
+                                    Contracts
+                                    <?php if (!empty($num_contracts)) { ?>
+                                        <span class="right badge" title="In force"><?= intval($num_contracts) ?></span>
                                     <?php } ?>
                                 </p>
                             </a>

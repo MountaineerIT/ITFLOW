@@ -172,7 +172,7 @@ $locations_counts = locationCounts(array_keys($locations));
                         // Tags in use on locations in this scope, plus any already picked
                         $sql_tags_filter = mysqli_query($mysqli, "
                             SELECT tag_id, tag_name, tag_color, tag_icon FROM tags
-                            WHERE tag_type = 2
+                            WHERE tag_type = 2 AND (tag_archived_at IS NULL OR tag_id IN ($tag_filter))
                             AND (
                                 EXISTS (SELECT 1 FROM location_tags JOIN locations ON locations.location_id = location_tags.location_id
                                     WHERE location_tags.tag_id = tags.tag_id " . clientScopeSql('location_client_id') . " $client_query)
@@ -182,7 +182,7 @@ $locations_counts = locationCounts(array_keys($locations));
                         ");
                         while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
                             $tag_id = intval($row['tag_id']); ?>
-                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
+                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= tagOptionLook($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
                         <?php } ?>
                     </select>
                 </div>
@@ -412,13 +412,19 @@ $locations_counts = locationCounts(array_keys($locations));
             </table>
         </div>
     </form>
-    <?php if (!$num_rows[0]) { ?>
-        <div class="itflow-asset-empty">
-            <i class="fas fa-map-marker-alt fa-2x mb-2 opacity-50"></i>
-            <div><?= $q || $tag_query ? 'No locations match.' : 'No locations yet.' ?></div>
-        </div>
-    <?php } ?>
-    <?php require_once "../includes/filter_footer.php"; ?>
+    <?php
+    $empty_state = [
+        'thing' => 'locations',
+        'icon' => 'fa-map-marker-alt',
+        'filtered' => $q || $tag_query,
+        'text' => 'Their offices and sites, with the address and phone of each.',
+        'actions' => $can_edit ? array_merge(
+            [['label' => 'New Location', 'modal' => "modals/location/location_add.php?$client_url", 'size' => 'lg']],
+            $client_url ? [['label' => 'Import', 'modal' => "modals/location/location_import.php?$client_url", 'icon' => 'fa-upload']] : []
+        ) : [],
+    ];
+    require_once "../includes/filter_footer.php";
+    ?>
 </div>
 
 <script src="../js/bulk_actions.js"></script>

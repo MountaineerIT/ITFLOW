@@ -229,7 +229,7 @@ if ($n = $count("SELECT COUNT(DISTINCT ticket_id) FROM mit_ticket_mail_choices")
     $after[] = "Email reply recipients: $n ticket" . ($n === 1 ? ' has' : 's have') . " a saved choice of who gets email replies - stock ITFlow emails the contact and every watcher.";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_ticket_parts")) {
-    $after[] = "Ticket parts: $n part" . ($n === 1 ? '' : 's') . " on tickets are not shown by stock ITFlow (billed ones are ordinary invoice lines and stay). Products' \"Order from\" vendor is not shown either.";
+    $after[] = "Ticket parts: $n part" . ($n === 1 ? '' : 's') . " on tickets are not shown by stock ITFlow (billed ones are ordinary invoice lines and stay). A product's vendor and cost are ITFlow's own fields (26.11) and stay.";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_ticket_techs tt JOIN tickets t ON t.ticket_id = tt.ticket_id WHERE t.ticket_resolved_at IS NULL AND t.ticket_closed_at IS NULL")) {
     $after[] = "Additional agents: $n on open tickets - stock ITFlow keeps only the assigned agent; the others and their own scheduled times are not shown.";
@@ -258,7 +258,7 @@ if ($n = $count("SELECT COUNT(*) FROM mit_usage_links")) {
 if ($n = $count("SELECT COUNT(*) FROM mit_usage_lines")) {
     $after[] = "Usage billing: $n recurring invoice line" . ($n === 1 ? ' is' : 's are') . " billed by a count - stock ITFlow bills the fixed quantity on the recurring invoice again (set it by hand each month), and the counts, the API endpoint and Usage Review stop. Invoices already made keep their quantities.";
 }
-$n = $count("SELECT COUNT(*) FROM quote_items WHERE item_cost IS NOT NULL OR item_image IS NOT NULL") + $count("SELECT COUNT(*) FROM products WHERE product_cost IS NOT NULL OR product_image IS NOT NULL");
+$n = $count("SELECT COUNT(*) FROM quote_items WHERE item_cost IS NOT NULL OR item_image IS NOT NULL") + $count("SELECT COUNT(*) FROM products WHERE product_image IS NOT NULL");
 if ($n) {
     $after[] = "Quote pricing and images: $n quote lines / products have our cost or an image - stock ITFlow shows the customer prices only, without the images (the files stay in uploads/mit_images).";
 }

@@ -90,7 +90,7 @@ test('notifications: who is emailed for remote and onsite bookings, and per book
         'remote-tech': false, 'remote-contact': false, 'remote-watchers': false, 'remote-site': false, 'remote-primary': false, 'remote-extra': '',
         'onsite-tech': false, 'onsite-contact': true, 'onsite-watchers': true, 'onsite-site': false, 'onsite-primary': false, 'onsite-extra': EXTRA,
     });
-    expect(await flash(page)).toContain('Notification Settings updated');
+    expect(await flash(page), 'our rows count as changes on ITFlow 26.11\'s settings page').toContain('Notifications saved');
 
     // A remote booking: nothing queued
     let state = await schedule(page, day(2, 10), false);

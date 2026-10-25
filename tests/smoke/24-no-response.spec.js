@@ -83,9 +83,12 @@ test('no response: resolves with the message, emails it, and sends no survey', a
     const view = await row.locator('[data-modal-url*="mail_queue_message_view"]').first().getAttribute('data-modal-url');
     // The viewer window's content, as text
     const json = await getJson(page, view);
-    const message = String(json.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    // ITFlow 26.11 shows the email in a sandboxed frame - its HTML is escaped into srcdoc
+    const frame = /srcdoc="([^"]*)"/.exec(String(json.content || ''));
+    const decode = (html) => html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&amp;/g, '&');
+    const message = decode(decode(frame ? frame[1] : String(json.content || ''))).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     expect(message, 'the resolved email in our wording').toContain(`Hi Pat, ${made.refs[1]} is Resolved.`);
-    expect(message).toContain('Smoke resolved wording. Re-open: View ticket');
+    expect(message).toContain('Smoke resolved wording. Re-open: the button below');
     expect(message, 'an empty note leaves nothing behind').not.toContain('[Note]');
 
     // Surveys run for the board: only the normal one gets one

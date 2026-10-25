@@ -2,7 +2,7 @@
 <aside class="app-sidebar shadow d-print-none" data-bs-theme="dark">
 
     <div class="sidebar-brand">
-        <a class="brand-link" href="/agent/<?= $config_start_page ?>">
+        <a class="brand-link" href="/agent/<?= escapeHtml($config_start_page) ?>">
             <i class="fas fa-arrow-left me-2"></i>
             <span class="brand-text h5 mb-0">Back | <strong>Account</strong></span>
         </a>
@@ -31,6 +31,10 @@
                     'mit_outlook.php' => ['fa-calendar-alt', 'Outlook calendar'], // Mountaineer IT
                     'user_activity.php' => ['fa-history', 'Activity'],
                 ];
+                // Your own canned responses - for those who reply on tickets
+                if (intval(lookupUserPermission('module_support')) >= 2) {
+                    $account_pages = array_slice($account_pages, 0, 3, true) + ['user_canned_responses.php' => ['fa-comment-dots', 'Canned Responses']] + $account_pages;
+                }
                 foreach ($account_pages as $page => [$icon, $label]) { ?>
                     <li class="nav-item">
                         <a href="/agent/user/<?= $page ?>" class="nav-link <?= basename($_SERVER["PHP_SELF"]) === $page ? 'active' : '' ?>">

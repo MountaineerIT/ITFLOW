@@ -25,6 +25,253 @@ function itflowStep(name, fn) {
 }
 
 /**
+ * Typing / in a reply box offers the canned responses of the picker above it
+ * (agent/includes/inc_canned_response_picker.php) - its textarea names the
+ * picker in data-canned-picker. The list narrows as you type after the /;
+ * picking one takes the / and what was typed out again and puts the response
+ * in, as the picker does (agent/js/canned_response_picker.js). Called from the
+ * reply editors' setup, so it is there before the editor is drawn.
+ */
+function itflowCannedAutocompleter(editor) {
+    var element = editor.getElement ? editor.getElement() : null;
+    var pickerId = element && element.dataset ? element.dataset.cannedPicker : '';
+    if (!pickerId) {
+        return;
+    }
+    editor.ui.registry.addAutocompleter('itflowCanned', {
+        trigger: '/',
+        minChars: 0,
+        columns: 1,
+        highlightOn: ['canned_name'],
+        fetch: function (pattern) {
+            var picker = document.getElementById(pickerId);
+            var words = String(pattern || '').toLowerCase().split(/\s+/).filter(Boolean);
+            var items = picker ? Array.prototype.slice.call(picker.querySelectorAll('[data-canned-id]')) : [];
+            var seen = {};
+            return Promise.resolve(items.filter(function (item) {
+                if (seen[item.dataset.cannedId]) {
+                    return false;
+                }
+                seen[item.dataset.cannedId] = true;
+                return words.every(function (word) {
+                    return item.dataset.cannedSearchText.indexOf(word) !== -1;
+                });
+            }).slice(0, 8).map(function (item) {
+                return {
+                    type: 'cardmenuitem',
+                    value: item.dataset.cannedId,
+                    label: item.dataset.cannedName,
+                    items: [{
+                        type: 'cardcontainer',
+                        direction: 'vertical',
+                        items: [
+                            { type: 'cardtext', text: item.dataset.cannedName, name: 'canned_name', classes: ['itflow-canned-ac-name'] },
+                            { type: 'cardtext', text: (item.dataset.cannedPreview || '').slice(0, 90), classes: ['itflow-canned-ac-preview'] }
+                        ]
+                    }]
+                };
+            }));
+        },
+        onAction: function (api, range, value) {
+            api.hide();
+            editor.selection.setRng(range);
+            editor.insertContent('');
+            if (window.itflowCannedPick) {
+                window.itflowCannedPick(pickerId, value);
+            }
+        }
+    });
+}
+
+/*
+ * Reword with AI - on an editor only when AI is set up for it and the agent's
+ * role may use it: window.itflowAi, printed by includes/footer.php from
+ * aiClientConfig() (functions/ai.php). The ticket editor asks the Tickets
+ * model. The button rewords; its menu has the other tones (shorter, more
+ * formal, friendlier, plain English, organized, just spelling and grammar)
+ * and Translate, which asks which language - the last one picked comes first
+ * next time. The answer replaces the text in one step, so Undo puts it back.
+ * A textarea's data-ai-client-id says the client it is for, for AI Usage.
+ */
+function itflowAiOn(ticket) {
+    var ai = window.itflowAi || null;
+    return !!(ai && (ticket ? ai.rewordTicket : ai.reword));
+}
+
+function itflowAiReword(editor, ticket) {
+    if (!itflowAiOn(ticket)) {
+        return;
+    }
+    var ai = window.itflowAi;
+    var buttonApi = null;
+    var say = function (text, type) {
+        editor.notificationManager.open({ text: text, type: type, timeout: type === 'success' ? 4000 : 8000 });
+    };
+    var done = {
+        reword: 'Reworded', shorter: 'Shortened', formal: 'Made more formal', friendly: 'Made friendlier', plain: 'Put in plain English',
+        structure: 'Organized', proofread: 'Spelling and grammar fixed', translate: 'Translated'
+    };
+
+    function run(tone, language) {
+        if (editor.getContent({ format: 'text' }).trim() === '') {
+            say('Write something first - Reword works on what is there.', 'info');
+            return;
+        }
+        var element = editor.getElement();
+        var clientId = element ? parseInt(element.getAttribute('data-ai-client-id') || '0', 10) : 0;
+        buttonApi.setEnabled(false);
+        editor.setProgressState(true);
+        fetch(ai.endpoint + '?ai_reword' + (ticket ? '&use_case=Tickets' : ''), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: editor.getContent(), client_id: clientId || 0, tone: tone, language: language || '' })
+        })
+            .then(function (response) {
+                return response.json().catch(function () {
+                    throw new Error('HTTP ' + response.status);
+                });
+            })
+            .then(function (data) {
+                // Leave the user's text alone if it failed
+                if (data.error || !data.rewordedText) {
+                    say(data.error || 'Could not reword the text.', 'error');
+                    return;
+                }
+                editor.undoManager.add();
+                editor.undoManager.transact(function () {
+                    editor.setContent(data.rewordedText);
+                });
+                say((done[tone] || 'Reworded') + (tone === 'translate' ? ' into ' + language : '') + ' - Undo puts your words back.', 'success');
+            })
+            .catch(function () {
+                say('Could not reach ITFlow to reword it - try again.', 'error');
+            })
+            .finally(function () {
+                editor.setProgressState(false);
+                buttonApi.setEnabled(true);
+            });
+    }
+
+    function translate() {
+        var languages = ai.languages || ['English'];
+        var last = '';
+        try {
+            last = localStorage.getItem('itflowAiLanguage') || '';
+        } catch (e) {
+            last = '';
+        }
+        editor.windowManager.open({
+            title: 'Translate with AI',
+            body: {
+                type: 'panel',
+                items: [{ type: 'selectbox', name: 'language', label: 'Into', items: languages.map(function (language) { return { text: language, value: language }; }) }]
+            },
+            initialData: { language: languages.indexOf(last) >= 0 ? last : languages[0] },
+            buttons: [{ type: 'cancel', text: 'Cancel' }, { type: 'submit', text: 'Translate', primary: true }],
+            onSubmit: function (dialog) {
+                var language = dialog.getData().language;
+                dialog.close();
+                try {
+                    localStorage.setItem('itflowAiLanguage', language);
+                } catch (e) {
+                    // Remembering it is only a convenience
+                }
+                run('translate', language);
+            }
+        });
+    }
+
+    editor.ui.registry.addSplitButton('reword', {
+        icon: 'ai',
+        tooltip: 'Reword with AI',
+        onAction: function () {
+            run('reword');
+        },
+        onItemAction: function (api, value) {
+            if (value === 'translate') {
+                translate();
+            } else {
+                run(value);
+            }
+        },
+        fetch: function (callback) {
+            var tones = ai.tones || { reword: 'Reword' };
+            callback(Object.keys(tones).map(function (tone) {
+                return { type: 'choiceitem', text: tones[tone], value: tone };
+            }));
+        },
+        onSetup: function (api) {
+            buttonApi = api;
+            return function () {};
+        }
+    });
+
+    // Draft a reply - on the ticket reply editor, whose textarea says the ticket
+    var element = editor.getElement();
+    var ticketId = element ? parseInt(element.getAttribute('data-ai-ticket-id') || '0', 10) : 0;
+    if (ticket && ticketId && ai.draft) {
+        itflowAiDraft(editor, ticketId, say);
+    }
+}
+
+/*
+ * Draft with AI - the next reply on the ticket, from what the agent has typed
+ * so far (notes, a line or nothing), for who will read it: the reply type
+ * picked in its form - an internal note, a public note or an email. It
+ * replaces the editor's text in one step, so Undo puts it back.
+ */
+function itflowAiDraft(editor, ticketId, say) {
+    var buttonApi = null;
+    var types = { '0': 'internal', '1': 'public', '2': 'email' };
+    editor.ui.registry.addButton('aidraft', {
+        icon: 'ai-prompt',
+        text: 'Draft',
+        tooltip: 'Draft the reply with AI - from your notes, if you have typed some',
+        onAction: function () {
+            var form = editor.getElement().closest('form');
+            var picked = form ? form.querySelector('input[name="public_reply_type"]:checked') : null;
+            var notes = editor.getContent({ format: 'text' }).trim() === '' ? '' : editor.getContent();
+            buttonApi.setEnabled(false);
+            editor.setProgressState(true);
+            fetch(window.itflowAi.endpoint + '?ai_ticket_draft', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticket_id: ticketId, notes: notes, type: types[picked ? picked.value : '2'] || 'email' })
+            })
+                .then(function (response) {
+                    return response.json().catch(function () {
+                        throw new Error('HTTP ' + response.status);
+                    });
+                })
+                .then(function (data) {
+                    if (data.error || !data.html) {
+                        say(data.error || 'Could not draft it.', 'error');
+                        return;
+                    }
+                    editor.undoManager.add();
+                    editor.undoManager.transact(function () {
+                        editor.setContent(data.html);
+                    });
+                    say('Drafted - read it through before it goes. Undo puts back what was there.', 'success');
+                })
+                .catch(function () {
+                    say('Could not reach ITFlow to draft it - try again.', 'error');
+                })
+                .finally(function () {
+                    editor.setProgressState(false);
+                    buttonApi.setEnabled(true);
+                });
+        },
+        onSetup: function (api) {
+            buttonApi = api;
+            return function () {};
+        }
+    });
+}
+
+/**
  * TinyMCE skin options for the current colour mode.
  *
  * TinyMCE renders its chrome in its own DOM and its content inside an iframe,
@@ -166,8 +413,13 @@ function itflowInit() {
         itflowSelectAll(document);
     });
 
+    // The editor isn't loaded everywhere this file is - setup/index.php has none -
+    // and a bare tinymce there threw before the password eyes and copy buttons below
+    // were wired up. Where it is absent the four inits have nothing to do.
+    const itflowTinyMce = typeof tinymce !== 'undefined' ? tinymce : { init: function () {} };
+
     // Initialize TinyMCE
-    tinymce.init({
+    itflowTinyMce.init({
         ...itflowTinyMceSkin(),
         selector: '.tinymce-simple',
         browser_spellcheck: true,
@@ -212,7 +464,7 @@ function itflowInit() {
     });
 
     // Initialize TinyMCE with AI
-    tinymce.init({
+    itflowTinyMce.init({
         ...itflowTinyMceSkin(),
         selector: '.tinymce',
         browser_spellcheck: true,
@@ -224,7 +476,9 @@ function itflowInit() {
         branding: false,
         menubar: false,
         statusbar: false,
+        // Reword first, where it is there - in a narrow editor the end of the toolbar folds away
         toolbar: [
+            ...(itflowAiOn(false) ? [{ name: 'ai', items: ['reword'] }] : []),
             { name: 'styles', items: ['styles'] },
             { name: 'formatting', items: ['bold', 'italic', 'forecolor'] },
             { name: 'link', items: ['link'] },
@@ -233,7 +487,7 @@ function itflowInit() {
             { name: 'indentation', items: ['outdent', 'indent'] },
             { name: 'table', items: ['table'] },
             { name: 'extra', items: ['code', 'fullscreen'] },
-            { name: 'ai', items: ['reword', 'undo', 'redo'] }
+            { name: 'history', items: ['undo', 'redo'] }
         ],
         mobile: {
             menubar: false,
@@ -244,6 +498,7 @@ function itflowInit() {
         plugins: 'link image lists table code codesample fullscreen autoresize',
         license_key: 'gpl',
         setup: function(editor) {
+            itflowCannedAutocompleter(editor);
             editor.on('init', function() {
                 // When the modal closes, mark editor clean
                 const modal = editor.getContainer()?.closest('.modal');
@@ -255,78 +510,12 @@ function itflowInit() {
                 }
             });
 
-            var rewordButtonApi;
-
-            editor.ui.registry.addButton('reword', {
-                icon: 'ai',
-                tooltip: 'Reword Text',
-                onAction: function() {
-                    var content = editor.getContent();
-
-                    // Disable the Reword button
-                    rewordButtonApi.setEnabled(false);
-
-                    // Show the progress indicator
-                    editor.setProgressState(true);
-
-                    fetch('ajax.php?ai_reword', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ text: content }),
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            editor.setProgressState(false);
-                            rewordButtonApi.setEnabled(true);
-
-                            // Leave the user's text alone if the reword failed
-                            if (data.error || !data.rewordedText) {
-                                editor.notificationManager.open({
-                                    text: data.error || 'Could not reword the text.',
-                                    type: 'error',
-                                    timeout: 8000
-                                });
-                                return;
-                            }
-
-                            editor.undoManager.transact(function() {
-                                editor.setContent(data.rewordedText);
-                            });
-
-                            editor.notificationManager.open({
-                                text: 'Text reworded successfully!',
-                                type: 'success',
-                                timeout: 3000
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            editor.setProgressState(false);
-                            rewordButtonApi.setEnabled(true);
-                            editor.notificationManager.open({
-                                text: 'An error occurred while rewording the text.',
-                                type: 'error',
-                                timeout: 5000
-                            });
-                        });
-                },
-                onSetup: function(buttonApi) {
-                    rewordButtonApi = buttonApi;
-                    return function() {};
-                }
-            });
+            itflowAiReword(editor, false);
         }
     });
 
     // Initialize TinyMCE AI for Tickets
-    tinymce.init({
+    itflowTinyMce.init({
         ...itflowTinyMceSkin(),
         selector: '.tinymceTicket',
         browser_spellcheck: true,
@@ -339,24 +528,26 @@ function itflowInit() {
         menubar: false,
         statusbar: false,
         toolbar: [
+            ...(itflowAiOn(true) ? [{ name: 'ai', items: ['aidraft', 'reword'] }] : []),
             { name: 'styles', items: ['styles'] },
             { name: 'formatting', items: ['bold', 'italic', 'forecolor'] },
             { name: 'link', items: ['link'] },
             { name: 'lists', items: ['bullist', 'numlist'] },
             { name: 'indentation', items: ['outdent', 'indent'] },
-            { name: 'ai', items: ['reword', 'undo', 'redo'] },
+            { name: 'history', items: ['undo', 'redo'] },
             { name: 'custom', items: ['redactButton'] },
             { name: 'code', items: ['code'] },
         ],
         mobile: {
             menubar: false,
             toolbar: [
+                ...(itflowAiOn(true) ? [{ name: 'ai', items: ['aidraft', 'reword'] }] : []),
                 { name: 'styles', items: ['styles'] },
                 { name: 'formatting', items: ['bold', 'italic', 'forecolor'] },
                 { name: 'link', items: ['link'] },
                 { name: 'lists', items: ['bullist', 'numlist'] },
                 { name: 'indentation', items: ['outdent', 'indent'] },
-                { name: 'ai', items: ['reword', 'undo', 'redo'] },
+                { name: 'history', items: ['undo', 'redo'] },
                 { name: 'custom', items: ['redactButton'] },
                 { name: 'code', items: ['code'] },
             ],
@@ -365,6 +556,7 @@ function itflowInit() {
         plugins: 'link image lists table code codesample fullscreen autoresize code',
         license_key: 'gpl',
         setup: function(editor) {
+            itflowCannedAutocompleter(editor);
             editor.on('init', function() {
                 // When the modal closes, mark editor clean
                 const modal = editor.getContainer()?.closest('.modal');
@@ -376,64 +568,7 @@ function itflowInit() {
                 }
             });
 
-            var rewordButtonApi;
-
-            editor.ui.registry.addButton('reword', {
-                icon: 'ai',
-                tooltip: 'Reword Text',
-                onAction: function() {
-                    var content = editor.getContent();
-                    rewordButtonApi.setEnabled(false);
-                    editor.setProgressState(true);
-
-                    fetch('ajax.php?ai_reword&use_case=Tickets', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: content }),
-                    })
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return response.json();
-                        })
-                        .then(data => {
-                            editor.setProgressState(false);
-                            rewordButtonApi.setEnabled(true);
-
-                            // Leave the user's text alone if the reword failed
-                            if (data.error || !data.rewordedText) {
-                                editor.notificationManager.open({
-                                    text: data.error || 'Could not reword the text.',
-                                    type: 'error',
-                                    timeout: 8000
-                                });
-                                return;
-                            }
-
-                            editor.undoManager.transact(function() {
-                                editor.setContent(data.rewordedText);
-                            });
-                            editor.notificationManager.open({
-                                text: 'Text reworded successfully!',
-                                type: 'success',
-                                timeout: 3000
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            editor.setProgressState(false);
-                            rewordButtonApi.setEnabled(true);
-                            editor.notificationManager.open({
-                                text: 'An error occurred while rewording the text.',
-                                type: 'error',
-                                timeout: 5000
-                            });
-                        });
-                },
-                onSetup: function(buttonApi) {
-                    rewordButtonApi = buttonApi;
-                    return function() {};
-                }
-            });
+            itflowAiReword(editor, true);
 
             editor.ui.registry.addButton('redactButton', {
                 icon: 'permanent-pen',
@@ -452,7 +587,7 @@ function itflowInit() {
     });
 
     // Initialize TinyMCE Redact-only
-    tinymce.init({
+    itflowTinyMce.init({
         ...itflowTinyMceSkin(),
         selector: '.tinymceRedact',
         browser_spellcheck: true,
@@ -662,9 +797,12 @@ function itflowInit() {
         });
     });
 
-    // Data Tables
+    // Data Tables - only loaded on agent and admin pages (includes/footer.php);
+    // setup and Get started load this file without it
     itflowStep('datatables', function () {
-        new DataTable('.dataTables');
+        if (typeof DataTable !== 'undefined') {
+            new DataTable('.dataTables');
+        }
     });
 
     // Phone inputs
@@ -719,6 +857,66 @@ itflowBindOnce('itflowModalFocus', 'shown.bs.modal', '.modal', function () {
         return;
     }
     this.focus();
+});
+
+/**
+ * A window opened over another - the + beside a category picker opens the
+ * category window over the form - goes above it with its backdrop, so the
+ * form underneath is dimmed rather than drawn over the new window's shade.
+ * Bootstrap gives every modal the same z-index. Closing the top one takes the
+ * page's modal-open class off, so it is put back while one is still open.
+ */
+itflowBindOnce('itflowModalStack', 'show.bs.modal', '.modal', function () {
+    const below = document.querySelectorAll('.modal.show').length;
+    if (!below) {
+        return;
+    }
+    const z = 1055 + 20 * below;
+    this.style.zIndex = z;
+    // Bootstrap adds the backdrop straight after this event
+    setTimeout(function () {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length) {
+            backdrops[backdrops.length - 1].style.zIndex = z - 5;
+        }
+    });
+});
+itflowBindOnce('itflowModalStackHidden', 'hidden.bs.modal', '.modal', function () {
+    if (document.querySelector('.modal.show')) {
+        document.body.classList.add('modal-open');
+    }
+});
+
+/**
+ * A required field left empty on a tab that isn't showing - the Ticket tab of
+ * a template while Sets up is open, a fill-in on Details while Tasks is -
+ * would stop the form going with nothing to see: the browser can't point at
+ * a field it can't show. Its tab is opened, so the browser's message lands on
+ * it. 'invalid' doesn't bubble, hence the capture.
+ */
+if (!window.itflowInvalidTab) {
+    window.itflowInvalidTab = true;
+    document.addEventListener('invalid', function (e) {
+        const pane = e.target.closest ? e.target.closest('.tab-pane') : null;
+        if (!pane || pane.classList.contains('active') || !pane.id || !window.bootstrap) {
+            return;
+        }
+        const scope = pane.closest('form, .modal, .tab-content') || document;
+        const root = scope.parentElement || document;
+        const trigger = root.querySelector('[data-bs-toggle][href="#' + pane.id + '"], [data-bs-toggle][data-bs-target="#' + pane.id + '"]');
+        if (trigger) {
+            bootstrap.Tab.getOrCreateInstance(trigger).show();
+        }
+    }, true);
+}
+
+/**
+ * The + beside a category picker (categoryAddButtonHtml()): note which
+ * picker it is beside, for js/category_form.js to put the new category in.
+ */
+itflowBindOnce('itflowCategoryAdd', 'click', '[data-category-add]', function () {
+    const group = this.closest('.input-group') || this.parentElement;
+    window.itflowCategoryTarget = group ? group.querySelector('select') : null;
 });
 
 /**

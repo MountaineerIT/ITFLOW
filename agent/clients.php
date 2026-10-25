@@ -198,7 +198,7 @@ $client_tickets = [];
 if ($clients) {
     $page_ids = implode(',', array_keys($clients));
 
-    $sql_tags = mysqli_query($mysqli, "SELECT client_tags.client_id, tags.tag_id, tag_name, tag_color, tag_icon
+    $sql_tags = mysqli_query($mysqli, "SELECT client_tags.client_id, tags.tag_id, tag_name, tag_description, tag_color, tag_icon
         FROM client_tags JOIN tags ON tags.tag_id = client_tags.tag_id
         WHERE client_tags.client_id IN ($page_ids)
         ORDER BY tag_name");
@@ -237,12 +237,12 @@ if ($clients) {
             $client_money[intval($row['id'])]['overdue'] = floatval($row['v']);
         }
 
-        // Monthly recurring - yearly ones count as a twelfth
+        // Monthly recurring - quarterly ones count as a third, yearly as a twelfth
         $sql_money = mysqli_query($mysqli, "SELECT recurring_invoice_client_id AS id,
-                SUM(CASE WHEN recurring_invoice_frequency = 'year' THEN recurring_invoice_amount / 12 ELSE recurring_invoice_amount END) AS v
+                SUM(" . recurringInvoiceMonthlySql() . ") AS v
             FROM recurring_invoices
             WHERE recurring_invoice_client_id IN ($page_ids) AND recurring_invoice_status = 1
-            AND recurring_invoice_frequency IN ('month', 'year')
+            AND recurring_invoice_frequency IN ('month', 'quarter', 'year')
             GROUP BY recurring_invoice_client_id");
         while ($row = mysqli_fetch_assoc($sql_money)) {
             $client_money[intval($row['id'])]['recurring'] = floatval($row['v']);
@@ -324,12 +324,15 @@ $total_leads = intval($row['leads']);
                                 <i class="fas fa-fw fa-layer-group"></i><span class="d-none d-sm-inline ms-2">Action</span> (<span id="selectedCount">0</span>)
                             </button>
                             <div class="dropdown-menu dropdown-menu-end">
+                                <?php if ($can_add_ticket) { ?>
                                 <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/client/client_bulk_add_ticket.php" data-modal-size="lg" data-bulk="true">
                                     <i class="fas fa-fw fa-life-ring me-2"></i>Open Tickets
                                 </a>
+                                <?php } ?>
                                 <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/client/client_bulk_email.php" data-modal-size="lg" data-bulk="true">
                                     <i class="fas fa-fw fa-paper-plane me-2"></i>Send Email
                                 </a>
+                                <?php if ($can_edit) { ?>
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="#" data-tag-picker data-tag-entity="client" data-tag-bulk data-csrf="<?= $_SESSION['csrf_token'] ?>">
                                     <i class="fas fa-fw fa-tags me-2"></i>Tags
@@ -356,6 +359,7 @@ $total_leads = intval($row['leads']);
                                         <i class="fas fa-fw fa-archive me-2"></i>Archive
                                     </button>
                                 <?php } ?>
+                                <?php } // can_edit ?>
                             </div>
                         </div>
                         <a href="<?= clientsFilterUrl(['archived' => $archived ? null : 1]) ?>" class="btn <?= $archived ? 'btn-dark' : 'btn-outline-dark' ?>" title="<?= $archived ? 'Back to active ' . ($leads_filter ? 'leads' : 'clients') : 'Show archived ' . ($leads_filter ? 'leads' : 'clients') ?>">
@@ -375,7 +379,7 @@ $total_leads = intval($row['leads']);
                                 SELECT tags.tag_id, tags.tag_name, MAX(tags.tag_color) AS tag_color, MAX(tags.tag_icon) AS tag_icon
                                 FROM tags
                                 LEFT JOIN client_tags ON client_tags.tag_id = tags.tag_id
-                                WHERE tag_type = 1
+                                WHERE tag_type = 1 AND (tags.tag_archived_at IS NULL OR tags.tag_id IN ($tag_filter))
                                 GROUP BY tags.tag_id, tags.tag_name
                                 HAVING COUNT(client_tags.client_id) > 0 OR tags.tag_id IN ($tag_filter)
                                 ORDER BY tags.tag_name
@@ -383,7 +387,7 @@ $total_leads = intval($row['leads']);
                             while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
                                 $filter_tag_id = intval($row['tag_id']);
                                 $filter_tag_name = escapeHtml($row['tag_name']); ?>
-                                <option value="<?= $filter_tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($filter_tag_id, array_map('intval', $_GET['tags']), true)) { echo 'selected'; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= $filter_tag_name ?></option>
+                                <option value="<?= $filter_tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($filter_tag_id, array_map('intval', $_GET['tags']), true)) { echo 'selected'; } ?><?= tagOptionLook($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= $filter_tag_name ?></option>
                             <?php } ?>
                         </select>
                     </div>
@@ -403,12 +407,7 @@ $total_leads = intval($row['leads']);
                         <label class="form-label">Referral</label>
                         <select class="form-select select2" name="referral" onchange="this.form.submit()">
                             <option value="">Any referral</option>
-                            <?php
-                            $sql_referrals_filter = mysqli_query($mysqli, "SELECT DISTINCT client_referral FROM clients WHERE client_$archive_query AND client_referral != '' $leads_query ORDER BY client_referral ASC");
-                            while ($row = mysqli_fetch_assoc($sql_referrals_filter)) {
-                                $referral_name = escapeHtml($row['client_referral']); ?>
-                                <option <?php if ($referral_name == $referral_filter) { echo "selected"; } ?>><?= $referral_name ?></option>
-                            <?php } ?>
+                            <?= categoryFilterOptionsHtml('Referral', (string) ($_GET['referral'] ?? ''), "SELECT DISTINCT client_referral FROM clients WHERE client_$archive_query AND client_referral != '' $leads_query") ?>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -636,6 +635,18 @@ $total_leads = intval($row['leads']);
         </div>
     </form>
 
+    <?php
+    $empty_state = [
+        'thing' => $leads_filter ? 'leads' : 'clients',
+        'icon' => 'fa-user-friends',
+        'views' => ['leads'],
+        'text' => $leads_filter ? 'Prospects you are talking to, kept apart from your clients.' : 'Add the companies you look after, or import them all at once.',
+        'actions' => $can_edit ? array_merge(
+            [['label' => $leads_filter ? 'New Lead' : 'New Client', 'modal' => 'modals/client/client_add.php' . ($leads_filter ? '?lead=1' : '')]],
+            $leads_filter ? [] : [['label' => 'Import', 'modal' => 'modals/client/client_import.php', 'icon' => 'fa-upload']]
+        ) : [],
+    ];
+    ?>
     <?php require_once "../includes/filter_footer.php"; ?>
 </div>
 

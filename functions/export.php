@@ -66,6 +66,10 @@ function getExportColumns($export_type) {
             'client_currency_code' => ['label' => 'Currency'],
             'client_net_terms'     => ['label' => 'Payment Terms', 'format' => 'number'],
             'client_tax_id_number' => ['label' => 'Tax ID'],
+            'client_tax_rate'      => ['label' => 'Tax Rate', 'default' => false],
+            'client_tax_exempt_display' => ['label' => 'Tax Exempt', 'default' => false],
+            'client_tax_exempt_number' => ['label' => 'Exemption Certificate', 'default' => false],
+            'client_tax_exempt_expires' => ['label' => 'Exemption Expires', 'default' => false],
             'client_abbreviation'  => ['label' => 'Abbreviation'],
         ],
 
@@ -107,6 +111,8 @@ function getExportColumns($export_type) {
             'vendor_extension'      => ['label' => 'Extension', 'default' => false],
             'vendor_email'          => ['label' => 'Support Email', 'weight' => 2],
             'vendor_website'        => ['label' => 'Website', 'weight' => 2],
+            'vendor_status_page'    => ['label' => 'Status Page', 'weight' => 2, 'default' => false],
+            'vendor_portal'         => ['label' => 'Support Portal', 'weight' => 2, 'default' => false],
             'vendor_hours'          => ['label' => 'Hours'],
             'vendor_sla'            => ['label' => 'SLA', 'default' => false],
             'vendor_account_number' => ['label' => 'Account Number'],
@@ -138,6 +144,7 @@ function getExportColumns($export_type) {
             'client_name'             => ['label' => 'Client', 'default' => false],
             'interface_ip'            => ['label' => 'Primary IP', 'default' => false],
             'interface_mac'           => ['label' => 'Primary MAC', 'default' => false],
+            'asset_status'            => ['label' => 'Status', 'default' => false],
         ],
 
         'asset_interfaces' => [
@@ -170,6 +177,7 @@ function getExportColumns($export_type) {
             'location_name'         => ['label' => 'Site', 'default' => false],
             'vendor_name'           => ['label' => 'Provider', 'default' => false],
             'network_notes'         => ['label' => 'Notes', 'weight' => 3, 'default' => false],
+            'network_tags'          => ['label' => 'Tags', 'weight' => 2, 'default' => false],
             'client_name'           => ['label' => 'Client', 'weight' => 2, 'default' => false],
         ],
 
@@ -239,7 +247,7 @@ function getExportColumns($export_type) {
             'client_name'            => ['label' => 'Client', 'default' => false],
         ],
 
-        // seats_used, assigned_to_assets / assigned_to_contacts and software_keys_list are built by the handler's query
+        // seats_used, assigned_to_assets / assigned_to_contacts, software_keys_list and software_tags are built by the handler's query
         'software' => [
             'software_name'         => ['label' => 'Name', 'weight' => 2],
             'software_version'      => ['label' => 'Version'],
@@ -257,6 +265,7 @@ function getExportColumns($export_type) {
             'software_purchase'     => ['label' => 'Purchased'],
             'software_expire'       => ['label' => 'Expires'],
             'client_name'           => ['label' => 'Client', 'default' => false],
+            'software_tags'         => ['label' => 'Tags', 'weight' => 2, 'default' => false],
             'software_notes'        => ['label' => 'Notes', 'weight' => 3],
         ],
 
@@ -274,6 +283,7 @@ function getExportColumns($export_type) {
             'ticket_assigned_to'    => ['label' => 'Assigned To', 'default' => false],
             'ticket_category_name'  => ['label' => 'Category', 'default' => false],
             'ticket_billable'       => ['label' => 'Billable', 'default' => false],
+            'ticket_tags'           => ['label' => 'Tags', 'weight' => 2, 'default' => false],
         ],
 
         // Projects - the handler adds the state, progress and hours (projectStats())
@@ -315,17 +325,23 @@ function getExportColumns($export_type) {
             'service_review_every' => ['label' => 'Review Every', 'default' => false],
             'open_tickets'        => ['label' => 'Open Tickets', 'format' => 'number', 'default' => false],
             'service_state'       => ['label' => 'State', 'default' => false],
+            'service_tags'        => ['label' => 'Tags', 'weight' => 2, 'default' => false],
         ],
 
         // invoice_number_display is prefix . number, built by the handler
         'invoices' => [
             'invoice_number_display' => ['label' => 'Invoice Number'],
             'invoice_scope'          => ['label' => 'Scope', 'weight' => 3],
+            'invoice_subtotal'       => ['label' => 'Subtotal', 'format' => 'money', 'default' => false],
+            'invoice_discount_amount' => ['label' => 'Discount', 'format' => 'money', 'default' => false],
+            'invoice_tax'            => ['label' => 'Tax', 'format' => 'money', 'default' => false],
+            'invoice_tax_parts'      => ['label' => 'Tax by Part', 'weight' => 2, 'default' => false],
             'invoice_amount'         => ['label' => 'Amount', 'format' => 'money'],
             'invoice_date'           => ['label' => 'Issued Date'],
             'invoice_due'            => ['label' => 'Due Date'],
             'invoice_status'         => ['label' => 'Status'],
             'client_name'            => ['label' => 'Client', 'weight' => 2],
+            'category_name'          => ['label' => 'Category', 'default' => false],
             'invoice_currency_code'  => ['label' => 'Currency', 'default' => false],
             'amount_paid'            => ['label' => 'Paid', 'format' => 'money', 'default' => false],
             'invoice_balance'        => ['label' => 'Balance', 'format' => 'money', 'default' => false],
@@ -335,44 +351,76 @@ function getExportColumns($export_type) {
             'quote_number_display' => ['label' => 'Quote Number'],
             'quote_scope'          => ['label' => 'Scope', 'weight' => 3],
             'quote_amount'         => ['label' => 'Amount', 'format' => 'money'],
+            'quote_tax'            => ['label' => 'Tax', 'format' => 'money', 'default' => false],
+            'quote_monthly_amount' => ['label' => 'Monthly', 'format' => 'money'],
             'quote_date'           => ['label' => 'Date'],
             'quote_status'         => ['label' => 'Status'],
             'client_name'          => ['label' => 'Client', 'weight' => 2, 'default' => false],
+            'category_name'        => ['label' => 'Category', 'default' => false],
         ],
 
         'recurring_invoices' => [
             'recurring_invoice_number_display' => ['label' => 'Recurring Number'],
             'recurring_invoice_scope'          => ['label' => 'Scope', 'weight' => 3],
             'recurring_invoice_amount'         => ['label' => 'Amount', 'format' => 'money'],
+            'recurring_invoice_tax'            => ['label' => 'Tax', 'format' => 'money', 'default' => false],
             'recurring_invoice_frequency_display' => ['label' => 'Frequency'],
             'recurring_invoice_created_at'     => ['label' => 'Date Created'],
             'client_name'                      => ['label' => 'Client', 'weight' => 2, 'default' => false],
+            'category_name'                    => ['label' => 'Category', 'default' => false],
         ],
 
         'products' => [
             'product_name'          => ['label' => 'Product', 'weight' => 2],
+            'product_type_label'    => ['label' => 'Type', 'default' => false],
+            'product_code'          => ['label' => 'Code'],
             'product_description'   => ['label' => 'Description', 'weight' => 3],
             'product_price'         => ['label' => 'Price', 'format' => 'money'],
-            'product_currency_code' => ['label' => 'Currency'],
+            'product_cost'          => ['label' => 'Cost', 'format' => 'money', 'default' => false],
+            'product_margin'        => ['label' => 'Margin', 'default' => false],
+            'product_billed'        => ['label' => 'Billed'],
+            'product_currency_code' => ['label' => 'Currency', 'default' => false],
             'category_name'         => ['label' => 'Category'],
-            'tax_name'              => ['label' => 'Tax'],
+            'product_tax'           => ['label' => 'Tax'],
+            'vendor_name'           => ['label' => 'Vendor', 'default' => false],
+            'product_vendor_part'   => ['label' => 'Part Number', 'default' => false],
+            'product_stock_display' => ['label' => 'In Stock', 'default' => false],
+            'product_stock_value'   => ['label' => 'Stock Value', 'format' => 'money', 'default' => false],
+            'product_reorder_display' => ['label' => 'Reorder At', 'default' => false],
+            'product_order_display' => ['label' => 'Order', 'default' => false],
+            'product_location'      => ['label' => 'Location', 'default' => false],
+            'product_asset_type'    => ['label' => 'Asset Type', 'default' => false],
+            'product_make'          => ['label' => 'Make', 'default' => false],
+            'product_model'         => ['label' => 'Model', 'default' => false],
+            'product_warranty_display' => ['label' => 'Warranty', 'default' => false],
+            'product_notes'         => ['label' => 'Notes', 'weight' => 3, 'default' => false],
         ],
 
         'expenses' => [
             'expense_date'        => ['label' => 'Date'],
             'expense_amount'      => ['label' => 'Amount', 'format' => 'money'],
+            'expense_before_tax'  => ['label' => 'Before Tax', 'format' => 'money', 'default' => false],
+            'expense_tax_amount'  => ['label' => 'Tax', 'format' => 'money', 'default' => false],
+            'expense_tax_rate'    => ['label' => 'Tax Rate', 'default' => false],
             'vendor_name'         => ['label' => 'Vendor', 'weight' => 2],
             'expense_description' => ['label' => 'Description', 'weight' => 3],
             'category_name'       => ['label' => 'Category'],
             'account_name'        => ['label' => 'Account'],
             'client_name'         => ['label' => 'Client', 'weight' => 2, 'default' => false],
+            'expense_payment_method' => ['label' => 'Paid By', 'default' => false],
             'expense_reference'   => ['label' => 'Reference', 'default' => false],
+            'expense_receipt_display' => ['label' => 'Receipt', 'default' => false],
+            'expense_paid_by_display' => ['label' => 'Paid Personally', 'default' => false],
+            'expense_billing_display' => ['label' => 'Billing', 'default' => false],
+            'expense_billed_on'   => ['label' => 'Billed On', 'default' => false],
+            'user_name'           => ['label' => 'Entered By', 'default' => false],
         ],
 
         'income' => [
             'income_date'          => ['label' => 'Date'],
             'income_type'          => ['label' => 'Type'],
-            'income_source'        => ['label' => 'Source', 'weight' => 3],
+            'income_invoice'       => ['label' => 'Invoice'],
+            'income_source'        => ['label' => 'What for', 'weight' => 3],
             'income_category'      => ['label' => 'Category'],
             'income_client'        => ['label' => 'Client', 'weight' => 2],
             'income_amount'        => ['label' => 'Amount', 'format' => 'money'],
@@ -380,27 +428,44 @@ function getExportColumns($export_type) {
             'income_method'        => ['label' => 'Payment Method'],
             'income_reference'     => ['label' => 'Reference'],
             'income_account'       => ['label' => 'Account'],
+            'income_online'        => ['label' => 'Paid Online'],
         ],
 
         'transactions' => [
             'transaction_date'           => ['label' => 'Date'],
+            'transaction_account'        => ['label' => 'Account'],
             'transaction_type'           => ['label' => 'Type'],
+            'transaction_what'           => ['label' => 'Who or What', 'weight' => 2],
             'transaction_description'    => ['label' => 'Description', 'weight' => 3],
             'transaction_other_account'  => ['label' => 'Transfer Account'],
             'transaction_reference'      => ['label' => 'Reference'],
             'transaction_category'       => ['label' => 'Category'],
+            'transaction_client'         => ['label' => 'Client', 'weight' => 2],
             'transaction_payment_method' => ['label' => 'Payment Method'],
-            'transaction_amount'         => ['label' => 'Amount', 'format' => 'money'],
+            'transaction_in'             => ['label' => 'In', 'format' => 'money'],
+            'transaction_out'            => ['label' => 'Out', 'format' => 'money'],
+            'transaction_amount'         => ['label' => 'Amount', 'format' => 'money', 'default' => false],
             'transaction_balance'        => ['label' => 'Balance', 'format' => 'money'],
+            'transaction_cleared'        => ['label' => 'Cleared', 'default' => false],
         ],
 
         'trips' => [
             'trip_date'        => ['label' => 'Date'],
+            'user_name'        => ['label' => 'Driver', 'weight' => 2],
             'trip_purpose'     => ['label' => 'Purpose', 'weight' => 3],
-            'trip_source'      => ['label' => 'Source', 'weight' => 2],
-            'trip_destination' => ['label' => 'Destination', 'weight' => 2],
-            'trip_miles'       => ['label' => 'Miles', 'format' => 'number'],
+            'trip_source'      => ['label' => 'From', 'weight' => 2],
+            'trip_destination' => ['label' => 'To', 'weight' => 2],
+            'trip_miles'       => ['label' => ucfirst(tripUnit()), 'format' => 'number'],
+            'round_trip_display' => ['label' => 'Round Trip', 'default' => false],
+            'trip_one_way'     => ['label' => 'One Way', 'format' => 'number', 'default' => false],
             'client_name'      => ['label' => 'Client', 'weight' => 2, 'default' => false],
+            'location_name'    => ['label' => 'Site', 'weight' => 2, 'default' => false],
+            'ticket_display'   => ['label' => 'Ticket', 'weight' => 2, 'default' => false],
+            'trip_start_odometer' => ['label' => 'Odometer Start', 'default' => false],
+            'trip_end_odometer' => ['label' => 'Odometer End', 'default' => false],
+            'vehicle_display'  => ['label' => 'Vehicle', 'default' => false],
+            'paid_back_display' => ['label' => 'Paid Back', 'weight' => 2, 'default' => false],
+            'billing_display'  => ['label' => 'Billing', 'weight' => 2, 'default' => false],
         ],
 
         // user_status_display is the status word, built by the handler
@@ -413,6 +478,30 @@ function getExportColumns($export_type) {
             'user_last_login'    => ['label' => 'Last Sign In'],
             'user_client_access' => ['label' => 'Client Access', 'weight' => 2, 'default' => false],
             'user_created_at'    => ['label' => 'Creation Date'],
+        ],
+
+        // Audit log entries - handler adds who did it, the record and the device (functions/audit_log.php)
+        'audit_logs' => [
+            'log_created_at'     => ['label' => 'When'],
+            'audit_who'          => ['label' => 'Who'],
+            'user_email'         => ['label' => 'Email', 'default' => false],
+            'client_name'        => ['label' => 'Client'],
+            'log_type'           => ['label' => 'Type'],
+            'log_action'         => ['label' => 'Action'],
+            'log_description'    => ['label' => 'Description', 'weight' => 3],
+            'audit_record'       => ['label' => 'Record', 'weight' => 2, 'default' => false],
+            'log_ip'             => ['label' => 'IP Address'],
+            'audit_device'       => ['label' => 'Device'],
+            'log_user_agent'     => ['label' => 'User Agent', 'weight' => 2, 'default' => false],
+            'log_id'             => ['label' => 'Entry', 'default' => false],
+        ],
+
+        'app_logs' => [
+            'app_log_created_at' => ['label' => 'When'],
+            'app_log_type'       => ['label' => 'Level'],
+            'app_log_category'   => ['label' => 'Category'],
+            'app_log_details'    => ['label' => 'Details', 'weight' => 4],
+            'app_log_id'         => ['label' => 'Entry', 'default' => false],
         ],
 
     ];
@@ -926,109 +1015,4 @@ function finishExport(&$export) {
     $pdf->Output($export['filename'], 'D');
 
     return $export['rows'];
-}
-
-/*
- * ---------------------------------------------------------------------------
- * Client PDF pack
- * ---------------------------------------------------------------------------
- *
- * The sections the client "Export Data" PDF can contain, in document order.
- *
- *   'label'   Checkbox label in the export modal.
- *   'icon'    Font Awesome class shown beside it.
- *   'module'  Permission module that owns the section - same mapping the list
- *             exports use. A role without read access to it never sees the
- *             checkbox and never gets the section, so one missing module drops a
- *             section rather than refusing the whole export.
- *   'default' Whether the box starts ticked.
- *
- * The modal renders from this and the handler resolves from it, so a section
- * can't be offered by one and ignored by the other.
- */
-function getClientPackSections() {
-    return [
-        'contacts'     => ['label' => 'Contacts',            'icon' => 'fa-users',          'module' => 'module_client',     'default' => true],
-        'locations'    => ['label' => 'Locations',           'icon' => 'fa-map-marker-alt', 'module' => 'module_client',     'default' => true],
-        'vendors'      => ['label' => 'Vendors',             'icon' => 'fa-building',       'module' => 'module_client',     'default' => true],
-        'services'     => ['label' => 'Services',            'icon' => 'fa-stream',         'module' => 'module_support',    'default' => true],
-        'credentials'  => ['label' => 'Credentials',         'icon' => 'fa-key',            'module' => 'module_credential', 'default' => false],
-        'assets'       => ['label' => 'Assets',              'icon' => 'fa-desktop',        'module' => 'module_support',    'default' => true],
-        'software'     => ['label' => 'Software / Licenses', 'icon' => 'fa-cube',           'module' => 'module_support',    'default' => true],
-        'networks'     => ['label' => 'Networks',            'icon' => 'fa-network-wired',  'module' => 'module_support',    'default' => true],
-        'domains'      => ['label' => 'Domains',             'icon' => 'fa-globe',          'module' => 'module_support',    'default' => true],
-        'certificates' => ['label' => 'Certificates',        'icon' => 'fa-lock',           'module' => 'module_support',    'default' => true],
-    ];
-}
-
-/*
- * Read access per module, resolved once rather than once per section.
- */
-function getClientPackSectionAccess() {
-    $access = [];
-    foreach (getClientPackSections() as $section) {
-        if (!isset($access[$section['module']])) {
-            $access[$section['module']] = lookupUserPermission($section['module']) >= 1;
-        }
-    }
-    return $access;
-}
-
-/*
- * Resolves the posted checkboxes against the signed-in role. Returns
- * ['contacts' => 1|0, ...]. A section the role can't read is 0 whatever was
- * posted, so a hand-rolled POST can't pull in a section the modal never offered.
- */
-function resolveClientPackSections() {
-
-    $access = getClientPackSectionAccess();
-
-    $selected = [];
-    foreach (getClientPackSections() as $key => $section) {
-        $selected[$key] = ($access[$section['module']] && !empty($_POST["include_$key"])) ? 1 : 0;
-    }
-
-    return $selected;
-}
-
-/*
- * The section checkboxes for the client PDF pack modal, split across two columns.
- * Sections the role can't read are left out entirely rather than shown and then
- * silently dropped server side.
- */
-function renderClientPackSections() {
-
-    $access = getClientPackSectionAccess();
-
-    $visible = [];
-    foreach (getClientPackSections() as $key => $section) {
-        if ($access[$section['module']]) {
-            $visible[$key] = $section;
-        }
-    }
-
-    $split = (int) ceil(count($visible) / 2);
-    $index = 0;
-
-    ?>
-    <div class="row">
-        <div class="col-sm-6">
-        <?php foreach ($visible as $key => $section) { ?>
-            <?php if ($index === $split) { ?>
-        </div>
-        <div class="col-sm-6">
-            <?php } ?>
-            <li class="list-group-item">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="include_<?= $key ?>" name="include_<?= $key ?>" value="1" <?php if ($section['default']) { echo 'checked'; } ?>>
-                    <label for="include_<?= $key ?>" class="form-check-label">
-                        <i class="fas fa-fw <?= $section['icon'] ?> me-2"></i><?= escapeHtml($section['label']) ?>
-                    </label>
-                </div>
-            </li>
-            <?php $index++; ?>
-        <?php } ?>
-        </div>
-    </div>
-    <?php
 }

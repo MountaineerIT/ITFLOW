@@ -31,6 +31,7 @@ function demoDataAccounts() {
         ['Operating Checking', 'Day to day business banking - client payments in, bills out', 18500.00],
         ['Business Savings', 'Tax and reserve holding', 42000.00],
         ['Merchant Settlement', 'Card and online payments waiting to be paid out', 0.00],
+        ['Business Visa', 'Company card for subscriptions, supplies and meals', 0.00],
     ];
 }
 
@@ -86,12 +87,14 @@ function demoDataSlas() {
 // ------------------------------
 // demoDataTaxes
 // Sales tax on goods lines. Labor is not taxed in this fictional jurisdiction,
-// which is why only hardware lines carry a rate.
+// which is why only hardware lines carry a rate. Name, whole percent,
+// description, registration number, and the parts it is made of.
 // ------------------------------
 function demoDataTaxes() {
     return [
-        ['PA Sales Tax', 6.0],
-        ['Allegheny County Sales Tax', 7.0],
+        ['PA Sales Tax', 6.0, 'Pennsylvania state sales tax', '75520193', []],
+        // The state's part is named as the state's own rate, so Tax Collected adds the two up in one row
+        ['Allegheny County Sales Tax', 7.0, 'Pennsylvania 6% plus the Allegheny County local 1%', '75520193', [['PA Sales Tax', 6.0], ['Allegheny County', 1.0]]],
     ];
 }
 
@@ -133,38 +136,72 @@ function demoCategoryId($mysqli, $name, $type) {
 // whatever the Products starter pack put in. Deliberately a mix - the open
 // source stack is sold as hosting and support rather than licences, which is
 // where the margin on it comes from.
-// name, type, code, price, income category, description
+// name, type, code, price, income category, description, billed (frequency, or
+// frequency:per user), cost, vendor (one of ours), vendor part number, track stock
 // ------------------------------
 function demoDataProducts() {
     return [
         // Hosting - the open source side of the business
-        ['Nextcloud Hosting - Per User', 'service', 'HOST-NC', '6.50', 'Web and Hosting', 'Per user, per month. Managed Nextcloud instance with sync, sharing and mobile access, backed up nightly.'],
-        ['Nextcloud Hosting - Instance', 'service', 'HOST-NCI', '95.00', 'Web and Hosting', 'Per instance, per month. Dedicated Nextcloud instance, updates, monitoring and support.'],
-        ['Web Hosting - Standard', 'service', 'HOST-WEB', '25.00', 'Web and Hosting', 'Per site, per month. Managed hosting with TLS, nightly backup and uptime monitoring.'],
-        ['Web Hosting - Business', 'service', 'HOST-WEBB', '65.00', 'Web and Hosting', 'Per site, per month. Higher resource allocation, staging site and priority restore.'],
-        ['Email Hosting - Per Mailbox', 'service', 'HOST-MAIL', '4.50', 'Web and Hosting', 'Per mailbox, per month. Mail hosting with spam filtering, webmail and mobile sync.'],
-        ['Mail Relay and Filtering', 'service', 'HOST-RELAY', '2.00', 'Web and Hosting', 'Per mailbox, per month. Inbound filtering and outbound relay with reputation monitoring.'],
-        ['Offsite Backup Storage - Self Hosted', 'service', 'HOST-BKP', '0.09', 'Backup', 'Per GB, per month. Encrypted offsite backup storage on our own infrastructure rather than a third party cloud.'],
-        ['Virtual Server Hosting', 'service', 'HOST-VPS', '55.00', 'Cloud Services', 'Per guest, per month. Proxmox hosted virtual server with backup and monitoring.'],
+        ['Nextcloud Hosting - Per User', 'service', 'HOST-NC', '6.50', 'Web and Hosting', 'Per user, per month. Managed Nextcloud instance with sync, sharing and mobile access, backed up nightly.', 'month:contacts', '2.40', 'Nextcloud Hosting Partner', '', 0],
+        ['Nextcloud Hosting - Instance', 'service', 'HOST-NCI', '95.00', 'Web and Hosting', 'Per instance, per month. Dedicated Nextcloud instance, updates, monitoring and support.', 'month', '38.00', 'Nextcloud Hosting Partner', '', 0],
+        ['Web Hosting - Standard', 'service', 'HOST-WEB', '25.00', 'Web and Hosting', 'Per site, per month. Managed hosting with TLS, nightly backup and uptime monitoring.', 'month', '6.00', '', '', 0],
+        ['Web Hosting - Business', 'service', 'HOST-WEBB', '65.00', 'Web and Hosting', 'Per site, per month. Higher resource allocation, staging site and priority restore.', 'month', '14.00', '', '', 0],
+        ['Email Hosting - Per Mailbox', 'service', 'HOST-MAIL', '4.50', 'Web and Hosting', 'Per mailbox, per month. Mail hosting with spam filtering, webmail and mobile sync.', 'month', '1.10', '', '', 0],
+        ['Mail Relay and Filtering', 'service', 'HOST-RELAY', '2.00', 'Web and Hosting', 'Per mailbox, per month. Inbound filtering and outbound relay with reputation monitoring.', 'month', '0.45', '', '', 0],
+        ['Offsite Backup Storage - Self Hosted', 'service', 'HOST-BKP', '0.09', 'Backup', 'Per GB, per month. Encrypted offsite backup storage on our own infrastructure rather than a third party cloud.', 'month', '0.03', '', '', 0],
+        ['Virtual Server Hosting', 'service', 'HOST-VPS', '55.00', 'Cloud Services', 'Per guest, per month. Proxmox hosted virtual server with backup and monitoring.', 'month', '18.00', '', '', 0],
 
         // Open source support and migration work
-        ['Proxmox VE Support', 'service', 'FOSS-PVE', '145.00', 'Managed Services', 'Per host, per month. Proxmox VE monitoring, updates and enterprise repository access.'],
-        ['pfSense Plus Support', 'service', 'FOSS-PF', '65.00', 'Managed Services', 'Per firewall, per month. pfSense Plus subscription, firmware and rule management.'],
-        ['OPNsense Support', 'service', 'FOSS-OPN', '65.00', 'Managed Services', 'Per firewall, per month. OPNsense updates, firmware and rule management.'],
-        ['TrueNAS Support', 'service', 'FOSS-TN', '95.00', 'Managed Services', 'Per array, per month. TrueNAS monitoring, pool health, snapshots and replication.'],
-        ['LibreOffice Migration', 'service', 'FOSS-LO', '145.00', 'Projects', 'Per hour. Template conversion, macro rework and user training when moving off a proprietary office suite.'],
-        ['Linux Desktop Build', 'service', 'FOSS-DSK', '125.00', 'Projects', 'Per machine. Standard Linux desktop build, data migration and handover.'],
-        ['Open Source Stack Review', 'service', 'FOSS-REV', '850.00', 'Consulting', 'Fixed fee. Review of a self hosted stack with a written report and a costed roadmap.'],
+        ['Proxmox VE Support', 'service', 'FOSS-PVE', '145.00', 'Managed Services', 'Per host, per month. Proxmox VE monitoring, updates and enterprise repository access.', 'month', '32.00', 'Proxmox Server Solutions', 'PVE-BASIC-1S', 0],
+        ['pfSense Plus Support', 'service', 'FOSS-PF', '65.00', 'Managed Services', 'Per firewall, per month. pfSense Plus subscription, firmware and rule management.', 'month', '12.00', 'Netgate', 'PFS-PLUS-TAC', 0],
+        ['OPNsense Support', 'service', 'FOSS-OPN', '65.00', 'Managed Services', 'Per firewall, per month. OPNsense updates, firmware and rule management.', 'month', '0.00', '', '', 0],
+        ['TrueNAS Support', 'service', 'FOSS-TN', '95.00', 'Managed Services', 'Per array, per month. TrueNAS monitoring, pool health, snapshots and replication.', 'month', '0.00', '', '', 0],
+        ['LibreOffice Migration', 'service', 'FOSS-LO', '145.00', 'Projects', 'Per hour. Template conversion, macro rework and user training when moving off a proprietary office suite.', '', '0.00', '', '', 0],
+        ['Linux Desktop Build', 'service', 'FOSS-DSK', '125.00', 'Projects', 'Per machine. Standard Linux desktop build, data migration and handover.', '', '0.00', '', '', 0],
+        ['Open Source Stack Review', 'service', 'FOSS-REV', '850.00', 'Consulting', 'Fixed fee. Review of a self hosted stack with a written report and a costed roadmap.', '', '0.00', '', '', 0],
 
         // Corporate licensing and hardware, resold
-        ['Google Workspace Business Standard', 'service', 'LIC-GWBS', '14.00', 'Managed Services', 'Per user, per month. Licence resold and managed.'],
-        ['Synology Active Backup Licence', 'product', 'LIC-SYNAB', '0.00', 'Hardware Sales', 'Included with Synology hardware. Listed so it appears on the quote.'],
-        ['Netgate 6100 MAX Firewall', 'product', 'HW-NG6100', '1245.00', 'Hardware Sales', 'pfSense Plus appliance with three years of support included.'],
-        ['Ubiquiti U6-Pro Access Point', 'product', 'HW-U6PRO', '245.00', 'Hardware Sales', 'Wi-Fi 6 ceiling mounted access point, PoE powered.'],
-        ['Ubiquiti USW-Pro-24-PoE Switch', 'product', 'HW-USW24', '785.00', 'Hardware Sales', '24 port managed PoE switch with SFP+ uplinks.'],
-        ['Synology RS1221+ with Drives', 'product', 'HW-RS1221', '2850.00', 'Hardware Sales', 'Rack NAS populated with NAS rated drives, running Active Backup for Business.'],
-        ['Rack Mount UPS 1500VA', 'product', 'HW-UPS15', '685.00', 'Hardware Sales', 'Rack mount UPS with network management card and graceful shutdown.'],
+        ['Google Workspace Business Standard', 'service', 'LIC-GWBS', '14.00', 'Managed Services', 'Per user, per month. Licence resold and managed.', 'month:contacts', '11.20', 'Cascade Cloud Licensing', 'GWS-BSTD-FLEX', 0],
+        ['Synology Active Backup Licence', 'product', 'LIC-SYNAB', '0.00', 'Hardware Sales', 'Included with Synology hardware. Listed so it appears on the quote.', '', '0.00', 'Synology Direct', '', 0],
+        ['Netgate 6100 MAX Firewall', 'product', 'HW-NG6100', '1245.00', 'Hardware Sales', 'pfSense Plus appliance with three years of support included.', '', '935.00', 'Netgate', '6100-MAX', 0, 'Firewall/Router', 'Netgate', '6100 MAX', 36],
+        ['Ubiquiti U6-Pro Access Point', 'product', 'HW-U6PRO', '245.00', 'Hardware Sales', 'Wi-Fi 6 ceiling mounted access point, PoE powered.', '', '179.00', 'Ubiquiti Store', 'U6-Pro', 1, 'Access Point', 'Ubiquiti', 'U6-Pro', 12],
+        ['Ubiquiti USW-Pro-24-PoE Switch', 'product', 'HW-USW24', '785.00', 'Hardware Sales', '24 port managed PoE switch with SFP+ uplinks.', '', '599.00', 'Ubiquiti Store', 'USW-Pro-24-PoE', 0, 'Switch', 'Ubiquiti', 'USW-Pro-24-PoE', 12],
+        ['Synology RS1221+ with Drives', 'product', 'HW-RS1221', '2850.00', 'Hardware Sales', 'Rack NAS populated with NAS rated drives, running Active Backup for Business.', '', '2140.00', 'Synology Direct', 'RS1221+', 0, 'Server', 'Synology', 'RS1221+', 36],
+        ['Rack Mount UPS 1500VA', 'product', 'HW-UPS15', '685.00', 'Hardware Sales', 'Rack mount UPS with network management card and graceful shutdown.', '', '498.00', 'Ridgeline Technology Distribution', 'SMT1500RM2UNC', 1, 'Other', 'APC', 'Smart-UPS SMT1500RM2UNC', 36],
     ];
+}
+
+// ------------------------------
+// demoProductExtras
+// How a demo product is billed, what it costs, who it comes from, whether
+// its stock is tracked and, for hardware, the client asset it becomes - the
+// columns past the description.
+// ------------------------------
+function demoProductExtras($product, $vendors) {
+    [$frequency, $seat] = array_pad(explode(':', (string) ($product[6] ?? '')), 2, '');
+    $extras = [
+        'product_cost' => $product[7] ?? '0.00',
+        'product_track_stock' => intval($product[10] ?? 0),
+    ];
+    if ($frequency !== '') {
+        $extras['product_frequency'] = $frequency;
+    }
+    if ($seat !== '') {
+        $extras['product_seat_source'] = $seat;
+    }
+    if (!empty($product[8]) && isset($vendors[$product[8]])) {
+        $extras['product_vendor_id'] = $vendors[$product[8]];
+    }
+    if (!empty($product[9])) {
+        $extras['product_vendor_part'] = $product[9];
+    }
+    if (!empty($product[11])) {
+        $extras['product_asset_type'] = $product[11];
+        $extras['product_make'] = $product[12] ?? '';
+        $extras['product_model'] = $product[13] ?? '';
+        $extras['product_warranty_months'] = intval($product[14] ?? 0);
+    }
+    return $extras;
 }
 
 // ------------------------------
@@ -172,7 +209,7 @@ function demoDataProducts() {
 // Matched on the product code, which is what makes a catalogue line ours - a
 // name on its own could easily be something the install already sells.
 // ------------------------------
-function demoEnsureProducts($mysqli, $currency) {
+function demoEnsureProducts($mysqli, $currency, $vendors = []) {
 
     $products = [];
 
@@ -199,7 +236,7 @@ function demoEnsureProducts($mysqli, $currency) {
             'product_description' => $product[5],
             'product_category_id' => demoCategoryId($mysqli, $product[4], 'Income'),
             'product_tax_id' => 0,
-        ]);
+        ] + demoProductExtras($product, $vendors));
     }
 
     return $products;
@@ -515,6 +552,7 @@ function demoEnsureAccounts($mysqli, $currency) {
             'account_description' => $account[1],
             'opening_balance' => number_format($account[2], 2, '.', ''),
             'account_currency_code' => $currency,
+            'account_type' => accountTypeGuess($account[0]),
             'account_created_at' => demoMonthDateTime(24, 1, 9, 0),
         ]);
     }
@@ -600,8 +638,18 @@ function demoEnsureTaxes($mysqli) {
         $tax_id = starterInsert($mysqli, 'taxes', [
             'tax_name' => $tax[0],
             'tax_percent' => $tax[1],
+            'tax_description' => $tax[2],
+            'tax_registration_number' => $tax[3],
             'tax_created_at' => demoMonthDateTime(24, 3, 9, 0),
         ]);
+        foreach ($tax[4] as $order => $part) {
+            starterInsert($mysqli, 'tax_components', [
+                'component_tax_id' => $tax_id,
+                'component_name' => $part[0],
+                'component_percent' => $part[1],
+                'component_order' => $order + 1,
+            ]);
+        }
         $taxes[$tax[0]] = ['id' => $tax_id, 'percent' => $tax[1]];
     }
 
@@ -638,8 +686,8 @@ function demoDataLoad($mysqli) {
         'currency' => $currency,
         'accounts' => demoEnsureAccounts($mysqli, $currency),
         'cash_account_id' => demoCashAccountId($mysqli),
-        'org_vendors' => demoEnsureOrgVendors($mysqli),
-        'products' => demoEnsureProducts($mysqli, $currency),
+        'org_vendors' => $org_vendors = demoEnsureOrgVendors($mysqli),
+        'products' => demoEnsureProducts($mysqli, $currency, $org_vendors),
         'calendars' => demoEnsureCalendars($mysqli),
         'slas' => demoEnsureSlas($mysqli),
         'taxes' => demoEnsureTaxes($mysqli),
@@ -675,6 +723,7 @@ function demoDataLoad($mysqli) {
     // missing clients does not double anything up.
     demoBuildInternalDiary($mysqli, $context, $counts);
     demoBuildCompanyFinancials($mysqli, $context, $counts);
+    demoReconcileAccounts($mysqli, $context);
 
     if (!$context['vault_open'] && $counts['clients']) {
         $counts['skipped_credentials'] = 1;
@@ -946,6 +995,11 @@ function demoDataRemove($mysqli) {
             mysqli_query($mysqli, "DELETE FROM transfers WHERE transfer_id = $transfer_id");
         }
 
+        // The company's other income - rebates, interest and referral fees on our accounts
+        mysqli_query($mysqli, "DELETE FROM revenues WHERE revenue_client_id = 0 AND revenue_account_id IN ($owned_ids)
+            AND (revenue_reference LIKE 'RBT-%' OR revenue_reference LIKE 'INT-%' OR revenue_reference LIKE 'REF-%')
+            AND NOT EXISTS (SELECT 1 FROM transfers WHERE transfer_revenue_id = revenue_id)");
+
     }
 
     // The transfer categories are ours - the Categories pack has no equivalent.
@@ -1004,6 +1058,7 @@ function demoDataRemove($mysqli) {
         }
         if (!$in_use) {
             mysqli_query($mysqli, "DELETE FROM product_stock WHERE stock_product_id = $product_id");
+            mysqli_query($mysqli, "DELETE FROM product_prices WHERE price_product_id = $product_id");
             mysqli_query($mysqli, "DELETE FROM products WHERE product_id = $product_id");
         }
     }
@@ -1034,6 +1089,21 @@ function demoDataRemove($mysqli) {
         $purpose = escapeSql($errand[0]);
         $destination = escapeSql($errand[1]);
         mysqli_query($mysqli, "DELETE FROM trips WHERE trip_client_id = 0 AND trip_source = 'Office' AND trip_purpose = '$purpose' AND trip_destination = '$destination'");
+    }
+
+    // The statements reconciled on our accounts go with the demo - their lines
+    // are mostly gone, and any left are free to change again
+    foreach (demoDataAccounts() as $account) {
+        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT account_id FROM accounts WHERE account_name = '" . escapeSql($account[0]) . "' AND account_description = '" . escapeSql($account[1]) . "' LIMIT 1"));
+        $account_id = intval($row['account_id'] ?? 0);
+        if (!$account_id) {
+            continue;
+        }
+        foreach (['payments' => 'payment', 'revenues' => 'revenue', 'expenses' => 'expense'] as $table => $prefix) {
+            mysqli_query($mysqli, "UPDATE $table SET {$prefix}_reconciliation_id = NULL
+                WHERE {$prefix}_reconciliation_id IN (SELECT reconciliation_id FROM account_reconciliations WHERE reconciliation_account_id = $account_id)");
+        }
+        mysqli_query($mysqli, "DELETE FROM account_reconciliations WHERE reconciliation_account_id = $account_id");
     }
 
     // Accounts, SLAs and tax rates are shared company config, so each one only
@@ -1089,8 +1159,14 @@ function demoDataRemove($mysqli) {
             $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(*) AS total FROM $table WHERE $column = $tax_id"));
             $in_use = $in_use + intval($row['total'] ?? 0);
         }
+        foreach (['clients' => 'client_default_tax_id'] as $table => $column) {
+            $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(*) AS total FROM $table WHERE $column = $tax_id"));
+            $in_use = $in_use + intval($row['total'] ?? 0);
+        }
         if (!$in_use) {
+            mysqli_query($mysqli, "DELETE FROM tax_components WHERE component_tax_id = $tax_id");
             mysqli_query($mysqli, "DELETE FROM taxes WHERE tax_id = $tax_id");
+            mysqli_query($mysqli, "UPDATE settings SET config_tax_default_id = 0 WHERE config_tax_default_id = $tax_id");
         }
     }
 
@@ -1109,7 +1185,7 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
     $user_id = $context['user_id'];
     $months = demoClientMonths($profile);
 
-    $client_id = starterInsert($mysqli, 'clients', [
+    $client_id = starterInsert($mysqli, 'clients', array_merge([
         'client_name' => $profile['name'],
         'client_type' => $profile['type'],
         'client_website' => 'https://www.' . $profile['domain'],
@@ -1119,6 +1195,8 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
         'client_net_terms' => $profile['net_terms'],
         'client_abbreviation' => $profile['abbreviation'],
         'client_tax_id_number' => '82-' . demoSerial($profile['abbreviation'] . 'ein', 7),
+        // The rate where it is
+        'client_default_tax_id' => intval($context['taxes'][$profile['tax']]['id'] ?? 0),
         'client_lead' => $profile['lead'],
         'client_favorite' => $profile['favorite'],
         'client_notes' => $profile['notes'],
@@ -1126,7 +1204,12 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
         // first - a client record cannot postdate its own opening invoice
         'client_created_at' => demoMonthDateTime($months, 1, 9, 14),
         'client_accessed_at' => demoDateTime($index % 5, 11, 20),
-    ]);
+    ], !empty($profile['tax_exempt']) ? [
+        // Or exempt on a certificate - a church, a school
+        'client_tax_exempt' => 1,
+        'client_tax_exempt_number' => $profile['tax_exempt'][0],
+        'client_tax_exempt_expires' => date('Y-m-d', strtotime($profile['tax_exempt'][1])),
+    ] : []));
 
     demoAttachTags($mysqli, 'client_tags', 'client_id', 'tag_id', $client_id, 1, $profile['tags']);
 
@@ -1435,6 +1518,7 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
         ], ['document_content', 'document_content_raw']);
         $document_ids[] = $document_id;
         $counts['documentation']++;
+        demoAttachTags($mysqli, 'document_tags', 'document_id', 'tag_id', $document_id, 11, $document_index === 0 ? ['Runbook'] : ($document[3] ? ['Client-facing'] : ['Procedure']));
 
         // The runbook has been revised at least once since it was written
         if ($document_index === 0 && $written_months_ago > 2) {
@@ -1475,6 +1559,7 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
             'service_accessed_at' => demoDateTime($index % 12, 16, 20),
         ]);
         $counts['documentation']++;
+        demoAttachTags($mysqli, 'service_tags', 'service_id', 'tag_id', $service_id, 9, in_array($service[2], ['Email', 'Web'], true) ? ['Managed', 'Cloud'] : ['Managed']);
 
         // Link it to the assets whose type it runs on
         foreach ($assets as $asset) {
@@ -1521,6 +1606,7 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
 
         $software_id = starterInsert($mysqli, 'software', $software_fields);
         $counts['documentation']++;
+        demoAttachTags($mysqli, 'software_tags', 'software_id', 'tag_id', $software_id, 8, $software[4] === 'Subscription' ? ['We Resell', 'Core Stack'] : []);
 
         // Open source software has no key to hold
         if ($software[4] !== 'Open Source') {
@@ -1641,6 +1727,14 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
         }
     }
 
+    // The driving out to them (functions/trips.php): the quarterly visit to
+    // their main site, and a trip for each onsite ticket fixed in the last six
+    // months - to the ticket's site, on the day it was fixed, by who fixed it.
+    // The last six weeks in the agent's own vehicle, to pay back for; a
+    // billable ticket's trip in the last month is billable too, when trips
+    // bill (Admin > Settings > Invoice)
+    $trip_miles = 8.5 + ($index * 2.5);
+    $main_site = $profile['sites'][0];
     for ($trip_month = min(6, $months); $trip_month >= 0; $trip_month = $trip_month - 3) {
         if (demoIsFuture(demoMonthDate($trip_month, 17))) {
             continue;
@@ -1649,12 +1743,40 @@ function demoBuildClient($mysqli, $profile, $index, $context, &$counts) {
             'trip_date' => demoMonthDate($trip_month, 17),
             'trip_purpose' => 'Onsite - ' . $profile['onsite_visit'],
             'trip_source' => 'Office',
-            'trip_destination' => $profile['sites'][0]['city'] . ', ' . $profile['sites'][0]['state'],
-            'trip_miles' => 8.5 + ($index * 2.5),
+            'trip_destination' => formatAddress($main_site['address'], $main_site['city'], $main_site['state'], $main_site['zip'], '', ' '),
+            'trip_miles' => $trip_miles,
             'round_trip' => 1,
+            'trip_own_vehicle' => strtotime(demoMonthDate($trip_month, 17)) >= strtotime('-45 days') ? 1 : 0,
             'trip_user_id' => $user_id,
+            'trip_created_by' => $user_id,
             'trip_client_id' => $client_id,
+            'trip_location_id' => $primary_location_id,
             'trip_created_at' => demoMonthDateTime($trip_month, 17, 17, 30),
+        ]);
+    }
+    $bill_trips = tripBillingOn();
+    $sql = mysqli_query($mysqli, "SELECT ticket_id, ticket_subject, ticket_assigned_to, ticket_resolved_at, ticket_billable, location_id, location_name, location_address, location_city, location_state, location_zip
+        FROM tickets LEFT JOIN locations ON location_id = ticket_location_id
+        WHERE ticket_client_id = " . intval($client_id) . " AND ticket_onsite = 1 AND ticket_resolved_at IS NOT NULL
+            AND ticket_resolved_at >= NOW() - INTERVAL 6 MONTH AND ticket_resolved_at <= NOW()
+        ORDER BY ticket_resolved_at ASC");
+    while ($ticket = mysqli_fetch_assoc($sql)) {
+        $driver_id = intval($ticket['ticket_assigned_to']) ?: $user_id;
+        starterInsert($mysqli, 'trips', [
+            'trip_date' => substr($ticket['ticket_resolved_at'], 0, 10),
+            'trip_purpose' => mb_substr('Onsite - ' . $ticket['ticket_subject'], 0, 200),
+            'trip_source' => 'Office',
+            'trip_destination' => $ticket['location_id'] !== null ? tripLocationAddress($ticket) : formatAddress($main_site['address'], $main_site['city'], $main_site['state'], $main_site['zip'], '', ' '),
+            'trip_miles' => $trip_miles,
+            'round_trip' => 1,
+            'trip_own_vehicle' => strtotime($ticket['ticket_resolved_at']) >= strtotime('-45 days') ? 1 : 0,
+            'trip_billable' => $bill_trips && intval($ticket['ticket_billable']) && strtotime($ticket['ticket_resolved_at']) >= strtotime('-30 days') ? 1 : 0,
+            'trip_user_id' => $driver_id,
+            'trip_created_by' => $driver_id,
+            'trip_client_id' => $client_id,
+            'trip_location_id' => intval($ticket['location_id']),
+            'trip_ticket_id' => intval($ticket['ticket_id']),
+            'trip_created_at' => $ticket['ticket_resolved_at'],
         ]);
     }
 
@@ -2269,6 +2391,22 @@ function demoBuildProjects($mysqli, $profile, $index, $client_id, $months, &$cou
 // One place that writes a ticket and its trail, so every ticket in the demo
 // gets the same history, SLA treatment and reply handling.
 // ------------------------------
+/* A demo ticket's tags, from what it is about - the Tags starter pack's ticket tags. */
+function demoTicketTags($subject) {
+    $map = [
+        'New starter' => 'Onboarding', 'leaving' => 'Offboarding', 'Ransomware' => 'Security', 'Suspicious' => 'Security',
+        'Multi factor' => 'Security', 'Drive failed' => 'Warranty Claim', 'screen cracked' => 'Warranty Claim', 'will not power on' => 'Warranty Claim',
+        'internet dropping' => 'Waiting on Vendor',
+    ];
+    $tags = [];
+    foreach ($map as $words => $tag) {
+        if (stripos((string) $subject, $words) !== false) {
+            $tags[] = $tag;
+        }
+    }
+    return array_values(array_unique($tags));
+}
+
 function demoSeedTicket($mysqli, $fields, $trail, $context, &$counts) {
 
     global $config_ticket_prefix;
@@ -2296,6 +2434,7 @@ function demoSeedTicket($mysqli, $fields, $trail, $context, &$counts) {
 
     $ticket_id = starterInsert($mysqli, 'tickets', $fields, ['ticket_details']);
     $counts['tickets']++;
+    demoAttachTags($mysqli, 'ticket_tags', 'ticket_id', 'tag_id', $ticket_id, 12, demoTicketTags($fields['ticket_subject']));
 
     if (!empty($fields['ticket_asset_id'])) {
         mysqli_query($mysqli, "INSERT INTO ticket_assets SET ticket_id = $ticket_id, asset_id = {$fields['ticket_asset_id']}");
@@ -3168,11 +3307,14 @@ function demoBuildBilling($mysqli, $profile, $index, $client_id, $vendor_id, $mo
             'expense_currency_code' => $currency,
             'expense_date' => demoMonthDate($month, 14),
             'expense_reference' => 'INV-' . demoSerial($profile['abbreviation'] . $expense[0] . $month, 8),
-            'expense_payment_method' => 'Credit Card',
+            'expense_payment_method' => 'ACH',
             'expense_vendor_id' => $context['org_vendors'][$expense[3]] ?? 0,
             'expense_client_id' => $client_id,
             'expense_category_id' => demoCategoryId($mysqli, $expense[2], 'Expense'),
             'expense_account_id' => $bank_account_id,
+            // The latest ones are still to bill on to the client, with a markup
+            'expense_billable' => $month <= 2 ? 1 : 0,
+            'expense_markup' => $month <= 2 ? '15.00' : '0.00',
             'expense_created_at' => demoMonthDateTime($month, 14, 16, 45),
         ]);
         $counts['billing']++;
@@ -3193,6 +3335,7 @@ function demoBuildBilling($mysqli, $profile, $index, $client_id, $vendor_id, $mo
             'revenue_category_id' => $support_category_id,
             'revenue_account_id' => $bank_account_id,
             'revenue_client_id' => $client_id,
+            'revenue_created_by' => intval($context['user_id']),
             'revenue_created_at' => demoMonthDateTime($month, 22, 10, 15),
         ]);
         $counts['billing']++;
@@ -3268,6 +3411,16 @@ function demoBuildCompanyFinancials($mysqli, $context, &$counts) {
         ['Conference and travel', 1450.00, 'Travel', 12, 18, 'Alcott and Reyes CPA'],
     ];
 
+    // The smaller, recurring costs go on the company card, paid off from the
+    // bank early the next month - so the card shows what is owed on it
+    $card_id = $context['accounts']['Business Visa'] ?? 0;
+    $card_categories = ['Software', 'Cloud and Hosting', 'Office Supplies', 'Meals', 'Shipping and Postage', 'Dues and Subscriptions', 'Telecom and Internet'];
+    $card_spent = [];
+
+    // What we buy for our own use pays sales tax; stock to resell doesn't
+    $taxed_categories = ['Office Supplies', 'Tools and Test Equipment', 'Equipment', 'Vehicle and Fuel'];
+    $purchase_tax_id = intval($context['taxes']['PA Sales Tax']['id'] ?? 0);
+
     // Which purchases put hardware on the shelf, and what they bring in
     $stock_lines = [
         'UniFi shelf stock for the workshop' => ['Ubiquiti U6-Pro Access Point', 4],
@@ -3283,18 +3436,26 @@ function demoBuildCompanyFinancials($mysqli, $context, &$counts) {
 
             // Payroll and rent creep up over two years rather than sitting flat
             $drift = 1 + ((24 - $month) * 0.004);
+            $on_card = $card_id && in_array($cost[2], $card_categories, true);
+            if ($on_card) {
+                $card_spent[$month] = ($card_spent[$month] ?? 0) + round($cost[1] * $drift, 2);
+            }
 
+            $taxed = $purchase_tax_id && in_array($cost[2], $taxed_categories, true);
             $expense_id = starterInsert($mysqli, 'expenses', [
                 'expense_description' => $cost[0],
                 'expense_amount' => number_format($cost[1] * $drift, 2, '.', ''),
+                'expense_tax_id' => $taxed ? $purchase_tax_id : 0,
+                'expense_tax_amount' => number_format($taxed ? taxIncluded(round($cost[1] * $drift, 2), $purchase_tax_id) : 0, 2, '.', ''),
                 'expense_currency_code' => $currency,
                 'expense_date' => demoMonthDate($month, $cost[4]),
                 'expense_reference' => 'BILL-' . demoSerial('company' . $cost[0] . $month, 8),
-                'expense_payment_method' => $cost[0] === 'Payroll' ? 'ACH' : 'Credit Card',
+                // Payroll and the bills from the bank go by ACH, the card's own costs by card
+                'expense_payment_method' => $cost[0] !== 'Payroll' && ($on_card || !$card_id) ? 'Credit Card' : 'ACH',
                 'expense_vendor_id' => $vendors[$cost[5]] ?? 0,
                 'expense_client_id' => 0,
                 'expense_category_id' => demoCategoryId($mysqli, $cost[2], 'Expense'),
-                'expense_account_id' => $operating_id,
+                'expense_account_id' => $on_card ? $card_id : $operating_id,
                 'expense_created_at' => demoMonthDateTime($month, $cost[4], 17, 0),
             ]);
             $counts['company']++;
@@ -3345,31 +3506,39 @@ function demoBuildCompanyFinancials($mysqli, $context, &$counts) {
         }
     }
 
-    // The standing costs, as the recurring expenses they actually are
+    // The standing costs, as the recurring expenses they actually are - each
+    // picks up from the last of its history above, which it is linked to
     foreach ([
-        ['Office rent', 1850.00, 'Rent and Utilities', 1, 1, 'Monongahela Property Group'],
-        ['Colocation, power and transit', 495.00, 'Infrastructure', 1, 3, 'Three Rivers Colocation'],
-        ['Microsoft and Google partner licensing', 2450.00, 'Licensing - Cost of Goods', 1, 6, 'Cascade Cloud Licensing'],
-        ['Business insurance', 1450.00, 'Insurance', 2, 12, 'Keystone Commercial Insurance'],
+        ['Office rent', 1850.00, 'Rent and Utilities', 'month', 1, 'Monongahela Property Group'],
+        ['Colocation, power and transit', 495.00, 'Infrastructure', 'month', 3, 'Three Rivers Colocation'],
+        ['Microsoft and Google partner licensing', 2450.00, 'Licensing - Cost of Goods', 'month', 6, 'Cascade Cloud Licensing'],
+        ['Business insurance', 1450.00, 'Insurance', 'quarter', 12, 'Keystone Commercial Insurance'],
     ] as $recurring) {
-        starterInsert($mysqli, 'recurring_expenses', [
+        $vendor_id = intval($vendors[$recurring[5]] ?? 0);
+        $description = mysqli_real_escape_string($mysqli, $recurring[0]);
+        $last = mysqli_fetch_row(mysqli_query($mysqli, "SELECT MAX(expense_date) FROM expenses WHERE expense_vendor_id = $vendor_id AND expense_description = '$description'"))[0]
+            ?: demoMonthDate(1, $recurring[4]);
+        $next = recurringInvoiceStep($last, $recurring[3], $recurring[4]);
+        $recurring_id = starterInsert($mysqli, 'recurring_expenses', [
             'recurring_expense_frequency' => $recurring[3],
-            'recurring_expense_day' => $recurring[4],
-            'recurring_expense_month' => 1,
-            'recurring_expense_next_date' => date('Y-m-d', strtotime('+1 month')),
-            'recurring_expense_last_sent' => demoMonthDate(0, $recurring[4]),
+            'recurring_expense_anchor_day' => $recurring[4],
+            'recurring_expense_next_date' => $next,
+            'recurring_expense_last_sent' => $last,
             'recurring_expense_status' => 1,
             'recurring_expense_description' => $recurring[0],
             'recurring_expense_amount' => number_format($recurring[1], 2, '.', ''),
             'recurring_expense_payment_method' => 'ACH',
             'recurring_expense_reference' => 'STANDING-' . demoSerial('recurring' . $recurring[0], 6),
             'recurring_expense_currency_code' => $currency,
-            'recurring_expense_vendor_id' => $vendors[$recurring[5]] ?? 0,
+            'recurring_expense_vendor_id' => $vendor_id,
             'recurring_expense_client_id' => 0,
             'recurring_expense_category_id' => demoCategoryId($mysqli, $recurring[2], 'Expense'),
             'recurring_expense_account_id' => $operating_id,
             'recurring_expense_created_at' => demoMonthDateTime(24, $recurring[4], 9, 0),
         ]);
+        if ($recurring_id) {
+            mysqli_query($mysqli, "UPDATE expenses SET expense_recurring_expense_id = " . intval($recurring_id) . " WHERE expense_vendor_id = $vendor_id AND expense_description = '$description'");
+        }
         $counts['company']++;
     }
 
@@ -3420,6 +3589,13 @@ function demoBuildCompanyFinancials($mysqli, $context, &$counts) {
         }
     }
 
+    // The card's statement paid in full from the bank on the 2nd of the next month
+    foreach ($card_spent as $month => $spent) {
+        if ($month > 0 && $spent > 0) {
+            demoTransfer($mysqli, $operating_id, $card_id, $spent, $currency, 'Bank Transfer', 'Business Visa statement paid in full', $month - 1, 2, $counts);
+        }
+    }
+
     // Card settlements landing in the bank, and the quarterly tax reserve
     $cash_id = $context['cash_account_id'];
     for ($month = 24; $month >= 0; $month--) {
@@ -3439,6 +3615,82 @@ function demoBuildCompanyFinancials($mysqli, $context, &$counts) {
 
     }
 
+    // Money in that never went through an invoice - the distributor's partner
+    // rebate each quarter, interest on the savings, and the odd referral fee.
+    // The RBT-, INT- and REF- references are how removal finds them again.
+    $other_income = [];
+    for ($month = 24; $month >= 0; $month--) {
+        if ($month % 3 === 1) {
+            $other_income[] = [$month, 12, 380.00 + (($month % 5) * 45), 'Rebates', 'ACH', 'RBT-', "Distributor partner rebate for last quarter's licensing", $operating_id];
+        }
+        if ($savings_id) {
+            $other_income[] = [$month, 28, 18.40 + ((24 - $month) * 0.65), 'Interest', 'ACH', 'INT-', 'Interest on the tax reserve', $savings_id];
+        }
+        if ($month === 9 || $month === 2) {
+            $other_income[] = [$month, 17, 250.00, 'Referral Fees', 'Check', 'REF-', "Referral fee - passed a website rebuild to a design partner", $operating_id];
+        }
+    }
+    foreach ($other_income as [$month, $day, $amount, $category, $method, $prefix, $description, $account_id]) {
+        if (demoIsFuture(demoMonthDate($month, $day))) {
+            continue;
+        }
+        starterInsert($mysqli, 'revenues', [
+            'revenue_date' => demoMonthDate($month, $day),
+            'revenue_amount' => number_format($amount, 2, '.', ''),
+            'revenue_currency_code' => $currency,
+            'revenue_payment_method' => $method,
+            'revenue_reference' => $prefix . demoSerial($category . $month . $day, 8),
+            'revenue_description' => $description,
+            'revenue_category_id' => demoCategoryId($mysqli, $category, 'Income'),
+            'revenue_account_id' => $account_id,
+            'revenue_client_id' => 0,
+            'revenue_created_by' => intval($context['user_id']),
+            'revenue_created_at' => demoMonthDateTime($month, $day, 11, 5),
+        ]);
+        $counts['company']++;
+    }
+
+}
+
+// ------------------------------
+// demoReconcileAccounts
+// Operating Checking and the Business Visa are reconciled to each month's
+// statement through last month (functions/reconcile.php), so Reconcile and the
+// ledger's cleared marks have history to show and this month is left to do.
+// Only an account with no reconciliations yet - a second run adds nothing.
+// ------------------------------
+function demoReconcileAccounts($mysqli, $context) {
+    foreach (['Operating Checking', 'Business Visa'] as $name) {
+        $account_id = intval($context['accounts'][$name] ?? 0);
+        if (!$account_id || mysqli_fetch_row(mysqli_query($mysqli, "SELECT 1 FROM account_reconciliations WHERE reconciliation_account_id = $account_id LIMIT 1"))) {
+            continue;
+        }
+        $balance = floatval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT opening_balance FROM accounts WHERE account_id = $account_id"))[0] ?? 0);
+        for ($month = 24; $month >= 1; $month--) {
+            $statement = date('Y-m-t', strtotime(demoMonthDate($month, 1)));
+            $ending = round($balance + floatval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT
+                COALESCE((SELECT SUM(payment_amount) FROM payments WHERE payment_account_id = $account_id AND payment_reconciliation_id IS NULL AND payment_date <= '$statement'), 0)
+                + COALESCE((SELECT SUM(revenue_amount) FROM revenues WHERE revenue_account_id = $account_id AND revenue_reconciliation_id IS NULL AND revenue_date <= '$statement'), 0)
+                - COALESCE((SELECT SUM(expense_amount) FROM expenses WHERE expense_account_id = $account_id AND expense_reconciliation_id IS NULL AND expense_date <= '$statement'), 0)"))[0]), 2);
+            $finished = min(time(), strtotime($statement . ' +4 days 10:15'));
+            $reconciliation_id = starterInsert($mysqli, 'account_reconciliations', [
+                'reconciliation_account_id' => $account_id,
+                'reconciliation_statement_date' => $statement,
+                'reconciliation_starting_balance' => number_format($balance, 2, '.', ''),
+                'reconciliation_ending_balance' => number_format($ending, 2, '.', ''),
+                'reconciliation_notes' => 'Statement for ' . date('F Y', strtotime($statement)),
+                'reconciliation_created_by' => intval($context['user_id']),
+                'reconciliation_created_at' => date('Y-m-d H:i:s', $finished - 1800),
+                'reconciliation_finished_by' => intval($context['user_id']),
+                'reconciliation_finished_at' => date('Y-m-d H:i:s', $finished),
+            ]);
+            foreach (['payments' => 'payment', 'revenues' => 'revenue', 'expenses' => 'expense'] as $table => $prefix) {
+                mysqli_query($mysqli, "UPDATE $table SET {$prefix}_reconciliation_id = $reconciliation_id, {$prefix}_updated_at = {$prefix}_updated_at
+                    WHERE {$prefix}_account_id = $account_id AND {$prefix}_reconciliation_id IS NULL AND {$prefix}_date <= '$statement'");
+            }
+            $balance = $ending;
+        }
+    }
 }
 
 // ------------------------------
@@ -3608,7 +3860,9 @@ function demoBuildInternalDiary($mysqli, $context, &$counts) {
                 'trip_destination' => $errand[1],
                 'trip_miles' => $errand[2],
                 'round_trip' => 1,
+                'trip_own_vehicle' => $days_ago <= 45 ? 1 : 0,
                 'trip_user_id' => $user_id,
+                'trip_created_by' => $user_id,
                 'trip_client_id' => 0,
                 'trip_created_at' => demoDateTime($days_ago, 17, 45),
             ]);
@@ -4494,7 +4748,7 @@ function demoDataSpecs() {
             'second_site' => null,
             'age_days' => 760, 'seats' => 8, 'servers' => 1, 'build' => 1, 'billing' => 'managed',
             'balance' => 'clear', 'hosting' => [['Web Hosting - Standard', 1, 25.00, 'Church website and service times, hosted with nightly backup', 0], ['Email Hosting - Per Mailbox', 8, 4.50, 'Staff and volunteer mailboxes with filtering', 0]],
-            'lead' => 0, 'favorite' => 0, 'tax' => 'PA Sales Tax',
+            'lead' => 0, 'favorite' => 0, 'tax' => '', 'tax_exempt' => ['75-0012847', '+2 years'],
             'mail_platform' => 'Google Workspace', 'cert_issuer' => "Let's Encrypt",
             'tags' => ['Managed', 'Non Profit', 'Block Hours'],
             'notes' => 'Non profit rate. Mostly volunteers on the machines, so the build is locked down and simple.',
@@ -4604,7 +4858,7 @@ function demoDataSpecs() {
             'second_site' => null,
             'age_days' => 1320, 'seats' => 38, 'servers' => 3, 'build' => 1, 'billing' => 'managed',
             'balance' => 'clear', 'hosting' => [['Nextcloud Hosting - Instance', 1, 95.00, 'Staff and coursework file sharing', 0], ['Web Hosting - Standard', 1, 25.00, 'School website and newsletter archive', 0]],
-            'lead' => 0, 'favorite' => 0, 'tax' => 'Allegheny County Sales Tax',
+            'lead' => 0, 'favorite' => 0, 'tax' => '', 'tax_exempt' => ['75-0031906', '-20 days'],
             'mail_platform' => 'Google Workspace', 'cert_issuer' => "Let's Encrypt",
             'tags' => ['Co-Managed', 'Managed', 'Non Profit', 'Seasonal', 'Compliance'],
             'notes' => 'Runs on open source deliberately - budget goes on staff, not licences. Quiet in July, chaotic in late August.',
@@ -5009,6 +5263,7 @@ function demoExpandProfile($spec) {
         'lead' => $spec['lead'],
         'favorite' => $spec['favorite'],
         'tax' => $spec['tax'],
+        'tax_exempt' => $spec['tax_exempt'] ?? null,
         'notes' => $spec['notes'],
         'account_note' => $spec['account_note'],
         'review_note' => $spec['review_note'],

@@ -84,7 +84,7 @@ if ($with_tickets) {
 
 // What they are on now, every month
 $sql = mysqli_query($mysqli, "SELECT recurring_invoice_client_id AS client_id,
-        SUM(CASE WHEN recurring_invoice_frequency = 'year' THEN recurring_invoice_amount / 12 ELSE recurring_invoice_amount END) AS v
+        SUM(" . recurringInvoiceMonthlySql() . ") AS v
     FROM recurring_invoices WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL GROUP BY recurring_invoice_client_id");
 while ($row = mysqli_fetch_assoc($sql)) {
     if (isset($clients[intval($row['client_id'])])) {
@@ -118,8 +118,8 @@ $columns = [
         return reportClientCell($row['client_id'], $row['client'], $row['abbr']);
     }],
     'income' => ['label' => 'Income', 'type' => 'money'],
-    'costs' => ['label' => 'Direct costs', 'type' => 'money', 'title' => 'Expenses filed against the client', 'html' => function ($row) {
-        return $row['costs'] > 0 ? reportMoney($row['costs']) : '<span class="itflow-report-zero">–</span>';
+    'costs' => ['label' => 'Direct costs', 'type' => 'money', 'title' => 'Expenses filed against the client', 'html' => function ($row) use ($period) {
+        return $row['costs'] > 0 ? '<a class="itflow-report-amount" href="/agent/expenses.php?client=' . intval($row['client_id']) . '&amp;canned_date=custom&amp;dtf=' . $period['start'] . '&amp;dtt=' . $period['end'] . '">' . reportMoney($row['costs']) . '</a>' : '<span class="itflow-report-zero">–</span>';
     }],
     'net' => ['label' => 'Net', 'type' => 'money', 'class' => 'fw-semibold'],
 ];

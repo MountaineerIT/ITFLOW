@@ -79,8 +79,7 @@ function ticketChangePriority($ticket_id, $priority) {
  * becomes Open. Returns [ok, message].
  */
 function ticketChangeAssignee($ticket_id, $assigned_to) {
-    global $mysqli, $session_name, $session_user_id, $session_company_name,
-        $config_smtp_provider, $config_ticket_from_name, $config_ticket_from_email, $config_app_name, $config_base_url;
+    global $mysqli, $session_name, $session_user_id;
 
     $ticket_id = intval($ticket_id);
     $assigned_to = intval($assigned_to);
@@ -106,7 +105,6 @@ function ticketChangeAssignee($ticket_id, $assigned_to) {
             return [false, 'Invalid agent!'];
         }
         $agent_name = escapeSql($agent_details['user_name']);
-        $agent_email = escapeSql($agent_details['user_email']);
         $ticket_reply = "Ticket re-assigned to $agent_name.";
     }
 
@@ -114,7 +112,6 @@ function ticketChangeAssignee($ticket_id, $assigned_to) {
     $ticket_number = intval($row['ticket_number']);
     $ticket_subject = escapeSql($row['ticket_subject']);
     $client_id = intval($row['ticket_client_id']);
-    $client_name = escapeSql($row['client_name']);
     $client_uri = $client_id ? "&client_id=$client_id" : '';
 
     // Update ticket & insert reply
@@ -134,26 +131,8 @@ function ticketChangeAssignee($ticket_id, $assigned_to) {
         if ((!function_exists('mitNotifyOn') || mitNotifyOn('assign_app'))) mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = 'Ticket $ticket_prefix$ticket_number - Subject: $ticket_subject has been assigned to you by $session_name', notification_action = '/agent/ticket.php?ticket_id=$ticket_id$client_uri', notification_client_id = $client_id, notification_user_id = $assigned_to");
 
         // Email Notification
-        if (!empty($config_smtp_provider) && (!function_exists('mitNotifyOn') || mitNotifyOn('assign_email'))) { // Mountaineer IT: Admin > Notifications
-
-            // Sanitize Config vars from get_settings.php
-            $from_name = escapeSql($config_ticket_from_name);
-            $from_email = escapeSql($config_ticket_from_email);
-            $company_name = escapeSql($session_company_name);
-
-            $subject = "$config_app_name - Ticket $ticket_prefix$ticket_number assigned to you - $ticket_subject";
-            $body = "Hi $agent_name, <br><br>A ticket has been assigned to you!<br><br>Client: $client_name<br>Ticket Number: $ticket_prefix$ticket_number<br> Subject: $ticket_subject<br><br>https://$config_base_url/agent/ticket.php?ticket_id=$ticket_id$client_uri <br><br>Thanks, <br>$session_name<br>$company_name";
-
-            addToMailQueue([
-                [
-                    'from' => $from_email,
-                    'from_name' => $from_name,
-                    'recipient' => $agent_email,
-                    'recipient_name' => $agent_name,
-                    'subject' => $subject,
-                    'body' => $body,
-                ]
-            ]);
+        if (!function_exists('mitNotifyOn') || mitNotifyOn('assign_email')) { // Mountaineer IT: Admin > Notifications
+            ticketMailAssigned($assigned_to, [$ticket_id], stripslashes($session_name));
         }
     }
 
@@ -261,9 +240,16 @@ function ticketBillableHtml($billable, $style = 'list') {
         : '<span class="badge rounded-pill bg-secondary p-2"><i class="fas fa-fw fa-minus"></i></span>';
 }
 
+/* A status as its badge - text that reads on its colour, and what it is for on hover (functions/ticket_status.php). */
 function ticketStatusHtml($status_name, $status_color, $style = 'list') {
-    $color = preg_match('/^(#[0-9a-f]{3,8}|[a-z]{3,24})$/i', (string) $status_color) ? $status_color : 'var(--bs-secondary)';
-    return '<span class="badge rounded-pill text-light' . ($style === 'list' ? ' p-2' : '') . '" style="background-color: ' . $color . '">' . escapeHtml($status_name) . '</span>';
+    $about = '';
+    foreach (ticketStatusesAll() as $status) {
+        if ($status['ticket_status_name'] === (string) $status_name) {
+            $about = ticketStatusAbout($status);
+            break;
+        }
+    }
+    return ticketStatusBadgeHtml((string) $status_name, $status_color, $style, $about);
 }
 
 /*
@@ -364,8 +350,7 @@ function projectChangeManager($project_id, $manager_id) {
  * client access.
  */
 function recurringTicketChangeAssignee($recurring_ticket_id, $assigned_to) {
-    global $mysqli, $session_name, $session_user_id, $session_company_name,
-        $config_smtp_provider, $config_ticket_from_name, $config_ticket_from_email, $config_app_name;
+    global $mysqli, $session_name, $session_user_id;
 
     $recurring_ticket_id = intval($recurring_ticket_id);
     $assigned_to = intval($assigned_to);
@@ -380,7 +365,6 @@ function recurringTicketChangeAssignee($recurring_ticket_id, $assigned_to) {
             return [false, 'Invalid agent!'];
         }
         $agent_name = escapeSql($agent['user_name']);
-        $agent_email = escapeSql($agent['user_email']);
     } else {
         $agent_name = 'No One';
     }
@@ -395,18 +379,8 @@ function recurringTicketChangeAssignee($recurring_ticket_id, $assigned_to) {
     if ($assigned_to && $assigned_to != $session_user_id) {
         if ((!function_exists('mitNotifyOn') || mitNotifyOn('assign_app'))) mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Recurring Ticket', notification = 'Recurring ticket $subject has been assigned to you by $session_name', notification_action = 'recurring_tickets.php?assigned=$assigned_to', notification_client_id = $client_id, notification_user_id = $assigned_to");
 
-        if (!empty($config_smtp_provider) && (!function_exists('mitNotifyOn') || mitNotifyOn('assign_email'))) { // Mountaineer IT: Admin > Notifications
-            $company_name = escapeSql($session_company_name);
-            addToMailQueue([
-                [
-                    'from' => escapeSql($config_ticket_from_email),
-                    'from_name' => escapeSql($config_ticket_from_name),
-                    'recipient' => $agent_email,
-                    'recipient_name' => $agent_name,
-                    'subject' => "$config_app_name - Recurring ticket $subject assigned to you",
-                    'body' => "Hi $agent_name, <br><br>$session_name assigned the recurring ticket $subject to you - the tickets it opens will be yours.<br><br>Thanks, <br>$session_name<br>$company_name",
-                ]
-            ]);
+        if (!function_exists('mitNotifyOn') || mitNotifyOn('assign_email')) { // Mountaineer IT: Admin > Notifications
+            recurringTicketMailAssigned($assigned_to, [(string) $row['recurring_ticket_subject']], stripslashes($session_name));
         }
     }
 

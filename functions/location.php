@@ -155,17 +155,9 @@ function locationFormSet($post, $client_id) {
     return implode(', ', $set);
 }
 
-/** Replace a location's tags with these - location tags (type 2) only. */
+/** Replace a location's tags with these - location tags only, and an admin can type a new one in (tagSetForRecord()). */
 function locationSetTags($location_id, $tag_ids) {
-    global $mysqli;
-    $location_id = intval($location_id);
-    mysqli_query($mysqli, "DELETE FROM location_tags WHERE location_id = $location_id");
-    $tag_ids = array_values(array_unique(array_filter(array_map('intval', (array) $tag_ids))));
-    if (!$tag_ids) {
-        return;
-    }
-    mysqli_query($mysqli, "INSERT IGNORE INTO location_tags (location_id, tag_id)
-        SELECT $location_id, tag_id FROM tags WHERE tag_type = 2 AND tag_id IN (" . implode(',', $tag_ids) . ")");
+    tagSetForRecord('location', $location_id, (array) $tag_ids);
 }
 
 /** Make this the client's one primary location - what the client header and overview show. */
@@ -216,6 +208,7 @@ function locationClearReferences($location_id) {
     }
     mysqli_query($mysqli, "UPDATE tickets SET ticket_location_id = 0 WHERE ticket_location_id = $location_id");
     mysqli_query($mysqli, "UPDATE calendar_events SET event_location_id = 0 WHERE event_location_id = $location_id");
+    mysqli_query($mysqli, "UPDATE trips SET trip_location_id = 0 WHERE trip_location_id = $location_id");
 }
 
 /**
@@ -281,20 +274,4 @@ function locationUnassign($location, $kind, $id) {
         logAudit(ucfirst($kind), "Edit", "$session_name removed {$k['label']} " . escapeSql($row[0]) . " from location " . escapeSql($location['location_name']), intval($location['location_client_id']), $id);
     }
     return $row[0];
-}
-
-/** Who did what to a location - its audit log entries, newest first. */
-function locationHistory($location_id, $limit = 50) {
-    global $mysqli;
-    $location_id = intval($location_id);
-    $limit = max(1, intval($limit));
-    $sql = mysqli_query($mysqli, "SELECT log_action, log_description, log_created_at, user_name FROM logs
-        LEFT JOIN users ON user_id = log_user_id
-        WHERE log_type = 'Location' AND log_entity_id = $location_id
-        ORDER BY log_id DESC LIMIT $limit");
-    $rows = [];
-    while ($row = mysqli_fetch_assoc($sql)) {
-        $rows[] = $row;
-    }
-    return $rows;
 }

@@ -115,8 +115,9 @@ if (isset($_GET['tag_picker'])) {
         'tags' => []
     ];
 
+    // An archived tag is only offered to take it off the records that still have it
     $sql = mysqli_query($mysqli,
-        "SELECT tag_id, tag_name, tag_color, tag_icon,
+        "SELECT tag_id, tag_name, tag_description, tag_color, tag_icon, tag_archived_at,
             (SELECT COUNT(*) FROM {$config['link_table']}
                 WHERE {$config['link_tag']} = tags.tag_id AND {$config['link_record']} IN ($ids)) AS chosen
         FROM tags
@@ -124,11 +125,15 @@ if (isset($_GET['tag_picker'])) {
         ORDER BY tag_name ASC"
     );
     while ($row = mysqli_fetch_assoc($sql)) {
+        if ($row['tag_archived_at'] && !intval($row['chosen'])) {
+            continue;
+        }
         $response['tags'][] = [
             'id' => intval($row['tag_id']),
             'name' => $row['tag_name'],
-            'color' => preg_match('/^(#[0-9a-f]{3,8}|[a-z]{3,24})$/i', trim((string) $row['tag_color'])) ? trim($row['tag_color']) : '',
-            'icon' => preg_replace('/[^a-z0-9-]/', '', strtolower((string) $row['tag_icon'])) ?: 'tag',
+            'description' => trim((string) $row['tag_description']) . ($row['tag_archived_at'] ? (trim((string) $row['tag_description']) !== '' ? ' - ' : '') . 'Archived' : ''),
+            'color' => tagColor($row['tag_color']),
+            'icon' => tagIcon($row['tag_icon']),
             'chosen' => intval($row['chosen'])
         ];
     }
@@ -169,15 +174,17 @@ if (isset($_POST['tag_picker_set']) || isset($_POST['tag_picker_create'])) {
         }
         $name_sql = escapeSql($name);
 
-        // Typing the name of a tag that already exists just picks it
-        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT tag_id FROM tags WHERE tag_type = $type AND tag_name = '$name_sql' LIMIT 1"));
+        // Typing the name of a tag that already exists just picks it - an archived one comes back
+        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT tag_id, tag_archived_at FROM tags WHERE tag_type = $type AND LOWER(tag_name) = LOWER('$name_sql') LIMIT 1"));
         if ($row) {
             $tag_id = intval($row['tag_id']);
+            if ($row['tag_archived_at']) {
+                tagRestore($tag_id);
+                logAudit("Tag", "Restore", "$session_name restored {$config['label']} tag $name_sql", 0, $tag_id);
+            }
         } else {
-            $color = tagNextColor($type);
-            mysqli_query($mysqli, "INSERT INTO tags SET tag_name = '$name_sql', tag_type = $type, tag_color = '$color', tag_icon = 'tag'");
-            $tag_id = mysqli_insert_id($mysqli);
-            logAudit("Tag", "Create", "$session_name created tag $name_sql", 0, $tag_id);
+            $tag_id = tagCreate(['name' => $name, 'description' => '', 'type' => $type, 'color' => tagNextColor($type), 'icon' => 'tag']);
+            logAudit("Tag", "Create", "$session_name created {$config['label']} tag $name_sql", 0, $tag_id);
         }
         $on = true;
 
@@ -187,10 +194,16 @@ if (isset($_POST['tag_picker_set']) || isset($_POST['tag_picker_create'])) {
     }
 
     // The tag has to be one of this kind of record's tags
-    $tag = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT tag_name FROM tags WHERE tag_id = $tag_id AND tag_type = $type"));
+    $tag = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT tag_name, tag_archived_at FROM tags WHERE tag_id = $tag_id AND tag_type = $type"));
     if (!$tag) {
         http_response_code(404);
         echo json_encode(['error' => 'That tag no longer exists.']);
+        exit();
+    }
+    // An archived tag can come off records, not go on more
+    if ($on && $tag['tag_archived_at']) {
+        http_response_code(409);
+        echo json_encode(['error' => 'That tag is archived.']);
         exit();
     }
     $tag_name = escapeSql($tag['tag_name']);
@@ -202,10 +215,16 @@ if (isset($_POST['tag_picker_set']) || isset($_POST['tag_picker_create'])) {
         if ($on && !$has) {
             mysqli_query($mysqli, "INSERT INTO $link SET $link_record = $record_id, $link_tag = $tag_id");
             logAudit($config['log'], "Edit", "$session_name added tag $tag_name to $record_name", $record['client_id'], $record_id);
+            if ($entity === 'ticket') {
+                logTicketHistory($record_id, "$session_name added tag $tag_name");
+            }
             $changed++;
         } elseif (!$on && $has) {
             mysqli_query($mysqli, "DELETE FROM $link WHERE $link_record = $record_id AND $link_tag = $tag_id");
             logAudit($config['log'], "Edit", "$session_name removed tag $tag_name from $record_name", $record['client_id'], $record_id);
+            if ($entity === 'ticket') {
+                logTicketHistory($record_id, "$session_name removed tag $tag_name");
+            }
             $changed++;
         }
     }
@@ -243,11 +262,13 @@ if (isset($_GET['quick_pick_options'])) {
             $options[] = ['value' => $priority, 'label' => $priority, 'color' => $colors[$priority]];
         }
     } elseif ($field === 'status') {
+        $all_statuses = ticketStatusesAll();
         foreach (ticketPickableStatuses() as $status_id => $status) {
-            $options[] = ['value' => (string) $status_id, 'label' => $status['ticket_status_name'], 'color' => preg_match('/^(#[0-9a-f]{3,8}|[a-z]{3,24})$/i', (string) $status['ticket_status_color']) ? $status['ticket_status_color'] : ''];
+            $options[] = ['value' => (string) $status_id, 'label' => $status['ticket_status_name'], 'color' => ticketStatusColor($status['ticket_status_color']),
+                'title' => isset($all_statuses[$status_id]) ? ticketStatusAbout($all_statuses[$status_id]) : ''];
         }
     } elseif ($field === 'billable') {
-        $options[] = ['value' => '1', 'label' => 'Billable', 'icon' => 'fas fa-dollar-sign', 'description' => 'Shows on the Unbilled Tickets report until invoiced'];
+        $options[] = ['value' => '1', 'label' => 'Billable', 'icon' => 'fas fa-dollar-sign', 'description' => 'Shows under Unbilled Time once done, until invoiced'];
         $options[] = ['value' => '0', 'label' => 'Not billable', 'icon' => 'fas fa-minus'];
     } elseif ($field === 'assignee' || $field === 'recurring_assignee') {
         $options = quickPickAgents();
@@ -618,6 +639,25 @@ if (isset($_POST['quote_set_notes'])) {
 
 }
 
+if (isset($_POST['product_set_notes'])) {
+
+    validateCSRFToken();
+
+    enforceUserPermission('module_sales', 2);
+
+    // A product's internal notes, from its page
+    $product_id = intval($_POST['product_id'] ?? 0);
+    $product = productRow($product_id);
+    if (!$product) {
+        http_response_code(404);
+        exit;
+    }
+    productSave(['notes' => (string) ($_POST['note'] ?? '')], $product_id);
+
+    logAudit("Product", "Edit", "$session_name edited notes on product " . escapeSql($product['product_name']), 0, $product_id);
+
+}
+
 if (isset($_POST['recurring_invoice_set_notes'])) {
 
     validateCSRFToken();
@@ -812,153 +852,67 @@ if (isset($_GET['ticket_query_views'])) {
 }
 
 /*
- * Generates public/guest links for sharing credentials/docs
+ * Make a shared link (agent/modals/share/share_add.php, functions/share.php)
+ * - a login, a document, a file, a secure note, or a request for a login.
+ * The link comes back once, with a QR code of it; its secret is not kept.
  */
-if (isset($_GET['share_generate_link'])) {
+if (isset($_POST['share_create'])) {
 
     validateCSRFToken();
 
-    enforceUserPermission('module_support', 2);
+    header('Content-Type: application/json');
 
-    $item_encrypted_username = '';  // Default empty
-    $item_encrypted_credential = '';  // Default empty
-
-    $client_id = intval($_GET['client_id']);
-    $item_type = $_GET['type'] ?? '';
-    // Only the types the share modals send - matched exactly, as the guest pages do
-    if (!in_array($item_type, ['Document', 'File', 'Credential'], true)) {
-        http_response_code(400);
-        exit(json_encode(['error' => 'Invalid item type']));
+    $type = (string) ($_POST['type'] ?? '');
+    if (!shareCanMake($type)) {
+        exit(json_encode(['error' => "You don't have access to share that."]));
     }
-    $item_id = intval($_GET['id']);
-    $item_email = escapeSql($_GET['contact_email']);
-    $item_note = escapeSql($_GET['note']);
-    $item_view_limit = intval($_GET['views']);
-    $item_view_limit_wording = "";
-    if ($item_view_limit == 1) {
-        $item_view_limit_wording = " and may only be viewed <strong>once</strong>, before the link is destroyed.";
-    }
-    $item_expires = intval($_GET['expires']);
-    // Only the lifetimes the share modals offer
-    if (!in_array($item_expires, [1, 24, 168, 730], true)) {
-        http_response_code(400);
-        exit(json_encode(['error' => 'Invalid expiry']));
-    }
-    $item_expires_friendly = "never"; // default never
-    if ($item_expires == 1) {
-        $item_expires_friendly = "1 hour";
-    } elseif ($item_expires == 24) {
-        $item_expires_friendly = "1 day";
-    } elseif ($item_expires == 168) {
-        $item_expires_friendly = "1 week";
-    } elseif ($item_expires == 730) {
-        $item_expires_friendly = "1 month";
+    $client_id = intval($_POST['client_id'] ?? 0);
+    if (!$client_id || !hasClientAccess($client_id)) {
+        exit(json_encode(['error' => "You don't have access to that client."]));
     }
 
-    enforceClientAccess($client_id);
+    $result = shareCreate([
+        'client_id' => $client_id,
+        'type' => $type,
+        'related_id' => intval($_POST['id'] ?? 0),
+        'name' => (string) ($_POST['name'] ?? ''),
+        'text' => (string) ($_POST['text'] ?? ''),
+        'recipient' => (string) ($_POST['recipient'] ?? ''),
+        'send' => !empty($_POST['send']),
+        'expires' => intval($_POST['expires'] ?? 0),
+        'views' => intval($_POST['views'] ?? 1),
+        'protect' => (string) ($_POST['protect'] ?? ''),
+        'passphrase' => (string) ($_POST['passphrase'] ?? ''),
+        'otp' => !empty($_POST['otp']),
+        'notify' => !empty($_POST['notify']),
+        'note' => (string) ($_POST['note'] ?? ''),
+    ], $error);
 
-    $item_key = randomString(32);
-    $row = null;
-
-    if ($item_type == "Document") {
-        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT document_name FROM documents WHERE document_id = $item_id AND document_client_id = $client_id LIMIT 1"));
-        $item_name = escapeSql($row['document_name']);
+    if (!$result) {
+        exit(json_encode(['error' => $error]));
     }
 
-    if ($item_type == "File") {
-        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT file_name FROM files WHERE file_id = $item_id AND file_client_id = $client_id LIMIT 1"));
-        $item_name = escapeSql($row['file_name']);
+    // "Works until Oct 17 at 9:00 AM, opens once, needs a passphrase, emailed to bob@example.com"
+    $summary = ['Works until ' . date('M j \a\t g:i A', strtotime($result['expire_at']))];
+    if ($type !== 'Request') {
+        $summary[] = $result['views'] ? 'opens ' . strtolower(shareViewOptions()[$result['views']]) : 'opens any number of times';
+    }
+    if ($result['protect'] === 'passphrase') {
+        $summary[] = 'needs the passphrase';
+    } elseif ($result['protect'] === 'code') {
+        $summary[] = 'needs a code emailed to ' . $result['recipient'];
+    }
+    if ($result['emailed']) {
+        $summary[] = 'emailed to ' . $result['recipient'];
     }
 
-    if ($item_type == "Credential") {
-
-        // Sharing a credential hands out the plaintext, so it needs the same
-        // module access as reading one anywhere else in the app
-        enforceUserPermission('module_credential');
-
-        $credential = mysqli_query($mysqli, "SELECT credential_name, credential_username, credential_password FROM credentials WHERE credential_id = $item_id AND credential_client_id = $client_id LIMIT 1");
-        $row = mysqli_fetch_assoc($credential);
-
-        $item_name = escapeSql($row['credential_name']);
-
-        // Decrypt & re-encrypt username/password for sharing
-        $credential_encryption_key = randomString();
-
-        $credential_username_cleartext = decryptCredentialEntry($row['credential_username']);
-        $iv = randomString();
-        $username_ciphertext = openssl_encrypt($credential_username_cleartext, 'aes-128-cbc', $credential_encryption_key, 0, $iv);
-        $item_encrypted_username = $iv . $username_ciphertext;
-
-        $credential_password_cleartext = decryptCredentialEntry($row['credential_password']);
-        $iv = randomString();
-        $password_ciphertext = openssl_encrypt($credential_password_cleartext, 'aes-128-cbc', $credential_encryption_key, 0, $iv);
-        $item_encrypted_credential = $iv . $password_ciphertext;
-    }
-
-    if (empty($row)) {
-        http_response_code(404);
-        exit(json_encode(['error' => 'Item not found']));
-    }
-
-    // Insert entry into DB
-    $sql = mysqli_query($mysqli, "INSERT INTO shared_items SET item_active = 1, item_key = '$item_key', item_type = '$item_type', item_related_id = $item_id, item_encrypted_username = '$item_encrypted_username', item_encrypted_credential = '$item_encrypted_credential', item_note = '$item_note', item_recipient = '$item_email', item_views = 0, item_view_limit = $item_view_limit, item_expire_at = NOW() + INTERVAL + $item_expires HOUR, item_client_id = $client_id");
-    $share_id = $mysqli->insert_id;
-
-    // Return URL
-    if ($item_type == "Credential") {
-        $url = "https://$config_base_url/guest/guest_view_item.php?id=$share_id&key=$item_key&ek=$credential_encryption_key";
-    }
-    else {
-        $url = "https://$config_base_url/guest/guest_view_item.php?id=$share_id&key=$item_key";
-    }
-
-    $sql = mysqli_query($mysqli,"SELECT company_name, company_phone, company_phone_country_code FROM companies WHERE company_id = 1");
-    $row = mysqli_fetch_assoc($sql);
-    $company_name = escapeSql($row['company_name']);
-    $company_phone = escapeSql(formatPhoneNumber($row['company_phone'], $row['company_phone_country_code']));
-
-    // Sanitize Config vars from get_settings.php
-    $config_ticket_from_name = escapeSql($config_ticket_from_name);
-    $config_ticket_from_email = escapeSql($config_ticket_from_email);
-    $config_mail_from_name = escapeSql($config_mail_from_name);
-    $config_mail_from_email = escapeSql($config_mail_from_email);
-
-    // Send user e-mail, if specified
-    if((!empty($config_smtp_host) || !empty($config_smtp_provider)) && filter_var($item_email, FILTER_VALIDATE_EMAIL)){
-
-        $subject = "Time sensitive - $company_name secure link enclosed";
-        if ($item_expires_friendly == "never") {
-            $subject = "$company_name secure link enclosed";
-        }
-        $body = "Hello,<br><br>$session_name from $company_name sent you a time sensitive secure link regarding \"$item_name\".<br><br>The link will expire in <strong>$item_expires_friendly</strong>$item_view_limit_wording.<br><br><strong><a href=\'$url\'>Click here to access your secure content</a></strong><br><br>--<br>$company_name - Support<br>$config_ticket_from_email<br>$company_phone";
-
-        // Add the intended recipient disclosure
-        $body .= "<br><br><em>This email and any attachments are confidential and intended for the specified recipient(s) only. If you are not the intended recipient, please notify the sender and delete this email. Unauthorized use, disclosure, or distribution is prohibited.</em>";
-
-        $data = [
-            [
-                'from' => $config_mail_from_email,
-                'from_name' => $config_mail_from_name,
-                'recipient' => $item_email,
-                'recipient_name' => $item_email,
-                'subject' => $subject,
-                'body' => $body
-            ]
-        ];
-
-        addToMailQueue($data);
-
-    }
-
-    echo json_encode($url);
-
-    // Logging
-    logAudit("Share", "Create", "$session_name created shared link for $item_type - $item_name", $client_id, $item_id);
-    // ...and on the credential itself, so its history says who it went out to
-    if ($item_type == "Credential") {
-        logAudit("Credential", "Share", "$session_name shared credential $item_name" . ($item_email ? " with $item_email" : '') . ", expiring in $item_expires_friendly", $client_id, $item_id);
-    }
-
+    echo json_encode([
+        'url' => $result['url'],
+        'passphrase' => $result['passphrase'],
+        'summary' => implode(', ', $summary),
+        'qr' => shareQrSvg($result['url']),
+    ]);
+    exit;
 }
 
 /*
@@ -1044,7 +998,8 @@ if (isset($_POST['notifications_mark'])) {
  *
  * Same search as the full results page - functions/search.php - so the two can
  * never disagree about what this user may see. Five per group plus any app page
- * whose name matches; with nothing typed yet, the recently opened clients.
+ * whose name matches, and for admins the settings that match (settingsSearch());
+ * with nothing typed yet, the recently opened clients.
  * Values are raw: the palette renders them as text, never as HTML.
  */
 if (isset($_GET['global_search'])) {
@@ -1054,6 +1009,7 @@ if (isset($_GET['global_search'])) {
     $response = [
         'query' => $global_search_query,
         'pages' => [],
+        'settings' => [],
         'groups' => [],
         'recent' => [],
     ];
@@ -1062,6 +1018,8 @@ if (isset($_GET['global_search'])) {
         $response['recent'] = globalSearchRecentClients();
     } else {
         $response['pages'] = globalSearchPages($global_search_query);
+        // Admins find a setting too - Admin > Settings, the page and where on it
+        $response['settings'] = !empty($session_is_admin) ? settingsSearch($global_search_query) : [];
         $response['groups'] = globalSearch($global_search_query, 5);
     }
 
@@ -1071,34 +1029,150 @@ if (isset($_GET['global_search'])) {
 }
 
 /*
- * Returns the body of one canned response, for the picker on the ticket reply form.
- * Fetched on demand rather than rendered into every ticket page, because the bodies are
- * full HTML replies and an install can have a lot of them.
+ * Returns the body of one canned response, for the picker on the ticket reply form,
+ * filled in for the ticket (ticket_id) - cannedResponseFill(). Fetched on demand rather
+ * than rendered into every ticket page, because the bodies are full HTML replies and an
+ * install can have a lot of them.
  */
+/*
+ * What making a document from a template asks for, for a client - the site
+ * and contact its placeholders come from (when it uses them; the client's
+ * primary ones picked), and its fill-ins - as the window's fields (HTML), with
+ * a line on what is filled in from the client. agent/js/document_template_make.js
+ * draws it in the Document from template and New document for a client windows.
+ */
+if (isset($_GET['document_template_asks'])) {
+    header('Content-Type: application/json');
+
+    $asks_template = documentTemplateRow($_GET['document_template_asks']);
+    $asks_client_id = intval($_GET['client_id'] ?? 0);
+    if (intval(lookupUserPermission('module_support')) < 2 || !$asks_template || $asks_template['document_template_archived_at'] || !$asks_client_id || !hasClientAccess($asks_client_id)) {
+        echo json_encode(['html' => '']);
+        exit;
+    }
+    $asks_used = documentTemplateWordsUsed($asks_template);
+    $asks_fill_ins = documentTemplateFillIns($asks_template, documentTemplateFillInRowsFor([$asks_template['document_template_id']])[$asks_template['document_template_id']]);
+    $asks_site = array_intersect(array_keys($asks_used['placeholder']), DOCUMENT_TEMPLATE_SITE_PLACEHOLDERS);
+    $asks_contact = array_intersect(array_keys($asks_used['placeholder']), DOCUMENT_TEMPLATE_CONTACT_PLACEHOLDERS);
+
+    $html = '';
+    if ($asks_used['placeholder'] || $asks_used['table']) {
+        $filled = array_map(function ($word) {
+            return '[' . $word . ']';
+        }, array_values($asks_used['placeholder'] + $asks_used['table']));
+        $html .= '<div class="small text-secondary mb-2"><i class="fas fa-fw fa-magic me-1"></i>Filled in from the client: <span class="font-monospace">' . escapeHtml(implode(' ', $filled)) . '</span>'
+            . ($asks_used['table'] ? ' - its records as they are now' : '') . '</div>';
+    }
+    if ($asks_site || $asks_contact) {
+        $html .= '<div class="row g-2 mb-2">';
+        if ($asks_site) {
+            $html .= '<div class="col-md-6"><label class="form-label mb-1">Site</label><div class="input-group"><span class="input-group-text"><i class="fas fa-fw fa-map-marker-alt"></i></span>'
+                . '<select class="form-select select2" name="location_id"><option value="-1">- None -</option>';
+            $first = true;
+            foreach (documentTemplateClientLocations($asks_client_id) as $location_id => $location) {
+                $html .= '<option value="' . $location_id . '"' . ($first ? ' selected' : '') . '>' . escapeHtml($location['location_name']) . (intval($location['location_primary']) ? ' (primary)' : '') . '</option>';
+                $first = false;
+            }
+            $html .= '</select></div></div>';
+        }
+        if ($asks_contact) {
+            $html .= '<div class="col-md-6"><label class="form-label mb-1">Contact</label><div class="input-group"><span class="input-group-text"><i class="fas fa-fw fa-user"></i></span>'
+                . '<select class="form-select select2" name="contact_id"><option value="-1">- None -</option>';
+            $first = true;
+            foreach (documentTemplateClientContacts($asks_client_id) as $contact_id => $contact) {
+                $html .= '<option value="' . $contact_id . '"' . ($first ? ' selected' : '') . '>' . escapeHtml($contact['contact_name']) . (intval($contact['contact_primary']) ? ' (primary)' : '') . '</option>';
+                $first = false;
+            }
+            $html .= '</select></div></div>';
+        }
+        $html .= '</div>';
+    }
+    if ($asks_fill_ins) {
+        $html .= '<div class="fw-semibold mt-2 mb-1"><i class="fas fa-fw fa-pen-square text-secondary me-1"></i>It asks for</div>'
+            . '<div class="small text-secondary mb-2">Each answer goes in wherever its [Name] is. Leave one blank to fill it in on the document later.</div><div class="row g-2">';
+        foreach ($asks_fill_ins as $fill_in) {
+            $html .= '<div class="col-md-6">' . ticketFillInFieldHtml($fill_in, '') . '</div>';
+        }
+        $html .= '</div>';
+    }
+
+    echo json_encode(['html' => $html !== '' ? '<div class="border rounded p-3 bg-body-tertiary">' . $html . '</div>' : '']);
+    exit;
+}
+
 if (isset($_GET['get_canned_response'])) {
     enforceUserPermission('module_support');
 
-    $canned_response_id = intval($_GET['get_canned_response']);
+    // A current one this agent may use - shared, or their own
+    $canned_row = cannedResponseRow($_GET['get_canned_response']);
+    if ($canned_row && ($canned_row['canned_response_archived_at'] || !cannedResponseUsable($canned_row, $session_user_id))) {
+        $canned_row = null;
+    }
 
-    $canned_sql = mysqli_query($mysqli, "SELECT canned_response_body FROM canned_responses
-        WHERE canned_response_id = $canned_response_id AND canned_response_archived_at IS NULL LIMIT 1");
-
-    $canned_row = mysqli_fetch_assoc($canned_sql);
+    // The ticket it goes into, if this agent may see it - otherwise nothing is filled in
+    $canned_ticket_id = 0;
+    $canned_ticket = ticketRow(intval($_GET['ticket_id'] ?? 0));
+    if ($canned_ticket) {
+        $client_id = intval($canned_ticket['ticket_client_id']);
+        if ($client_id) {
+            enforceClientAccess();
+        }
+        $canned_ticket_id = intval($canned_ticket['ticket_id']);
+    }
 
     // Purified here rather than at save time, the same way ticket replies and ticket
-    // template details are - what lands in the editor is what would have been rendered
-    require_once "../libs/htmlpurifier/HTMLPurifier.standalone.php";
-
-    $canned_purifier_config = HTMLPurifier_Config::createDefault();
-    $canned_purifier_config->set('Cache.DefinitionImpl', null);
-    $canned_purifier_config->set('URI.AllowedSchemes', ['data' => true, 'src' => true, 'http' => true, 'https' => true]);
-    $canned_purifier = new HTMLPurifier($canned_purifier_config);
-
-    $response = [];
-    $response['body'] = $canned_row ? $canned_purifier->purify($canned_row['canned_response_body']) : '';
+    // template details are - what lands in the editor is what would have been rendered.
+    // With what picking it sets up on the reply (cannedResponseActions())
+    $response = ['found' => false, 'body' => ''];
+    if ($canned_row) {
+        $actions = cannedResponseActions($canned_row);
+        $response = [
+            'found' => true,
+            'id' => intval($canned_row['canned_response_id']),
+            'name' => $canned_row['canned_response_name'],
+            'body' => cannedResponseFill($canned_row['canned_response_body'], $canned_ticket_id, stripslashes($session_name)),
+            'reply_type' => $actions['reply_type'],
+            'reply_type_name' => $actions['reply_type'] === null ? '' : CANNED_RESPONSE_REPLY_TYPES[$actions['reply_type']][0],
+            'ticket_status' => $actions['ticket_status'],
+            'status_name' => $actions['status_name'],
+            'minutes' => $actions['minutes'],
+            'minutes_text' => $actions['minutes'] ? cannedResponseMinutesText($actions['minutes']) : '',
+            // The files that go with it - copied onto the ticket when the reply is sent
+            'files' => array_map(function ($file) {
+                return ['id' => intval($file['canned_response_file_id']), 'name' => $file['canned_response_file_name'], 'size' => cannedResponseFileSizeText($file['canned_response_file_size'])];
+            }, cannedResponseFiles($canned_row['canned_response_id'])),
+        ];
+    }
 
     echo json_encode($response);
 
+}
+
+/*
+ * A reply being written on a ticket, for saving as a canned response (Save
+ * your reply as a canned response - agent/js/canned_response_save.js): made safe, with this
+ * ticket's details in it swapped for placeholders (cannedResponseUnfill()).
+ * POST html and ticket_id; answers html and the placeholders put in. Nothing
+ * is kept.
+ */
+if (isset($_GET['canned_response_unfill'])) {
+    header('Content-Type: application/json');
+
+    if (intval(lookupUserPermission('module_support')) < 2 || !hash_equals($_SESSION['csrf_token'] ?? '', (string) ($_POST['csrf_token'] ?? ''))) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'html' => '', 'placeholders' => []]);
+        exit;
+    }
+
+    $unfill_html = documentHtmlPurify((string) ($_POST['html'] ?? ''));
+    $unfill_ticket = ticketRow(intval($_POST['ticket_id'] ?? 0));
+    if ($unfill_ticket && intval($unfill_ticket['ticket_client_id']) && !hasClientAccess($unfill_ticket['ticket_client_id'])) {
+        $unfill_ticket = null;
+    }
+    [$unfilled, $placeholders] = $unfill_ticket ? cannedResponseUnfill($unfill_html, $unfill_ticket['ticket_id'], stripslashes($session_name)) : [$unfill_html, []];
+
+    echo json_encode(['ok' => true, 'html' => $unfilled, 'original' => $unfill_html, 'placeholders' => $placeholders]);
+    exit;
 }
 
 /*
@@ -1559,73 +1633,72 @@ if (isset($_POST['update_project_template_ticket_order'])) {
     exit;
 }
 
-if (isset($_POST['update_quote_items_order'])) {
-    // Update multiple quote items order
+/*
+ * The order of the lines on an invoice, quote or recurring invoice, after a
+ * drag - "items" is the line ids top to bottom, comma separated.
+ */
+if (isset($_POST['billing_items_order'])) {
 
     validateCSRFToken();
 
     enforceUserPermission('module_sales', 2);
 
-    $positions = $_POST['positions'];
-    $quote_id = intval($_POST['quote_id']);
-    enforceClientAccess(intval(getFieldById('quotes', $quote_id, 'quote_client_id'))); // the quote's own client
+    header('Content-Type: application/json');
 
-    foreach ($positions as $position) {
-        $id = intval($position['id']);
-        $order = intval($position['order']);
-
-        mysqli_query($mysqli, "UPDATE quote_items SET item_order = $order WHERE item_quote_id = $quote_id AND item_id = $id");
+    $type = (string) ($_POST['type'] ?? '');
+    $doc = billingType($type) ? billingRow($type, intval($_POST['doc_id'] ?? 0)) : null;
+    if (!$doc || !hasClientAccess(intval($doc['client_id'])) || !billingCanEditItems($type, $doc)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => "Those lines can't be moved now."]);
+        exit;
     }
 
-    // return a response
+    if ($type === 'invoice' && function_exists('mitQboInvoiceLock') && mitQboInvoiceLock(intval($_POST['doc_id'] ?? 0)) !== '') { http_response_code(409); echo json_encode(['status' => 'error', 'message' => 'This invoice is in a QuickBooks batch.']); exit; } // Mountaineer IT: locked while in a QuickBooks batch
+
+    $item_ids = array_filter(array_map('intval', explode(',', (string) ($_POST['items'] ?? ''))));
+    billingItemsOrder($type, intval($doc[billingType($type)['col'] . '_id']), $item_ids);
+
     echo json_encode(['status' => 'success']);
     exit;
 }
 
-if (isset($_POST['update_invoice_items_order'])) {
-    // Update multiple invoice items order
-
-    validateCSRFToken();
-
-    enforceUserPermission('module_sales', 2);
-
-    $positions = $_POST['positions'];
-    $invoice_id = intval($_POST['invoice_id']);
-    enforceClientAccess(intval(getFieldById('invoices', $invoice_id, 'invoice_client_id'))); // the invoice's own client
-    if (function_exists('mitQboInvoiceLock') && mitQboInvoiceLock($invoice_id) !== '') { http_response_code(409); exit; } // Mountaineer IT: locked while in a QuickBooks batch
-
-    foreach ($positions as $position) {
-        $id = intval($position['id']);
-        $order = intval($position['order']);
-
-        mysqli_query($mysqli, "UPDATE invoice_items SET item_order = $order WHERE item_invoice_id = $invoice_id AND item_id = $id");
-    }
-
-    // return a response
-    echo json_encode(['status' => 'success']);
-    exit;
-}
-
-if (isset($_POST['update_recurring_invoice_items_order'])) {
-    // Update multiple recurring invoice items order
-
-    validateCSRFToken();
+/*
+ * How many a seat line on a recurring invoice would count now - for the Edit
+ * Line window as its choices change. source, tag, types[], software_id,
+ * count (used or total) and minimum, as the form posts them.
+ */
+if (isset($_GET['recurring_seat_count'])) {
 
     enforceUserPermission('module_sales', 2);
 
-    $positions = $_POST['positions'];
-    $recurring_invoice_id = intval($_POST['recurring_invoice_id']);
-    enforceClientAccess(intval(getFieldById('recurring_invoices', $recurring_invoice_id, 'recurring_invoice_client_id'))); // its own client
+    header('Content-Type: application/json');
 
-    foreach ($positions as $position) {
-        $id = intval($position['id']);
-        $order = intval($position['order']);
-
-        mysqli_query($mysqli, "UPDATE recurring_invoice_items SET item_order = $order WHERE item_recurring_invoice_id = $recurring_invoice_id AND item_id = $id");
+    $recurring = billingRow('recurring', intval($_GET['recurring_invoice_id'] ?? 0));
+    if (!$recurring || !hasClientAccess(intval($recurring['client_id']))) {
+        http_response_code(403);
+        echo json_encode(['error' => "That recurring invoice can't be opened."]);
+        exit;
     }
 
-    // return a response
-    echo json_encode(['status' => 'success']);
+    $source = (string) ($_GET['source'] ?? '');
+    if (!isset(recurringSeatSources()[$source])) {
+        echo json_encode(['error' => 'Pick what to count.']);
+        exit;
+    }
+    $filter = recurringSeatFilter($source, ['tag' => $_GET['seat_tag'] ?? 0, 'types' => (array) ($_GET['seat_types'] ?? []),
+        'software_id' => $_GET['seat_software_id'] ?? 0, 'count' => $_GET['seat_count'] ?? 'used']);
+    $count = recurringSeatCount(intval($recurring['client_id']), $source, $filter);
+    if ($count === null) {
+        echo json_encode(['error' => "Pick one of the client's licenses."]);
+        exit;
+    }
+    $minimum = billingNumberInput($_GET['seat_minimum'] ?? '0');
+    if ($minimum === null || $minimum < 0) {
+        echo json_encode(['error' => 'The minimum has to be a number, zero or more.']);
+        exit;
+    }
+
+    echo json_encode(['count' => $count, 'quantity' => billingQuantity(max($count, $minimum)), 'label' => recurringSeatDescribe($source, $filter)]);
     exit;
 }
 
@@ -1639,7 +1712,7 @@ if (isset($_GET['client_duplicate_check'])) {
     if (strlen($name) >= 5) {
         // Only clients this agent may see, and the typed text matched as text (% and _ are not wildcards)
         $name_like = addcslashes($name, '%_');
-        $sql_clients = mysqli_query($mysqli, "SELECT client_name FROM clients
+        $sql_clients = mysqli_query($mysqli, "SELECT client_id, client_name FROM clients
         WHERE client_archived_at IS NULL
         AND client_name LIKE '%$name_like%'" . clientScopeSql('client_id') . "
         ORDER BY client_id DESC LIMIT 1"
@@ -1647,7 +1720,10 @@ if (isset($_GET['client_duplicate_check'])) {
 
         if (mysqli_num_rows($sql_clients) > 0) {
             while ($row = mysqli_fetch_assoc($sql_clients)) {
-                $response['message'] = "<i class='fas fa-fw fa-copy me-2'></i> Potential duplicate: <i>" . escapeHtml($row['client_name']) . "</i> already exists.";
+                // Named only to an agent who can open it - otherwise typing names would list the clients they can't see
+                $response['message'] = hasClientAccess($row['client_id'])
+                    ? "<i class='fas fa-fw fa-copy me-2'></i> Potential duplicate: <i>" . escapeHtml($row['client_name']) . "</i> already exists."
+                    : "<i class='fas fa-fw fa-copy me-2'></i> Potential duplicate: a client you cannot open has a name like this.";
             }
         }
     }
@@ -1874,32 +1950,64 @@ if (isset($_GET['contact_email_check'])) {
     echo json_encode($response);
 }
 
+/*
+ * AI - Reword, the ticket features and a document template draft. Each needs
+ * the role's Use AI permission (module_ai) and a model for its use case
+ * (functions/ai.php), and names itself so AI Usage can tell them apart.
+ * Passwords and keys are taken out of what is sent, and put back in the answer,
+ * by callAiApi(). What comes back as HTML goes through the purifier first.
+ */
+
+// The agent may not use AI - said as the rest of ajax.php says it, JSON with a 403
+$aiRefuse = function () {
+    permissionRefuse(permissionRefusedText('module_ai', 1, 0));
+};
+
 if (isset($_GET['ai_reword'])) {
 
     header('Content-Type: application/json');
+    if (!aiCan()) {
+        $aiRefuse();
+    }
 
-    // The reword button sits on every TinyMCE instance, so the ticket editor asks for
-    // the Tickets model and everything else gets General. Anything unrecognised is
-    // treated as General rather than trusted into the query.
+    // The ticket reply editor asks for the Tickets model, every other editor General.
+    // Anything unrecognised is treated as General rather than trusted into the query.
     $use_case = ($_GET['use_case'] ?? '') === 'Tickets' ? 'Tickets' : 'General';
-
     $model = getAiModel($use_case);
-
     if (!$model) {
         echo json_encode(['error' => aiModelMissingError($use_case)]);
         exit;
     }
 
-    // Collecting the input data from the AJAX request.
-    $inputJSON = file_get_contents('php://input');
-    $input = json_decode($inputJSON, TRUE); // Convert JSON into array.
+    $input = json_decode(file_get_contents('php://input'), true);
+    $text = is_array($input) ? (string) ($input['text'] ?? '') : '';
+    if (trim(str_replace("\xC2\xA0", ' ', html_entity_decode(strip_tags($text), ENT_QUOTES, 'UTF-8'))) === '') {
+        echo json_encode(['error' => 'There is nothing to reword yet - write something first.']);
+        exit;
+    }
+    if (mb_strlen($text) > 60000) {
+        echo json_encode(['error' => 'That is too long to reword in one go - reword it a part at a time.']);
+        exit;
+    }
+    // The client it is for, when the editor knows - for AI Usage
+    $reword_client_id = intval($input['client_id'] ?? 0);
+    if ($reword_client_id && !getFieldById('clients', $reword_client_id, 'client_id')) {
+        $reword_client_id = 0;
+    }
 
-    $userText = $input['text'] ?? '';
+    // What to do to it - a tone from the button's menu, and for Translate, the language
+    $tone = (string) ($input['tone'] ?? 'reword');
+    $tone = isset(aiRewordTones()[$tone]) ? $tone : 'reword';
+    $language = (string) ($input['language'] ?? '');
+    if ($tone === 'translate' && !in_array($language, aiLanguages(), true)) {
+        echo json_encode(['error' => 'Pick a language to translate it into.']);
+        exit;
+    }
 
     $result = callAiApi($model, [
-        ["role" => "system", "content" => $model['ai_model_prompt']],
-        ["role" => "user", "content" => $userText],
-    ]);
+        ['role' => 'system', 'content' => aiRewordInstructions($use_case, $tone, $language)],
+        ['role' => 'user', 'content' => $text],
+    ], ['feature' => $tone === 'translate' ? 'translate' : ($use_case === 'Tickets' ? 'reword_ticket' : 'reword'), 'client_id' => $reword_client_id]);
 
     // Report failures as an error, never as reworded text - the editor writes
     // rewordedText straight back over the user's content
@@ -1907,167 +2015,212 @@ if (isset($_GET['ai_reword'])) {
         echo json_encode(['error' => $result['error']]);
         exit;
     }
+    $reworded = aiCleanHtml($result['content']);
+    if ($reworded === '') {
+        echo json_encode(['error' => 'The AI provider answered with nothing - try again.']);
+        exit;
+    }
 
-    $content = $result['content'];
-
-    // Clean any leading "html" word or other unwanted text at the beginning.
-    $content = preg_replace('/^html/i', '', $content);  // Remove any occurrence of 'html' at the start
-
-    // Clean the response content to remove backticks or code block markers.
-    $cleanedContent = str_replace('```', '', $content); // Remove backticks if they exist.
-
-    // Trim any leading/trailing whitespace.
-    $cleanedContent = trim($cleanedContent);
-
-    echo json_encode(['rewordedText' => $cleanedContent]);
+    echo json_encode(['rewordedText' => $reworded]);
+    exit;
 
 }
 
 if (isset($_GET['ai_create_document_template'])) {
 
     enforceUserPermission('module_support');
+    if (!aiCan()) {
+        $aiRefuse();
+    }
 
     header('Content-Type: text/html; charset=UTF-8');
 
-    $prompt = $_POST['prompt'] ?? '';
-
-    // Basic validation
-    if (empty($prompt)) {
+    $prompt = trim((string) ($_POST['prompt'] ?? ''));
+    if ($prompt === '') {
         echo "No prompt provided.";
         exit;
     }
 
     $model = getAiModel('Documentation');
-
     if (!$model) {
         echo escapeHtml(aiModelMissingError('Documentation'));
         exit;
     }
 
-    // Prepare prompt
-    $system_message = "You are a helpful IT documentation assistant. You will create a well-structured HTML template for IT documentation based on a given prompt. Include headings, subheadings, bullet points, and possibly tables for clarity. No Lorem Ipsum, use realistic placeholders and professional language.";
+    // It writes in the words a document template fills in from the client, and asks for the rest
+    $system_message = "You are a helpful IT documentation assistant. You will create a well-structured HTML template for IT documentation based on a given prompt. Include headings, subheadings, bullet points, and possibly tables for clarity. No Lorem Ipsum, professional language."
+        . " These words in square brackets are filled in from the client when a document is made from the template - use them where those details belong: " . implode(', ', array_map(function ($word) {
+            return "[$word]";
+        }, array_keys(DOCUMENT_TEMPLATE_PLACEHOLDERS))) . "."
+        . " These put in the client's records, as a table when on a line of their own (<p>[Networks]</p>) and as a list of names in a sentence - use them instead of drawing those tables yourself: " . implode(', ', array_map(function ($word) {
+            return "[$word]";
+        }, array_keys(DOCUMENT_TEMPLATE_TABLES))) . "."
+        . " For anything else someone fills in, use a short name of its own in square brackets, like [Firewall Model] or [Backup Schedule] - letters, digits and spaces, starting with a letter."
+        . " Answer with the HTML only - no <html>, <head> or <body>, no introduction, no code fences.";
     $user_message = "Create an HTML formatted IT documentation template based on the following request:\n\n\"$prompt\"\n\nThe template should be structured, professional, and useful for IT staff. Include relevant sections, instructions, prerequisites, and best practices.";
 
     $result = callAiApi($model, [
         ["role" => "system", "content" => $system_message],
         ["role" => "user", "content" => $user_message]
-    ]);
+    ], ['feature' => 'document_template']);
 
     if (!$result['ok']) {
         echo "<p>" . escapeHtml($result['error']) . "</p>";
         exit;
     }
 
-    // Print the generated HTML template directly
-    echo mitPurifyHtml($result['content']); // the model's HTML, cleaned like a ticket's
+    echo aiCleanHtml($result['content']);
+    exit;
+
 }
 
-if (isset($_GET['ai_ticket_summary'])) {
-
-    enforceUserPermission('module_support');
-
-    header('Content-Type: text/html; charset=UTF-8');
-
-    $model = getAiModel('Tickets');
-
-    if (!$model) {
-        echo escapeHtml(aiModelMissingError('Tickets'));
-        exit;
+/*
+ * The ticket features - each answers JSON: what was asked for, or 'error'.
+ * The agent needs Support (to change it, for a draft or a document), the
+ * ticket's client, and Use AI.
+ */
+$aiTicket = function ($ticket_id, $level) use ($aiRefuse) {
+    header('Content-Type: application/json');
+    if (!aiCan()) {
+        $aiRefuse();
     }
-
-    // Retrieve the ticket_id from POST
-    $ticket_id = intval($_POST['ticket_id']);
-
-    // Query the database for ticket details
-    $sql = mysqli_query($mysqli, "
-        SELECT ticket_subject, ticket_details, ticket_source, ticket_priority, ticket_status_name, category_name, ticket_client_id
-        FROM tickets
-        LEFT JOIN ticket_statuses ON ticket_status = ticket_status_id
-        LEFT JOIN categories ON ticket_category = category_id
-        WHERE ticket_id = $ticket_id
-        LIMIT 1
-    ");
-    $row = mysqli_fetch_assoc($sql);
+    enforceUserPermission('module_support', $level);
+    $row = ticketRow($ticket_id);
     if (!$row) {
-        echo 'That ticket no longer exists.';
+        echo json_encode(['error' => 'That ticket no longer exists.']);
         exit;
     }
-    $ticket_subject = $row['ticket_subject'];
-    $ticket_details = strip_tags($row['ticket_details']); // strip HTML for cleaner prompt
-    $ticket_status = $row['ticket_status_name'];
-    $ticket_category = $row['category_name'];
-    $ticket_source = $row['ticket_source'];
-    $ticket_priority = $row['ticket_priority'];
-    $client_id = intval($row['ticket_client_id']);
-
-    // A ticket with no client is internal work any agent may read
-    if ($client_id) {
-        enforceClientAccess();
+    if (intval($row['ticket_client_id']) && !hasClientAccess(intval($row['ticket_client_id']))) {
+        permissionRefuse("You don't have access to " . ($row['client_name'] ?: 'that client') . "'s tickets.");
     }
+    return $row;
+};
 
-    // Get ticket replies
-    $sql_replies = mysqli_query($mysqli, "
-        SELECT ticket_reply, ticket_reply_type, user_name
-        FROM ticket_replies
-        LEFT JOIN users ON ticket_reply_by = user_id
-        WHERE ticket_reply_ticket_id = $ticket_id
-        AND ticket_reply_archived_at IS NULL
-        ORDER BY ticket_reply_id ASC
-    ");
+// The ticket summed up for the agents working it
+if (isset($_GET['ai_ticket_summary'])) {
+    $row = $aiTicket($_POST['ticket_id'] ?? 0, 1);
+    $result = aiTicketSummary(intval($row['ticket_id']));
+    echo json_encode($result['ok'] ? ['html' => $result['html']] : ['error' => $result['error']]);
+    exit;
+}
 
-    $all_replies_text = "";
-    while ($reply = mysqli_fetch_assoc($sql_replies)) {
-        $reply_type = $reply['ticket_reply_type'];
-        $reply_text = strip_tags($reply['ticket_reply']);
-        $reply_by = $reply['user_name'];
-        $all_replies_text .= "\nReply Type: $reply_type Reply By: $reply_by: Reply Text: $reply_text";
-    }
-
-    $prompt = "
-    Summarize the following IT support ticket and its responses in a concise, clear, and professional manner.
-    The summary should include:
-
-    1. Main Issue: What was the problem reported by the user?
-    2. Actions Taken: What steps were taken to address the issue?
-    3. Resolution or Next Steps: Was the issue resolved or is it ongoing?
-
-    Please ensure:
-    - If there are multiple issues, summarize each separately.
-    - Urgency: If the ticket or replies express urgency or escalation, highlight it.
-    - Attachments: If mentioned in the ticket, note any relevant attachments or files.
-    - Avoid extra explanations or unnecessary information.
-
-    Ticket Data:
-    - Ticket Source: $ticket_source
-    - Current Ticket Status: $ticket_status
-    - Ticket Priority: $ticket_priority
-    - Ticket Category: $ticket_category
-    - Ticket Subject: $ticket_subject
-    - Ticket Details: $ticket_details
-    - Replies:
-    $all_replies_text
-
-    Formatting instructions:
-    - Use valid HTML tags only.
-    - Use <h3> for section headers (Main Issue, Actions Taken, Resolution).
-    - Use <ul><li> for bullet points under each section.
-    - Do NOT wrap the output in ```html or any other code fences.
-    - Do NOT include <html>, <head>, or <body>.
-    - Output only the summary content in pure HTML.
-    If any part of the ticket or replies is unclear or ambiguous, mention it in the summary and suggest if further clarification is needed.
-    ";
-
-    $result = callAiApi($model, [
-        ["role" => "system", "content" => "Your task is to summarize IT support tickets with clear, concise details."],
-        ["role" => "user", "content" => $prompt]
-    ]);
-
-    if (!$result['ok']) {
-        echo "<p>" . escapeHtml($result['error']) . "</p>";
+// The next reply, drafted - from what the agent has typed so far, for who will read it
+if (isset($_GET['ai_ticket_draft'])) {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $input = is_array($input) ? $input : [];
+    $row = $aiTicket($input['ticket_id'] ?? 0, 2);
+    if (!empty($row['ticket_closed_at'])) {
+        echo json_encode(['error' => 'This ticket is closed - start a new one instead.']);
         exit;
     }
+    $result = aiTicketDraft(intval($row['ticket_id']), (string) ($input['notes'] ?? ''), (string) ($input['type'] ?? 'email'));
+    echo json_encode($result['ok'] ? ['html' => $result['html']] : ['error' => $result['error']]);
+    exit;
+}
 
-    echo mitPurifyHtml($result['content']); // written from ticket text a customer typed - cleaned like the ticket's own
+// The ticket written up as a document - its title, summary and what it says, passwords and keys left out
+if (isset($_GET['ai_ticket_document'])) {
+    $row = $aiTicket($_POST['ticket_id'] ?? 0, 2);
+    $result = aiTicketDocument(intval($row['ticket_id']));
+    echo json_encode($result['ok'] ? ['title' => $result['title'], 'description' => $result['description'], 'html' => $result['html'], 'removed' => $result['removed']] : ['error' => $result['error']]);
+    exit;
+}
+
+/*
+ * A client's things - the briefing, and documents. Each answers JSON; the
+ * agent needs Use AI, the client, and Clients (a briefing) or Support (a
+ * document - to change one, for a draft).
+ */
+$aiClient = function ($client_id, $module, $level) use ($aiRefuse) {
+    header('Content-Type: application/json');
+    if (!aiCan()) {
+        $aiRefuse();
+    }
+    enforceUserPermission($module, $level);
+    $client_id = intval($client_id);
+    $name = getFieldById('clients', $client_id, 'client_name');
+    if ($name === null) {
+        echo json_encode(['error' => 'That client no longer exists.']);
+        exit;
+    }
+    if (!hasClientAccess($client_id)) {
+        permissionRefuse("You don't have access to $name.");
+    }
+    return $client_id;
+};
+
+// A client briefing, for the last 30, 90 or 365 days
+if (isset($_GET['ai_client_briefing'])) {
+    $client_id = $aiClient($_POST['client_id'] ?? 0, 'module_client', 1);
+    $result = aiClientBriefing($client_id, intval($_POST['days'] ?? 90));
+    echo json_encode($result['ok'] ? ['html' => $result['html']] : ['error' => $result['error']]);
+    exit;
+}
+
+// A new document drafted from a line on what it is for - with what ITFlow knows of the client, unless asked not to
+if (isset($_GET['ai_document_draft'])) {
+    $client_id = $aiClient($_POST['client_id'] ?? 0, 'module_support', 2);
+    $result = aiDocumentDraft($client_id, (string) ($_POST['prompt'] ?? ''), !empty($_POST['use_client']));
+    echo json_encode($result['ok'] ? ['title' => $result['title'], 'description' => $result['description'], 'html' => $result['html']] : ['error' => $result['error']]);
+    exit;
+}
+
+// A document reviewed - what to fix or check, a summary for it, and the passwords written in it
+if (isset($_GET['ai_document_review'])) {
+    $document_id = intval($_POST['document_id'] ?? 0);
+    $document_client_id = getFieldById('documents', $document_id, 'document_client_id');
+    if ($document_client_id === null) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'That document no longer exists.']);
+        exit;
+    }
+    $client_id = $aiClient($document_client_id, 'module_support', 1);
+    $result = aiDocumentReview($document_id);
+    echo json_encode($result['ok'] ? array_diff_key($result, ['ok' => 1]) : ['error' => $result['error']]);
+    exit;
+}
+
+/*
+ * Quotes and invoices (functions/ai_billing.php). Each answers JSON; the agent
+ * needs Use AI, the client, and Sales to change them. Nothing is saved here.
+ */
+
+// A ticket's work in words, for the invoice line that bills its time
+if (isset($_GET['ai_ticket_invoice_description'])) {
+    $row = $aiTicket($_POST['ticket_id'] ?? 0, 1);
+    enforceUserPermission('module_sales', 2);
+    if (!intval($row['ticket_client_id'])) {
+        echo json_encode(['error' => 'Move the ticket to a client before invoicing it.']);
+        exit;
+    }
+    $result = aiTicketInvoiceDescription(intval($row['ticket_id']));
+    echo json_encode($result['ok'] ? ['text' => $result['text']] : ['error' => $result['error']]);
+    exit;
+}
+
+// A quote or invoice written from a line on what it is for - its scope, lines and a note, for the agent to tick and change
+if (isset($_GET['ai_billing_draft'])) {
+    header('Content-Type: application/json');
+    if (!aiCan()) {
+        $aiRefuse();
+    }
+    enforceUserPermission('module_sales', 2);
+    $type = (string) ($_POST['type'] ?? '');
+    $row = in_array($type, ['quote', 'invoice'], true) ? billingRow($type, intval($_POST['doc_id'] ?? 0)) : null;
+    if (!$row) {
+        echo json_encode(['error' => 'That document no longer exists, or is not one you can open.']);
+        exit;
+    }
+    if (!hasClientAccess(intval($row['client_id']))) {
+        permissionRefuse("You don't have access to {$row['client_name']}.");
+    }
+    if (!billingCanEditItems($type, $row)) {
+        echo json_encode(['error' => billingNumber($type, $row) . " can't be changed now - " . ($type === 'quote' ? 'it has been answered or invoiced.' : 'it is paid, cancelled or non-billable.')]);
+        exit;
+    }
+    $result = aiBillingDraft($type, $row, (string) ($_POST['prompt'] ?? ''), !empty($_POST['use_ticket']), !empty($_POST['use_client']));
+    echo json_encode($result['ok'] ? array_diff_key($result, ['ok' => 1]) : ['error' => $result['error']]);
+    exit;
 }
 
 // Stops people trying to use sub-domains in the domains tracker
@@ -2284,6 +2437,9 @@ if (isset($_POST['calendar_move'])) {
     if (intval($event['event_client_id']) && !hasClientAccess($event['event_client_id'])) {
         $fail('You do not have access to that client.', 403);
     }
+    if (!calendarEventCan($event, 'edit')) {
+        $fail(permissionRefusedText('module_client', 2, intval(lookupUserPermission('module_client'))), 403);
+    }
     if (calendarEventRepeats($event)) {
         $fail('A repeating event is moved from Edit, so the whole series moves together.');
     }
@@ -2476,5 +2632,34 @@ if (isset($_GET['calendar_day'])) {
     });
 
     echo json_encode(['items' => $day]);
+    exit;
+}
+
+/*
+ * Reconcile (agent/reconcile.php, js/reconcile.js): tick or untick lines on
+ * a statement being reconciled - POST reconciliation_id, lines[] (payment-12,
+ * revenue-5, expense-9) and tick (1 or 0). Answers with where it stands now
+ * (reconcileTotals()).
+ */
+if (isset($_POST['reconcile_tick'])) {
+
+    validateCSRFToken();
+
+    header('Content-Type: application/json');
+
+    if (lookupUserPermission('module_financial') < 2) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Reconciling takes write access to Financial.']);
+        exit;
+    }
+    $reconciliation_id = intval($_POST['reconciliation_id'] ?? 0);
+    $lines = array_slice(array_values(array_filter(array_map('strval', (array) ($_POST['lines'] ?? [])))), 0, 5000);
+    $changed = reconcileTick($reconciliation_id, $lines, !empty($_POST['tick']), $error);
+    if ($changed === null) {
+        echo json_encode(['error' => $error]);
+        exit;
+    }
+    $row = reconcileRow($reconciliation_id);
+    echo json_encode(['changed' => $changed, 'totals' => reconcileTotals($row)]);
     exit;
 }

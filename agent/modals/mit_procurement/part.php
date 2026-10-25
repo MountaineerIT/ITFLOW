@@ -57,7 +57,7 @@ ob_start();
                 <?php foreach ($products as $product) { ?>
                     <option value="<?= intval($product['product_id']) ?>" <?= intval($part['product_id'] ?? 0) === intval($product['product_id']) ? 'selected' : '' ?>
                         data-name="<?= escapeHtml($product['product_name']) ?>" data-price="<?= number_format((float) $product['product_price'], 2, '.', '') ?>"
-                        data-cost="<?= !$see_cost || $product['product_cost'] === null ? '' : number_format((float) $product['product_cost'], 2, '.', '') ?>"
+                        data-cost="<?= !$see_cost || (float) $product['product_cost'] <= 0 ? '' : number_format((float) $product['product_cost'], 2, '.', '') ?>"
                         data-tax="<?= intval($product['product_tax_id']) ?>" data-vendor="<?= intval($product['product_vendor_id']) ?>"
                         data-stock="<?= $product['product_type'] === 'product' ? mitQty($stocks[intval($product['product_id'])] ?? 0) : '' ?>"><?= escapeHtml($product['product_name']) ?></option>
                 <?php } ?>

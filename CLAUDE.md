@@ -1016,6 +1016,42 @@ model: see DEPLOYMENT.md.
   indexes are used, not COALESCE(resolved, closed). Left as ITFlow has them: the Tickets list's tab counts and
   SQL_CALC_FOUND_ROWS paging (about 0.4 s on the closed list at 50,000), Ticket Summary's reply-time sum over its range,
   and global search's LIKE over every reply (about 1 s at 300,000 replies).
+- Upstream develop merged again (Oct 25, 26.10.135 - 98 commits, ITFlow DB 2.8.9 -> 3.4.7; APP_VERSION still 26.10). Where things
+  moved - this supersedes the file names above where they differ:
+  - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). One line in
+    `admin/database_updates.php` (and `mitRestoreItflowUpdates`) calls `mitBeforeItflowUpdate($version)` (functions/mit_common.php),
+    which renames ours to `mit_old_*` just before 2.9.4; M040 copies them into ITFlow's and drops ours. ITFlow owns cost / vendor / stock
+    now (0 = none): our product form adds only the image (`mitProductImageField` - one line in `agent/modals/product/product_form.php`),
+    `mitProductSave` saves only the image, the product's own price method / % is no longer asked for, `mitProductVendorField` /
+    `mitProductVendorSave` stand down (`mitProductItflowFields`), procurement reads cost with `NULLIF(product_cost, 0)`.
+  - Invoices / quotes / recurring invoices are one shared page: lines are saved by `agent/post/billing.php` (billing_item_save /
+    billing_ai_lines / billing_item_delete / billing_remove_tax - one guarded `mitQboGuardInvoice` line each for invoices, and
+    `mitQuoteItemSave` / `mitQuoteItemDelete` for quotes), reordered in `agent/ajax.php` billing_items_order (409 when locked), drawn by
+    `includes/billing_paper.php` (two lines: `mitPaperLineImage` before a line's name, `mitPaperLineExtras` - staff only: a quote line's
+    cost badge, an invoice line's procurement status - after it; agent pages pass `'mit_staff' => true` in `$paper`). Quote line cost /
+    markup / image: `mitQuoteLineFields` in the Edit Line window (`agent/modals/billing/billing_item.php`, multipart; posts
+    `mit_pricing_present` - without it a save leaves our pricing alone; a new line from a product takes the product's cost). PDF image:
+    one inline call in `functions/billing_pdf.php`. Quote -> invoice procurement: `mitProcAfterQuoteConvert` after `quoteConvert()`
+    in `agent/post/quote.php` (matches lines by name + quantity). Recurring invoices: `recurringInvoiceGenerate()` in
+    `functions/billing.php` (nightly and Invoice Now) - one line after billingRecalc sets `$mit_hold` (`mitUsageApply`,
+    `mitQboHandlesInvoiceMail`) and the auto-send condition starts `!$mit_hold &&`; usage matches lines in item_order (ITFlow's copy
+    order). `mitQboInvoiceBar` hides the new page's controls (`#add-line`, `.itflow-paper-actions`, `[data-billing-ai]`, billing_item.php,
+    invoice_add_*). Our old quote add-row cells (`mitQuoteAddCell*`, `mitQuoteHead*`) and the "document look" CSS are unused.
+  - Ticket emails are built by ITFlow (`ticketEmailContent` / `emailQueue`): `mitResolvedMailContent($row, $note, $content)` (replaces
+    mitResolvedMailBody - [Ticket Link] reads "the button below"), the no-response email goes through `ticketMailSend`,
+    `mitScheduleExtraRecipients` (replaces mitScheduleExtraMail), `mitTicketTechsCopyReply` (replaces mitTicketTechsCopyMail - one
+    guarded line after ITFlow's `ticketMailAssigneeReplied` in the parser and `client/post.php`), the assign_email switch is one line
+    in `ticketMailAssigned` (not for previews). `mitReplyRecipientsMail` gets ITFlow's built email.
+  - Reimbursements are paid back through ITFlow (`mitReimbItflowPaysBack`): our mileage trips are `trip_own_vehicle = 1` (Trips > To pay
+    back, at ITFlow's mileage rate, which our timesheet then shows), approved purchases become expenses `expense_paid_by` the person on no
+    account (vendor matched by name, else "Staff purchases") for Expenses > Reimburse; settled entries lock (`mitReimbPaidBack`). Bulk
+    trip edits / deletes skip our trips (agent/post/trip.php).
+  - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
+    `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
+    with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.
+  - Left for later: our settings pages are not on ITFlow's Settings overview (`settingsPages()`), our notification rows sit in their own
+    table on the new page, roles / company say "unchanged" when only our fields change. ITFlow 26.11 also bills per user / device seats on
+    recurring lines (close to our usage by tag) and has its own product margin (beside our quote profit box).
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
@@ -1030,6 +1066,8 @@ model: see DEPLOYMENT.md.
    `develop` to `MountaineerIT` before 26.11 is out** without the user explicitly accepting
    unreleased upstream code in production. When 26.11 is released, merge its tag as usual.
    Checked Oct 18 (user chose to wait for the release): upstream develop then had 47 more commits, DB 2.9.0 -> 3.2.2.
+   Merged again Oct 25 at the user's request (public beta): DB 3.4.7; the product column clash is handled (mitBeforeItflowUpdate + M040,
+   see "Upstream develop merged again" above). Later upstream develop commits merge on top the same way; when 26.11 is tagged, merge the tag.
    **Upstream 2.9.4 adds `products.product_cost` and `product_vendor_id` - the same names as our M007 / M010 columns
    (same meaning).** Its single ALTER would fail with "Duplicate column" on our databases, so the merge needs a step
    that renames ours aside before 2.9.4 runs and copies the values into theirs after (then our code uses theirs).

@@ -179,7 +179,7 @@ $bulk_vendor_options = $can_edit ? domainVendorChoices($client_url ? $client_id 
                         // Tags in use on domains in this scope, plus any already picked
                         $sql_tags_filter = mysqli_query($mysqli, "
                             SELECT tag_id, tag_name, tag_color, tag_icon FROM tags
-                            WHERE tag_type = 7
+                            WHERE tag_type = 7 AND (tag_archived_at IS NULL OR tag_id IN ($tag_filter))
                             AND (
                                 EXISTS (SELECT 1 FROM domain_tags JOIN domains ON domains.domain_id = domain_tags.domain_id
                                     WHERE domain_tags.tag_id = tags.tag_id " . clientScopeSql('domain_client_id') . " $client_query)
@@ -189,7 +189,7 @@ $bulk_vendor_options = $can_edit ? domainVendorChoices($client_url ? $client_id 
                         ");
                         while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
                             $tag_id = intval($row['tag_id']); ?>
-                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
+                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= tagOptionLook($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
                         <?php } ?>
                     </select>
                 </div>
@@ -434,13 +434,18 @@ $bulk_vendor_options = $can_edit ? domainVendorChoices($client_url ? $client_id 
             </table>
         </div>
     </form>
-    <?php if (!$num_rows[0]) { ?>
-        <div class="itflow-asset-empty">
-            <i class="fas fa-globe fa-2x mb-2 opacity-50"></i>
-            <div><?= $q || $tag_query || $show || $vendor_query || $expire_query ? 'No domains match.' : 'No domains yet.' ?></div>
-        </div>
-    <?php } ?>
-    <?php require_once "../includes/filter_footer.php"; ?>
+    <?php
+    $empty_state = [
+        'thing' => 'domains',
+        'icon' => 'fa-globe',
+        'filtered' => $q || $tag_query || $vendor_query || $expire_query,
+        'views' => ['show'],
+        'view' => emptyStatePill($shows, $show, '', ['soon', 'expired', 'noauto', 'mail']),
+        'text' => 'Their domain names, where each is registered and when it expires.',
+        'actions' => $can_edit ? [['label' => 'New Domain', 'modal' => "modals/domain/domain_add.php?$client_url", 'size' => 'lg']] : [],
+    ];
+    require_once "../includes/filter_footer.php";
+    ?>
 </div>
 
 <?php if ($can_edit && !$archived) { ?>

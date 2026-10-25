@@ -14,28 +14,6 @@
 
 defined('FROM_POST_HANDLER') || die("Direct file access is not allowed");
 
-/** The "a ticket was created for you" email - to its contact, and its watchers unless $to_watchers is false. */
-function ticketMailCreated($ticket_id, $subject_prefix, $attachments = [], $to_watchers = true) {
-    global $mysqli, $config_base_url, $config_ticket_from_email;
-    $row = ticketRow($ticket_id);
-    if (!$row) {
-        return 0;
-    }
-    [$company_name, $company_phone] = ticketMailCompany();
-    $contact_name = escapeSql($row['contact_name']);
-    $reference = escapeSql(ticketReference($row));
-    $subject = escapeSql($row['ticket_subject']);
-    $details = mysqli_real_escape_string($mysqli, (string) $row['ticket_details']);
-    $status = escapeSql($row['ticket_status_name']);
-    $url_key = escapeSql($row['ticket_url_key']);
-    $base_url = escapeSql($config_base_url);
-    $from_email = escapeSql($config_ticket_from_email);
-    $ticket_id = intval($ticket_id);
-    $sla_notice = escapeSql(getTicketSlaEmailNotice($ticket_id, $company_phone));
-    $body = "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>A ticket regarding \"$subject\" has been created for you.<br><br>--------------------------------<br>$details--------------------------------<br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status<br>Portal: <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>View ticket</a>$sla_notice<br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone";
-    return ticketMailContactAndWatchers($ticket_id, "$subject_prefix [$reference] - $subject", $body, $attachments, true, 'YOU HAVE BEEN ADDED AS A COLLABORATOR FOR THIS TICKET', $to_watchers);
-}
-
 /** Tell an agent about a ticket - an app notification linking to it. Not themselves, not nobody. */
 function ticketNotifyAgent($user_id, $row, $text) {
     global $mysqli, $session_user_id;
@@ -48,7 +26,7 @@ function ticketNotifyAgent($user_id, $row, $text) {
     mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '" . escapeSql($text) . "', notification_action = '$action', notification_client_id = $client_id, notification_user_id = $user_id");
 }
 
-/** Close a merged ticket into another one - notes on both, replies moved when asked. */
+/** Close a merged ticket into another one - notes on both, its tags onto the other, replies moved when asked. */
 function ticketMergeInto($child, $parent, $comment, $move_replies = false) {
     global $mysqli, $session_name, $session_user_id;
     $ticket_id = intval($child['ticket_id']);
@@ -84,6 +62,8 @@ function ticketMergeInto($child, $parent, $comment, $move_replies = false) {
             }
         }
         mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_ticket_id = $parent_id WHERE ticket_reply_ticket_id = $ticket_id");
+        // The work goes over, and the driving for it with it
+        mysqli_query($mysqli, "UPDATE trips SET trip_ticket_id = $parent_id WHERE trip_ticket_id = $ticket_id");
     }
     if (empty($child['ticket_first_response_at'])) {
         setTicketFirstResponse($ticket_id);
@@ -96,9 +76,14 @@ function ticketMergeInto($child, $parent, $comment, $move_replies = false) {
     mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = 'Ticket $child_reference was merged into this ticket with comment: $comment.<br><br><b>$child_subject</b><br>$child_details', ticket_reply_time_worked = '00:00:00', ticket_reply_type = 'Internal', ticket_reply_by = $session_user_id, ticket_reply_ticket_id = $parent_id");
     mysqli_query($mysqli, "UPDATE tickets SET ticket_updated_at = NOW() WHERE ticket_id = $parent_id");
 
+    // Its tags go with it - not archived ones, which aren't put on more tickets
+    mysqli_query($mysqli, "INSERT IGNORE INTO ticket_tags (ticket_id, tag_id)
+        SELECT $parent_id, ticket_tags.tag_id FROM ticket_tags JOIN tags ON tags.tag_id = ticket_tags.tag_id
+        WHERE ticket_tags.ticket_id = $ticket_id AND tags.tag_archived_at IS NULL");
+
     logTicketHistory($ticket_id, "$session_name merged this ticket into $parent_reference and closed it");
     logTicketHistory($parent_id, "$session_name merged $child_reference into this ticket");
-    logAudit("Ticket", "Merged", "$session_name merged ticket $child_reference into $parent_reference", intval($child['ticket_client_id']), $ticket_id);
+    logAudit("Ticket", "Merge", "$session_name merged ticket $child_reference into $parent_reference", intval($child['ticket_client_id']), $ticket_id);
     triggerCustomAction('ticket_merge', $ticket_id);
 }
 
@@ -141,6 +126,16 @@ if (isset($_POST['add_ticket'])) {
     $vendor_ticket_number = escapeSql(mb_substr(trim((string) ($_POST['vendor_ticket_number'] ?? '')), 0, 255));
     $ticket_template_id = intval($_POST['ticket_template_id'] ?? 0);
 
+    // What the template asks for, answered - checked before anything is saved
+    $fill_in_answers = null;
+    if ($ticket_template_id) {
+        $fill_in_answers = ticketFillInAnswers(ticketTemplateFillInsFor($ticket_template_id), $_POST['fill_ins'] ?? [], $fill_in_error);
+        if ($fill_in_answers === null) {
+            flashAlert($fill_in_error, 'error');
+            redirect();
+        }
+    }
+
     // What it is about - the client's own only
     $contact_id = ticketClientOwnedId('contact', $_POST['contact_id'] ?? 0, $client_id);
     if (intval($_POST['use_primary_contact'] ?? 0)) {
@@ -177,8 +172,6 @@ if (isset($_POST['add_ticket'])) {
         foreach (parseSubmittedTasks() as $task) {
             mysqli_query($mysqli, "INSERT INTO tasks SET task_name = '{$task['name']}', task_order = {$task['order']}, task_completion_estimate = {$task['estimate']}, task_ticket_id = $ticket_id");
         }
-    } else {
-        addTasksFromTicketTemplate($ticket_id, $ticket_template_id);
     }
 
     // Store any attached files against the ticket itself
@@ -186,6 +179,13 @@ if (isset($_POST['add_ticket'])) {
 
     ticketAddWatchers($ticket_id, ticketWatcherEmails($_POST['watchers'] ?? []));
     ticketSetOtherAssets($ticket_id, $other_asset_ids);
+    tagSetForRecord('ticket', $ticket_id, (array) ($_POST['tags'] ?? []));
+
+    // Raised from a template - kept for the template's use, its answers kept and everything in
+    // brackets filled in. The form had the template's fields in it already, so nothing more is added.
+    if ($ticket_template_id) {
+        ticketTemplateFinish($ticket_id, $ticket_template_id, false, !isset($_POST['tasks_submitted']), $fill_in_answers);
+    }
 
     // Raised about a service - from the service page's "Report a problem"
     foreach (array_unique(array_map('intval', (array) ($_POST['service_ids'] ?? []))) as $service_id) {
@@ -199,6 +199,7 @@ if (isset($_POST['add_ticket'])) {
     // E-mail the client and the watchers
     if (intval($config_ticket_client_general_notifications) === 1) {
         ticketMailCreated($ticket_id, 'Ticket Created', $emailable_attachments['send']);
+        ticketMailColleaguesNew($ticket_id);
     }
 
     // Custom action/notif handler
@@ -207,6 +208,7 @@ if (isset($_POST['add_ticket'])) {
     if ($assigned_to) {
         $row = ticketRow($ticket_id);
         ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $row['ticket_subject'] . " has been assigned to you by $session_name");
+        ticketMailAssigned($assigned_to, [$ticket_id], stripslashes($session_name));
     }
 
     logAudit("Ticket", "Create", "$session_name created ticket $ticket_prefix$ticket_number - $subject", $client_id, $ticket_id);
@@ -223,6 +225,52 @@ if (isset($_POST['add_ticket'])) {
     }
 
     redirect("ticket.php?client_id=$client_id&ticket_id=$ticket_id");
+
+}
+
+if (isset($_POST['edit_ticket_fill_ins'])) {
+
+    // What the ticket's template asked for, answered or changed on the ticket
+    validateCSRFToken();
+
+    $row = ticketForRequest($_POST['ticket_id'] ?? 0, 2);
+    $ticket_id = intval($row['ticket_id']);
+    $reference = escapeSql(ticketReference($row));
+
+    if (!empty($row['ticket_closed_at'])) {
+        flashAlert("Ticket <strong>" . escapeHtml(ticketReference($row)) . "</strong> is closed - a closed ticket stays as it was.", 'error');
+        redirect();
+    }
+
+    $before = ticketFillInsStored('ticket', $ticket_id);
+    $answers = ticketFillInAnswers($before, $_POST['fill_ins'] ?? [], $fill_in_error, false);
+    if ($answers === null) {
+        flashAlert($fill_in_error, 'error');
+        redirect();
+    }
+    $changed = array_values(array_filter($answers, function ($answer) use ($before) {
+        foreach ($before as $old) {
+            if ($old['name'] === $answer['name']) {
+                return (string) $old['value'] !== (string) $answer['value'];
+            }
+        }
+        return true;
+    }));
+
+    if ($changed) {
+        ticketFillInsStore('ticket', $ticket_id, $answers);
+        // An answer given now goes in wherever its [Name] is still waiting
+        ticketPlaceholdersFill($ticket_id);
+        mysqli_query($mysqli, "UPDATE tickets SET ticket_updated_at = NOW() WHERE ticket_id = $ticket_id");
+        foreach ($changed as $answer) {
+            logTicketHistory($ticket_id, "$session_name " . escapeSql($answer['value'] === '' ? "cleared {$answer['name']}" : "set {$answer['name']} to " . ticketFillInText($answer)));
+        }
+        logAudit("Ticket", "Edit", "$session_name answered the fill-ins on ticket $reference", intval($row['ticket_client_id']), $ticket_id);
+    }
+
+    flashAlert($changed ? "Fill-ins on <strong>" . escapeHtml(ticketReference($row)) . "</strong> saved" : "Nothing changed");
+
+    redirect();
 
 }
 
@@ -303,6 +351,16 @@ if (isset($_POST['edit_ticket'])) {
         ticketSetOtherAssets($ticket_id, ticketClientOwnedAssetIds($_POST['additional_assets'] ?? [], $client_id, $asset_id));
     }
 
+    // ...and the tags with their marker
+    if (isset($_POST['tags_form'])) {
+        $tags_before = tagIdsForRecord('ticket', $ticket_id);
+        $tags_after = tagSetForRecord('ticket', $ticket_id, (array) ($_POST['tags'] ?? []));
+        $tags_text = tagChangeText($tags_before, $tags_after);
+        if ($tags_text !== '') {
+            logTicketHistory($ticket_id, escapeSql(stripslashes((string) $session_name) . " $tags_text"));
+        }
+    }
+
     // The trail for what changed - the same entries the dedicated pickers write
     if ($row['ticket_priority'] !== $priority) {
         logTicketHistory($ticket_id, "$session_name changed priority from " . escapeSql($row['ticket_priority']) . " to $priority_sql");
@@ -311,6 +369,7 @@ if (isset($_POST['edit_ticket'])) {
         if ($assigned_to) {
             logTicketHistory($ticket_id, "$session_name assigned the ticket to " . escapeSql(getFieldById('users', $assigned_to, 'user_name')));
             ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $subject_input . " has been assigned to you by $session_name");
+            ticketMailAssigned($assigned_to, [$ticket_id], stripslashes($session_name));
         } else {
             logTicketHistory($ticket_id, "$session_name unassigned the ticket");
         }
@@ -441,26 +500,8 @@ if (isset($_POST['add_ticket_watcher'])) {
     $added = ticketAddWatchers($ticket_id, ticketWatcherEmails($_POST['watcher_email'] ?? ''));
 
     // Let each new watcher know, when asked
-    if ($added && $notify && !empty($config_smtp_provider)) {
-        [$company_name, $company_phone] = ticketMailCompany();
-        $subject = escapeSql($row['ticket_subject']);
-        $details = mysqli_real_escape_string($mysqli, (string) $row['ticket_details']);
-        $status = escapeSql($row['ticket_status_name']);
-        $url_key = escapeSql($row['ticket_url_key']);
-        $base_url = escapeSql($config_base_url);
-        $from_email = escapeSql($config_ticket_from_email);
-        $data = [];
-        foreach ($added as $watcher_email) {
-            $data[] = [
-                'from' => $from_email,
-                'from_name' => escapeSql($config_ticket_from_name),
-                'recipient' => escapeSql($watcher_email),
-                'recipient_name' => escapeSql($watcher_email),
-                'subject' => "Ticket Notification - [$reference] - $subject",
-                'body' => "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello,<br><br>You have been added as a collaborator on this ticket regarding \"$subject\".<br><br>--------------------------------<br>$details--------------------------------<br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status<br>Guest link: https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key<br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone",
-            ];
-        }
-        addToMailQueue($data);
+    if ($added && $notify) {
+        ticketMailWatchersAdded($ticket_id, $added, stripslashes($session_name));
     }
 
     foreach ($added as $watcher_email) {
@@ -657,7 +698,7 @@ if (isset($_POST['bulk_assign_ticket'])) {
     $agent_name_sql = escapeSql($agent_name);
 
     $count = $skipped = 0;
-    $assigned_list = '';
+    $assigned_ids = [];
     foreach (ticketsForBulk(2) as $ticket_id => $row) {
         // A closed ticket keeps who closed it
         if (!empty($row['ticket_closed_at'])) {
@@ -681,7 +722,7 @@ if (isset($_POST['bulk_assign_ticket'])) {
 
         triggerCustomAction('ticket_assign', $ticket_id);
 
-        $assigned_list .= escapeSql(ticketReference($row) . ' - ' . $row['ticket_subject']) . "<br>";
+        $assigned_ids[] = $ticket_id;
         $count++;
     }
 
@@ -689,18 +730,7 @@ if (isset($_POST['bulk_assign_ticket'])) {
     if ($count && $assign_to && $assign_to != $session_user_id) {
         mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '$count ticket" . ($count === 1 ? ' has' : 's have') . " been assigned to you by $session_name', notification_action = '/agent/tickets.php?assigned=$assign_to', notification_user_id = $assign_to");
 
-        $agent_email = (string) getFieldById('users', $assign_to, 'user_email');
-        if (!empty($config_smtp_provider) && filter_var($agent_email, FILTER_VALIDATE_EMAIL)) {
-            $company_name = escapeSql($session_company_name);
-            addToMailQueue([[
-                'from' => escapeSql($config_ticket_from_email),
-                'from_name' => escapeSql($config_ticket_from_name),
-                'recipient' => escapeSql($agent_email),
-                'recipient_name' => $agent_name_sql,
-                'subject' => escapeSql($config_app_name) . " - $count tickets have been assigned to you",
-                'body' => "Hi $agent_name_sql, <br><br>$session_name assigned $count tickets to you!<br><br>$assigned_list<br>Thanks, <br>$session_name<br>$company_name",
-            ]]);
-        }
+        ticketMailAssigned($assign_to, $assigned_ids, stripslashes($session_name));
     }
 
     flashAlert("Assigned <strong>$count</strong> ticket" . ($count === 1 ? '' : 's') . " to <strong>" . escapeHtml($agent_name) . "</strong>" . ($skipped ? ", <strong>$skipped</strong> closed left as they were" : ''));
@@ -825,7 +855,7 @@ if (isset($_POST['bulk_resolve_tickets'])) {
 
         // Client notification email
         if (intval($config_ticket_client_general_notifications) === 1 && !$private_note) {
-            ticketMailResolved($ticket_id, $details);
+            ticketMailResolved($ticket_id, (string) ($_POST['bulk_details'] ?? ''));
         }
         $count++;
     }
@@ -842,7 +872,10 @@ if (isset($_POST['bulk_ticket_reply'])) {
 
     validateCSRFToken();
 
-    $reply = mysqli_real_escape_string($mysqli, (string) ($_POST['bulk_reply_details'] ?? ''));
+    // The placeholders are filled in for each ticket, below
+    $reply_raw = (string) ($_POST['bulk_reply_details'] ?? '');
+    $canned_response_ids = (array) ($_POST['canned_response_ids'] ?? []);
+    $canned_response_file_ids = (array) ($_POST['canned_response_file_ids'] ?? []);
     $status_input = intval($_POST['bulk_status'] ?? 0);
     $time_worked = escapeSql(ticketTimeWorked($_POST['time'] ?? ''));
     $private_note = intval($_POST['bulk_private_reply'] ?? 0);
@@ -869,7 +902,13 @@ if (isset($_POST['bulk_ticket_reply'])) {
             setTicketFirstResponse($ticket_id);
         }
 
+        $reply_text = cannedResponsePlaceholders($reply_raw, $ticket_id, stripslashes($session_name));
+        $reply = mysqli_real_escape_string($mysqli, $reply_text);
         mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '$reply', ticket_reply_time_worked = '$time_worked', ticket_reply_type = '$reply_type', ticket_reply_by = $session_user_id, ticket_reply_ticket_id = $ticket_id");
+        $bulk_reply_id = mysqli_insert_id($mysqli);
+        cannedResponseRecordUses($canned_response_ids, $ticket_id, $session_user_id);
+        // The files of the canned responses that went into it, on each ticket and in its email
+        $bulk_attachments = filterEmailableAttachments(cannedResponseAttachFiles($canned_response_file_ids, $ticket_id, $bulk_reply_id, $session_user_id));
 
         // Out of Resolved into a working status is a reopen
         $reopen = $original_status === TICKET_STATUS_RESOLVED && $ticket_status !== TICKET_STATUS_RESOLVED && $ticket_status !== TICKET_STATUS_CLOSED;
@@ -892,20 +931,13 @@ if (isset($_POST['bulk_ticket_reply'])) {
             mysqli_query($mysqli, "UPDATE tickets SET ticket_resolved_at = NOW() WHERE ticket_id = $ticket_id");
             setTicketResolutionSlaMet($ticket_id);
             logTicketHistory($ticket_id, "$session_name resolved the ticket");
-            logAudit("Ticket", "Resolved", "$session_name resolved ticket $reference", intval($row['ticket_client_id']), $ticket_id);
+            logAudit("Ticket", "Resolve", "$session_name resolved ticket $reference", intval($row['ticket_client_id']), $ticket_id);
             triggerCustomAction('ticket_resolve', $ticket_id);
         }
 
         // Email the client and watchers about a public update
         if (!$private_note) {
-            [$company_name, $company_phone] = ticketMailCompany();
-            $contact_name = escapeSql($row['contact_name']);
-            $status_name = escapeSql(getTicketStatusName($ticket_status));
-            $url_key = escapeSql($row['ticket_url_key']);
-            $base_url = escapeSql($config_base_url);
-            $from_email = escapeSql($config_ticket_from_email);
-            ticketMailContactAndWatchers($ticket_id, "Ticket update - [$reference] - $subject",
-                "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>Your ticket regarding $subject has been updated.<br><br>--------------------------------<br>$reply<br>--------------------------------<br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status_name<br>Portal: <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>View ticket</a><br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone");
+            ticketMailReply($ticket_id, $reply_text, stripslashes($session_name), false, $bulk_attachments['send']);
         }
 
         // Tell the agent it is assigned to, and whoever opened it
@@ -971,16 +1003,20 @@ if (isset($_POST['bulk_add_asset_ticket'])) {
     $billable = intval($_POST['bulk_billable'] ?? 0) ? 1 : 0;
     $ticket_prefix = escapeSql($config_ticket_prefix);
 
-    // A template fills in what was left empty
-    if ($ticket_template_id) {
-        $template = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_template_details, ticket_template_subject FROM ticket_templates WHERE ticket_template_id = $ticket_template_id"));
-        if ($template) {
-            $subject_input = $subject_input !== '' ? $subject_input : (string) $template['ticket_template_subject'];
-            $details = $details !== '' ? $details : mysqli_real_escape_string($mysqli, (string) $template['ticket_template_details']);
+    // A template fills in what was left empty, and what it asks for is answered once for them all
+    $template = ticketTemplateRow($ticket_template_id);
+    $fill_in_answers = null;
+    if ($template) {
+        $subject_input = $subject_input !== '' ? $subject_input : (string) $template['ticket_template_subject'];
+        $details = $details !== '' ? $details : mysqli_real_escape_string($mysqli, (string) $template['ticket_template_details']);
+        $fill_in_answers = ticketFillInAnswers(ticketTemplateFillInsFor($ticket_template_id), $_POST['fill_ins'] ?? [], $fill_in_error);
+        if ($fill_in_answers === null) {
+            flashAlert($fill_in_error, 'error');
+            redirect();
         }
     }
 
-    $count = 0;
+    $ticket_ids = [];
     foreach (array_unique(array_map('intval', (array) ($_POST['asset_ids'] ?? []))) as $asset_id) {
         $asset = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT asset_client_id, asset_name, asset_contact_id, asset_location_id FROM assets WHERE asset_id = $asset_id"));
         if (!$asset) {
@@ -993,7 +1029,8 @@ if (isset($_POST['bulk_add_asset_ticket'])) {
         $contact_id = ticketClientOwnedId('contact', $asset['asset_contact_id'], $client_id);
         $location_id = ticketClientOwnedId('location', $asset['asset_location_id'], $client_id);
         $project_id = ticketClientOwnedId('project', $project_input, $client_id);
-        $subject = escapeSql(mb_substr($asset['asset_name'] . ' - ' . $subject_input, 0, 500));
+        // The asset's name goes in front - unless the subject says where, with [Asset]
+        $subject = escapeSql(mb_substr(stripos($subject_input, '[asset]') !== false ? $subject_input : $asset['asset_name'] . ' - ' . $subject_input, 0, 500));
 
         mysqli_query($mysqli, "UPDATE settings SET config_ticket_next_number = LAST_INSERT_ID(config_ticket_next_number), config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1");
         $ticket_number = mysqli_insert_id($mysqli);
@@ -1007,18 +1044,26 @@ if (isset($_POST['bulk_add_asset_ticket'])) {
         applyTicketSla($ticket_id);
         if (function_exists('mitBoardRoute')) { mitBoardRoute($ticket_id); } // Mountaineer IT: service boards
 
-        // Tasks from the modal, then the template's
+        // Tasks from the modal, then the template's - its tags and due time too, and [Asset] filled in
         foreach ((array) ($_POST['tasks'] ?? []) as $task) {
             $task_name = escapeSql(mb_substr(trim((string) $task), 0, 255));
             if ($task_name !== '') {
                 mysqli_query($mysqli, "INSERT INTO tasks SET task_name = '$task_name', task_ticket_id = $ticket_id");
             }
         }
-        addTasksFromTicketTemplate($ticket_id, $ticket_template_id);
+        if ($template) {
+            ticketTemplateFinish($ticket_id, $ticket_template_id, true, true, $fill_in_answers);
+        }
 
         logAudit("Ticket", "Create", "$session_name created ticket $ticket_prefix$ticket_number - $subject", $client_id, $ticket_id);
         triggerCustomAction('ticket_create', $ticket_id);
-        $count++;
+        $ticket_ids[] = $ticket_id;
+    }
+    $count = count($ticket_ids);
+
+    // The agent they went to hears once, about all of them
+    if ($ticket_ids && $assigned_to) {
+        ticketMailAssigned($assigned_to, $ticket_ids, stripslashes($session_name));
     }
 
     logAudit("Ticket", "Bulk Create", "$session_name created $count ticket(s) for the assets picked");
@@ -1088,7 +1133,7 @@ if (isset($_POST['add_ticket_reply'])) {
         mysqli_query($mysqli, "UPDATE tickets SET ticket_resolved_at = NOW() WHERE ticket_id = $ticket_id");
         setTicketResolutionSlaMet($ticket_id);
         logTicketHistory($ticket_id, "$session_name resolved the ticket");
-        logAudit("Ticket", "Resolved", "$session_name resolved ticket $reference", $client_id, $ticket_id);
+        logAudit("Ticket", "Resolve", "$session_name resolved ticket $reference", $client_id, $ticket_id);
         triggerCustomAction('ticket_resolve', $ticket_id);
     }
 
@@ -1102,29 +1147,26 @@ if (isset($_POST['add_ticket_reply'])) {
         if (function_exists('mitReplyTimesSavePending')) { mitReplyTimesSavePending($ticket_reply_id); } // Mountaineer IT
 
         // Store any attached files against this reply before the email is built, so
-        // a public reply can carry them
-        $emailable_attachments = filterEmailableAttachments(saveTicketAttachments($ticket_id, $ticket_reply_id));
+        // a public reply can carry them - the canned responses' that went into it too
+        $emailable_attachments = filterEmailableAttachments(array_merge(saveTicketAttachments($ticket_id, $ticket_reply_id),
+            cannedResponseAttachFiles((array) ($_POST['canned_response_file_ids'] ?? []), $ticket_id, $ticket_reply_id, $session_user_id)));
+
+        // The canned responses picked into it, for how often each is used
+        cannedResponseRecordUses((array) ($_POST['canned_response_ids'] ?? []), $ticket_id, $session_user_id);
 
         // Email the client and the watchers
         if ($send_email) {
-            [$company_name, $company_phone] = ticketMailCompany();
-            $contact_name = escapeSql($row['contact_name']);
-            $status_name = escapeSql(getTicketStatusName($ticket_status));
-            $url_key = escapeSql($row['ticket_url_key']);
-            $base_url = escapeSql($config_base_url);
-            $from_email = escapeSql($config_ticket_from_email);
-            $portal = "<a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>View ticket</a>";
-            if ($ticket_status === TICKET_STATUS_RESOLVED) {
-                $mail_subject = "Ticket resolved - [$reference] - $subject | (pending closure)";
-                $body = "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>Your ticket regarding $subject has been marked as solved and is pending closure.<br><br>--------------------------------<br>$ticket_reply<br>--------------------------------<br><br>If your request/issue is resolved, you can simply ignore this email. If you need further assistance, please reply or <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>re-open</a> to let us know! <br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status_name<br>Portal: $portal<br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone";
-            } else {
-                $mail_subject = "Ticket update - [$reference] - $subject";
-                $body = "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>Your ticket regarding $subject has been updated.<br><br>--------------------------------<br>$ticket_reply<br>--------------------------------<br><br>Ticket: $reference<br>Subject: $subject<br>Status: $status_name<br>Portal: $portal<br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone";
-            }
+            // The reply as saved - with the signature - read back
+            $reply_html = (string) getFieldById('ticket_replies', $ticket_reply_id, 'ticket_reply');
             if (!empty($_POST['mit_send_to_present']) && function_exists('mitReplyRecipientsReady') && mitReplyRecipientsReady()) { // Mountaineer IT: only the people ticked
-                mitReplyRecipientsMail($ticket_id, $_POST, $mail_subject, $body, $emailable_attachments['send']);
+                $mit_row = ticketRow($ticket_id);
+                $mit_resolved = $ticket_status === TICKET_STATUS_RESOLVED;
+                $mit_subject = ($mit_resolved ? 'Ticket resolved' : 'Ticket update') . " - [" . ticketReference($mit_row) . "] - " . $mit_row['ticket_subject'] . ($mit_resolved ? ' | (pending closure)' : '');
+                $mit_body = emailHtml(array_merge(ticketEmailContent($mit_row, $mit_resolved ? 'resolved' : 'reply', ['message' => $reply_html, 'by' => stripslashes($session_name)]), ['name' => (string) $mit_row['contact_name']]));
+                mitReplyRecipientsMail($ticket_id, $_POST, mysqli_real_escape_string($mysqli, $mit_subject), mysqli_real_escape_string($mysqli, $mit_body), $emailable_attachments['send']);
             } else {
-                ticketMailContactAndWatchers($ticket_id, $mail_subject, $body, $emailable_attachments['send']);
+                ticketMailReply($ticket_id, $reply_html, stripslashes($session_name),
+                    $ticket_status === TICKET_STATUS_RESOLVED, $emailable_attachments['send']);
             }
         }
 
@@ -1151,7 +1193,8 @@ if (isset($_POST['add_ticket_reply'])) {
     } else {
         // A file uploaded without any accompanying text has no reply to hang off,
         // so it attaches to the ticket itself
-        $emailable_attachments = filterEmailableAttachments(saveTicketAttachments($ticket_id, null));
+        $emailable_attachments = filterEmailableAttachments(array_merge(saveTicketAttachments($ticket_id, null),
+            cannedResponseAttachFiles((array) ($_POST['canned_response_file_ids'] ?? []), $ticket_id, null, $session_user_id)));
         flashAlert("Ticket updated");
     }
 
@@ -1248,7 +1291,7 @@ if (isset($_POST['edit_ticket_reply'])) {
     mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply = '$ticket_reply', ticket_reply_type = '$ticket_reply_type', ticket_reply_time_worked = '$ticket_reply_time_worked' WHERE ticket_reply_id = $ticket_reply_id");
     if (function_exists('mitReplyTimesSavePending')) { mitReplyTimesSavePending($ticket_reply_id); } // Mountaineer IT
 
-    logAudit("Ticket", "Reply", "$session_name edited a reply on ticket " . escapeSql(ticketReference($row)), $client_id, $ticket_reply_id);
+    logAudit("Ticket", "Reply", "$session_name edited a reply on ticket " . escapeSql(ticketReference($row)), $client_id, intval($row['ticket_id']));
 
     flashAlert("Ticket reply updated");
 
@@ -1266,7 +1309,7 @@ if (isset($_POST['redact_ticket_reply'])) {
 
     mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply = '$ticket_reply' WHERE ticket_reply_id = $ticket_reply_id");
 
-    logAudit("Ticket", "Reply", "$session_name redacted a reply on ticket " . escapeSql(ticketReference($row)), $client_id, $ticket_reply_id);
+    logAudit("Ticket", "Reply", "$session_name redacted a reply on ticket " . escapeSql(ticketReference($row)), $client_id, intval($row['ticket_id']));
 
     flashAlert("Ticket reply redacted");
 
@@ -1350,6 +1393,8 @@ if (isset($_POST['change_client_ticket'])) {
         ticket_vendor_id = $vendor_id, ticket_project_id = $project_id WHERE ticket_id = $ticket_id LIMIT 1");
     mysqli_query($mysqli, "DELETE FROM ticket_assets WHERE ticket_id = $ticket_id");
     mitTicketClientMoved($ticket_id, $client_id); // Mountaineer IT: the old client's watchers and remembered recipients go
+    // The driving for it goes with it - not to the old client's site
+    mysqli_query($mysqli, "UPDATE trips SET trip_client_id = $client_id, trip_location_id = 0 WHERE trip_ticket_id = $ticket_id");
     applyTicketSla($ticket_id);
 
     $old_client_name = $old_client_id ? (string) getFieldById('clients', $old_client_id, 'client_name') : 'no client';
@@ -1442,20 +1487,13 @@ if (isset($_GET['close_ticket'])) {
 
     logTicketHistory($ticket_id, "$session_name closed the ticket");
 
-    logAudit("Ticket", "Closed", "$session_name closed ticket $reference", $client_id, $ticket_id);
+    logAudit("Ticket", "Close", "$session_name closed ticket $reference", $client_id, $ticket_id);
 
     triggerCustomAction('ticket_close', $ticket_id);
 
     // Client notification email
     if (intval($config_ticket_client_general_notifications) === 1) {
-        [$company_name, $company_phone] = ticketMailCompany();
-        $contact_name = escapeSql($row['contact_name']);
-        $subject = escapeSql($row['ticket_subject']);
-        $url_key = escapeSql($row['ticket_url_key']);
-        $base_url = escapeSql($config_base_url);
-        $from_email = escapeSql($config_ticket_from_email);
-        ticketMailContactAndWatchers($ticket_id, "Ticket closed - [$reference] - $subject | (do not reply)",
-            "Hello $contact_name,<br><br>Your ticket regarding \"$subject\" has been closed. <br><br> We hope the request/issue was resolved to your satisfaction, please provide your feedback <a href=\'https://$base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$url_key\'>here</a>. <br>If you need further assistance, please raise a new ticket using the below details. Please do not reply to this email. <br><br>Ticket: $reference<br>Subject: $subject<br>Portal: https://$base_url/client/ticket.php?id=$ticket_id<br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone");
+        ticketMailClosed($ticket_id);
     }
 
     flashAlert("Ticket <strong>" . escapeHtml(ticketReference($row)) . "</strong> closed - for more work on it, start a new ticket");
@@ -1485,6 +1523,11 @@ if (isset($_GET['reopen_ticket'])) {
 
 }
 
+/*
+ * Invoice a ticket - its time, at the hours and rate in the window, on a new
+ * draft or one of the client's drafts. billingTimeInvoice() does it, the same
+ * as Unbilled Time; a ticket that isn't done yet can be billed from here.
+ */
 if (isset($_POST['add_invoice_from_ticket'])) {
 
     validateCSRFToken();
@@ -1493,7 +1536,6 @@ if (isset($_POST['add_invoice_from_ticket'])) {
 
     $row = ticketForRequest($_POST['ticket_id'] ?? 0, 2);
     $ticket_id = intval($row['ticket_id']);
-    $reference = escapeSql(ticketReference($row));
 
     if (!$client_id) {
         flashAlert('Move the ticket to a client before invoicing it.', 'error');
@@ -1502,67 +1544,27 @@ if (isset($_POST['add_invoice_from_ticket'])) {
 
     $invoice_id = intval($_POST['invoice_id'] ?? 0);
     if ($invoice_id && function_exists('mitQboGuardInvoice')) { mitQboGuardInvoice($invoice_id); } // Mountaineer IT: locked while in a QuickBooks batch
-    $date_input = (string) ($_POST['date'] ?? '');
-    $date = ($parsed_date = DateTime::createFromFormat('!Y-m-d', $date_input)) && $parsed_date->format('Y-m-d') === $date_input ? $date_input : date('Y-m-d');
-    $category = intval($_POST['category'] ?? 0);
-    $scope = escapeSql($_POST['scope'] ?? '');
-
-    $client_net_terms = intval(getFieldById('clients', $client_id, 'client_net_terms')) ?: intval($config_default_net_terms);
-
-    if ($invoice_id === 0) {
-
-        $invoice_prefix = escapeSql($config_invoice_prefix);
-
-        // Atomically increment and get the new invoice number
-        mysqli_query($mysqli, "UPDATE settings SET config_invoice_next_number = LAST_INSERT_ID(config_invoice_next_number), config_invoice_next_number = config_invoice_next_number + 1 WHERE company_id = 1");
-        $invoice_number = mysqli_insert_id($mysqli);
-
-        // A key for the client's guest link to it
-        $url_key = randomString(32);
-
-        mysqli_query($mysqli, "INSERT INTO invoices SET invoice_prefix = '$invoice_prefix', invoice_number = $invoice_number, invoice_scope = '$scope', invoice_date = '$date', invoice_due = DATE_ADD('$date', INTERVAL $client_net_terms day), invoice_currency_code = '$session_company_currency', invoice_category_id = $category, invoice_status = 'Draft', invoice_url_key = '$url_key', invoice_client_id = $client_id");
-        $invoice_id = mysqli_insert_id($mysqli);
-    } else {
-        // Only one of the ticket's client's draft invoices
-        $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_prefix, invoice_number FROM invoices WHERE invoice_id = $invoice_id AND invoice_client_id = $client_id AND invoice_status = 'Draft'"));
-        if (!$invoice) {
-            flashAlert("That invoice isn't one of this client's drafts.", 'error');
-            redirect();
-        }
-        $invoice_prefix = escapeSql($invoice['invoice_prefix']);
-        $invoice_number = intval($invoice['invoice_number']);
+    $result = billingTimeInvoice($client_id, [$ticket_id => (string) ($_POST['qty'] ?? '')], [
+        'invoice_id' => $invoice_id,
+        'date' => (string) ($_POST['date'] ?? ''),
+        'category_id' => intval($_POST['category'] ?? 0),
+        'scope' => (string) ($_POST['scope'] ?? ''),
+        'item_name' => (string) ($_POST['item_name'] ?? ''),
+        'description' => isset($_POST['item_description']) ? (string) $_POST['item_description'] : null,
+        'price' => (string) ($_POST['price'] ?? ''),
+        'tax_id' => intval($_POST['tax_id'] ?? 0),
+        'include_open' => true,
+        'by' => stripslashes($session_name),
+    ], $error);
+    if (!$result) {
+        flashAlert(escapeHtml($error), 'error');
+        redirect();
     }
 
-    // The line for the work
-    $item_name = escapeSql($_POST['item_name'] ?? '');
-    $item_description = escapeSql($_POST['item_description'] ?? '');
-    $qty = floatval($_POST['qty'] ?? 0);
-    $price = floatval($_POST['price'] ?? 0);
-    $tax_id = intval($_POST['tax_id'] ?? 0);
-    $subtotal = $price * $qty;
-    $tax_amount = 0;
-    if ($tax_id > 0) {
-        $tax_percent = floatval(getFieldById('taxes', $tax_id, 'tax_percent'));
-        $tax_amount = $subtotal * $tax_percent / 100;
-    }
-    $total = $subtotal + $tax_amount;
+    flashAlert('<strong>' . escapeHtml(ticketReference($row)) . '</strong> billed on <strong>' . escapeHtml($result['number']) . '</strong> - ' . billingQuantity($result['hours']) . ' h'
+        . ($result['lines'] ? '' : ', with no charge'));
 
-    mysqli_query($mysqli, "INSERT INTO invoice_items SET item_name = '$item_name', item_description = '$item_description', item_quantity = $qty, item_price = $price, item_subtotal = $subtotal, item_tax = $tax_amount, item_total = $total, item_order = 1, item_tax_id = $tax_id, item_invoice_id = $invoice_id");
-
-    mysqli_query($mysqli, "UPDATE invoices SET invoice_amount = invoice_amount + $total WHERE invoice_id = $invoice_id");
-
-    mysqli_query($mysqli, "INSERT INTO history SET history_status = 'Draft', history_description = 'Invoice created from Ticket $reference', history_invoice_id = $invoice_id");
-
-    // Add internal note to ticket, and link to invoice in database
-    mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = 'Created invoice <a href=\"invoice.php?invoice_id=$invoice_id\">$invoice_prefix$invoice_number</a> for this ticket.', ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = $session_user_id, ticket_reply_ticket_id = $ticket_id");
-
-    mysqli_query($mysqli, "UPDATE tickets SET ticket_invoice_id = $invoice_id WHERE ticket_id = $ticket_id");
-
-    logAudit("Invoice", "Create", "$session_name created invoice $invoice_prefix$invoice_number from Ticket $reference", $client_id, $invoice_id);
-
-    flashAlert("Invoice <strong>" . escapeHtml($invoice_prefix . $invoice_number) . "</strong> created from ticket");
-
-    redirect("invoice.php?invoice_id=$invoice_id");
+    redirect("invoice.php?invoice_id={$result['invoice_id']}");
 
 }
 
@@ -1589,14 +1591,11 @@ if (isset($_POST['add_quote_from_ticket'])) {
     $price = floatval($_POST['price'] ?? 0);
     $tax_id = intval($_POST['tax_id'] ?? 0);
 
-    // Totals
-    $subtotal = $price * $qty;
-    $tax_amount = 0;
-    if ($tax_id > 0) {
-        $tax_percent = floatval(getFieldById('taxes', $tax_id, 'tax_percent'));
-        $tax_amount = $subtotal * $tax_percent / 100;
+    // Totals - at the rate's parts, each to the cent
+    if ($tax_id && !taxRow($tax_id)) {
+        $tax_id = 0;
     }
-    $total = floatval($subtotal + $tax_amount);
+    [$subtotal, $tax_amount, $total] = billingLineTax($qty, $price, $tax_id);
 
     // Atomically increment and get the new quote number
     mysqli_query($mysqli, "UPDATE settings SET config_quote_next_number = LAST_INSERT_ID(config_quote_next_number), config_quote_next_number = config_quote_next_number + 1 WHERE company_id = 1");
@@ -1609,6 +1608,7 @@ if (isset($_POST['add_quote_from_ticket'])) {
     $quote_id = mysqli_insert_id($mysqli);
 
     mysqli_query($mysqli, "INSERT INTO quote_items SET item_name = '$item_name', item_description = '$item_description', item_quantity = $qty, item_price = $price, item_subtotal = $subtotal, item_tax = $tax_amount, item_total = $total, item_order = 1, item_tax_id = $tax_id, item_quote_id = $quote_id");
+    billingRecalc('quote', $quote_id);
 
     // Add internal note to ticket, and link to quote in database
     mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = 'Created quote <a href=\"quote.php?quote_id=$quote_id\">$config_quote_prefix$quote_number</a> for this ticket.', ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = $session_user_id, ticket_reply_ticket_id = $ticket_id");
@@ -1770,12 +1770,15 @@ if (isExportRequest('export_tickets')) {
         $filter_summary['Search'] = $_POST['q'];
     }
 
+    // Tags - a ticket with any of them
+    $ticket_tag_query = tagExportFilterSql('ticket', $_POST['tags'] ?? [], $filter_summary, 'tickets.ticket_id');
+
     // Get records from database - same shape as the tickets page list query
     $sql = mysqli_query(
         $mysqli,
         "SELECT category_name, client_name, contact_name, ticket_billable, ticket_closed_at,
         ticket_created_at, ticket_number, ticket_prefix, ticket_priority, ticket_resolved_at,
-        ticket_status_name, ticket_subject, user_name FROM tickets
+        ticket_status_name, ticket_subject, user_name, " . tagNamesSql('ticket', 'tickets.ticket_id') . " AS ticket_tags FROM tickets
         LEFT JOIN clients ON ticket_client_id = client_id
         LEFT JOIN contacts ON ticket_contact_id = contact_id
         LEFT JOIN users ON ticket_assigned_to = user_id
@@ -1788,7 +1791,9 @@ if (isExportRequest('export_tickets')) {
         $ticket_assigned_query
         $category_query
         AND DATE(ticket_created_at) BETWEEN '$dtf' AND '$dtt'
-        AND (CONCAT(ticket_prefix,ticket_number) LIKE '%$q%' OR client_name LIKE '%$q%' OR ticket_subject LIKE '%$q%' OR ticket_status_name LIKE '%$q%' OR ticket_priority LIKE '%$q%' OR user_name LIKE '%$q%' OR contact_name LIKE '%$q%' OR asset_name LIKE '%$q%' OR vendor_name LIKE '%$q%')
+        AND (CONCAT(ticket_prefix,ticket_number) LIKE '%$q%' OR client_name LIKE '%$q%' OR ticket_subject LIKE '%$q%' OR ticket_status_name LIKE '%$q%' OR ticket_priority LIKE '%$q%' OR user_name LIKE '%$q%' OR contact_name LIKE '%$q%' OR asset_name LIKE '%$q%' OR vendor_name LIKE '%$q%'
+            " . tagSearchSql('ticket', $q, 'tickets.ticket_id') . ")
+        $ticket_tag_query
         $ticket_sla_query
         $ticket_billable_snippet
         $ticket_project_snippet
@@ -1811,6 +1816,7 @@ if (isExportRequest('export_tickets')) {
             $row['ticket_category_name'] = $row['category_name'];
             $row['ticket_assigned_to'] = $row['user_name'];
             $row['ticket_billable'] = $row['ticket_billable'] ? 'Yes' : 'No';
+            $row['ticket_tags'] = (string) $row['ticket_tags'];
             addExportRow($export, $row);
         }
 

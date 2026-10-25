@@ -436,10 +436,20 @@ function mitQuoteItemSave($item_id, array $post, array $files, $is_new = false) 
     if (!$item_id || !mitQuoteColumnsReady()) {
         return;
     }
-    [$cost, $method, $percent] = mitPricingPosted($post, 'item');
-    $set = "item_cost = " . ($cost === null ? 'NULL' : $cost)
-        . ", item_price_method = " . ($method === '' ? 'NULL' : "'$method'")
-        . ", item_price_percent = " . ($percent === null ? 'NULL' : $percent);
+    if (!empty($post['mit_pricing_present'])) {
+        // Our fields were on the form (ITFlow 26.11's Edit Line window - mitQuoteLineFields)
+        [$cost, $method, $percent] = mitPricingPosted($post, 'item');
+        $set = "item_cost = " . ($cost === null ? 'NULL' : $cost)
+            . ", item_price_method = " . ($method === '' ? 'NULL' : "'$method'")
+            . ", item_price_percent = " . ($percent === null ? 'NULL' : $percent);
+    } elseif ($is_new && $product_id) {
+        // A line added on the page from a product: the product's cost (ITFlow's products.product_cost, 0 = none), priced as typed
+        $product_cost = (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT product_cost FROM products WHERE product_id = $product_id"))[0] ?? 0);
+        $set = $product_cost > 0 ? "item_cost = $product_cost, item_price_method = 'price', item_price_percent = NULL" : "item_id = item_id";
+    } else {
+        // Changed without our fields (the line on the page) - its cost and pricing stay as they were
+        $set = "item_id = item_id";
+    }
 
     $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT item_image FROM quote_items WHERE item_id = $item_id"));
     $old_image = (string) ($row['item_image'] ?? '');
@@ -460,6 +470,17 @@ function mitQuoteItemSave($item_id, array $post, array $files, $is_new = false) 
     if ($error !== '') {
         $_SESSION['mit_image_error'] = $error;
     }
+}
+
+/** ITFlow 26.11's Edit Line window on a quote (agent/modals/billing/billing_item.php): our cost, markup / margin and the line's image. */
+function mitQuoteLineFields($quote_id, array $item) {
+    if (!mitQuoteColumnsReady()) {
+        return '';
+    }
+    $extra = mitQuoteItemExtra(intval($quote_id), intval($item['item_id']));
+    return '<div class="mt-3"><input type="hidden" name="mit_pricing_present" value="1">'
+        . mitPricingFields(['item_cost', 'item_price_method', 'item_price_percent'], $extra['item_cost'] ?? null, $extra['item_price_method'] ?? null, $extra['item_price_percent'] ?? null)
+        . (mitQuoteSettings()['show_images'] ? mitImageField('item_image', $extra['item_image'] ?? '') : '') . '</div>';
 }
 
 /** Hook in a quote copy: the new line gets the old one's product, cost, method, % and its own copy of the image. */
@@ -514,17 +535,26 @@ function mitImageErrorFlash() {
  * ---------- products ----------
  */
 
-/** Hook after a product is added or edited (agent/post/product.php). */
+/** The image field in ITFlow's product form (agent/modals/product/product_form.php; $product = productRow() or null). */
+function mitProductImageField($product) {
+    if (!mitQuoteColumnsReady()) {
+        return '';
+    }
+    return mitImageField('product_image', $product['product_image'] ?? '');
+}
+
+/**
+ * Hook after a product is added or edited (agent/post/product.php): its image. Cost and vendor are ITFlow's own fields since
+ * 26.11 (product_cost / product_vendor_id, saved by productSave); a product's price method / % (M007) is no longer asked for -
+ * a quote line from it starts with the company's default (Admin > Settings > Quotes).
+ */
 function mitProductSave($product_id, array $post, array $files) {
     global $mysqli;
     $product_id = intval($product_id);
     if (!$product_id || !mitQuoteColumnsReady()) {
         return;
     }
-    [$cost, $method, $percent] = mitPricingPosted($post, 'product');
-    $set = "product_cost = " . ($cost === null ? 'NULL' : $cost)
-        . ", product_price_method = " . ($method === '' ? 'NULL' : "'$method'")
-        . ", product_price_percent = " . ($percent === null ? 'NULL' : $percent);
+    $set = "product_id = product_id";
     $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT product_image FROM products WHERE product_id = $product_id"));
     $old_image = (string) ($row['product_image'] ?? '');
     $error = '';
@@ -537,9 +567,6 @@ function mitProductSave($product_id, array $post, array $files) {
         mitImageDelete($old_image);
     }
     mysqli_query($mysqli, "UPDATE products SET $set WHERE product_id = $product_id");
-    if (function_exists('mitProductVendorSave')) {
-        mitProductVendorSave($product_id, $post); // procurement: who we order it from
-    }
     if ($error !== '') {
         $_SESSION['mit_image_error'] = $error;
     }
@@ -580,10 +607,10 @@ function mitProductsPricingJson() {
         return json_encode($out);
     }
     $result = mysqli_query($mysqli, "SELECT product_id, product_cost, product_price_method, product_price_percent, product_image FROM products
-        WHERE product_archived_at IS NULL AND (product_cost IS NOT NULL OR product_image IS NOT NULL)");
+        WHERE product_archived_at IS NULL AND (product_cost > 0 OR product_image IS NOT NULL)");
     while ($row = mysqli_fetch_assoc($result)) {
         $out->{intval($row['product_id'])} = [
-            'cost' => $row['product_cost'] === null ? '' : number_format((float) $row['product_cost'], 2, '.', ''),
+            'cost' => (float) $row['product_cost'] > 0 ? number_format((float) $row['product_cost'], 2, '.', '') : '',
             'method' => mitPriceMethod($row['product_price_method']),
             'percent' => $row['product_price_percent'] === null ? '' : rtrim(rtrim(number_format((float) $row['product_price_percent'], 2, '.', ''), '0'), '.'),
             'image' => mitImageUrl($row['product_image'] ?? ''),
@@ -812,6 +839,44 @@ function mitQuoteCustomerImage($quote_id, $item_id) {
     $extra = mitQuoteItemExtra($quote_id, $item_id);
     $thumb = mitQuoteThumb($extra['item_image'] ?? '', 64);
     return $thumb ? '<span class="me-2">' . $thumb . '</span>' : '';
+}
+
+/**
+ * ITFlow 26.11's shared document (includes/billing_paper.php - agent, portal and guest pages, and print): a quote line's picture
+ * before its name, when quote images are shown. $paper is the page's $paper, $item a billingItems() row.
+ */
+function mitPaperLineImage(array $paper, array $item) {
+    if (($paper['type'] ?? '') !== 'quote' || !mitQuoteColumnsReady()) {
+        return '';
+    }
+    $quote_id = intval($paper['row']['quote_id'] ?? 0);
+    $image = mitQuoteCustomerImage($quote_id, intval($item['item_id']));
+    return $image !== '' ? '<div class="float-start">' . $image . '</div>' : '';
+}
+
+/**
+ * Under a line's name on the agent page only (the paper being edited - never the client's copy, never print): a quote line's
+ * cost and how it was priced; an invoice line's ordering (procurement). '' otherwise.
+ */
+function mitPaperLineExtras(array $paper, array $item) {
+    if (empty($paper['edit']) && empty($paper['mit_staff'])) {
+        return '';
+    }
+    $item_id = intval($item['item_id']);
+    if (($paper['type'] ?? '') === 'quote' && mitQuoteColumnsReady()) {
+        $extra = mitQuoteItemExtra(intval($paper['row']['quote_id'] ?? 0), $item_id);
+        $cost = $extra['item_cost'] ?? null;
+        if ($cost === null || $cost === '') {
+            return '';
+        }
+        return '<div class="small d-print-none mt-1" data-mit-line-cost><span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-normal">Our cost '
+            . escapeHtml(billingMoney((float) $cost, (string) ($paper['row']['quote_currency_code'] ?? ''))) . '</span> '
+            . mitPricingBadge($cost, $extra['item_price_method'] ?? '', $extra['item_price_percent'] ?? '', $item['item_price']) . '</div>';
+    }
+    if (($paper['type'] ?? '') === 'invoice' && function_exists('mitProcInvoiceLineStatus')) {
+        return '<div class="d-print-none">' . mitProcInvoiceLineStatus(intval($paper['row']['invoice_id'] ?? 0), $item_id) . '</div>';
+    }
+    return '';
 }
 
 /** The quote PDF (TCPDF): a line's picture above its name, or ''. */

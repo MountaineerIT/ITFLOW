@@ -27,6 +27,8 @@ $archived_filter = (isset($_GET['archived']) && $_GET['archived'] == 1) ? 1 : 0;
 $status_filters = softwareStatusFilters();
 $status_filter = isset($status_filters[$_GET['status'] ?? '']) ? $_GET['status'] : '';
 $license_type_filter = (string) ($_GET['license_type'] ?? '');
+$software_type_filter = trim(strip_tags((string) ($_GET['software_type'] ?? '')));
+$tag_filter = tagFilterIds();
 
 ob_start();
 
@@ -63,7 +65,7 @@ ob_start();
                 <select class="form-select select2" name="client">
                     <option value="">- All Clients -</option>
                     <?php
-                    $sql_clients_filter = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients WHERE EXISTS (SELECT 1 FROM software WHERE software_client_id = client_id) ORDER BY client_name ASC");
+                    $sql_clients_filter = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients WHERE EXISTS (SELECT 1 FROM software WHERE software_client_id = client_id)" . clientScopeSql('client_id') . " ORDER BY client_name ASC");
                     while ($row = mysqli_fetch_assoc($sql_clients_filter)) {
                         $filter_client_id = intval($row['client_id']);
                         $filter_client_name = escapeHtml($row['client_name']);
@@ -105,6 +107,17 @@ ob_start();
         </div>
 
         <div class="mb-3">
+            <label>Software Type</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fa fa-fw fa-layer-group"></i></span>
+                <select class="form-select select2" name="software_type">
+                    <option value="">- Any -</option>
+                    <?= categoryFilterOptionsHtml('software_type', $software_type_filter, "SELECT DISTINCT software_type FROM software WHERE software_type IS NOT NULL AND software_type <> ''" . ($client_id ? " AND software_client_id = $client_id" : '') . clientScopeSql('software_client_id')) ?>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
             <label>License Type</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fa fa-fw fa-certificate"></i></span>
@@ -116,6 +129,8 @@ ob_start();
                 </select>
             </div>
         </div>
+
+        <?= tagExportFieldHtml('license', $tag_filter) ?>
 
         <div class="mb-3">
             <label>Archived</label>

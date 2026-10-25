@@ -15,7 +15,8 @@
  * Markup comes from tagPills() in functions/tags.php:
  *   <button data-tag-picker data-tag-entity="contact" data-tag-ids="12" data-csrf="...">
  * or for bulk, data-tag-bulk instead of data-tag-ids (the ticked .bulk-select
- * boxes on the page are the records).
+ * boxes on the page are the records - or only those named in data-tag-bulk,
+ * such as "document_ids[]" on a list that mixes documents and uploads).
  *
  * Styled with the select picker's panel classes (css: "Select picker"), so
  * the two look and behave alike.
@@ -54,8 +55,10 @@
         return input ? input.value : '';
     }
 
-    function bulkIds() {
-        return Array.prototype.map.call(document.querySelectorAll('input.bulk-select:checked'), function (box) {
+    function bulkIds(name) {
+        return Array.prototype.filter.call(document.querySelectorAll('input.bulk-select:checked'), function (box) {
+            return !name || box.name === name;
+        }).map(function (box) {
             return box.value;
         });
     }
@@ -96,7 +99,7 @@
         this.button = button;
         this.entity = button.dataset.tagEntity;
         this.bulk = button.hasAttribute('data-tag-bulk');
-        this.ids = this.bulk ? bulkIds() : String(button.dataset.tagIds || '').split(',').filter(Boolean);
+        this.ids = this.bulk ? bulkIds(button.dataset.tagBulk || '') : String(button.dataset.tagIds || '').split(',').filter(Boolean);
         this.csrf = csrfFor(button);
         // Bulk opens from a menu item that closes - hang the panel off the Action button
         this.anchor = this.bulk ? (document.querySelector('#bulkActionButton > button') || button) : button;
@@ -287,7 +290,8 @@
 
         data.tags.forEach(function (tag) {
             var name = fold(tag.name);
-            if (terms.length && !terms.every(function (t) { return name.indexOf(t) !== -1; })) {
+            var haystack = name + ' ' + fold(tag.description);
+            if (terms.length && !terms.every(function (t) { return haystack.indexOf(t) !== -1; })) {
                 return;
             }
             if (name === fold(self.query.trim())) {
@@ -306,7 +310,8 @@
             box.appendChild(make('i', some ? 'fas fa-minus' : 'fas fa-check'));
             node.appendChild(box);
 
-            var badge = make('span', 'itflow-select-badge');
+            // The icon on a wash of the tag's colour, as its pill looks
+            var badge = make('span', 'itflow-select-badge is-soft');
             badge.style.setProperty('--itflow-select-color', tag.color || 'var(--bs-secondary)');
             badge.appendChild(make('i', 'fas fa-' + tag.icon));
             badge.setAttribute('aria-hidden', 'true');
@@ -314,8 +319,9 @@
 
             var text = make('span', 'itflow-select-text');
             text.appendChild(make('span', 'itflow-select-label', tag.name));
-            if (some) {
-                text.appendChild(make('span', 'itflow-select-description', tag.chosen + ' of ' + data.records));
+            var about = [tag.description || '', some ? tag.chosen + ' of ' + data.records : ''].filter(Boolean).join(' · ');
+            if (about) {
+                text.appendChild(make('span', 'itflow-select-description', about));
             }
             node.appendChild(text);
             list.appendChild(node);

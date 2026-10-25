@@ -64,26 +64,42 @@ function mitNotificationRows() {
 /** Save the switches (from the Notifications form). */
 function mitNotificationsSave(array $post) {
     if (empty($post['mit_notify_present'])) {
-        return;
+        return [];
     }
+    // What changed (against what is in force now, defaults included), as lines for ITFlow's settingsSave - its message and audit log
+    $changed = [];
     $on = (array) ($post['mit_notify'] ?? []);
-    foreach (array_keys(mitNotificationSwitches()) as $key) {
-        mitSetSetting("notify_$key", empty($on[$key]) ? '0' : '1');
+    foreach (mitNotificationSwitches() as $key => $switch) {
+        $value = empty($on[$key]) ? '0' : '1';
+        if ((mitNotifyOn($key) ? '1' : '0') !== $value) {
+            $changed[] = $switch[1] . ' (' . ($switch[3] === 'app' ? 'bell' : 'email') . ') ' . ($value === '1' ? 'on' : 'off');
+        }
+        mitSetSetting("notify_$key", $value);
     }
     $schedule = (array) ($post['mit_schedule'] ?? []);
     foreach (['remote', 'onsite'] as $mode) {
-        foreach (array_keys(MIT_SCHEDULE_WHO) as $who) {
-            mitSetSetting("notify_schedule_{$mode}_$who", empty($schedule[$mode][$who]) ? '0' : '1');
+        $now = mitScheduleDefaults($mode === 'onsite');
+        foreach (MIT_SCHEDULE_WHO as $who => $label) {
+            $value = empty($schedule[$mode][$who]) ? '0' : '1';
+            if ((!empty($now[$who]) ? '1' : '0') !== $value) {
+                $changed[] = ucfirst($mode) . " bookings: $label " . ($value === '1' ? 'emailed' : 'not emailed');
+            }
+            mitSetSetting("notify_schedule_{$mode}_$who", $value);
         }
-        mitSetSetting("notify_schedule_{$mode}_extra", implode(', ', mitScheduleEmails((string) ($schedule[$mode]['extra'] ?? ''))));
+        $extra = implode(', ', mitScheduleEmails((string) ($schedule[$mode]['extra'] ?? '')));
+        if ($extra !== implode(', ', (array) ($now['extra'] ?? []))) {
+            $changed[] = ucfirst($mode) . ' bookings: also email ' . ($extra !== '' ? $extra : 'nobody');
+        }
+        mitSetSetting("notify_schedule_{$mode}_extra", $extra);
     }
+    return $changed;
 }
 
 /*
  * ---------- who is emailed when a ticket is scheduled ----------
  * Defaults per kind of visit (remote / onsite) on the Notifications page; the Schedule window and Dispatch's dialog show them as ticks to
  * change for one booking ($GLOBALS['mit_schedule_notify'], set by mitScheduleNotifyFromPost). Read in ITFlow's ticketMailSchedule through
- * mitScheduleNotify (tech, contact, watchers) and mitScheduleExtraMail (site contact, client's primary contact, extra addresses). Everyone
+ * mitScheduleNotify (tech, contact, watchers) and mitScheduleExtraRecipients (site contact, client's primary contact, extra addresses). Everyone
  * but the tech also needs ITFlow's "Send clients general notification emails". Cancellations follow the booking's kind.
  */
 
@@ -173,38 +189,43 @@ function mitScheduleOtherContacts($ticket_id) {
 }
 
 /**
- * The extra schedule emails (site contact, primary contact, typed addresses) - one guarded line in ITFlow's ticketMailSchedule adds
- * them to its $data after the contact and watchers, with its own $from (subject + calendar file) and texts; anyone already in $data
- * is left out. Returns rows for addToMailQueue (SQL-escaped).
+ * The extra schedule emails (site contact, primary contact, typed addresses) - one guarded line in ITFlow's ticketMailSchedule queues
+ * ITFlow's own booking email (with the calendar file) to them after the contact and watchers. Anyone those already reached is left
+ * out ($contact_sent / $watchers_sent: whether ITFlow mailed the contact / the watchers). Returns emailQueue recipients.
  */
-function mitScheduleExtraMail(array $row, array $from, $what, $client_link, $footer, array $data) {
+function mitScheduleExtraRecipients(array $row, $contact_sent, $watchers_sent) {
     global $mysqli;
     $ticket_id = intval($row['ticket_id']);
     $choice = mitScheduleChoice($ticket_id);
     $have = [];
-    foreach ($data as $mail) {
-        $have[strtolower(stripslashes((string) $mail['recipient']))] = true;
+    if ($contact_sent && !empty($row['contact_email'])) {
+        $have[strtolower(trim((string) $row['contact_email']))] = true;
+    }
+    if ($watchers_sent) {
+        $result = mysqli_query($mysqli, "SELECT watcher_email FROM ticket_watchers WHERE watcher_ticket_id = $ticket_id");
+        while ($watcher = mysqli_fetch_row($result)) {
+            $have[strtolower(trim((string) $watcher[0]))] = true;
+        }
     }
     $people = [];
     foreach (mitScheduleOtherContacts($ticket_id) as $who => [$email, $name]) {
         if (!empty($choice[$who])) {
-            $people[] = [$email, $name];
+            $people[] = [$email, $name, $who === 'site' ? 'the contact at the site' : 'the primary contact'];
         }
     }
     foreach ((array) ($choice['extra'] ?? []) as $email) {
-        $people[] = [$email, $email];
+        $people[] = [$email, '', 'an address this booking is shared with'];
     }
-    $reference = ticketReference($row);
+    $company_name = (string) (billingCompany()['company_name'] ?? 'us');
     $out = [];
-    foreach ($people as [$email, $name]) {
-        if (isset($have[strtolower($email)])) {
+    foreach ($people as [$email, $name, $why]) {
+        $key = strtolower(trim((string) $email));
+        if ($key === '' || isset($have[$key]) || !filter_var($key, FILTER_VALIDATE_EMAIL)) {
             continue;
         }
-        $have[strtolower($email)] = true;
-        $body = "<div class='header'>Hello" . ($name !== $email ? ', ' . escapeHtml($name) : '') . ",</div>$what<br><br>Please do not reply to this email.<br><br><strong>Ticket:</strong> "
-            . escapeHtml($reference) . "<br><strong>Subject:</strong> " . escapeHtml($row['ticket_subject']) . "<br><br>$footer";
-        $out[] = $from + ['recipient' => mysqli_real_escape_string($mysqli, $email), 'recipient_name' => mysqli_real_escape_string($mysqli, $name),
-            'body' => mysqli_real_escape_string($mysqli, $body)];
+        $have[$key] = true;
+        // A typed address has no name: "Hello," to nobody in particular
+        $out[] = ['email' => $email, 'name' => (string) $name, 'footnote' => "You get this as $why for $company_name's visit."] + ($name === '' ? ['greet' => ''] : []);
     }
     return $out;
 }

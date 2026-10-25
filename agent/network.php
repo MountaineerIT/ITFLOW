@@ -11,7 +11,8 @@
  * range as one band. Each address says what is wrong with it: two devices on
  * it, a fixed address inside the DHCP range, a reservation for one MAC on a
  * device with another. Devices lists the interfaces on the network and what
- * they plug into. The open tab follows the URL hash (#devices).
+ * they plug into, and History who changed the network. The open tab follows
+ * the URL hash (#devices).
  */
 
 // If client_id is in URI then show client Side Bar and client header
@@ -42,6 +43,7 @@ if (!$network || ($client_url && intval($network['network_client_id']) !== intva
     $is_archived = !empty($network['network_archived_at']);
     $is_favorite = intval($network['network_favorite']) === 1;
     $can_edit = networkCan(2) && !$is_archived;
+    $network_tags_display = tagPills('network', $network_id, tagsForRecord('network', $network_id), "networks.php?client_id=$client_id&", $can_edit);
     $can_restore = networkCan(2);
     $can_delete = networkCan(3) && !empty($config_destructive_deletes_enable);
     $csrf = $_SESSION['csrf_token'];
@@ -77,9 +79,13 @@ if (!$network || ($client_url && intval($network['network_client_id']) !== intva
         return 'modals/network/network_ip_add.php?' . http_build_query(['network_id' => $network_id] + $params);
     };
 
+    // Its history, from the audit log
+    $history = auditLogHistory('Network', $network_id);
+
     $network_tabs = [
         'addresses' => ['label' => 'Address plan', 'icon' => 'fa-list-ol', 'count' => $usage['used']],
         'devices' => ['label' => 'Devices', 'icon' => 'fa-desktop', 'count' => $usage['devices']],
+        'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => $history['count']],
     ];
 
     ?>
@@ -115,6 +121,9 @@ if (!$network || ($client_url && intval($network['network_client_id']) !== intva
                     <?php } ?>
                     <?php if ($network['network_description']) { ?><span><?= escapeHtml($network['network_description']) ?></span><?php } ?>
                 </div>
+                <?php if ($network_tags_display) { ?>
+                    <div class="mt-2"><?= $network_tags_display ?></div>
+                <?php } ?>
             </div>
 
             <div class="d-flex flex-wrap gap-2 d-print-none">
@@ -499,6 +508,14 @@ if (!$network || ($client_url && intval($network['network_client_id']) !== intva
                         <?php if ($info && ($info['family'] === 6 || $info['prefix'] < 20)) { ?>
                             <div class="border-top px-3 py-2 small text-body-secondary"><i class="fas fa-fw fa-info-circle me-1"></i>Free addresses are shown for IPv4 networks up to a /20 - this one lists what is in use.</div>
                         <?php } ?>
+                    </div>
+
+                    <!-- History, from the audit log -->
+                    <div class="tab-pane fade" id="network-pane-history" role="tabpanel">
+                        <div class="itflow-asset-pane-bar">
+                            <span class="text-body-secondary small">Changes to the network - newest first.</span>
+                        </div>
+                        <?= auditLogHistoryHtml($history, ['client_id' => $client_id]) ?>
                     </div>
 
                     <!-- The interfaces of devices set to this network -->

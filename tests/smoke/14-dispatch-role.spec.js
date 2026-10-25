@@ -25,12 +25,12 @@ async function dispatchLevel(page, level = null) {
     await page.goto('admin/roles.php');
     const modal = await openModal(page, `modals/role/role_edit.php?id=${made.roleId}`, 'lg');
     const current = await modal.evaluate((root) => {
-        const radios = [...root.querySelectorAll('input[type=radio][name$="##module_dispatch"]')];
+        const radios = [...root.querySelectorAll('[data-role-module="module_dispatch"] input[type=radio]')];
         return radios.length ? (radios.find((r) => r.checked) || { value: '0' }).value : null;
     });
     if (level !== null && current !== null) {
         await modal.evaluate((root, value) => {
-            root.querySelector(`input[type=radio][name$="##module_dispatch"][value="${value}"]`).checked = true;
+            root.querySelector(`[data-role-module="module_dispatch"] input[type=radio][value="${value}"]`).checked = true;
         }, String(level));
         await submit(modal, 'edit_role');
     }

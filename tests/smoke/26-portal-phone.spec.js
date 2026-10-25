@@ -41,9 +41,9 @@ test('portal: tables fit a phone screen', async ({ page, browser }) => {
     await phone.fill('input[name=password]', password);
     await Promise.all([phone.waitForNavigation(), phone.click('button[name=login]')]);
     await phone.goto('client/activity.php');
-    const table = phone.locator('table.table').first();
-    await expect(table, 'the activity table').toBeVisible();
-    await expect(phone.locator('.table-responsive table.table').first(), 'the table is wrapped so it scrolls in its box').toBeVisible();
+    // ITFlow 26.11 draws the portal's lists without tables; any table left is wrapped so it scrolls in its box
+    const unwrapped = await phone.locator('table.table').evaluateAll((tables) => tables.filter((t) => !t.closest('.table-responsive')).length);
+    expect(unwrapped, 'tables not wrapped').toBe(0);
     const wider = await phone.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(wider, 'the page is no wider than the phone').toBeLessThanOrEqual(1);
     await context.close();

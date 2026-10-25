@@ -310,10 +310,11 @@ break stock ITFlow, and lists what stops working after a move.
   `mit_settings` (`module_*`), unused by stock ITFlow.
 - **Reimbursements** (mileage and purchases logged on tickets) – the ticket's Reimbursements box, the
   timesheet list and the payroll columns go; the entries stay in `mit_reimbursements` and receipts in
-  `uploads/mit_receipts/`. Export the payroll report first. The ITFlow trips (mileage) and expenses
-  (approved purchases) they made are ordinary ITFlow records and stay.
+  `uploads/mit_receipts/`. Export the payroll report first. The ITFlow trips (mileage, marked as driven in
+  their own vehicle) and expenses (approved purchases, paid personally) they made are ordinary ITFlow records
+  and stay - stock ITFlow 26.11 pays them back the same way (Trips > To pay back, Expenses > Reimburse).
 - **Ticket parts** – the Parts box is ours (`mit_ticket_parts`); parts already billed are ordinary
-  invoice lines and stay. Products' "Order from" vendor (`products.product_vendor_id`) is ignored.
+  invoice lines and stay. A product's vendor and cost are ITFlow's own fields (26.11) and stay.
 - **Additional agents on tickets** – stock ITFlow keeps only the assigned agent. The others, their
   own scheduled times and their calendar / Outlook entries are not shown (the rows sit unused
   in `mit_ticket_techs`); reassign or note them on the tickets that need it.
@@ -329,10 +330,10 @@ break stock ITFlow, and lists what stops working after a move.
   client access stay as they are).
 - **Quote pricing and item images** – stock ITFlow keeps every quote's customer prices, but our
   cost, the markup / margin and the line and product images are not shown (they sit unused in
-  the `item_cost` / `item_price_*` / `item_image` and `product_cost` / `product_price_*` /
-  `product_image` columns, the files in `uploads/mit_images/`). Our API leaves product cost and
-  markup out of `api/v1/products/read.php`; stock ITFlow's API returns every column, so after a move
-  an API key with Sales access can read them – clear them first if that matters.
+  the `item_cost` / `item_price_*` / `item_image` and `product_price_*` / `product_image` columns,
+  the files in `uploads/mit_images/`). A product's cost is ITFlow's own field (26.11) and stays. Our API
+  leaves product cost and markup out of `api/v1/products/read.php`; stock ITFlow's API returns every
+  column, so after a move an API key with Sales access can read them – clear them first if that matters.
 - **Ticket page layout** (column widths, three columns, box order, half-width and collapsed boxes, reply box open on Public note) – stock ITFlow shows its own layout;
   the saved layouts sit unused in `mit_settings` / `mit_user_preferences`.
 - **Schedule lengths, agent colors, per-person calendar settings, Outlook busy times, the ticket

@@ -18,18 +18,10 @@
 
 isset($mysqli) || die("Direct file access is not allowed");
 
-// Status - from Admin > Categories, keeping a retired value that is still set
-$status_options = [];
-$sql_status_select = mysqli_query($mysqli, "SELECT category_name, category_color, category_icon FROM categories
-    WHERE category_type = 'asset_status' AND category_archived_at IS NULL
-    ORDER BY category_order ASC, category_name ASC");
+// Status - from Admin > Categories, keeping one the asset has that is archived or isn't a status any more
 $status_colors = [];
-while ($row = mysqli_fetch_assoc($sql_status_select)) {
-    $status_options[escapeHtml($row['category_name'])] = selectOptionColor($row['category_color'] ?? '', $row['category_icon'] ?? '');
-    $status_colors[$row['category_name']] = assetStatusColor($row['category_name'], $row['category_color'] ?? '');
-}
-if ($asset_status !== '' && !isset($status_options[$asset_status])) {
-    $status_options[$asset_status] = '';
+foreach (categoryPicker('asset_status', [html_entity_decode($asset_status)]) as $status_name => $status_row) {
+    $status_colors[$status_name] = assetStatusColor($status_name, $status_row['category_color'] ?? '');
 }
 
 // The client's own lists - only once the client is known
@@ -73,8 +65,6 @@ $sql = mysqli_query($mysqli, "SELECT asset_os FROM assets WHERE asset_archived_a
 while ($row = mysqli_fetch_assoc($sql)) {
     $os_suggestions[] = ['label' => $row['asset_os'], 'value' => $row['asset_os']];
 }
-
-$sql_tags_select = mysqli_query($mysqli, "SELECT tag_id, tag_name, tag_color, tag_icon FROM tags WHERE tag_type = 5 ORDER BY tag_name ASC");
 
 $asset_ip_is_dhcp = $asset_ip === 'DHCP';
 
@@ -171,10 +161,9 @@ $asset_form_icons = [
                 <span class="input-group-text"><i class="fas fa-circle fa-fw" data-asset-form-icon="status" style="color: <?= $asset_form_icons['status'] ?>"></i></span>
                 <select class="form-select select2" name="status">
                     <option value="">- Status -</option>
-                    <?php foreach ($status_options as $status_option => $status_option_data) { ?>
-                        <option <?php if ($status_option === $asset_status) { echo "selected"; } ?><?= $status_option_data ?>><?= $status_option ?></option>
-                    <?php } ?>
+                    <?= categoryOptionsHtml('asset_status', html_entity_decode($asset_status)) ?>
                 </select>
+                <?= categoryAddButtonHtml('asset_status', 'btn btn-secondary') ?>
             </div>
         </div>
         <div class="col-md-7">
@@ -188,15 +177,9 @@ $asset_form_icons = [
             <label class="form-label">Tags</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="fa fa-fw fa-tags"></i></span>
-                <select class="form-select select2" name="tags[]" data-placeholder="Add some tags" multiple>
-                    <?php while ($row = mysqli_fetch_assoc($sql_tags_select)) {
-                        $tag_id_select = intval($row['tag_id']); ?>
-                        <option value="<?= $tag_id_select ?>" <?php if (in_array($tag_id_select, $asset_tag_id_array)) { echo "selected"; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
-                    <?php } ?>
+                <select class="form-select select2" name="tags[]" data-placeholder="Add some tags" multiple<?= !empty($session_is_admin) ? ' data-tags="true"' : '' ?>>
+                    <?= tagOptionsHtml('asset', $asset_tag_id_array) ?>
                 </select>
-                <button class="btn btn-secondary ajax-modal" title="New tag" type="button" data-modal-url="../admin/modals/tag/tag_add.php?type=5">
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
         </div>
     </div>

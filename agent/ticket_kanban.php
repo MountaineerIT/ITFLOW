@@ -14,10 +14,10 @@
 isset($mysqli) || die("Direct file access is not allowed");
 
 $columns = [];
-$sql_columns = mysqli_query($mysqli, "SELECT ticket_status_id, ticket_status_name, ticket_status_color, ticket_status_pauses_sla FROM ticket_statuses
-    WHERE ticket_status_active = 1 AND ticket_status_id <> " . TICKET_STATUS_CLOSED . " ORDER BY ticket_status_order, ticket_status_id");
-while ($row = mysqli_fetch_assoc($sql_columns)) {
-    $columns[intval($row['ticket_status_id'])] = $row + ['tickets' => []];
+foreach (ticketStatusesAll() as $status_id => $row) {
+    if (intval($row['ticket_status_active']) === 1 && $status_id !== TICKET_STATUS_CLOSED) {
+        $columns[$status_id] = $row + ['tickets' => []];
+    }
 }
 
 $ordering_sql = intval($config_ticket_ordering) === 1
@@ -45,6 +45,7 @@ foreach ($columns as $column) {
 }
 $last_replies = ticketLastReplies($board_ids);
 $task_counts = ticketTaskCounts($board_ids);
+$tickets_tags = tagsForRecords('ticket', $board_ids);
 
 ?>
 
@@ -62,12 +63,13 @@ $task_counts = ticketTaskCounts($board_ids);
      data-can-edit="<?= $can_edit ? 1 : 0 ?>" data-moving-columns="<?= intval($config_ticket_moving_columns) ?>" data-ordering="<?= intval($config_ticket_ordering) ?>">
 
     <?php foreach ($columns as $status_id => $column) {
-        $color = preg_match('/^#[0-9a-f]{3,8}$/i', (string) $column['ticket_status_color']) ? $column['ticket_status_color'] : 'var(--bs-secondary)';
+        $color = ticketStatusColor($column['ticket_status_color']);
+        $column_about = ticketStatusAbout($column);
         ?>
         <section class="kanban-column" data-status-id="<?= $status_id ?>" style="--itflow-status-color: <?= $color ?>">
             <header class="kanban-column-header" <?= intval($config_ticket_moving_columns) === 1 && $can_edit ? 'title="Drag to move this column"' : '' ?>>
                 <span class="kanban-column-dot" aria-hidden="true"></span>
-                <span class="kanban-column-name text-truncate"><?= escapeHtml($column['ticket_status_name']) ?></span>
+                <span class="kanban-column-name text-truncate"<?= $column_about !== '' ? ' title="' . escapeHtml($column_about) . '"' : '' ?>><?= escapeHtml($column['ticket_status_name']) ?></span>
                 <?php if (intval($column['ticket_status_pauses_sla']) && $status_id !== TICKET_STATUS_RESOLVED) { ?>
                     <i class="fas fa-pause small text-body-secondary" title="The SLA clock is paused in this status"></i>
                 <?php } ?>
@@ -144,6 +146,10 @@ $task_counts = ticketTaskCounts($board_ids);
                                 <?php } ?>
                                 <?= ticketTasksHtml($task_counts[$ticket_id] ?? null) ?>
                             </div>
+                        <?php } ?>
+
+                        <?php if (!empty($tickets_tags[$ticket_id])) { ?>
+                            <div class="mt-1"><?= tagPills('ticket', $ticket_id, $tickets_tags[$ticket_id], "tickets.php?{$client_url}view=kanban&", false) ?></div>
                         <?php } ?>
 
                         <div class="d-flex align-items-center justify-content-between gap-2 mt-2">

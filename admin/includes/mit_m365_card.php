@@ -125,7 +125,7 @@ $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' &
             <?php if ($mit_m365_mailbox_connected) { ?>
                 <?php if ($mit_m365_graph_unknown) { ?>
                     <div class="text-success"><i class="fas fa-check-circle me-2"></i>Mailbox connected - ITFlow checks which way mail goes the next time it sends or receives
-                        (or use <strong>Test IMAP</strong> on the Receiving tab now).</div>
+                        (or use <strong>Test IMAP</strong> on the <a href="?tab=tests">Tests</a> tab now).</div>
                 <?php } elseif ($mit_m365_graph_mail) { ?>
                     <div class="text-success"><i class="fas fa-check-circle me-2"></i>Mailbox connected - mail is sent and received through Microsoft Graph.
                         To use a different mailbox, click Connect Microsoft 365 on the <a href="?tab=oauth">OAuth</a> tab again.</div>

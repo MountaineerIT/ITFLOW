@@ -152,6 +152,27 @@
                             </p>
                         </a>
                     </li>
+                    <?php if ($config_module_enable_ticketing == 1 || lookupUserPermission('module_financial') >= 1) { ?>
+                        <li class="nav-item">
+                            <a href="/agent/unbilled_time.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "unbilled_time.php") { echo "active"; } ?>">
+                                <i class="nav-icon fas fa-user-clock"></i>
+                                <p>
+                                    Unbilled Time
+                                    <?php if ($num_unbilled_tickets || $num_unbilled_expenses || $num_unbilled_trips) {
+                                        // "4 billable tickets done, 2 expenses and 1 trip to bill, not invoiced"
+                                        $unbilled_parts = array_values(array_filter([
+                                            "$num_unbilled_tickets billable ticket" . ($num_unbilled_tickets == 1 ? '' : 's') . ' done',
+                                            $num_unbilled_expenses ? "$num_unbilled_expenses expense" . ($num_unbilled_expenses == 1 ? '' : 's') : '',
+                                            $num_unbilled_trips ? "$num_unbilled_trips trip" . ($num_unbilled_trips == 1 ? '' : 's') : '',
+                                        ]));
+                                        $unbilled_last = count($unbilled_parts) > 1 ? array_pop($unbilled_parts) : '';
+                                        $unbilled_title = $unbilled_last === '' ? 'Billable tickets done, not invoiced' : implode(', ', $unbilled_parts) . " and $unbilled_last to bill, not invoiced"; ?>
+                                        <span class="right badge text-light" data-bs-toggle="tooltip" title="<?= escapeHtml($unbilled_title) ?>"><?= $num_unbilled_tickets + $num_unbilled_expenses + $num_unbilled_trips ?></span>
+                                    <?php } ?>
+                                </p>
+                            </a>
+                        </li>
+                    <?php } ?>
                     <li class="nav-item">
                         <a href="/agent/recurring_invoices.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "recurring_invoices.php" || basename($_SERVER["PHP_SELF"]) == "recurring_invoice.php") { echo "active"; } ?>">
                             <i class="nav-icon fas fa-redo-alt"></i>
@@ -164,9 +185,25 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="/agent/products.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "products.php") { echo "active"; } ?>">
+                        <a href="/agent/contracts.php" class="nav-link <?php if (in_array(basename($_SERVER["PHP_SELF"]), ['contracts.php', 'contract.php', 'contract_document.php'], true)) { echo "active"; } ?>">
+                            <i class="nav-icon fas fa-file-contract"></i>
+                            <p>
+                                Contracts
+                                <?php if (!empty($num_contracts_soon)) { ?>
+                                    <span class="right badge text-bg-warning" data-bs-toggle="tooltip" title="Ending or renewing soon"><?= intval($num_contracts_soon) ?></span>
+                                <?php } ?>
+                            </p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/agent/products.php" class="nav-link <?php if (in_array(basename($_SERVER["PHP_SELF"]), ['products.php', 'product.php', 'products_count.php'], true)) { echo "active"; } ?>">
                             <i class="nav-icon fas fa-box-open"></i>
-                            <p>Products</p>
+                            <p>
+                                Products
+                                <?php if (!empty($num_products_reorder)) { ?>
+                                    <span class="right badge text-bg-warning" data-bs-toggle="tooltip" title="To reorder"><?= intval($num_products_reorder) ?></span>
+                                <?php } ?>
+                            </p>
                         </a>
                     </li>
                     <?php require __DIR__ . '/mit_billing_nav.php'; // Mountaineer IT: Unbilled Parts, Usage Review, Invoice Approvals, QuickBooks Batches ?>
@@ -200,26 +237,29 @@
                                 </p>
                             </a>
                         </li>
+                    <?php } ?>
+                    <?php // Everyone logs their driving - without Financial access, their own trips ?>
+                    <li class="nav-item">
+                        <a href="/agent/trips.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "trips.php") { echo "active"; } ?>">
+                            <i class="nav-icon fas fa-route"></i>
+                            <p>Trips</p>
+                        </a>
+                    </li>
+                    <?php if (lookupUserPermission("module_financial") >= 1) { ?>
                         <li class="nav-item">
-                            <a href="/agent/trips.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "trips.php") { echo "active"; } ?>">
-                                <i class="nav-icon fas fa-route"></i>
-                                <p>Trips</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/agent/accounts.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "accounts.php") { echo "active"; } ?>">
+                            <a href="/agent/accounts.php" class="nav-link <?php if (in_array(basename($_SERVER["PHP_SELF"]), ["accounts.php", "reconcile.php"], true)) { echo "active"; } ?>">
                                 <i class="nav-icon fas fa-piggy-bank"></i>
                                 <p>Accounts</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="/agent/transactions.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "transactions.php") { echo "active"; } ?>">
+                            <a href="/agent/transactions.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "transactions.php" && ($_GET['show'] ?? '') !== 'transfers') { echo "active"; } ?>">
                                 <i class="nav-icon fas fa-list-alt"></i>
                                 <p>Transactions</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="/agent/transfers.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "transfers.php") { echo "active"; } ?>">
+                            <a href="/agent/transactions.php?show=transfers" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "transactions.php" && ($_GET['show'] ?? '') === 'transfers') { echo "active"; } ?>">
                                 <i class="nav-icon fas fa-exchange-alt"></i>
                                 <p>Transfers</p>
                             </a>
@@ -229,8 +269,13 @@
 
                 <?php require __DIR__ . '/mit_timesheet_nav.php'; // Mountaineer IT ?>
 
-                <?php if (lookupUserPermission("module_reporting") >= 1) { ?>
+                <?php
+                // Your own links (Admin > Custom Links) go under Tools too - with its heading even when Reports isn't shown
+                $custom_links = customLinksFor(1);
+                if (lookupUserPermission("module_reporting") >= 1 || $custom_links) { ?>
                     <li class="nav-header mt-3">TOOLS</li>
+                <?php } ?>
+                <?php if (lookupUserPermission("module_reporting") >= 1) { ?>
                     <li class="nav-item">
                         <a href="/agent/reports/" class="nav-link">
                             <i class="fas fa-chart-line nav-icon"></i>
@@ -239,34 +284,9 @@
                         </a>
                     </li>
                 <?php } ?>
-
-                <?php
-                $sql_custom_links = mysqli_query($mysqli, "SELECT custom_link_icon, custom_link_name, custom_link_new_tab, custom_link_uri FROM custom_links WHERE custom_link_location = 1 AND custom_link_archived_at IS NULL
-                    ORDER BY custom_link_order ASC, custom_link_name ASC"
-                );
-
-                while ($row = mysqli_fetch_assoc($sql_custom_links)) {
-                    $custom_link_name = escapeHtml($row['custom_link_name']);
-                    $custom_link_uri = escapeUrl($row['custom_link_uri']);
-                    $custom_link_icon = escapeHtml($row['custom_link_icon']);
-                    $custom_link_new_tab = intval($row['custom_link_new_tab']);
-                    if ($custom_link_new_tab == 1) {
-                        $target = "target='_blank' rel='noopener noreferrer'";
-                    } else {
-                        $target = "";
-                    }
-
-                    ?>
-
-                <li class="nav-item">
-                    <a href="<?= $custom_link_uri ?>" <?= $target ?> class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == basename($custom_link_uri)) { echo "active"; } ?>">
-                        <i class="fas fa-<?= $custom_link_icon ?> nav-icon"></i>
-                        <p><?= $custom_link_name ?></p>
-                        <i class="fas fa-angle-right nav-icon float-end"></i>
-                    </a>
-                </li>
-
-                <?php } ?>
+                <?php foreach ($custom_links as $custom_link) {
+                    echo customLinkNavItemHtml($custom_link);
+                } ?>
 
             </ul>
         </nav>

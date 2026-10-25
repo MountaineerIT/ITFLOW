@@ -105,7 +105,7 @@ test('a recurring line picks the Ingram product and bills its quantity', async (
     await submit(modal, 'add_recurring_invoice');
     made.recurringId = Number(new URL(page.url()).searchParams.get('recurring_invoice_id'));
     expect(made.recurringId).toBeGreaterThan(0);
-    await post(page, '/agent/post.php', { add_recurring_invoice_item: '1', recurring_invoice_id: String(made.recurringId), name: 'Smoke M365 Basic', description: '', qty: '1', price: '6', tax_id: '0', item_order: '1' });
+    await post(page, '/agent/post.php', { billing_item_save: '1', type: 'recurring', doc_id: String(made.recurringId), name: 'Smoke M365 Basic', description: '', qty: '1', price: '6', tax_id: '0' });
 
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
     await expect(page.locator(`#mitUsageMetrics option[value="ingram:${MPN}"]`), 'the Ingram product offered').toHaveAttribute('label', 'Microsoft 365 Business Basic');

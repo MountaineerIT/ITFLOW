@@ -87,6 +87,7 @@ test('time fields: the clock icon puts in now, typing the hour and minutes fills
     const start = page.locator('#mitWorkStart');
     const end = page.locator('#mitWorkEnd');
     await clearTime(start);
+    await start.scrollIntoViewIfNeeded();
     const box = await start.boundingBox();
     await page.mouse.click(box.x + box.width - 14, box.y + box.height / 2);
     await expect(start, 'the clock icon: now').toHaveValue('21:36');

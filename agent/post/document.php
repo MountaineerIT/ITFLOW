@@ -104,12 +104,22 @@ if (isset($_POST['add_document'])) {
         logAudit("Service", "Link", "$session_name linked new document $name to service " . escapeSql($service['name']), $client_id, $service_id);
     }
 
+    tagSetForRecord('document', $document_id, (array) ($_POST['tags'] ?? []));
+
     logAudit("Document", "Create", "$session_name created document $name", $client_id, $document_id);
+
+    // Written up from a ticket (Write up as a document) - its history says so, and it opens on the document
+    $from_ticket = ticketRow($_POST['from_ticket_id'] ?? 0);
+    if ($from_ticket && (intval($from_ticket['ticket_client_id']) ?: intval($config_internal_client_id ?? 0)) === $client_id) {
+        logTicketHistory(intval($from_ticket['ticket_id']), "$session_name wrote this ticket up as document $name");
+    } else {
+        $from_ticket = null;
+    }
 
     flashAlert("Document <strong>" . trim($_POST['name']) . "</strong> created");
 
     // From an asset, a contact, a license, a location, a vendor or a service, back to it; otherwise to the new document
-    redirect(($contact_id || $asset_id || $software_id || $location_id || $vendor_id || $service_id) ? null : "document.php?client_id=$client_id&document_id=$document_id");
+    redirect(!$from_ticket && ($contact_id || $asset_id || $software_id || $location_id || $vendor_id || $service_id) ? null : "document.php?client_id=$client_id&document_id=$document_id");
 
 }
 
@@ -119,53 +129,40 @@ if (isset($_POST['add_document_from_template'])) {
 
     enforceUserPermission('module_support', 2);
 
-    $client_id = intval($_POST['client_id']);
-    $document_name = trim($_POST['name'] ?? '');
-    $document_description = escapeSql($_POST['description'] ?? '');
+    $client_id = intval($_POST['client_id'] ?? 0);
     $document_template_id = intval($_POST['document_template_id'] ?? 0);
 
     enforceClientAccess();
-
-    $folder = folderOwnedId($_POST['folder'] ?? 0, $client_id);
-
-    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT document_template_content, document_template_name FROM document_templates
-        WHERE document_template_id = $document_template_id AND document_template_archived_at IS NULL"));
-    if (!$row) {
-        flashAlert('That template no longer exists.', 'error');
+    if (!mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM clients WHERE client_id = $client_id"))) {
+        flashAlert('Pick the client it is for.', 'error');
         redirect();
     }
 
-    // No name given - the template's
-    if ($document_name === '') {
-        $document_name = $row['document_template_name'];
+    $folder = folderOwnedId($_POST['folder'] ?? 0, $client_id);
+
+    $template = documentTemplateRow($document_template_id);
+    if (!$template || $template['document_template_archived_at']) {
+        flashAlert('That template is gone or archived.', 'error');
+        redirect();
     }
-    $document_name_sql = escapeSql($document_name);
 
-    mysqli_query($mysqli, "INSERT INTO documents SET
-        document_name = '$document_name_sql',
-        document_description = '$document_description',
-        document_content = '',
-        document_content_raw = '',
-        document_folder_id = $folder,
-        document_created_by = $session_user_id,
-        document_client_id = $client_id");
+    // What it asks for, answered - a required one left blank, or an answer that isn't one, says so
+    $answers = ticketFillInAnswers(documentTemplateFillInsFor($document_template_id), $_POST['fill_ins'] ?? [], $fill_in_error);
+    if ($answers === null) {
+        flashAlert($fill_in_error, 'error');
+        redirect();
+    }
 
-    $document_id = mysqli_insert_id($mysqli);
+    // A copy of what it says and its images, filled in for the client and remembering the template (functions/document_template.php)
+    $document_id = documentTemplateMakeDocument($document_template_id, $client_id, $_POST['name'] ?? '', $_POST['description'] ?? '', $folder,
+        intval($_POST['location_id'] ?? 0), intval($_POST['contact_id'] ?? 0), $answers);
+    $document_name = (string) getFieldById('documents', $document_id, 'document_name');
 
-    // The template's images come along, and its HTML is pointed at the copies
-    copyDirectory($_SERVER['DOCUMENT_ROOT'] . "/uploads/document_templates/$document_template_id", $_SERVER['DOCUMENT_ROOT'] . "/uploads/documents/$document_id");
-    $processed_html = str_replace("/uploads/document_templates/$document_template_id/", "/uploads/documents/$document_id/", (string) $row['document_template_content']);
+    logAudit("Document", "Create", "$session_name created document " . escapeSql($document_name) . " from template " . escapeSql($template['document_template_name']), $client_id, $document_id);
 
-    $content = mysqli_real_escape_string($mysqli, $processed_html);
-    $content_raw = escapeSql(documentContentRaw($document_name, $processed_html));
+    flashAlert("Document <strong>" . escapeHtml($document_name) . "</strong> created from template <strong>" . escapeHtml($template['document_template_name']) . "</strong>");
 
-    mysqli_query($mysqli, "UPDATE documents SET document_content = '$content', document_content_raw = '$content_raw' WHERE document_id = $document_id");
-
-    logAudit("Document", "Create", "$session_name created document $document_name_sql from template " . escapeSql($row['document_template_name']), $client_id, $document_id);
-
-    flashAlert("Document <strong>$document_name</strong> created from template");
-
-    redirect("document.php?client_id=$client_id&document_id=$document_id");
+    redirect("/agent/document.php?client_id=$client_id&document_id=$document_id");
 }
 
 if (isset($_POST['edit_document'])) {
@@ -208,6 +205,11 @@ if (isset($_POST['edit_document'])) {
         $visible_sql
         WHERE document_id = $document_id");
 
+    // Only a form that showed the tags changes them
+    if (isset($_POST['tags_form'])) {
+        tagSetForRecord('document', $document_id, (array) ($_POST['tags'] ?? []));
+    }
+
     logAudit("Document", "Edit", "$session_name edited document $name, previous version kept", $client_id, $document_id);
 
     flashAlert("Document <strong>" . trim($_POST['name']) . "</strong> saved - the previous version is kept");
@@ -234,6 +236,62 @@ if (isset($_POST['move_document'])) {
     logAudit("Document", "Move", "$session_name moved document " . escapeSql($row['document_name']) . " to folder " . escapeSql($folder_name), $client_id, $document_id);
 
     flashAlert("Document <strong>{$row['document_name']}</strong> moved to <strong>$folder_name</strong>");
+
+    redirect();
+
+}
+
+if (isset($_GET['mark_document_reviewed'])) {
+
+    // Looked over and still right - due again a review period from now
+    validateCSRFToken();
+
+    enforceUserPermission('module_support', 2);
+
+    $row = documentForHandler($_GET['mark_document_reviewed']);
+    $document_id = intval($row['document_id']);
+    if ($row['document_archived_at']) {
+        flashAlert('That document is archived.', 'error');
+        redirect();
+    }
+
+    mysqli_query($mysqli, "UPDATE documents SET document_reviewed_at = NOW(), document_reviewed_by = " . intval($session_user_id) . ", document_updated_at = document_updated_at WHERE document_id = $document_id");
+
+    logAudit("Document", "Edit", "$session_name marked document " . escapeSql($row['document_name']) . " as reviewed", $client_id, $document_id);
+
+    $review = documentReviewState(mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT document_created_at, document_updated_at, document_reviewed_at, document_template_review_months, document_template_archived_at
+        FROM documents LEFT JOIN document_templates USING (document_template_id) WHERE document_id = $document_id")));
+
+    flashAlert("Document <strong>" . escapeHtml($row['document_name']) . "</strong> marked as reviewed" . ($review ? " - next due " . date('M j, Y', strtotime($review['next'])) : ''));
+
+    redirect();
+
+}
+
+if (isset($_POST['set_document_template'])) {
+
+    // The template it counts as made from - what it says stays as it is
+    validateCSRFToken();
+
+    enforceUserPermission('module_support', 2);
+
+    $row = documentForHandler($_POST['document_id']);
+    $document_id = intval($row['document_id']);
+    $current_id = intval(getFieldById('documents', $document_id, 'document_template_id'));
+
+    // A current template, or the one it is from already - or none
+    $template_id = intval($_POST['document_template_id'] ?? 0);
+    $template = $template_id ? documentTemplateRow($template_id) : null;
+    if ($template_id && (!$template || ($template['document_template_archived_at'] && $template_id !== $current_id))) {
+        flashAlert('That template is gone or archived.', 'error');
+        redirect();
+    }
+
+    mysqli_query($mysqli, "UPDATE documents SET document_template_id = $template_id, document_updated_at = document_updated_at WHERE document_id = $document_id");
+
+    logAudit("Document", "Edit", "$session_name " . ($template ? "set document " . escapeSql($row['document_name']) . " as made from template " . escapeSql($template['document_template_name']) : "set document " . escapeSql($row['document_name']) . " as not from a template"), $client_id, $document_id);
+
+    flashAlert("Document <strong>" . escapeHtml($row['document_name']) . "</strong> " . ($template ? "counts as made from <strong>" . escapeHtml($template['document_template_name']) . "</strong>" : "no longer counts as made from a template"));
 
     redirect();
 

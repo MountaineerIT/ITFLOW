@@ -883,14 +883,16 @@ function mitQboInvoiceBar($invoice_id) {
     // the handlers refuse them anyway
     $hide = mitQboConnected() ? ['[data-modal-url*="invoice_email.php"]', 'button[form="quickSendInvoice"]'] : [];
     if ($entry) {
-        $hide = array_merge($hide, ['[data-modal-url*="invoice_edit.php"]', '[data-modal-url*="invoice_item_edit"]', 'a[href*="delete_invoice_item="]',
-            'tr:has(button[name="add_invoice_item"])', 'a[href*="cancel_invoice="]', 'a[href*="delete_invoice="]', '[data-modal-url*="invoice_mark_sent.php"]',
-            '#items .drag-handle', '[data-modal-url*="payment_add.php"]', '[data-modal-url*="payment_saved_method_add.php"]']);
+        // ITFlow 26.11's shared document page: the line menu (Edit / Remove), the add-a-line row, AI lines, drag handles
+        $hide = array_merge($hide, ['[data-modal-url*="invoice_edit.php"]', '[data-modal-url*="billing_item.php"]', 'a[href*="billing_item_delete="]',
+            '#add-line', '[data-billing-ai]', '.itflow-paper-actions', 'a[href*="billing_remove_tax="]', 'a[href*="cancel_invoice="]', 'a[href*="delete_invoice="]',
+            '[data-modal-url*="invoice_mark_sent.php"]', '#items .drag-handle', '[data-modal-url*="payment_add.php"]', '[data-modal-url*="payment_saved_method_add.php"]',
+            '[data-modal-url*="invoice_add_ticket"]', '[data-modal-url*="invoice_add_expense"]', '[data-modal-url*="invoice_add_trip"]']);
     }
     return '<div class="alert alert-light border d-flex flex-wrap align-items-center gap-2 py-2 d-print-none" data-mit-qbo-bar>'
         . '<i class="fas fa-file-export text-success"></i><strong class="me-1">QuickBooks</strong><span class="me-auto">' . implode(' ', $parts) . '</span>' . $buttons . '</div>'
         . ($hide ? '<style>' . implode(', ', $hide) . ' { display: none !important; }</style>' : '')
-        . ($entry ? '<script>document.addEventListener("DOMContentLoaded", function () { var n = document.getElementById("invoiceNotes"); if (n) { n.readOnly = true; n.title = "Locked while in a QuickBooks batch"; } });</script>' : '');
+        . ($entry ? '<script>document.addEventListener("DOMContentLoaded", function () { var n = document.getElementById("billingNotes") || document.getElementById("invoiceNotes"); if (n) { n.readOnly = true; n.title = "Locked while in a QuickBooks batch"; } });</script>' : '');
 }
 
 /** Side-menu counts: invoices awaiting approval, and approved ones waiting for a batch. */

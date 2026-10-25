@@ -59,6 +59,7 @@ while ($row = mysqli_fetch_assoc($sql)) {
     $tickets[intval($row['ticket_id'])] = $row;
 }
 $last_replies = ticketLastReplies(array_keys($tickets));
+$tickets_tags = tagsForRecords('ticket', array_keys($tickets));
 $task_counts = ticketTaskCounts(array_keys($tickets));
 
 // A Due column only when there is something to put in it
@@ -122,7 +123,6 @@ $sort_link = function ($column, $label, $class = '') use ($url_query_strings_sor
                 $attention = $is_open ? ticketAttention($sla, $due) : '';
                 $schedule = $row['ticket_schedule'];
                 $scheduled_today = $schedule && substr($schedule, 0, 10) === date('Y-m-d');
-                $category_color = preg_match('/^#[0-9a-f]{3,8}$/i', (string) $row['category_color']) ? $row['category_color'] : '';
                 $ticket_invoice_id = intval($row['ticket_invoice_id']);
                 $ticket_quote_id = intval($row['ticket_quote_id']);
 
@@ -152,7 +152,7 @@ $sort_link = function ($column, $label, $class = '') use ($url_query_strings_sor
                                     <?= ticketSourceIcon($row['ticket_source']) ?>
                                     <?= function_exists('mitBoardListTag') ? mitBoardListTag($ticket_id, array_keys($tickets)) : '' // Mountaineer IT: service boards ?>
                                     <?php if ($row['category_name'] !== null && $row['category_name'] !== '') { ?>
-                                        <span class="text-nowrap"><i class="fas fa-circle itflow-ticket-dot" <?= $category_color ? 'style="color: ' . $category_color . '"' : '' ?>></i><?= escapeHtml($row['category_name']) ?></span>
+                                        <span class="text-nowrap"><?= categoryMarkHtml($row['category_color'], $row['category_icon'] ?? '', '<i class="fas fa-circle itflow-ticket-dot"%s aria-hidden="true"></i>') ?><?= escapeHtml($row['category_name']) ?></span>
                                     <?php } ?>
                                     <?php if (!empty($row['asset_name'])) { ?>
                                         <span class="text-nowrap text-truncate itflow-ticket-asset" title="Asset"><i class="fas fa-desktop me-1"></i><?= escapeHtml($row['asset_name']) ?></span>
@@ -167,6 +167,10 @@ $sort_link = function ($column, $label, $class = '') use ($url_query_strings_sor
                                     <?php } ?>
                                     <?= ticketTasksHtml($task_counts[$ticket_id] ?? null) ?>
                                 </div>
+                                <?php if (!empty($tickets_tags[$ticket_id])) { ?>
+                                    <!-- Tags - the + to change them while it is open; tag an untagged one from its page or Bulk Action -->
+                                    <div class="mt-1"><?= tagPills('ticket', $ticket_id, $tickets_tags[$ticket_id], "tickets.php?$client_url", $can_edit && !$is_closed) ?></div>
+                                <?php } ?>
                                 <!-- On a phone the other columns are off to the side - the essentials come along -->
                                 <div class="d-md-none d-flex flex-wrap align-items-center gap-1 mt-1 small">
                                     <?= ticketStatusHtml($row['ticket_status_name'], $row['ticket_status_color'], 'detail') ?>
@@ -301,22 +305,15 @@ $sort_link = function ($column, $label, $class = '') use ($url_query_strings_sor
         </table>
     </div>
 </form>
-<?php if (!$tickets) { ?>
-    <div class="itflow-asset-empty">
-        <i class="fas fa-life-ring fa-2x mb-2 opacity-50"></i>
-        <div>
-            <?php if ($q !== '' || $active_filters || $assigned_filter !== '' || $client_filter) { ?>
-                No tickets match.
-            <?php } elseif ($show === 'reply') { ?>
-                Nothing waiting on a reply from us.
-            <?php } elseif ($show === 'overdue') { ?>
-                Nothing overdue.
-            <?php } elseif ($show === 'open' || $show === 'mine') { ?>
-                No open tickets<?= $show === 'mine' ? ' for you' : '' ?>.
-            <?php } else { ?>
-                No tickets here.
-            <?php } ?>
-        </div>
-    </div>
-<?php } ?>
-<?php require_once "../includes/filter_footer.php"; ?>
+<?php
+$empty_state = [
+    'thing' => 'tickets',
+    'icon' => 'fa-life-ring',
+    'filtered' => $q !== '' || $active_filters || $assigned_filter !== '' || $client_filter,
+    'views' => ['show', 'view'],
+    'view' => $show === 'open' ? ['title' => 'No open tickets', 'text' => 'Nothing is waiting to be worked on.', 'icon' => 'fa-check'] : emptyStatePill($shows, $show),
+    'text' => 'Tickets come in by email and from the client portal, or add one here.',
+    'actions' => $can_edit ? [['label' => 'New Ticket', 'modal' => "modals/ticket/ticket_add.php?$client_url", 'size' => 'lg']] : [],
+];
+require_once "../includes/filter_footer.php";
+?>

@@ -7,10 +7,10 @@
  * (header), how to get on it (IP, MAC, links - each one copies or opens in a
  * click), what it physically is and whether it is still under warranty, where
  * it is and who has it. Everything linked to it - interfaces, credentials,
- * tickets, licenses, documents, files, services, notes - sits in tabs with
- * counts, so nothing is hidden just because it is empty and the page does not
- * run to ten screens. The open tab follows the URL hash (#tickets) and is
- * remembered between visits.
+ * tickets, licenses, documents, files, services, notes - and its history
+ * sit in tabs with counts, so nothing is hidden just because it is empty and
+ * the page does not run to ten screens. The open tab follows the URL hash
+ * (#tickets) and is remembered between visits.
  */
 
 // If client_id is in URI then show client Side Bar and client header
@@ -37,13 +37,16 @@ $sql = mysqli_query($mysqli, "SELECT asset_archived_at, asset_client_id, asset_c
     contact_archived_at, contact_email, contact_extension, contact_mobile,
     contact_mobile_country_code, contact_name, contact_phone, contact_phone_country_code, contact_photo,
     interface_ip, interface_ipv6, interface_mac, interface_nat_ip, interface_network_id,
-    location_archived_at, location_name, network_name, network_type, network_description, vendor_name FROM assets
+    location_archived_at, location_name, network_name, network_type, network_description, vendor_name,
+    asset_product_id, asset_invoice_id, invoice_prefix, invoice_number, invoice_date, product_name FROM assets
     LEFT JOIN clients ON client_id = asset_client_id
     LEFT JOIN contacts ON asset_contact_id = contact_id
     LEFT JOIN locations ON asset_location_id = location_id
     LEFT JOIN vendors ON asset_vendor_id = vendor_id
     LEFT JOIN asset_interfaces ON interface_asset_id = asset_id AND interface_primary = 1
     LEFT JOIN networks ON network_id = interface_network_id
+    LEFT JOIN invoices ON invoice_id = asset_invoice_id AND asset_invoice_id > 0
+    LEFT JOIN products ON product_id = asset_product_id AND asset_product_id > 0
     WHERE asset_id = $asset_id
     " . clientScopeSql('asset_client_id') . "
     $client_query
@@ -85,6 +88,13 @@ if (mysqli_num_rows($sql) == 0) {
     $asset_vendor_id = intval($row['asset_vendor_id']);
     $asset_contact_id = intval($row['asset_contact_id']);
     $asset_tone = assetTypeTone($row['asset_type']);
+    // Sold to the client on one of our invoices, from a catalog product
+    $can_sales = lookupUserPermission('module_sales') >= 1;
+    $asset_invoice_id = intval($row['asset_invoice_id']);
+    $asset_sold_number = $row['invoice_number'] !== null ? escapeHtml($row['invoice_prefix'] . $row['invoice_number']) : '';
+    $asset_sold_date = escapeHtml((string) $row['invoice_date']);
+    $asset_product_id = intval($row['asset_product_id']);
+    $asset_product_name = escapeHtml((string) $row['product_name']);
     $device_icon = getAssetIcon($row['asset_type']);
 
     $asset_ip = escapeHtml($row['interface_ip']);
@@ -201,6 +211,9 @@ if (mysqli_num_rows($sql) == 0) {
     }
 
     // The tabs, in the order a tech reaches for them
+    // Its history, from the audit log
+    $history = auditLogHistory('Asset', $asset_id);
+
     $asset_tabs = [
         'interfaces' => ['label' => 'Interfaces', 'icon' => 'fa-ethernet', 'count' => $interface_count],
         'credentials' => ['label' => 'Credentials', 'icon' => 'fa-key', 'count' => $credential_count],
@@ -211,6 +224,7 @@ if (mysqli_num_rows($sql) == 0) {
         'files' => ['label' => 'Files', 'icon' => 'fa-paperclip', 'count' => $files_count],
         'services' => ['label' => 'Services', 'icon' => 'fa-stream', 'count' => $service_count],
         'notes' => ['label' => 'Notes', 'icon' => 'fa-sticky-note', 'count' => $note_count],
+        'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => $history['count']],
     ];
     if (!$can_credentials) {
         unset($asset_tabs['credentials']);
@@ -436,7 +450,17 @@ if (mysqli_num_rows($sql) == 0) {
                             <dt>Vendor</dt>
                             <dd><?= vendorLink($asset_vendor_id, $vendor_name) ?></dd>
                         <?php } ?>
-                        <?php if ($asset_purchase_reference) { ?>
+                        <?php if ($asset_sold_number) { ?>
+                            <dt>Sold on</dt>
+                            <dd>
+                                <?= $can_sales ? "<a href=\"invoice.php?invoice_id=$asset_invoice_id\">$asset_sold_number</a>" : $asset_sold_number ?>
+                                <div class="small text-body-secondary">Our invoice, <?= $asset_sold_date ?></div>
+                            </dd>
+                        <?php } ?>
+                        <?php if ($asset_product_name) { ?>
+                            <dt>Product</dt><dd><?= $can_sales ? "<a href=\"product.php?product_id=$asset_product_id\">$asset_product_name</a>" : $asset_product_name ?></dd>
+                        <?php } ?>
+                        <?php if ($asset_purchase_reference && $asset_purchase_reference !== $asset_sold_number) { ?>
                             <dt>Order ref</dt><dd><?= $asset_purchase_reference ?></dd>
                         <?php } ?>
                         <dt>Added</dt><dd title="<?= $asset_created_at ?>"><?= timeAgo($asset_created_at) ?></dd>
@@ -807,7 +831,11 @@ if (mysqli_num_rows($sql) == 0) {
                                         ?>
                                         <tr>
                                             <td>
-                                                <a class="text-body fw-semibold ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/recurring_ticket/recurring_ticket_edit.php?id=<?= $recurring_ticket_id ?>"><?= $recurring_ticket_subject ?></a>
+                                                <?php if ($can_edit) { ?>
+                                                    <a class="text-body fw-semibold ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/recurring_ticket/recurring_ticket_edit.php?id=<?= $recurring_ticket_id ?>"><?= $recurring_ticket_subject ?></a>
+                                                <?php } else { ?>
+                                                    <span class="fw-semibold"><?= $recurring_ticket_subject ?></span>
+                                                <?php } ?>
                                             </td>
                                             <td><?= ticketPriorityHtml($row['recurring_ticket_priority'], 'detail') ?></td>
                                             <td><?= $recurring_ticket_frequency ?></td>
@@ -1006,6 +1034,14 @@ if (mysqli_num_rows($sql) == 0) {
                         <?php } else { ?>
                             <div class="itflow-asset-empty">Not part of any service.</div>
                         <?php } ?>
+                    </div>
+
+                    <!-- History, from the audit log -->
+                    <div class="tab-pane fade" id="asset-pane-history" role="tabpanel">
+                        <div class="itflow-asset-pane-bar">
+                            <span class="text-body-secondary small">Changes, moves and notes - newest first.</span>
+                        </div>
+                        <?= auditLogHistoryHtml($history, ['client_id' => $client_id]) ?>
                     </div>
 
                     <!-- Notes -->

@@ -56,7 +56,7 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
     await visit(page, `agent/clients.php?q=${encodeURIComponent(made.clientName)}`);
     made.clientId = Number(new URL(await page.locator('a[href*="client_id="]', { hasText: made.clientName }).first().getAttribute('href'), page.url()).searchParams.get('client_id'));
     expect(made.clientId).toBeGreaterThan(0);
-    await post(page, '/agent/post.php', { add_tag: '1', name: made.tagName, type: '3', color: '#2f6fde', icon: 'user' });
+    await post(page, '/admin/post.php', { add_tag: '1', name: made.tagName, type: '3', color: '#2f6fde', icon: 'user' });
     await visit(page, 'agent/contacts.php', errors);
     modal = await openModal(page, `modals/contact/contact_add.php?client_id=${made.clientId}`, 'lg');
     made.tagId = Number(await modal.locator('select[name="tags[]"] option', { hasText: made.tagName }).getAttribute('value'));
@@ -86,7 +86,7 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
     made.recurringId = Number(new URL(page.url()).searchParams.get('recurring_invoice_id'));
     expect(made.recurringId, `recurring invoice (${await flash(page)})`).toBeGreaterThan(0);
     for (const [name, price] of [['Smoke billable users', '10'], ['Smoke workstations', '50']]) {
-        await post(page, '/agent/post.php', { add_recurring_invoice_item: '1', recurring_invoice_id: String(made.recurringId), name, description: '', qty: '1', price, tax_id: '0', item_order: '1' });
+        await post(page, '/agent/post.php', { billing_item_save: '1', type: 'recurring', doc_id: String(made.recurringId), name, description: '', qty: '1', price, tax_id: '0' });
     }
 
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
@@ -137,8 +137,8 @@ test('Force: quantities follow the counts, the invoice stays a Draft, Usage Revi
 
     await visit(page, `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoiceId}`, errors);
     await expect(page.locator('body')).toContainText('Draft');
-    await expect(page.locator('table#items tr', { hasText: 'Smoke billable users' })).toContainText('2');
-    await expect(page.locator('table#items tr', { hasText: 'Smoke workstations' })).toContainText('7');
+    await expect(page.locator('#items tr', { hasText: 'Smoke billable users' })).toContainText('2');
+    await expect(page.locator('#items tr', { hasText: 'Smoke workstations' })).toContainText('7');
     await expect(page.locator('body'), '2 x 10 + 7 x 50').toContainText('370.00');
 
     await visit(page, 'agent/mit_usage_review.php', errors);

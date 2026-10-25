@@ -4,6 +4,13 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.135 - 2026-10-25
+- ITFlow's latest work (its 26.11 public beta, database 3.4.7) merged in. New from ITFlow: contracts (SLA, rates and terms for a client, prepaid hours), one shared page for invoices, quotes and recurring invoices with lines edited in place and a new PDF look, products with cost, vendor and stock tracking, trips paid back for mileage and expenses paid personally, bank statement import and account reconciling, rebuilt settings pages, ticket statuses, payment methods and providers, custom links and AI providers, portal invites and self sign-up, ticket emails that carry the conversation, a "Get started" guide for new installs, and a security sweep.
+- Products: cost and vendor are now ITFlow's own fields - your values were copied over by the update. The product window keeps our picture; its own markup % setting is gone (quote lines start with the company default).
+- Quotes: our cost, markup / margin and picture for a line are in its Edit window (⋮ > Edit) on the new page; staff see the cost under the line. Quote PDFs keep the pictures.
+- Reimbursements are paid back through ITFlow: mileage logged on a ticket waits under Trips > To pay back (at ITFlow's mileage rate), and approved purchases wait under Expenses > Reimburse as paid personally. An entry already paid back can no longer be changed.
+- QuickBooks locks, usage billing, procurement, ticket emails (resolved wording, no response, helpers' copies, booking emails) and notification switches work on ITFlow's rebuilt pages.
+
 ## 26.10.134 - 2026-10-25
 - Company Details has a second logo, "Logo for ITFlow's screens": the side menu and the sign-in page show it, while the company logo stays on quotes, invoices, purchase orders and their PDFs. Leave it empty to use the company logo everywhere, as before.
 - New switch "No light tile behind the logo" (Company Details): the side menu and sign-in page show the logo without the white box behind it, for a logo drawn for a dark background.

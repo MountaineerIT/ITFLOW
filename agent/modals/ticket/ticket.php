@@ -18,7 +18,7 @@ $ticket_id = intval($_GET['id'] ?? 0);
 $ticket = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT tickets.*, client_name, contact_name, contact_email, contact_photo, contact_title,
         contact_phone, contact_phone_country_code, contact_extension, contact_mobile, contact_mobile_country_code,
         ticket_status_name, ticket_status_color, ticket_status_pauses_sla, user_name, user_avatar, asset_name, location_name,
-        vendor_name, category_name, category_color, project_prefix, project_number, project_name, project_client_id, sla_name,
+        vendor_name, category_name, category_color, category_icon, project_prefix, project_number, project_name, project_client_id, sla_name,
         " . ticketLastSpokeSql() . " AS ticket_last_spoke
     FROM tickets
     LEFT JOIN clients ON client_id = ticket_client_id
@@ -53,6 +53,7 @@ $url = escapeHtml(ticketUrl($ticket_id, $client_id));
 $is_open = ticketIsOpen($ticket);
 $is_closed = !empty($ticket['ticket_closed_at']);
 $can_edit = ticketCan(2) && !$is_closed;
+$ticket_tags_display = tagPills('ticket', $ticket_id, tagsForRecord('ticket', $ticket_id), $client_id ? "tickets.php?client_id=$client_id&" : 'tickets.php?', $can_edit);
 $mine = intval($ticket['ticket_assigned_to']) === intval($session_user_id);
 $move = ticketWhoseMove($ticket);
 $sla = ticketSlaState($ticket);
@@ -115,6 +116,10 @@ ob_start();
 
 <div class="modal-body itflow-ticket-glance">
 
+    <?php if ($ticket_tags_display) { ?>
+        <div class="mb-3"><?= $ticket_tags_display ?></div>
+    <?php } ?>
+
     <?php if ($move_text || $sla['key'] !== 'none' || $due) { ?>
         <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
             <?php if ($move_text) { ?>
@@ -164,7 +169,7 @@ ob_start();
 
         <?php if ($ticket['category_name'] !== null && $ticket['category_name'] !== '') { ?>
             <dt>Category</dt>
-            <dd><i class="fas fa-circle itflow-ticket-dot" <?= preg_match('/^#[0-9a-f]{3,8}$/i', (string) $ticket['category_color']) ? 'style="color: ' . $ticket['category_color'] . '"' : '' ?>></i><?= escapeHtml($ticket['category_name']) ?></dd>
+            <dd><?= categoryMarkHtml($ticket['category_color'], $ticket['category_icon'] ?? '', '<i class="fas fa-circle itflow-ticket-dot"%s aria-hidden="true"></i>') ?><?= escapeHtml($ticket['category_name']) ?></dd>
         <?php } ?>
 
         <?php if (!empty($ticket['ticket_schedule'])) { ?>

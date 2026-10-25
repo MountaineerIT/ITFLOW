@@ -53,6 +53,7 @@ foreach ($database_update_files as $version => $file) {
     }
 
     try {
+        if (function_exists('mitBeforeItflowUpdate')) { mitBeforeItflowUpdate($version); } // Mountaineer IT: our product columns aside before 2.9.4
         require $file;
     } catch (Throwable $e) {
         // Stop here - config_current_database_version still points at the last

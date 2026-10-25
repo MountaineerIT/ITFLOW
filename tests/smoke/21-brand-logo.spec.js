@@ -26,7 +26,7 @@ test('company logo: on its own in the side menu when it shows the company name, 
         await visit(page, 'admin/settings_company.php');
         const form = page.locator('form:has(button[name=edit_company])');
         if (upload) {
-            await form.locator('input[name=file]').setInputFiles({ name: 'smoke-logo.png', mimeType: 'image/png', buffer: LOGO });
+            await form.locator('input[name=company_logo]').setInputFiles({ name: 'smoke-logo.png', mimeType: 'image/png', buffer: LOGO });
         }
         await form.locator('[data-mit-brand-logo-only] input[type=checkbox]').setChecked(on);
         await form.locator('[data-mit-brand-logo-plain] input[type=checkbox]').setChecked(plain);
@@ -48,7 +48,7 @@ test('company logo: on its own in the side menu when it shows the company name, 
 
         // The logo for ITFlow's screens: the side menu and the sign-in page show it, Company Details keeps the company logo
         await visit(page, 'admin/settings_company.php');
-        const companyLogo = new URL(await page.locator('img.img-thumbnail').first().getAttribute('src'), page.url()).pathname.split('/').pop();
+        const companyLogo = new URL(await page.locator('#settingsLogoPreview').getAttribute('src'), page.url()).pathname.split('/').pop();
         let form = page.locator('form:has(button[name=edit_company])');
         await form.locator('input[name=mit_app_logo]').setInputFiles({ name: 'smoke-app-logo.png', mimeType: 'image/png', buffer: LOGO });
         await submit(form, 'edit_company');
@@ -66,7 +66,7 @@ test('company logo: on its own in the side menu when it shows the company name, 
         expect(await signIn.locator('.login-logo img').evaluate((el) => getComputedStyle(el).backgroundColor), 'no white plate (no-tile switch)').toBe('rgba(0, 0, 0, 0)');
         await context.close();
         await visit(page, 'admin/settings_company.php');
-        expect(new URL(await page.locator('img.img-thumbnail').first().getAttribute('src'), page.url()).pathname.split('/').pop(), 'company logo kept').toBe(companyLogo);
+        expect(new URL(await page.locator('#settingsLogoPreview').getAttribute('src'), page.url()).pathname.split('/').pop(), 'company logo kept').toBe(companyLogo);
         form = page.locator('form:has(button[name=edit_company])');
         await form.locator('input[name=mit_app_logo_remove]').check();
         await submit(form, 'edit_company');

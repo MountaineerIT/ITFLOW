@@ -6,7 +6,9 @@
  * coming up, what has lapsed) and seats (bought against in use - over means a
  * true-up, none in use means paying for nothing). Tabs along the top pull
  * those out; each row shows its seats as a bar and its renewal in colour.
- * Names open the license page.
+ * Names open the license page. A client's own list says which licenses it
+ * should have and hasn't (license templates required of every client, or of
+ * the clients with its tags), each a button to make it from the template.
  */
 
 // Default Column Sortby Filter
@@ -44,6 +46,8 @@ if (isset($_GET['client_id'])) {
 enforceUserPermission('module_support');
 
 $can_edit = lookupUserPermission('module_support') >= 2;
+// The license templates this client should have a license from, and hasn't
+$missing_templates = $client_url && !$archived ? softwareTemplatesMissingFor($client_id) : [];
 // Deleting for good also needs Admin > Settings to allow destructive deletes
 $can_delete = lookupUserPermission('module_support') >= 3 && !empty($config_destructive_deletes_enable);
 
@@ -62,9 +66,17 @@ $status = isset($status_filters[$_GET['status'] ?? '']) ? $_GET['status'] : '';
 $_GET['status'] = $status;
 $status_query = $status ? "AND ({$status_filters[$status]['sql']})" : '';
 
+// Tags - a license with any of them
+$tag_filter_ids = tagFilterIds();
+$tag_query = tagFilterSql('license', $tag_filter_ids, 'software.software_id');
+
 // License type filter
 $license_type_filter = (string) ($_GET['license_type'] ?? '');
 $license_type_query = $license_type_filter !== '' ? "AND software_license_type = '" . escapeSql($license_type_filter) . "'" : '';
+
+// Software type filter - the software types (Admin > Categories), held by name
+$software_type_filter = trim(strip_tags((string) ($_GET['software_type'] ?? '')));
+$software_type_query = $software_type_filter !== '' ? "AND software_type = '" . escapeSql($software_type_filter) . "'" : '';
 
 // Expiring In Filter - the dashboard links here with expire_days=30
 if (!empty($_GET['expire_days'])) {
@@ -106,7 +118,7 @@ $order_by = $sort === 'software_expire' ? "software_expire IS NULL, software_exp
 
 $seats_used_sql = softwareSeatsUsedSql('software.software_id');
 
-// Tab counts - within the client and archive scope, before the search narrows it
+// Tab counts - within the client, type, tag and archive scope, before the search narrows it
 $count_columns = ["COUNT(*) AS all_count"];
 foreach ($status_filters as $status_key => $status_filter) {
     $count_columns[] = "COALESCE(SUM({$status_filter['sql']}), 0) AS {$status_key}_count";
@@ -118,6 +130,9 @@ $row = mysqli_fetch_assoc(mysqli_query($mysqli, "
     WHERE $archive_query
     " . clientScopeSql('software_client_id') . "
     $client_query
+    $tag_query
+    $software_type_query
+    $license_type_query
 "));
 $tab_counts = ['' => intval($row['all_count'])];
 foreach (array_keys($status_filters) as $status_key) {
@@ -136,16 +151,26 @@ $sql = mysqli_query(
     LEFT JOIN vendors ON vendor_id = software_vendor_id
     WHERE (software_name LIKE '%$q%' OR software_description LIKE '%$q%' OR software_type LIKE '%$q%' OR software_license_type LIKE '%$q%'
         OR software_key LIKE '%$q%' OR software_purchase_reference LIKE '%$q%' OR vendor_name LIKE '%$q%' OR client_name LIKE '%$q%'
-        OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$q%'))
+        OR software.software_id IN (SELECT software_key_software_id FROM software_keys WHERE software_key LIKE '%$q%')
+        " . tagSearchSql('license', $q, 'software.software_id') . ")
     AND $archive_query
     " . clientScopeSql('software_client_id') . "
     $client_query
+    $tag_query
     $status_query
+    $software_type_query
     $license_type_query
     $expire_query
     ORDER BY $order_by LIMIT $record_from, $record_to");
 
 $num_rows = mysqli_fetch_row(mysqli_query($mysqli, "SELECT FOUND_ROWS()"));
+
+$licenses = [];
+while ($row = mysqli_fetch_assoc($sql)) {
+    $licenses[intval($row['software_id'])] = $row;
+}
+$licenses_tags = tagsForRecords('license', array_keys($licenses));
+$can_tag = $can_edit;
 
 // License types in use here, for the filter
 $license_type_options = [];
@@ -179,7 +204,7 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                     <?php if ($num_rows[0] > 0) { ?>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item text-dark ajax-modal" href="#"
-                            data-modal-url="<?= buildExportModalUrl('modals/software/software_export.php', ['client_id', 'client', 'status', 'license_type', 'expire_days', 'archived', 'q']) ?>">
+                            data-modal-url="<?= buildExportModalUrl('modals/software/software_export.php', ['client_id', 'client', 'status', 'software_type', 'license_type', 'tags', 'expire_days', 'archived', 'q']) ?>">
                             <i class="fa fa-fw fa-download me-2"></i>Export
                         </a>
                     <?php } ?>
@@ -188,6 +213,22 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
             <?php } ?>
         </div>
     </div>
+
+    <?php if ($missing_templates) { ?>
+        <!-- The license templates this client should have a license from, and hasn't -->
+        <div class="card-header py-2 bg-warning-subtle d-flex flex-wrap align-items-center gap-2 itflow-licenses-missing">
+            <span class="small text-warning-emphasis fw-semibold"><i class="fas fa-fw fa-clipboard-check me-1"></i><?= count($missing_templates) === 1 ? 'A license it should have' : 'Licenses it should have' ?>:</span>
+            <?php foreach ($missing_templates as $missing_id => $missing_name) { ?>
+                <?php if ($can_edit) { ?>
+                    <button type="button" class="btn btn-sm btn-light border py-0 ajax-modal" data-modal-size="lg" data-modal-url="modals/software/software_add.php?client_id=<?= $client_id ?>&template_id=<?= $missing_id ?>" title="Start it from the template" data-missing-template-id="<?= $missing_id ?>">
+                        <i class="fas fa-plus me-1 text-secondary"></i><?= escapeHtml($missing_name) ?>
+                    </button>
+                <?php } else { ?>
+                    <span class="badge rounded-pill text-bg-light border fw-normal" data-missing-template-id="<?= $missing_id ?>"><?= escapeHtml($missing_name) ?></span>
+                <?php } ?>
+            <?php } ?>
+        </div>
+    <?php } ?>
 
     <?php if ($tab_counts['']) { ?>
         <!-- What needs a look -->
@@ -217,14 +258,14 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
             <input type="hidden" name="status" value="<?= $status ?>">
             <input type="hidden" name="archived" value="<?= $archived ?>">
             <div class="row g-2 align-items-center">
-                <div class="col-lg-3 col-md-6">
+                <div class="<?= $client_url ? 'col-xl-3 col-lg-4' : 'col-lg-3' ?> col-md-6">
                     <div class="input-group">
-                        <input type="search" class="form-control" name="q" value="<?php if (isset($q)) { echo stripslashes(escapeHtml($q)); } ?>" placeholder="Search licenses, keys, vendors...">
+                        <input type="search" class="form-control" name="q" value="<?php if (isset($q)) { echo stripslashes(escapeHtml($q)); } ?>" placeholder="Search licenses, keys, vendors, tags...">
                         <button class="btn btn-dark" title="Search"><i class="fa fa-search"></i></button>
                     </div>
                 </div>
                 <?php if (!$client_url) { ?>
-                <div class="col-lg-2 col-md-6">
+                <div class="col-lg-3 col-md-6">
                     <select class="form-select select2" name="client" onchange="this.form.submit()">
                         <option value="" <?php if ($client == "") { echo "selected"; } ?>>- All Clients -</option>
                         <?php
@@ -245,7 +286,16 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                     </select>
                 </div>
                 <?php } ?>
-                <div class="col-lg-2 col-md-4">
+                <div class="<?= $client_url ? 'col-xl col-lg-4' : 'col-lg-3' ?> col-md-6">
+                    <select class="form-select select2" name="software_type" onchange="this.form.submit()">
+                        <option value="">- Software Type -</option>
+                        <?= categoryFilterOptionsHtml('software_type', $software_type_filter, "SELECT DISTINCT software_type FROM software
+                            LEFT JOIN clients ON client_id = software_client_id
+                            WHERE software_type IS NOT NULL AND software_type <> '' AND $archive_query
+                            " . clientScopeSql('software_client_id') . " $client_query") ?>
+                    </select>
+                </div>
+                <div class="<?= $client_url ? 'col-xl col-lg-4' : 'col-lg-3' ?> col-md-6">
                     <select class="form-select select2" name="license_type" onchange="this.form.submit()">
                         <option value="">- License Type -</option>
                         <?php foreach ($license_type_options as $license_type_option) { ?>
@@ -253,7 +303,7 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                         <?php } ?>
                     </select>
                 </div>
-                <div class="col-lg-2 col-md-4">
+                <div class="<?= $client_url ? 'col-xl col-lg-3' : 'col-lg-3' ?> col-md-6">
                     <select class="form-select select2" name="expire_days" onchange="this.form.submit()">
                         <option value="" <?php if ($expire_days == "") { echo "selected"; } ?>>- Renewal -</option>
                         <option value="expired" <?php if ($expire_days === "expired") { echo "selected"; } ?>>Expired</option>
@@ -262,14 +312,19 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                         <?php } ?>
                     </select>
                 </div>
-                <div class="col-lg-2 col-md-4">
+                <div class="<?= $client_url ? 'col-xl col-lg-3' : 'col-lg-3' ?> col-md-6">
+                    <select onchange="this.form.submit()" class="form-select select2" name="tags[]" data-placeholder="- Tags -" multiple>
+                        <?= tagFilterOptionsHtml('license', $tag_filter_ids, "$archive_query " . clientScopeSql('software_client_id') . " $client_query") ?>
+                    </select>
+                </div>
+                <div class="<?= $client_url ? 'col-xl col-lg-3' : 'col-lg-3' ?> col-md-6">
                     <select onchange="this.form.submit()" class="form-select select2" name="show_column[]" data-placeholder="- More columns -" multiple>
                         <?php foreach ($extra_column_options as $column_key => $column_label) { ?>
                             <option value="<?= $column_key ?>" <?php if (in_array($column_key, $extra_columns, true)) { echo 'selected'; } ?>><?= $column_label ?></option>
                         <?php } ?>
                     </select>
                 </div>
-                <div class="col-lg-1 col-md-12 <?= $client_url ? 'col-lg-3' : '' ?>">
+                <div class="<?= $client_url ? 'col-xl-auto col-lg-3' : 'col-lg-3' ?> col-md-12">
                     <div class="d-flex justify-content-end gap-2">
                         <a href="?<?= $client_url ?>archived=<?= $archived ? 0 : 1 ?>"
                             class="btn <?= $archived ? 'btn-dark' : 'btn-outline-dark' ?>" title="<?= $archived ? 'Back to active licenses' : 'Show archived licenses' ?>">
@@ -284,6 +339,9 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                                 <?php if (!$archived) { ?>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/software/software_renew.php" data-modal-size="lg" data-bulk="true">
                                         <i class="fas fa-fw fa-redo-alt me-2"></i>Renew
+                                    </a>
+                                    <a class="dropdown-item" href="#" data-tag-picker data-tag-entity="license" data-tag-bulk data-csrf="<?= $_SESSION['csrf_token'] ?>">
+                                        <i class="fas fa-fw fa-tags me-2"></i>Tags
                                     </a>
                                     <div class="dropdown-divider"></div>
                                     <button class="dropdown-item text-danger confirm-link" type="submit" form="bulkActions" name="bulk_archive_software">
@@ -377,7 +435,7 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                 <tbody>
                 <?php
 
-                while ($row = mysqli_fetch_assoc($sql)) {
+                foreach ($licenses as $row) {
                     $client_id = intval($row['client_id']);
                     $client_name = escapeHtml($row['client_name']);
                     $software_id = intval($row['software_id']);
@@ -396,6 +454,7 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                     $seats = softwareSeats($row['seats_used'], $row['software_seats']);
                     $renewal = softwareRenewal($row['software_expire']);
                     $license_url = "license.php?client_id=$client_id&software_id=$software_id";
+                    $license_tags = $licenses_tags[$software_id] ?? [];
 
                     ?>
                     <tr>
@@ -417,6 +476,9 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
                                     <?php if ($software_archived_at) { ?><span class="badge rounded-pill text-bg-secondary fw-normal ms-1">Archived</span><?php } ?>
                                     <div class="small text-body-secondary text-truncate itflow-asset-desc" title="<?= $software_description ?: $software_type ?>"><?= $software_description ?: $software_type ?></div>
                                     <?= function_exists('mitAlignLicenseLine') ? mitAlignLicenseLine($software_id) : '' // Mountaineer IT: MSP Align renewal ?>
+                                    <?php if ($license_tags || ($can_tag && !$software_archived_at)) { ?>
+                                        <div class="mt-1 itflow-above-stretch"><?= tagPills('license', $software_id, $license_tags, "software.php?$client_url", $can_tag && !$software_archived_at) ?></div>
+                                    <?php } ?>
                                 </div>
                             </div>
                         </td>
@@ -517,13 +579,17 @@ while ($license_type_row = mysqli_fetch_row($sql_license_types)) {
             </table>
         </div>
     </form>
-    <?php if (!$num_rows[0]) { ?>
-        <div class="itflow-asset-empty">
-            <i class="fas fa-cube fa-2x mb-2 opacity-50"></i>
-            <div><?= $tab_counts[''] ? 'No licenses match.' : 'No licenses yet.' ?></div>
-        </div>
-    <?php } ?>
-    <?php require_once "../includes/filter_footer.php"; ?>
+    <?php
+    $empty_state = [
+        'thing' => 'licenses',
+        'icon' => 'fa-cube',
+        'views' => ['status'],
+        'view' => emptyStatePill($status_filters, $status, '', ['renewing', 'expired', 'over', 'unused']),
+        'text' => 'Their software and subscriptions - the seats bought, who and what uses them, and when each renews.',
+        'actions' => $can_edit ? [['label' => 'New License', 'modal' => "modals/software/software_add.php?$client_url", 'size' => 'lg']] : [],
+    ];
+    require_once "../includes/filter_footer.php";
+    ?>
 </div>
 
 <script src="../js/bulk_actions.js"></script>

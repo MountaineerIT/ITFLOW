@@ -77,12 +77,43 @@ function clientOverviewAttention($client_id, $access, $renewals) {
             'detail' => $overdue_count ? dashboardMoney($overdue_amount) . ' outstanding' : null,
             'url' => "/agent/invoices.php?client_id=$client_id&status=Overdue",
         ];
+        // A contract coming up to its notice date - the same rule as contracts.php?show=soon
+        if (contractsReady()) {
+            $soon = contractViews()['soon']['where'];
+            $items[] = [
+                'count' => dashboardCount("SELECT COUNT(contract_id) FROM contracts WHERE contract_client_id = $client_id AND contract_archived_at IS NULL AND $soon AND contract_auto_renew = 0"),
+                'label' => 'Contracts ending', 'icon' => 'file-contract', 'tone' => 'warning',
+                'detail' => "They don't renew themselves",
+                'url' => "/agent/contracts.php?client_id=$client_id&show=soon",
+            ];
+            $items[] = [
+                'count' => dashboardCount("SELECT COUNT(contract_id) FROM contracts WHERE contract_client_id = $client_id AND contract_archived_at IS NULL AND $soon AND contract_auto_renew = 1"),
+                'label' => 'Contracts renewing', 'icon' => 'sync-alt', 'tone' => 'info',
+                'detail' => 'Time to review them with the client',
+                'url' => "/agent/contracts.php?client_id=$client_id&show=soon",
+            ];
+        }
         if ($access['tickets']) {
             $items[] = [
-                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE ticket_client_id = $client_id
-                    AND ticket_resolved_at IS NOT NULL AND ticket_billable = 1 AND ticket_invoice_id = 0" . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : '')), // Mountaineer IT: boards this role sees
+                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE " . billingUnbilledSql() . " AND ticket_client_id = $client_id" . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : '')), // Mountaineer IT: boards this role sees
                 'label' => 'Resolved, not invoiced', 'icon' => 'receipt', 'tone' => 'info',
-                'url' => "/agent/tickets.php?client_id=$client_id&billing=unbilled&state=closed",
+                'url' => "/agent/unbilled_time.php?client_id=$client_id",
+            ];
+        }
+        if ($access['financial']) {
+            $to_bill = expenseUnbilledCount($client_id);
+            $items[] = [
+                'count' => $to_bill['count'],
+                'label' => 'Expenses to bill', 'icon' => 'shopping-cart', 'tone' => 'info',
+                'detail' => $to_bill['count'] ? dashboardMoney($to_bill['value']) . ' to bill on' : null,
+                'url' => "/agent/unbilled_time.php?client_id=$client_id",
+            ];
+            $trips_to_bill = tripUnbilledCount($client_id);
+            $items[] = [
+                'count' => $trips_to_bill['count'],
+                'label' => 'Trips to bill', 'icon' => 'route', 'tone' => 'info',
+                'detail' => $trips_to_bill['count'] ? dashboardMoney($trips_to_bill['value']) . ' of travel' : null,
+                'url' => "/agent/unbilled_time.php?client_id=$client_id",
             ];
         }
     }
@@ -117,6 +148,27 @@ function clientOverviewAttention($client_id, $access, $renewals) {
             'detail' => 'Next ' . SERVICE_REVIEW_SOON_DAYS . ' days or overdue',
             'url' => "/agent/services.php?client_id=$client_id&show=review",
         ];
+        // Document templates it should have a document from - the strip across the top of its Files
+        $items[] = [
+            'count' => count(documentTemplatesMissingFor($client_id)),
+            'label' => 'Documents missing', 'icon' => 'file-medical', 'tone' => 'warning',
+            'detail' => 'Ones every client like it should have',
+            'url' => "/agent/files.php?client_id=$client_id",
+        ];
+        // The same rule as files.php?type=due
+        $items[] = [
+            'count' => count(documentsReviewDue("documents.document_client_id = $client_id")),
+            'label' => 'Document reviews due', 'icon' => 'calendar-check', 'tone' => 'warning',
+            'detail' => 'As their templates ask',
+            'url' => "/agent/files.php?client_id=$client_id&type=due",
+        ];
+        // License templates it should have a license from - the strip across the top of its Licenses
+        $items[] = [
+            'count' => count(softwareTemplatesMissingFor($client_id)),
+            'label' => 'Licenses missing', 'icon' => 'cube', 'tone' => 'warning',
+            'detail' => 'Ones every client like it should have',
+            'url' => "/agent/software.php?client_id=$client_id",
+        ];
     }
 
     if ($access['credentials']) {
@@ -127,6 +179,16 @@ function clientOverviewAttention($client_id, $access, $renewals) {
             'label' => 'Passwords due for a change', 'icon' => 'history', 'tone' => 'warning',
             'detail' => 'Not changed in ' . CREDENTIAL_ROTATE_DAYS . ' days',
             'url' => "/agent/credentials.php?client_id=$client_id&show=due&sort=credential_password_changed_at&order=ASC",
+        ];
+    }
+
+    if (lookupUserPermission('module_client') >= 1) {
+        // Vendor templates it should have a vendor from - the strip across the top of its Vendors
+        $items[] = [
+            'count' => count(vendorTemplatesMissingFor($client_id)),
+            'label' => 'Vendors missing', 'icon' => 'building', 'tone' => 'warning',
+            'detail' => 'Ones every client like it should have',
+            'url' => "/agent/vendors.php?client_id=$client_id",
         ];
     }
 
@@ -464,20 +526,23 @@ function clientOverviewAssets($client_id) {
     ];
 }
 
-/** Active share links for this client's items. */
+/**
+ * This client's shared links still to do something about - open, or a
+ * request answered and waiting to be saved - newest first, only the kinds
+ * this agent may see (functions/share.php).
+ */
 function clientOverviewSharedItems($client_id) {
     global $mysqli;
 
-    $sql = mysqli_query($mysqli, "SELECT item_id, item_type, item_related_id, item_recipient, item_views, item_view_limit, item_expire_at,
-            COALESCE(credential_name, document_name, file_name) AS item_name, file_ext, credential_uri, credential_description
+    $sql = mysqli_query($mysqli, "SELECT item_id, item_type, item_related_id, item_recipient, item_views, item_view_limit, item_expire_at, item_received_at,
+            item_end_reason, item_ended_at, item_active,
+            COALESCE(credential_name, document_name, file_name, item_name) AS item_name, file_ext, credential_uri, credential_description
         FROM shared_items
         LEFT JOIN credentials ON item_type = 'Credential' AND credential_id = item_related_id AND credential_client_id = $client_id
         LEFT JOIN documents ON item_type = 'Document' AND document_id = item_related_id AND document_client_id = $client_id
         LEFT JOIN files ON item_type = 'File' AND file_id = item_related_id AND file_client_id = $client_id
-        WHERE item_client_id = $client_id AND item_active = 1
-        -- Still openable: not expired, views not used up (functions/credential.php credentialShares)
-        AND item_expire_at > NOW() AND (COALESCE(item_view_limit, 0) = 0 OR item_views < item_view_limit)
-        ORDER BY item_created_at DESC
+        WHERE item_client_id = $client_id AND item_type IN (" . shareVisibleTypesSql() . ") AND " . shareLiveSql() . "
+        ORDER BY item_received_at IS NULL, item_created_at DESC
         LIMIT 10");
 
     $items = [];
@@ -488,16 +553,18 @@ function clientOverviewSharedItems($client_id) {
 }
 
 /**
- * The latest changes for this client from the audit log. Views (opening a
- * credential, a page) are left out - they would push every change off the
- * card - and stay in the full audit log.
+ * The latest changes for this client from the audit log - the ones this
+ * agent's role may see (auditLogRoleSql()). Views (opening a credential, a
+ * page) are left out - they would push every change off the card - and stay
+ * in the client's Audit Log.
  */
 function clientOverviewActivity($client_id, $limit = 6) {
     global $mysqli;
 
+    $client_id = intval($client_id);
     $sql = mysqli_query($mysqli, "SELECT log_created_at, log_description, user_name FROM logs
         LEFT JOIN users ON log_user_id = user_id
-        WHERE log_client_id = $client_id AND log_action != 'View'
+        WHERE log_client_id = $client_id AND log_action != 'View' AND " . auditLogRoleSql() . "
         ORDER BY log_id DESC
         LIMIT " . intval($limit));
 
@@ -512,8 +579,10 @@ function clientOverviewActivity($client_id, $limit = 6) {
  * The money figures. Balance is invoiced minus paid, all time - the same as
  * the clients list and the old client header. Paid this year is cash in
  * (invoice payments plus client revenues), compared with the same days last
- * year. Unbilled is resolved billable tickets with no invoice, and the time
- * logged on them.
+ * year. Unbilled is what Unbilled Time has for the client - billable tickets
+ * done and on no invoice, the time logged on them and what it comes to - and,
+ * for agents who can see expenses, the expenses to bill on to them and what
+ * they come to with their markup.
  */
 function clientOverviewMoney($client_id, $balance, $recurring_monthly) {
     $year_start = date('Y-01-01');
@@ -525,7 +594,7 @@ function clientOverviewMoney($client_id, $balance, $recurring_monthly) {
         return dashboardSum("SELECT SUM(payment_amount) FROM payments JOIN invoices ON payment_invoice_id = invoice_id
                 WHERE invoice_client_id = $client_id AND payment_date BETWEEN '$from' AND '$to'")
             + dashboardSum("SELECT SUM(revenue_amount) FROM revenues WHERE revenue_client_id = $client_id
-                AND revenue_category_id > 0 AND revenue_date BETWEEN '$from' AND '$to'");
+                AND " . dashboardRevenueSql() . " AND revenue_date BETWEEN '$from' AND '$to'");
     };
     $paid_ytd = $paid($year_start, $today);
     $paid_last_ytd = $paid($last_year_start, $last_year_today);
@@ -534,7 +603,8 @@ function clientOverviewMoney($client_id, $balance, $recurring_monthly) {
     $overdue = dashboardSum("SELECT SUM(invoice_amount) FROM invoices WHERE $overdue_where")
         - dashboardSum("SELECT SUM(payment_amount) FROM payments JOIN invoices ON payment_invoice_id = invoice_id WHERE $overdue_where");
 
-    $unbilled_where = "ticket_client_id = $client_id AND ticket_resolved_at IS NOT NULL AND ticket_billable = 1 AND ticket_invoice_id = 0";
+    $unbilled = billingUnbilledByClient($client_id)[intval($client_id)] ?? null;
+    $to_bill = lookupUserPermission('module_financial') >= 1 ? expenseUnbilledCount($client_id) : ['count' => 0, 'value' => 0.0];
 
     return [
         'balance' => $balance,
@@ -542,10 +612,11 @@ function clientOverviewMoney($client_id, $balance, $recurring_monthly) {
         'paid_ytd' => $paid_ytd,
         'paid_change' => dashboardChange($paid_ytd, $paid_last_ytd),
         'recurring' => $recurring_monthly,
-        'unbilled_tickets' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE $unbilled_where"),
-        'unbilled_seconds' => intval(dashboardSum("SELECT SUM(TIME_TO_SEC(ticket_reply_time_worked)) FROM ticket_replies
-            JOIN tickets ON ticket_reply_ticket_id = ticket_id
-            WHERE ticket_reply_archived_at IS NULL AND $unbilled_where")),
+        'unbilled_tickets' => $unbilled ? count($unbilled['tickets']) : 0,
+        'unbilled_seconds' => $unbilled ? intval($unbilled['seconds']) : 0,
+        'unbilled_value' => $unbilled ? floatval($unbilled['value']) : 0.0,
+        'unbilled_expenses' => $to_bill['count'],
+        'unbilled_expense_value' => $to_bill['value'],
     ];
 }
 
@@ -604,7 +675,7 @@ function clientOverviewMonthly($client_id) {
             JOIN invoices ON payment_invoice_id = invoice_id
             WHERE invoice_client_id = $client_id AND payment_date BETWEEN '$from' AND '$to' GROUP BY m", $months),
         dashboardMonthly("SELECT DATE_FORMAT(revenue_date, '%Y-%m') AS m, SUM(revenue_amount) AS v FROM revenues
-            WHERE revenue_client_id = $client_id AND revenue_category_id > 0 AND revenue_date BETWEEN '$from' AND '$to' GROUP BY m", $months)
+            WHERE revenue_client_id = $client_id AND " . dashboardRevenueSql() . " AND revenue_date BETWEEN '$from' AND '$to' GROUP BY m", $months)
     );
 
     return [

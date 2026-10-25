@@ -1389,6 +1389,14 @@ select.select2[multiple]:not(.itflow-select-native) {
     color: #fff;
     background-color: var(--itflow-select-color, var(--bs-secondary));
 }
+/* A tag's - its icon in its colour on a wash of it, as its pill looks (tagOptionLook()) */
+.itflow-select-badge.is-soft {
+    color: var(--itflow-select-color, var(--bs-secondary));
+    color: color-mix(in oklab, var(--itflow-select-color, var(--bs-secondary)) var(--itflow-tag-ink, 75%), var(--bs-emphasis-color));
+    background-color: var(--bs-tertiary-bg);
+    background-color: color-mix(in srgb, var(--itflow-select-color, var(--bs-secondary)) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--itflow-select-color, var(--bs-secondary)) 40%, var(--bs-border-color));
+}
 .itflow-select-icon {
     display: inline-flex;
     flex: 0 0 auto;
@@ -2193,6 +2201,40 @@ html {
     flex-direction: column;
     min-width: 0;
 }
+/* Global search - a tag's own colour and icon in place of the group icon
+   (the Tags group), and the tags a record was found by after its name */
+.itflow-search-tag-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    font-size: .7rem;
+    /* As a tag's pill - its icon in its colour on a wash of it */
+    color: var(--itflow-tag-color, var(--bs-secondary));
+    color: color-mix(in oklab, var(--itflow-tag-color, var(--bs-secondary)) var(--itflow-tag-ink, 75%), var(--bs-emphasis-color));
+    background-color: var(--bs-tertiary-bg);
+    background-color: color-mix(in srgb, var(--itflow-tag-color, var(--bs-secondary)) 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--itflow-tag-color, var(--bs-secondary)) 40%, var(--bs-border-color));
+}
+.itflow-search-item-title.has-tags {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+}
+.itflow-search-item-text {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.itflow-search-item-tags {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: .25rem;
+}
 .itflow-search-item-title,
 .itflow-search-item-sub,
 .itflow-search-item-context {
@@ -2897,8 +2939,8 @@ a.itflow-dash-rail-item:focus-visible {
     font-weight: 600;
     letter-spacing: .02em;
 }
-/* Tags - functions/tags.php tagPills(), on every list and detail page that has
-   them. A pill opens the list filtered to that tag; the dashed "+" at the end
+/* Tags - functions/tags.php tagPills() and tagPill(), on every list and detail
+   page that has them, and global search. A pill opens the list filtered to that tag; the dashed "+" at the end
    opens the tag picker (js/tag_picker.js). The group sits above stretched-link
    row and cell links so the pills stay clickable on top of them. */
 .itflow-tags {
@@ -2911,25 +2953,51 @@ a.itflow-dash-rail-item:focus-visible {
     max-width: 100%;
     vertical-align: middle;
 }
+/*
+ * A tag's colour (--itflow-tag-color, tagColor()) is its accent, not its fill:
+ * a faint wash of it, a hairline of it and its icon in it, with the name in
+ * the page's own text colour - so a row of tags reads as labels beside the
+ * record rather than the loudest thing on the page, in light and dark alike.
+ * The icon is the colour taken part of the way to the text colour - further
+ * in dark, where the darkest tags would otherwise sink - so a pale one still
+ * shows on white and a dark one on dark, and the hairline starts from the
+ * page's own border colour so even a near-black tag has an edge. Where
+ * color-mix() isn't known, the plain lines before each give a neutral pill.
+ */
 .itflow-tag {
+    --itflow-tag-tint: var(--itflow-tag-color, var(--bs-secondary));
+    --itflow-tag-ink: 75%;
     display: inline-flex;
     align-items: center;
-    gap: .2rem;
-    padding: .05rem .45rem;
-    border: 1px solid transparent;
+    gap: .3rem;
+    padding: .0625rem .5rem .0625rem .4rem;
+    border: 1px solid var(--bs-border-color);
+    border-color: color-mix(in srgb, var(--itflow-tag-tint) 40%, var(--bs-border-color));
     border-radius: 1rem;
     font-size: .75rem;
-    font-weight: normal;
+    font-weight: 500;
     line-height: 1.4;
-    color: #fff;
-    background-color: var(--itflow-tag-color, var(--bs-secondary));
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+    background-color: color-mix(in srgb, var(--itflow-tag-tint) 10%, transparent);
     text-decoration: none;
     white-space: nowrap;
+    transition: background-color .15s, border-color .15s;
 }
-.itflow-tag:hover,
-.itflow-tag:focus-visible {
-    color: #fff;
-    filter: brightness(1.1);
+.itflow-tag > i {
+    color: var(--itflow-tag-tint);
+    color: color-mix(in oklab, var(--itflow-tag-tint) var(--itflow-tag-ink), var(--bs-emphasis-color));
+}
+[data-bs-theme="dark"] .itflow-tag,
+[data-bs-theme="dark"] .itflow-search-tag-icon,
+[data-bs-theme="dark"] .itflow-select-badge.is-soft {
+    --itflow-tag-ink: 55%;
+}
+a.itflow-tag:hover,
+a.itflow-tag:focus-visible {
+    color: var(--bs-emphasis-color);
+    border-color: color-mix(in srgb, var(--itflow-tag-tint) 65%, var(--bs-border-color));
+    background-color: color-mix(in srgb, var(--itflow-tag-tint) 18%, transparent);
 }
 .itflow-tag-add {
     color: var(--bs-secondary-color);
@@ -2938,12 +3006,15 @@ a.itflow-dash-rail-item:focus-visible {
     border-style: dashed;
     cursor: pointer;
 }
+.itflow-tag-add > i {
+    color: inherit;
+}
 .itflow-tag-add:hover,
 .itflow-tag-add:focus-visible,
 .itflow-tag-add[aria-expanded="true"] {
     color: var(--itflow-accent, var(--bs-primary));
     border-color: currentColor;
-    filter: none;
+    background-color: transparent;
 }
 /* The picker - the select picker's panel, plus the bulk note and the dash for
    a tag only some of the selected records have */
@@ -2968,6 +3039,251 @@ a.itflow-dash-rail-item:focus-visible {
 .itflow-select-option.is-mixed .itflow-select-checkbox {
     border-color: var(--itflow-accent, var(--bs-primary));
     color: var(--itflow-accent, var(--bs-primary));
+}
+/* The tag window (admin/modals/tag/tag_form.php, js/tag_form.js) - round
+   colour swatches ticked when chosen, and a grid of icons to pick from */
+.itflow-tag-swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 2px solid var(--bs-body-bg);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--bs-border-color);
+    font-size: .75rem;
+    color: var(--itflow-tag-text, #fff);
+    background-color: var(--itflow-tag-color);
+}
+.itflow-tag-swatch i {
+    visibility: hidden;
+}
+.itflow-tag-swatch.active i {
+    visibility: visible;
+}
+.itflow-tag-swatch.active,
+.itflow-tag-swatch:focus-visible {
+    outline: 0;
+    box-shadow: 0 0 0 2px var(--itflow-accent, var(--bs-primary));
+}
+.itflow-tag-icons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+    gap: .125rem;
+    max-height: 10.5rem;
+    overflow-y: auto;
+}
+.itflow-tag-icon {
+    --bs-btn-padding-x: 0;
+    color: var(--bs-secondary-color);
+}
+.itflow-tag-icon:hover {
+    color: var(--bs-body-color);
+    background-color: var(--bs-tertiary-bg);
+}
+.itflow-tag-icon.active,
+.itflow-tag-icon-custom.active {
+    color: #fff;
+    background-color: var(--itflow-accent, var(--bs-primary));
+    border-color: transparent;
+}
+.itflow-tag-icon-custom,
+.itflow-tag-icons [data-tag-icon-none] {
+    grid-column: 1 / -1;
+}
+/* The category window (admin/modals/category/category_form.php,
+   js/category_form.js) - the tag window's swatches and icons, each with a
+   "none" choice - and a category as it looks on records (categoryChip()):
+   its icon, or a dot, in its colour, then its name */
+.itflow-category-swatch-none {
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-body-bg);
+}
+.itflow-category-swatch-none i {
+    visibility: visible;
+}
+.itflow-category-swatch-none.active {
+    color: var(--itflow-accent, var(--bs-primary));
+}
+.itflow-tag-icons [data-category-icon-none] {
+    grid-column: 1 / -1;
+}
+.itflow-category {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    color: var(--bs-body-color);
+}
+.itflow-category-mark {
+    flex: none;
+    color: var(--bs-secondary-color);
+}
+.itflow-category .itflow-category-dot {
+    margin-right: 0;
+}
+/* Admin > Roles - a role's agents as overlapping faces, and in the role
+   window what a level lets them do, the lines it doesn't greyed out */
+.itflow-role-agents {
+    display: inline-flex;
+}
+.itflow-role-agents > .itflow-contact-avatar + .itflow-contact-avatar {
+    margin-left: -.5rem;
+}
+.itflow-role-agents > .itflow-contact-avatar {
+    box-shadow: 0 0 0 2px var(--bs-body-bg);
+}
+.itflow-role-level-list li.is-off {
+    color: var(--bs-secondary-color);
+    opacity: .7;
+}
+/* A category's icon beside its name in a list (categoryMarkHtml()) - in its
+   colour, set as the dot it stands in for is */
+.itflow-category-icon {
+    margin-right: .3rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-category-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+a:hover .itflow-category-name,
+a:focus-visible .itflow-category-name {
+    text-decoration: underline;
+}
+.itflow-category-badge {
+    font-size: .8125rem;
+}
+/* Admin > Categories - a long kind's name shortened rather than pushing its
+   count out, and dragging the kinds that keep an order into it */
+@media (min-width: 768px) {
+    .itflow-category-kinds .nav-link {
+        min-width: 0;
+    }
+}
+.itflow-category-grip {
+    display: inline-block;
+    padding: .25rem .125rem;
+    cursor: grab;
+    touch-action: none;
+}
+[data-category-sortable] .sortable-ghost > *,
+[data-custom-link-sortable] .sortable-ghost > * {
+    background-color: var(--bs-tertiary-bg) !important;
+}
+/* Admin > Custom Links - the link window's preview, drawn the way its menu
+   draws it: a line of a side menu (always dark), an icon on the top bar's
+   theme colour, or an item of the client portal's light top bar */
+.itflow-link-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .75rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-tertiary-bg);
+}
+.itflow-link-preview-stage {
+    display: flex;
+    flex: 1 1 12rem;
+    align-items: center;
+    min-width: 0;
+    padding: .35rem .5rem;
+    border-radius: var(--bs-border-radius);
+    background-color: #343a40;
+}
+.itflow-link-preview-item {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    width: 100%;
+    min-width: 0;
+    padding: .35rem .6rem;
+    border-radius: .25rem;
+    color: #c2c7d0;
+}
+.itflow-link-preview-item > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.itflow-link-preview-tab {
+    margin-left: auto;
+    font-size: .7rem;
+    opacity: .7;
+}
+.itflow-link-preview[data-location="2"] .itflow-link-preview-stage {
+    justify-content: flex-end;
+    background-color: var(--itflow-accent, #007bff);
+}
+.itflow-link-preview[data-location="2"] .itflow-link-preview-item {
+    width: auto;
+    color: #fff;
+}
+.itflow-link-preview[data-location="2"] .itflow-link-preview-item > span,
+.itflow-link-preview[data-location="2"] .itflow-link-preview-tab,
+.itflow-link-preview[data-location="3"] .itflow-link-preview-tab {
+    display: none;
+}
+.itflow-link-preview[data-location="3"] .itflow-link-preview-stage {
+    border: 1px solid var(--bs-border-color-translucent);
+    background-color: var(--bs-body-bg);
+}
+.itflow-link-preview[data-location="3"] .itflow-link-preview-item {
+    width: auto;
+    color: var(--bs-secondary-color);
+    font-weight: 500;
+}
+/* The canned response picker above a reply box - a searchable list, each
+   response with a line or two of what it says - and the / menu in the reply */
+.itflow-canned-menu {
+    width: 30rem;
+    max-width: calc(100vw - 2rem);
+}
+.itflow-canned-list {
+    max-height: 22rem;
+    overflow-y: auto;
+    padding-bottom: .25rem;
+}
+.itflow-canned-item {
+    white-space: normal;
+    padding-top: .375rem;
+    padding-bottom: .375rem;
+}
+.itflow-canned-preview {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.itflow-canned-item:active .text-body-secondary,
+.itflow-canned-item.active .text-body-secondary {
+    color: inherit !important;
+}
+/* A file that goes with a picked response - its x leaves it off */
+.itflow-canned-file {
+    max-width: 100%;
+    font-size: .8125rem;
+}
+.itflow-canned-file .text-truncate {
+    max-width: 16rem;
+}
+.itflow-canned-file .btn-close {
+    width: .5rem;
+    height: .5rem;
+    padding: .25rem;
+    background-size: .5rem;
+    margin-left: .125rem;
+}
+.tox .itflow-canned-ac-name {
+    font-weight: 600;
+}
+.tox .itflow-canned-ac-preview {
+    font-size: .8125rem;
+    opacity: .75;
+    white-space: normal;
 }
 .itflow-clients-street {
     max-width: 16rem;
@@ -3737,6 +4053,43 @@ tr:hover .itflow-copy,
     padding: 2.5rem 1rem;
     text-align: center;
     color: var(--bs-secondary-color);
+}
+/* Empty state - a list with nothing in it, or nothing its filters let
+   through (emptyStateHtml()): the list's icon in a round tile, a title, a
+   line on what goes there and its buttons */
+.itflow-empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+}
+.itflow-empty-state-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+}
+.itflow-empty-state-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+.itflow-empty-state-text {
+    max-width: 34rem;
+    margin: .25rem auto 0;
+    font-size: .875rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-empty-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem;
+    margin-top: 1.25rem;
 }
 .itflow-asset-dl .font-monospace {
     font-size: .82rem;
@@ -5423,17 +5776,18 @@ img.itflow-contact-avatar {
     gap: .5rem;
     padding: .5rem .9rem;
 }
-.itflow-theme-pick .itflow-theme-swatch {
+/* Its own name - it was .itflow-theme-swatch, the Theme settings page's, and squeezed that page's swatches to this width */
+.itflow-mode-swatch {
     display: inline-block;
     width: 1.75rem;
     height: 1.25rem;
     border: 1px solid var(--bs-border-color);
     border-radius: var(--bs-border-radius-sm);
 }
-.itflow-theme-pick .itflow-theme-swatch.is-light {
+.itflow-mode-swatch.is-light {
     background: linear-gradient(90deg, #343a40 0 30%, #f8f9fa 30%);
 }
-.itflow-theme-pick .itflow-theme-swatch.is-dark {
+.itflow-mode-swatch.is-dark {
     background: linear-gradient(90deg, #343a40 0 30%, #212529 30%);
 }
 
@@ -5771,5 +6125,3068 @@ a.itflow-report-stat:focus-visible {
     .itflow-report .progress-bar {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+    }
+}
+
+/* Shared links (functions/share.php) - the page the person it was sent to
+   sees (guest/share.php), the QR code in the share window, and the list */
+.itflow-share-page {
+    max-width: 560px;
+}
+.itflow-share-page-wide {
+    max-width: 960px;
+}
+.itflow-share-logo {
+    max-height: 56px;
+    max-width: 220px;
+}
+.itflow-share-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+.itflow-share-icon-sm {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.itflow-share-note {
+    background: var(--bs-tertiary-bg);
+    border-left: 3px solid var(--bs-primary);
+    border-radius: .25rem;
+    padding: .6rem .8rem;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.itflow-share-secret {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    padding: 1rem 3.25rem 1rem 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: .95rem;
+    max-height: 60vh;
+    overflow: auto;
+}
+.itflow-share-otp {
+    letter-spacing: .15em;
+}
+.itflow-share-otp-bar {
+    height: .25rem;
+}
+.itflow-share-otp-bar .progress-bar {
+    transition: width .25s linear;
+}
+.itflow-share-document {
+    overflow-wrap: anywhere;
+}
+.itflow-share-qr {
+    width: 180px;
+    height: 180px;
+    max-width: 100%;
+}
+.itflow-share-recipient {
+    max-width: 220px;
+}
+@media print {
+    .itflow-share-page {
+        max-width: none;
+        padding: 0 !important;
+    }
+    .itflow-share-page .card {
+        border: 0;
+        box-shadow: none !important;
+    }
+}
+
+/* Billing - invoices, quotes and recurring invoices (includes/billing_paper.php,
+   the agent billing pages and the guest invoice and quote pages) */
+.itflow-paper {
+    position: relative;
+    padding: 2rem 2.25rem;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+    overflow: hidden;
+}
+.itflow-paper::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background-color: var(--bs-primary);
+}
+.itflow-paper-head,
+.itflow-paper-parties,
+.itflow-paper-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.25rem 2rem;
+}
+.itflow-paper-head {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-paper-from {
+    max-width: 24rem;
+}
+.itflow-paper-logo {
+    display: block;
+    max-width: 11rem;
+    max-height: 4.5rem;
+    margin-bottom: .75rem;
+    object-fit: contain;
+}
+.itflow-paper-title {
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--bs-primary-text-emphasis);
+}
+.itflow-paper-dates {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    gap: .15rem 1rem;
+    margin: .5rem 0 0;
+    font-size: .875rem;
+}
+.itflow-paper-dates dt {
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+.itflow-paper-dates dd {
+    margin: 0;
+}
+.itflow-paper-parties {
+    padding: 1.25rem 0;
+}
+.itflow-paper-label {
+    margin-bottom: .2rem;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.itflow-paper-label .text-transform-none {
+    text-transform: none;
+    letter-spacing: normal;
+}
+.itflow-paper-amount {
+    font-size: 1.6rem;
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-paper-scope {
+    margin-bottom: 1rem;
+    padding: .55rem .85rem;
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-tertiary-bg);
+}
+.itflow-paper-items {
+    --bs-table-bg: transparent;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-paper-items thead th {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    border-bottom-width: 2px;
+}
+.itflow-paper-items td {
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+}
+.itflow-paper-item {
+    min-width: 12rem;
+    width: 55%;
+}
+/* A line's rate under its tax wraps, so a long name ("Quebec GST + QST
+   14.975%") doesn't widen the column past the paper */
+.itflow-paper-tax-label {
+    white-space: normal;
+    min-width: 6.5rem;
+    line-height: 1.25;
+}
+.itflow-paper-handle {
+    width: 1.5rem;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+.itflow-paper-handle .drag-handle {
+    display: inline-block;
+    padding: .1rem .25rem;
+    color: var(--bs-secondary-color);
+    cursor: grab;
+    opacity: .5;
+}
+.itflow-paper-items tbody tr:hover .drag-handle {
+    opacity: 1;
+}
+.itflow-paper-actions {
+    width: 2.5rem;
+}
+.itflow-paper-actions .btn {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+.itflow-paper-items tr.sortable-ghost {
+    background-color: var(--bs-primary-bg-subtle);
+}
+.itflow-paper-items tr.itflow-paper-flash {
+    animation: itflow-paper-flash 2s ease-out;
+}
+@keyframes itflow-paper-flash {
+    from { background-color: var(--bs-warning-bg-subtle); }
+    to { background-color: transparent; }
+}
+.itflow-paper-add > td {
+    padding: .75rem !important;
+    border-bottom: 0;
+    background-color: var(--bs-tertiary-bg);
+    border-radius: var(--bs-border-radius);
+}
+.itflow-paper-add-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: .5rem;
+}
+.itflow-paper-add-item {
+    flex: 1 1 15rem;
+}
+.itflow-paper-add-qty {
+    flex: 0 0 4.5rem;
+}
+.itflow-paper-add-price {
+    flex: 0 0 7rem;
+}
+.itflow-paper-add-seat {
+    flex: 0 0 7.5rem;
+}
+/* A quote's lines billed once and each month, quarter or year - a heading over each, a block of totals each */
+.itflow-paper-items tr.itflow-paper-group > td {
+    padding-top: 1.1rem;
+    padding-bottom: .35rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.itflow-paper-items tbody tr.itflow-paper-group:first-child > td {
+    padding-top: .5rem;
+}
+.itflow-paper-totals tr.itflow-paper-totals-head th {
+    padding-top: .9rem;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.itflow-paper-totals tr.itflow-paper-totals-head:first-child th {
+    padding-top: 0;
+}
+/* Unbilled Time - an unticked row fades, the hours box is narrow, and the billing panel stays in view on wide screens */
+.itflow-unbilled-table tr.itflow-unbilled-off > td:not(.checkbox-column) {
+    opacity: .45;
+}
+.itflow-unbilled-table tbody tr[data-unbilled-row] {
+    cursor: pointer;
+}
+.itflow-unbilled-hours {
+    width: 6.5rem;
+}
+.itflow-unbilled-hours .form-control {
+    min-width: 4.5rem;
+}
+@media (max-width: 575.98px) {
+    .itflow-unbilled-hours {
+        width: 4.75rem;
+    }
+    .itflow-unbilled-hours .form-control {
+        min-width: 3.5rem;
+    }
+}
+@media (min-width: 1200px) {
+    .itflow-unbilled-panel {
+        position: sticky;
+        top: 4.5rem;
+    }
+}
+/* A recurring invoice's add row has one more box - the item takes the top row, the numbers the one under it */
+.itflow-paper-add-grid-seats .itflow-paper-add-item {
+    flex-basis: 100%;
+}
+.itflow-paper-add-tax {
+    flex: 0 1 9rem;
+}
+.itflow-paper-add-go {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-left: auto;
+}
+.itflow-paper-bottom {
+    align-items: flex-start;
+    padding-top: 1.25rem;
+}
+.itflow-paper-notes {
+    flex: 1 1 18rem;
+    max-width: 32rem;
+}
+.itflow-paper-totals {
+    flex: 0 1 19rem;
+    margin-left: auto;
+    font-size: .9rem;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-paper-totals th {
+    padding: .25rem 1.5rem .25rem 0;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+.itflow-paper-totals td {
+    padding: .25rem 0;
+    text-align: right;
+    white-space: nowrap;
+}
+.itflow-paper-totals tr.text-success th,
+.itflow-paper-totals tr.text-success td {
+    color: var(--bs-success-text-emphasis);
+}
+.itflow-paper-totals .itflow-paper-total th,
+.itflow-paper-totals .itflow-paper-total td {
+    padding-top: .5rem;
+    border-top: 1px solid var(--bs-border-color);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--bs-emphasis-color);
+}
+.itflow-paper-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    font-size: .8rem;
+    text-align: center;
+    color: var(--bs-secondary-color);
+}
+.itflow-paper-stamp {
+    position: absolute;
+    top: 2.75rem;
+    left: 50%;
+    margin-left: -4rem;
+    padding: .2rem .9rem;
+    border: 3px solid currentColor;
+    border-radius: var(--bs-border-radius);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    opacity: .3;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+@media (max-width: 767.98px) {
+    .itflow-paper {
+        padding: 1.25rem 1rem;
+    }
+    .itflow-paper-dates {
+        justify-content: start;
+    }
+    .itflow-paper-totals {
+        flex-basis: 100%;
+    }
+    .itflow-paper-stamp {
+        display: none;
+    }
+}
+
+/* Header tile and money on the billing pages and lists */
+.itflow-billing-tile {
+    --itflow-asset-tone: var(--bs-primary);
+}
+.itflow-billing-tile-invoice { --itflow-asset-tone: #2f6fd8; }
+.itflow-billing-tile-quote { --itflow-asset-tone: #8a55d6; }
+.itflow-billing-tile-recurring { --itflow-asset-tone: #1f9d83; }
+[data-bs-theme="dark"] .itflow-billing-tile-invoice { --itflow-asset-tone: #6f9fe0; }
+[data-bs-theme="dark"] .itflow-billing-tile-quote { --itflow-asset-tone: #b08ae8; }
+[data-bs-theme="dark"] .itflow-billing-tile-recurring { --itflow-asset-tone: #4fc4b0; }
+
+/* Products - a tile by type, and the type choice in New and Edit */
+.itflow-product-tile-service { --itflow-asset-tone: #0f8a9d; }
+.itflow-product-tile-product { --itflow-asset-tone: #c4720f; }
+[data-bs-theme="dark"] .itflow-product-tile-service { --itflow-asset-tone: #4cc3d4; }
+[data-bs-theme="dark"] .itflow-product-tile-product { --itflow-asset-tone: #f0a24a; }
+.itflow-product-type .btn {
+    flex: 1 1 0;
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+    line-height: 1.25;
+}
+.itflow-product-type .btn-check:checked + .btn {
+    color: var(--bs-primary-text-emphasis);
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary-border-subtle);
+}
+
+/* Sold hardware - Add to Assets, a block per invoice line with a row per unit */
+.itflow-hw-line {
+    padding: .75rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-tertiary-bg);
+}
+.itflow-hw-unit + .itflow-hw-unit {
+    margin-top: .375rem;
+}
+.itflow-hw-linking .input-group:has([data-hw-new]) {
+    opacity: .45;
+}
+.itflow-hw-assets {
+    padding-left: 2.25rem;
+}
+
+/* Update Prices - lines not picked are muted, the footer stays in reach */
+.itflow-reprice-off td:not(.checkbox-column) {
+    opacity: .55;
+}
+.itflow-reprice-table .input-group {
+    min-width: 8.5rem;
+}
+.itflow-reprice-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background-color: var(--bs-body-bg);
+}
+.itflow-money {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.itflow-billing-stat {
+    display: block;
+    height: 100%;
+    padding: .9rem 1.1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .12s ease-in-out, box-shadow .12s ease-in-out;
+}
+a.itflow-billing-stat:hover {
+    border-color: var(--bs-primary-border-subtle);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    color: inherit;
+}
+.itflow-billing-stat.active {
+    border-color: var(--bs-primary);
+    box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+.itflow-billing-stat-label {
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.itflow-billing-stat-value {
+    margin-top: .15rem;
+    font-size: 1.45rem;
+    font-weight: 600;
+    line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-billing-stat-note {
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-billing-progress {
+    height: .45rem;
+}
+.itflow-billing-table td {
+    padding-top: .65rem;
+    padding-bottom: .65rem;
+}
+.itflow-billing-number {
+    min-width: 13rem;
+}
+.itflow-billing-history {
+    max-height: 26rem;
+    overflow-y: auto;
+}
+.itflow-billing-history li {
+    position: relative;
+    padding: 0 0 .85rem 1.35rem;
+    font-size: .875rem;
+}
+.itflow-billing-history li::before {
+    content: "";
+    position: absolute;
+    left: .3rem;
+    top: .45rem;
+    width: .5rem;
+    height: .5rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary-color);
+}
+.itflow-billing-history li::after {
+    content: "";
+    position: absolute;
+    left: .52rem;
+    top: 1.1rem;
+    bottom: .1rem;
+    width: 1px;
+    background-color: var(--bs-border-color);
+}
+.itflow-billing-history li:last-child::after {
+    display: none;
+}
+@media print {
+    .itflow-paper-col {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .itflow-paper {
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+    .itflow-paper::before {
+        display: none;
+    }
+}
+
+/* ---------- Expenses (agent/expenses.php, modals/expense/) ---------- */
+.itflow-category-dot {
+    display: inline-block;
+    width: .6rem;
+    height: .6rem;
+    margin-right: .45rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary-bg);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+    vertical-align: .05rem;
+}
+.itflow-expense-receipt-empty {
+    padding: 1.25rem 1rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    text-align: center;
+}
+/* Unbilled Time - an expense's price box, and its row ticks like a ticket's */
+.itflow-unbilled-table tbody tr[data-unbilled-expense-row] {
+    cursor: pointer;
+}
+.itflow-unbilled-price {
+    width: 7.5rem;
+}
+.itflow-unbilled-price .form-control {
+    min-width: 5.5rem;
+}
+@media (max-width: 575.98px) {
+    .itflow-unbilled-price {
+        width: 6rem;
+    }
+    .itflow-unbilled-price .form-control {
+        min-width: 4.5rem;
+    }
+}
+/* Import Statement's review - the statement text keeps to a width, the picks stay usable, the Import bar stays in view */
+.itflow-import-table tbody tr[data-import-row] {
+    cursor: pointer;
+}
+.itflow-import-table .itflow-import-text {
+    max-width: 22rem;
+    min-width: 12rem;
+}
+.itflow-import-table .itflow-import-pick {
+    min-width: 10.5rem;
+}
+.itflow-import-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    background-color: var(--bs-tertiary-bg);
+}
+/* Trips - the route and what for take the room left and cut short, rather than push the miles off the side (agent/trips.php, a site's Trips tab) */
+.itflow-trip-route {
+    width: 100%;
+    max-width: 0;
+    min-width: 14rem;
+}
+/* Income - what it was takes the room left and cuts short, rather than push the amount off the side (agent/income.php) */
+.itflow-income-from {
+    width: 100%;
+    max-width: 0;
+    min-width: 14rem;
+}
+/* Import Deposits' review - what a deposit pays, with the client's invoices to tick (agent/income_import.php) */
+.itflow-import-table .itflow-import-details {
+    min-width: 16rem;
+    max-width: 24rem;
+}
+.itflow-import-invoices {
+    max-height: 7.5rem;
+    overflow-y: auto;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm);
+    background-color: var(--bs-body-bg);
+}
+.itflow-import-invoices.is-invalid {
+    border-color: var(--bs-form-invalid-border-color);
+}
+/* Accounts and their ledger - the account's name, and who or what each line is, take the room left and cut short (agent/accounts.php, agent/transactions.php) */
+.itflow-account-name,
+.itflow-ledger-what {
+    width: 100%;
+    max-width: 0;
+    min-width: 14rem;
+}
+/* A deposit out of a cash account - what is waiting in it, to tick (agent/modals/transfer/transfer_form.php) */
+.itflow-deposit-list {
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+/* Reconcile - agent/reconcile.php. A line ticked as cleared on the statement
+   takes the success tint; the Difference card turns green once it balances. */
+.itflow-reconcile-table > tbody > tr.itflow-reconcile-ticked > * {
+    --bs-table-bg-type: rgba(var(--bs-success-rgb), .07);
+}
+/* AdminLTE's .app-main is overflow: auto, which makes it the bar's scroll box,
+   but the page scrolls the window - so on this page it lets the bar stick */
+.app-main:has(.itflow-reconcile-bar),
+.layout-fixed .app-main:has(.itflow-reconcile-bar) {
+    overflow: visible;
+}
+.itflow-reconcile-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    background-color: var(--bs-body-bg);
+    box-shadow: 0 -.25rem .75rem rgba(0, 0, 0, .06);
+}
+.itflow-billing-stat.itflow-reconcile-balanced {
+    border-color: var(--bs-success-border-subtle);
+    background-color: var(--bs-success-bg-subtle);
+}
+.itflow-reconcile-table .form-check-input {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Client portal (client/) - the shell from client/includes/header.php and
+   the pages built on it. The portal sets a CSP of default-src 'self', so
+   nothing here may lean on inline styles: every look is a class.
+   ========================================================================== */
+.itflow-portal {
+    --itflow-portal-header-height: 4rem;
+    --itflow-portal-tabbar-height: 3.75rem;
+}
+.itflow-portal-header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    display: flex;
+    align-items: center;
+    min-height: var(--itflow-portal-header-height);
+    background-color: var(--bs-body-bg);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+}
+.itflow-portal-brand {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: .6rem;
+    min-width: 0;
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+.itflow-portal-brand:hover {
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-brand img {
+    display: block;
+    height: 2.25rem;
+    max-width: 11rem;
+    object-fit: contain;
+}
+.itflow-portal-brand .itflow-brand-mark-initials {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: .75rem;
+}
+.itflow-portal-brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.itflow-portal-nav {
+    align-items: center;
+    gap: .15rem;
+}
+.itflow-portal-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .45rem .75rem;
+    border-radius: var(--bs-border-radius);
+    color: var(--bs-secondary-color);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.itflow-portal-nav-link:hover,
+.itflow-portal-nav-link.show {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-nav-link.active {
+    background-color: color-mix(in srgb, var(--itflow-accent, #007bff) 12%, transparent);
+    color: var(--itflow-accent, #007bff);
+}
+.itflow-portal .dropdown-item.active,
+.itflow-portal .dropdown-item:active {
+    background-color: color-mix(in srgb, var(--itflow-accent, #007bff) 12%, transparent);
+    color: var(--itflow-accent, #007bff);
+}
+.itflow-portal .dropdown-item i {
+    color: var(--bs-secondary-color);
+}
+.itflow-portal .dropdown-item.active i {
+    color: inherit;
+}
+.itflow-portal-account {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    max-width: 16rem;
+    padding: .25rem .5rem .25rem .25rem;
+    border: 0;
+    border-radius: 2rem;
+    background: transparent;
+    color: var(--bs-body-color);
+}
+.itflow-portal-account:hover,
+.itflow-portal-account[aria-expanded="true"] {
+    background-color: var(--bs-tertiary-bg);
+}
+
+/* Avatars - a photo, or initials on a soft tone picked from the name */
+.itflow-portal-avatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    object-fit: cover;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+.itflow-portal-avatar-sm { width: 1.75rem; height: 1.75rem; font-size: .65rem; }
+.itflow-portal-avatar-lg { width: 2.5rem; height: 2.5rem; font-size: .85rem; }
+.itflow-portal-avatar-xl { width: 3.25rem; height: 3.25rem; font-size: 1.05rem; }
+.itflow-portal-avatar-tone-1 { background-color: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis); }
+.itflow-portal-avatar-tone-2 { background-color: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); }
+.itflow-portal-avatar-tone-3 { background-color: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.itflow-portal-avatar-tone-4 { background-color: var(--bs-danger-bg-subtle); color: var(--bs-danger-text-emphasis); }
+.itflow-portal-avatar-tone-5 { background-color: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis); }
+.itflow-portal-avatar-tone-6 { background-color: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+
+.itflow-portal-main {
+    flex: 1 0 auto;
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+.itflow-portal-footer {
+    padding: .9rem 0;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+/* Phone: the tab bar along the bottom, and the menu that slides in */
+.itflow-portal-tabbar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1030;
+    display: flex;
+    height: calc(var(--itflow-portal-tabbar-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--bs-border-color-translucent);
+    background-color: var(--bs-body-bg);
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, .05);
+}
+.itflow-portal-tabbar a {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .2rem;
+    min-width: 0;
+    color: var(--bs-secondary-color);
+    font-size: .7rem;
+    text-decoration: none;
+}
+.itflow-portal-tabbar a i {
+    font-size: 1.1rem;
+}
+.itflow-portal-tabbar a.active {
+    color: var(--itflow-accent, #007bff);
+    font-weight: 600;
+}
+.itflow-portal-tabbar a.itflow-portal-tabbar-new i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    color: #fff;
+    font-size: .95rem;
+}
+@media (max-width: 991.98px) {
+    .itflow-portal {
+        padding-bottom: calc(var(--itflow-portal-tabbar-height) + env(safe-area-inset-bottom, 0px));
+    }
+    .itflow-portal-main {
+        padding-top: 1rem;
+    }
+}
+.itflow-portal-menu {
+    --bs-offcanvas-width: min(20rem, 85vw);
+}
+.itflow-portal-menu-heading {
+    margin: 1rem 0 .35rem;
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.itflow-portal-menu-heading:first-child {
+    margin-top: 0;
+}
+.itflow-portal-menu-link {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    width: 100%;
+    padding: .55rem .6rem;
+    border: 0;
+    border-radius: var(--bs-border-radius);
+    background: transparent;
+    color: var(--bs-body-color);
+    text-align: start;
+    text-decoration: none;
+}
+.itflow-portal-menu-link i {
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-menu-link:hover {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-menu-link.active {
+    background-color: color-mix(in srgb, var(--itflow-accent, #007bff) 12%, transparent);
+    color: var(--itflow-accent, #007bff);
+    font-weight: 600;
+}
+.itflow-portal-menu-link.active i {
+    color: inherit;
+}
+
+/* A page's title row: the title with a line under it, and its buttons */
+.itflow-portal-page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+.itflow-portal-page-head h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+.itflow-portal-page-head p {
+    margin: .2rem 0 0;
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-back {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .5rem;
+    color: var(--bs-secondary-color);
+    font-size: .875rem;
+    text-decoration: none;
+}
+.itflow-portal-back:hover {
+    color: var(--bs-emphasis-color);
+}
+
+/* A plain panel - the portal's cards */
+.itflow-portal-panel {
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+}
+.itflow-portal-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .85rem 1.1rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-portal-panel-head h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.itflow-portal-panel-head h2 i {
+    margin-right: .45rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-panel-head a {
+    font-size: .85rem;
+    text-decoration: none;
+}
+.itflow-portal-panel-body {
+    padding: 1rem 1.1rem;
+}
+.itflow-portal-panel .itflow-empty-state {
+    padding: 2rem 1rem;
+}
+
+/* Where a ticket stands, for the client */
+.itflow-portal-state {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .6rem;
+    border-radius: 2rem;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.itflow-portal-state i {
+    width: auto;
+    font-size: .7rem;
+}
+.itflow-portal-state-new { background-color: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis); }
+.itflow-portal-state-progress { background-color: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis); }
+.itflow-portal-state-you { background-color: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis); }
+.itflow-portal-state-hold { background-color: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+.itflow-portal-state-resolved { background-color: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis); }
+.itflow-portal-state-closed { background-color: var(--bs-tertiary-bg); color: var(--bs-secondary-color); }
+
+/* Tabs along the top of a list, underlined, each with its count */
+.itflow-portal-tabs {
+    display: flex;
+    gap: .25rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.itflow-portal-tabs a {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: .45rem;
+    padding: .6rem .8rem;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    color: var(--bs-secondary-color);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.itflow-portal-tabs a:hover {
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-tabs a.active {
+    border-bottom-color: var(--itflow-accent, #007bff);
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+.itflow-portal-tabs .badge {
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+}
+.itflow-portal-tabs a.itflow-portal-tab-alert .badge {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+}
+
+/* A list of tickets */
+.itflow-portal-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.itflow-portal-list > li + li {
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-portal-ticket {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: .85rem 1.1rem;
+    color: inherit;
+    text-decoration: none;
+}
+a.itflow-portal-ticket:hover {
+    background-color: var(--bs-tertiary-bg);
+    color: inherit;
+}
+.itflow-portal-ticket-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.itflow-portal-ticket-subject {
+    overflow: hidden;
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.itflow-portal-ticket-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .15rem .9rem;
+    margin-top: .15rem;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+.itflow-portal-ticket-side {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .3rem;
+    text-align: end;
+}
+.itflow-portal-ticket-side small {
+    color: var(--bs-secondary-color);
+}
+@media (max-width: 575.98px) {
+    .itflow-portal-ticket {
+        flex-wrap: wrap;
+        gap: .5rem;
+        padding: .8rem .9rem;
+    }
+    .itflow-portal-ticket-side {
+        flex-direction: row;
+        align-items: center;
+        gap: .6rem;
+    }
+}
+
+/* Paging under a list */
+.itflow-portal-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .75rem 1.1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    color: var(--bs-secondary-color);
+    font-size: .85rem;
+}
+
+/* A ticket's progress: received, in progress, resolved, closed */
+.itflow-portal-steps {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+}
+.itflow-portal-steps li {
+    position: relative;
+    flex: 1 1 0;
+    padding-top: 1.6rem;
+    color: var(--bs-secondary-color);
+    font-size: .78rem;
+    text-align: center;
+}
+.itflow-portal-steps li::before {
+    content: "";
+    position: absolute;
+    top: .35rem;
+    left: 50%;
+    z-index: 1;
+    width: .8rem;
+    height: .8rem;
+    margin-left: -.4rem;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 50%;
+    background-color: var(--bs-body-bg);
+}
+.itflow-portal-steps li + li::after {
+    content: "";
+    position: absolute;
+    top: .7rem;
+    right: 50%;
+    left: -50%;
+    height: 2px;
+    background-color: var(--bs-border-color);
+}
+.itflow-portal-steps li.done::before,
+.itflow-portal-steps li.current::before {
+    border-color: var(--itflow-accent, #007bff);
+    background-color: var(--itflow-accent, #007bff);
+}
+.itflow-portal-steps li.done + li::after,
+.itflow-portal-steps li.done + li.current::after {
+    background-color: var(--itflow-accent, #007bff);
+}
+.itflow-portal-steps li.current {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+.itflow-portal-steps li.current::before {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--itflow-accent, #007bff) 22%, transparent);
+}
+
+/* The conversation on a ticket - oldest first, the client's own on the right */
+.itflow-portal-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.itflow-portal-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    max-width: 100%;
+}
+.itflow-portal-msg-mine {
+    flex-direction: row-reverse;
+}
+.itflow-portal-msg-body {
+    min-width: 0;
+    max-width: min(46rem, calc(100% - 3rem));
+}
+.itflow-portal-msg-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .2rem .6rem;
+    margin-bottom: .3rem;
+    font-size: .8rem;
+}
+.itflow-portal-msg-mine .itflow-portal-msg-head {
+    justify-content: flex-end;
+}
+.itflow-portal-msg-head strong {
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-msg-head span {
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-msg-bubble {
+    padding: .75rem 1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    border-top-left-radius: .25rem;
+    background-color: var(--bs-body-bg);
+    overflow-wrap: anywhere;
+}
+.itflow-portal-msg-mine .itflow-portal-msg-bubble {
+    border-color: color-mix(in srgb, var(--itflow-accent, #007bff) 25%, transparent);
+    border-top-left-radius: var(--bs-border-radius-lg);
+    border-top-right-radius: .25rem;
+    background-color: color-mix(in srgb, var(--itflow-accent, #007bff) 7%, var(--bs-body-bg));
+}
+.itflow-portal-msg-bubble > :last-child {
+    margin-bottom: 0;
+}
+.itflow-portal-msg-bubble img {
+    max-width: 100%;
+    height: auto;
+}
+.itflow-portal-event {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+.itflow-portal-event::before,
+.itflow-portal-event::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: var(--bs-border-color-translucent);
+}
+
+/* Attachments - on a message, and the drop zone on a form */
+.itflow-portal-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .6rem;
+}
+.itflow-portal-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    max-width: 100%;
+    padding: .3rem .65rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 2rem;
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    font-size: .8rem;
+    text-decoration: none;
+}
+a.itflow-portal-file-chip:hover {
+    border-color: var(--bs-primary-border-subtle);
+    color: var(--bs-emphasis-color);
+}
+.itflow-portal-file-chip i {
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-drop {
+    position: relative;
+    padding: .9rem 1rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: var(--bs-border-radius-lg);
+    color: var(--bs-secondary-color);
+    font-size: .875rem;
+    transition: border-color .12s ease-in-out, background-color .12s ease-in-out;
+}
+.itflow-portal-drop.is-dragging {
+    border-color: var(--itflow-accent, #007bff);
+    background-color: color-mix(in srgb, var(--itflow-accent, #007bff) 6%, transparent);
+}
+.itflow-portal-drop input[type=file] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.itflow-portal-drop label {
+    color: var(--itflow-accent, #007bff);
+    font-weight: 600;
+    cursor: pointer;
+}
+.itflow-portal-drop input[type=file]:focus-visible + label {
+    outline: 2px solid var(--itflow-accent, #007bff);
+    outline-offset: 2px;
+}
+.itflow-portal-drop .itflow-portal-files {
+    margin-top: .6rem;
+}
+.tox-tinymce.is-invalid {
+    border-color: var(--bs-form-invalid-border-color) !important;
+}
+
+/* Details down the side of a ticket */
+.itflow-portal-facts {
+    margin: 0;
+}
+.itflow-portal-facts > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .55rem 0;
+}
+.itflow-portal-facts > div + div {
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-portal-facts dt {
+    color: var(--bs-secondary-color);
+    font-weight: 400;
+}
+.itflow-portal-facts dd {
+    margin: 0;
+    min-width: 0;
+    text-align: end;
+    overflow-wrap: anywhere;
+}
+
+/* Home: the figures along the top and the "needs you" list */
+.itflow-portal-stat {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    height: 100%;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+    color: inherit;
+    text-decoration: none;
+}
+a.itflow-portal-stat:hover {
+    border-color: var(--bs-primary-border-subtle);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    color: inherit;
+}
+.itflow-portal-stat-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: 1.05rem;
+}
+.itflow-portal-stat-value {
+    color: var(--bs-emphasis-color);
+    font-size: 1.35rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+.itflow-portal-stat-label {
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+.itflow-portal-stat > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 575.98px) {
+    .itflow-portal-stat {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .5rem;
+        padding: .85rem;
+    }
+    .itflow-portal-stat-icon {
+        width: 2.1rem;
+        height: 2.1rem;
+        font-size: .9rem;
+    }
+    .itflow-portal-stat-value {
+        font-size: 1.15rem;
+    }
+}
+.itflow-portal-stat-alert .itflow-portal-stat-icon {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+}
+.itflow-portal-stat-danger .itflow-portal-stat-icon {
+    background-color: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+}
+.itflow-portal-todo {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .75rem 1.1rem;
+    color: inherit;
+    text-decoration: none;
+}
+a.itflow-portal-todo:hover {
+    background-color: var(--bs-tertiary-bg);
+    color: inherit;
+}
+.itflow-portal-todo-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+    font-size: .8rem;
+}
+.itflow-portal-todo-icon.is-danger {
+    background-color: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+}
+.itflow-portal-todo-icon.is-info {
+    background-color: var(--bs-info-bg-subtle);
+    color: var(--bs-info-text-emphasis);
+}
+.itflow-portal-todo-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.itflow-portal-todo-main div:first-child {
+    overflow: hidden;
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.itflow-portal-todo-main div + div {
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+/* A row to be read whole - the guest ticket page's booking and approvals: the
+   title wraps rather than being cut off on a phone, and the button keeps to one line */
+.itflow-portal-todo-wrap .itflow-portal-todo-main div:first-child {
+    white-space: normal;
+}
+.itflow-portal-todo-wrap > .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+@media (max-width: 575.98px) {
+    /* The button goes under the text, in line with it, so the text keeps the width */
+    .itflow-portal-todo-wrap {
+        flex-wrap: wrap;
+    }
+    .itflow-portal-todo-wrap .itflow-portal-todo-main {
+        flex-basis: calc(100% - 2.85rem);
+    }
+    .itflow-portal-todo-wrap > .btn {
+        margin-left: 2.85rem;
+    }
+}
+
+.itflow-portal-preview-image {
+    max-height: 600px;
+}
+
+/* Billing: amounts down the side of a list, a document's state, and the big
+   figure on an invoice, quote or receipt */
+.itflow-portal-amount {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+.itflow-portal-amount small {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+}
+.itflow-portal-state-late { background-color: var(--bs-danger-bg-subtle); color: var(--bs-danger-text-emphasis); }
+.itflow-portal-big-amount {
+    color: var(--bs-emphasis-color);
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: .15rem 0 .5rem;
+}
+.itflow-portal-outcome {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+}
+.itflow-portal-outcome-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+}
+.itflow-portal-outcome-icon.is-success {
+    background-color: var(--bs-success-bg-subtle);
+    color: var(--bs-success-text-emphasis);
+}
+.itflow-portal-outcome-icon.is-warning {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+}
+.itflow-portal-note {
+    display: flex;
+    gap: .6rem;
+    padding: .65rem .8rem;
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-tertiary-bg);
+    font-size: .85rem;
+}
+.itflow-portal-note i {
+    margin-top: .15rem;
+    color: var(--bs-secondary-color);
+}
+
+/* Pay invoices: a row to tick, the ways to pay, and the total with its button */
+.itflow-portal-payrow {
+    cursor: pointer;
+    margin: 0;
+}
+.itflow-portal-payrow > .form-check-input {
+    flex: 0 0 auto;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: 0;
+}
+@media (max-width: 575.98px) {
+    .itflow-portal-payrow {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        column-gap: .75rem;
+    }
+    .itflow-portal-payrow > .form-check-input {
+        margin-top: .2rem;
+    }
+    .itflow-portal-payrow > .itflow-portal-ticket-side {
+        grid-column: 2;
+    }
+}
+.itflow-portal-list > li.is-selected {
+    background-color: rgba(var(--bs-primary-rgb), .05);
+}
+.itflow-portal-list > li.is-selected .itflow-portal-payrow:hover {
+    background-color: transparent;
+}
+@media (min-width: 992px) {
+    .itflow-portal-paybox {
+        position: sticky;
+        top: calc(var(--itflow-portal-header-height) + 1rem);
+    }
+}
+.itflow-portal-methods {
+    display: grid;
+    gap: .5rem;
+}
+.itflow-portal-method {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 0;
+    padding: .65rem .8rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    cursor: pointer;
+}
+.itflow-portal-method .form-check-input {
+    flex: 0 0 auto;
+    margin: 0;
+}
+.itflow-portal-method:has(input:checked) {
+    border-color: var(--bs-primary);
+    box-shadow: inset 0 0 0 1px var(--bs-primary);
+}
+.itflow-portal-method.is-disabled {
+    cursor: not-allowed;
+    opacity: .6;
+}
+.itflow-portal-paybar {
+    padding: 1rem 1.1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    background-color: var(--bs-tertiary-bg);
+}
+.itflow-portal-paybar .itflow-portal-big-amount {
+    margin: 0;
+}
+.itflow-portal-stripe-element {
+    min-height: 3rem;
+}
+
+/* A saved card's brand, in a grey tile */
+.itflow-portal-card-brand {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2rem;
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: 1.25rem;
+}
+
+/* Statement: how late, in five tiles */
+.itflow-portal-aging {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .5rem;
+    height: 100%;
+}
+.itflow-portal-aging > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: .15rem;
+    padding: .6rem .7rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+    min-width: 0;
+}
+.itflow-portal-aging span {
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+    white-space: nowrap;
+}
+.itflow-portal-aging strong {
+    overflow: hidden;
+    color: var(--bs-emphasis-color);
+    font-size: .9rem;
+    text-overflow: ellipsis;
+}
+.itflow-portal-aging .is-late strong {
+    color: var(--bs-danger-text-emphasis);
+}
+@media (max-width: 575.98px) {
+    .itflow-portal-aging {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+.itflow-portal-table > thead th {
+    color: var(--bs-secondary-color);
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.itflow-portal-panel .table > :not(caption) > * > * {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+}
+
+/* A receipt */
+.itflow-portal-receipt {
+    max-width: 46rem;
+}
+.itflow-portal-receipt-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.1rem;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-portal-receipt-head .itflow-portal-big-amount {
+    margin: 0;
+}
+.itflow-portal-receipt-foot {
+    padding: .9rem 1.1rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+}
+
+/* Your IT: a grey tile for each device, license, domain or document, the
+   roles on a contact, and a document as written */
+.itflow-portal-tile {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-secondary-color);
+    font-size: 1rem;
+}
+.itflow-portal-tile-sm {
+    width: 2rem;
+    height: 2rem;
+    font-size: .85rem;
+}
+.itflow-portal-tile-lg {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 1.35rem;
+}
+
+/* New ticket: report a problem, or one of the request forms */
+.itflow-portal-requests {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: .75rem;
+}
+.itflow-portal-request {
+    display: flex;
+    align-items: flex-start;
+    gap: .85rem;
+    height: 100%;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+    color: inherit;
+    text-decoration: none;
+}
+a.itflow-portal-request:hover,
+a.itflow-portal-request:focus-visible {
+    border-color: var(--bs-primary-border-subtle);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    color: inherit;
+}
+.itflow-portal-request-title {
+    display: block;
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+.itflow-portal-request-text {
+    display: block;
+    margin-top: .15rem;
+    color: var(--bs-secondary-color);
+    font-size: .85rem;
+}
+.itflow-portal-roles {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .25rem;
+}
+.itflow-portal-roles > span {
+    padding: .1rem .5rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 2rem;
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.itflow-portal-pdf {
+    display: block;
+    width: 100%;
+    height: 75vh;
+    border: 0;
+}
+.itflow-portal-document {
+    overflow-x: auto;
+    overflow-wrap: anywhere;
+}
+.itflow-portal-document img {
+    max-width: 100%;
+    height: auto;
+}
+.itflow-portal-document > :last-child {
+    margin-bottom: 0;
+}
+@media (max-width: 575.98px) {
+    .itflow-portal-ticket > .itflow-portal-tile {
+        display: none;
+    }
+}
+/* Announcements on the portal's home page (Admin > Client Portal) - a
+   coloured edge and icon for the tone, the text in the body colour */
+.itflow-portal-announcement {
+    display: flex;
+    gap: .85rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-left: .3rem solid var(--bs-info);
+    border-radius: var(--bs-border-radius-lg);
+    background-color: var(--bs-body-bg);
+}
+.itflow-portal-announcement.is-warning { border-left-color: var(--bs-warning); }
+.itflow-portal-announcement.is-danger { border-left-color: var(--bs-danger); }
+.itflow-portal-announcement-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background-color: var(--bs-info-bg-subtle);
+    color: var(--bs-info-text-emphasis);
+}
+.itflow-portal-announcement.is-warning .itflow-portal-announcement-icon {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+}
+.itflow-portal-announcement.is-danger .itflow-portal-announcement-icon {
+    background-color: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger-text-emphasis);
+}
+.itflow-portal-announcement-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: .3rem 0 .2rem;
+}
+.itflow-portal-announcement-body {
+    overflow-wrap: anywhere;
+}
+/* View as contact: the strip over the portal saying whose view it is */
+.itflow-portal-viewas {
+    padding: .45rem 0;
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+    border-bottom: 1px solid var(--bs-warning-border-subtle);
+    font-size: .9rem;
+}
+/* Admin > Client Portal: an announcement's tone as a small coloured dot */
+.itflow-announcement-dot {
+    display: inline-block;
+    width: .6rem;
+    height: .6rem;
+    border-radius: 50%;
+    background-color: var(--bs-info);
+}
+.itflow-announcement-dot.is-warning { background-color: var(--bs-warning); }
+.itflow-announcement-dot.is-danger { background-color: var(--bs-danger); }
+
+/* Printing an invoice, quote or receipt: the document and nothing round it */
+@media print {
+    .itflow-portal-header,
+    .itflow-portal-tabbar,
+    .itflow-portal-footer,
+    .itflow-portal-main > .alert {
+        display: none !important;
+    }
+    .itflow-portal {
+        padding-bottom: 0 !important;
+        background: #fff !important;
+    }
+    .itflow-portal-main {
+        max-width: none;
+        padding: 0;
+    }
+    .itflow-portal-receipt {
+        max-width: none;
+        border: 0;
+    }
+}
+
+/* The pages not rebuilt yet: their black table heads and borders, softened to
+   sit in the light shell */
+.itflow-portal-main .table-dark {
+    --bs-table-color: var(--bs-emphasis-color);
+    --bs-table-bg: var(--bs-tertiary-bg);
+    --bs-table-border-color: var(--bs-border-color);
+}
+.itflow-portal-main .table.border-dark,
+.itflow-portal-main .table .border-dark {
+    border-color: var(--bs-border-color) !important;
+}
+
+/* ==========================================================================
+   Setup wizard (setup/index.php, setup/steps/) - a centred installer: the
+   brand, a step tracker, one card per step and a footer. No sidebar, so it
+   works on a phone; light or dark as the system is set.
+   ========================================================================== */
+.itflow-setup {
+    min-height: 100vh;
+}
+.itflow-setup-wrap {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 2rem 1rem 3rem;
+}
+.itflow-setup-brand {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: .6rem;
+    font-size: 2rem;
+    font-weight: 300;
+    margin-bottom: 1.5rem;
+}
+.itflow-setup-brand-sub {
+    font-size: 1rem;
+    color: var(--bs-secondary-color);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.itflow-setup-steps {
+    margin-bottom: 1.25rem;
+}
+.itflow-setup-steps ol {
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    position: relative;
+}
+/* The line the steps sit on */
+.itflow-setup-steps ol::before {
+    content: "";
+    position: absolute;
+    top: 1rem;
+    left: 2rem;
+    right: 2rem;
+    border-top: 2px solid var(--bs-border-color);
+}
+.itflow-setup-step {
+    position: relative;
+    flex: 1 1 0;
+    text-align: center;
+    min-width: 0;
+}
+.itflow-setup-step > a,
+.itflow-setup-step > span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+}
+.itflow-setup-step > a:hover .itflow-setup-step-label {
+    text-decoration: underline;
+}
+.itflow-setup-step-marker {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    font-weight: 600;
+    background: var(--bs-body-bg);
+    border: 2px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    position: relative;
+}
+.itflow-setup-step-label {
+    font-size: .8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.itflow-setup-step.is-done .itflow-setup-step-marker {
+    background: var(--bs-success);
+    border-color: var(--bs-success);
+    color: #fff;
+}
+.itflow-setup-step.is-done > a {
+    color: var(--bs-body-color);
+}
+.itflow-setup-step.is-current .itflow-setup-step-marker {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+    box-shadow: 0 0 0 .25rem rgba(var(--bs-primary-rgb), .2);
+}
+.itflow-setup-step.is-current .itflow-setup-step-label {
+    color: var(--bs-emphasis-color);
+    font-weight: 600;
+}
+.itflow-setup-card {
+    border: 1px solid var(--bs-border-color);
+    box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .05);
+}
+/* What a step needs, or what to do next - an icon beside a heading and a line */
+.itflow-setup-needs > li {
+    display: flex;
+    gap: .9rem;
+    padding: .55rem 0;
+}
+.itflow-setup-needs > li > i {
+    color: var(--bs-primary);
+    margin-top: .2rem;
+}
+.itflow-setup-needs > li strong {
+    display: block;
+}
+.itflow-setup-needs > li span {
+    display: block;
+    color: var(--bs-secondary-color);
+    font-size: .9rem;
+}
+.itflow-setup-needs > li > div {
+    min-width: 0;
+}
+/* A cron line, a command or config.php - wrapped on a phone rather than pushing the page sideways */
+.itflow-setup-card pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.itflow-setup-checks .list-group-item {
+    background: transparent;
+}
+/* The picture picked for the avatar or logo, before it is sent */
+.itflow-setup-preview {
+    flex: 0 0 auto;
+    width: 3.5rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+    font-size: 1.25rem;
+    overflow: hidden;
+}
+.itflow-setup-preview.is-round {
+    border-radius: 50%;
+}
+.itflow-setup-preview.has-image {
+    border-style: solid;
+}
+.itflow-setup-preview.has-image > i {
+    display: none;
+}
+.itflow-setup-preview > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.itflow-setup-preview:not(.is-round) > img {
+    object-fit: contain;
+    padding: .2rem;
+}
+/* Finish - what to do once signed in, numbered */
+.itflow-setup-next {
+    counter-reset: itflow-setup-next;
+}
+.itflow-setup-next > li {
+    counter-increment: itflow-setup-next;
+    position: relative;
+    padding: .45rem 0 .45rem 2.1rem;
+}
+.itflow-setup-next > li::before {
+    content: counter(itflow-setup-next);
+    position: absolute;
+    left: 0;
+    top: .45rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    font-size: .75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Finish - telling the ITFlow project, and exactly what that sends */
+.itflow-setup-share {
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    padding: 1rem;
+}
+.itflow-setup-share-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .15rem 1rem;
+}
+.itflow-setup-share-list dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.itflow-setup-share-list dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* Restore - where a backup is dropped */
+.itflow-setup-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: .15rem;
+    padding: 1.5rem 1rem;
+    margin-bottom: .5rem;
+    border: 2px dashed var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition: border-color .15s, background-color .15s;
+}
+.itflow-setup-drop:hover,
+.itflow-setup-drop.is-over {
+    border-color: var(--bs-primary);
+    background: rgba(var(--bs-primary-rgb), .06);
+}
+.itflow-setup-drop.has-file {
+    border-style: solid;
+}
+.itflow-setup-drop.has-file > i {
+    color: var(--bs-primary) !important;
+}
+/* Region - money and a date as they will look */
+.itflow-setup-sample {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1rem;
+    padding: .6rem .9rem;
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+    font-size: .9rem;
+}
+.itflow-setup-sample[hidden] {
+    display: none;
+}
+.itflow-setup-sample > span:not(:first-child) {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-setup-footer {
+    text-align: center;
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
+    margin-top: 1.5rem;
+}
+.itflow-setup-footer a {
+    color: inherit;
+}
+.itflow-setup-footer > span {
+    margin: 0 .35rem;
+}
+@media (max-width: 575.98px) {
+    .itflow-setup-wrap {
+        padding-top: 1rem;
+    }
+    .itflow-setup-brand {
+        font-size: 1.6rem;
+        margin-bottom: 1rem;
+    }
+}
+
+/* ==========================================================================
+   Get started (admin/getting_started.php, admin/getting_started/) - what is
+   left to set up after the install, in the setup wizard's frame: the steps
+   along the top, one card each. And its card on the dashboard.
+   ========================================================================== */
+.itflow-gs-wrap {
+    max-width: 56rem;
+}
+.itflow-gs-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.itflow-gs-brand {
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+    min-width: 0;
+    font-size: 1.5rem;
+    font-weight: 300;
+}
+.itflow-gs-logo {
+    max-height: 2.25rem;
+    max-width: 10rem;
+    object-fit: contain;
+    align-self: center;
+}
+/* A step put off - its marker dashed */
+.itflow-setup-step.is-skipped .itflow-setup-step-marker {
+    border-style: dashed;
+}
+.itflow-gs-progress {
+    height: .4rem;
+}
+/* The Cron step's tasks - a mark that turns green as each is done */
+.itflow-gs-tasks > li {
+    display: flex;
+    gap: .9rem;
+    padding: .9rem 0;
+}
+.itflow-gs-tasks > li + li {
+    border-top: 1px solid var(--bs-border-color);
+}
+.itflow-gs-tasks > li:first-child {
+    padding-top: 0;
+}
+.itflow-gs-task-mark,
+.itflow-gs-summary-mark {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    background: var(--bs-tertiary-bg);
+    border: 2px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+}
+.itflow-gs-tasks > li.is-done .itflow-gs-task-mark,
+.itflow-gs-summary-mark.is-done {
+    background: var(--bs-success);
+    border-color: var(--bs-success);
+    color: #fff;
+}
+.itflow-gs-summary-mark.is-skipped {
+    border-style: dashed;
+}
+/* Something the step can also do - a switch, and its fields under it */
+.itflow-gs-optional,
+.itflow-gs-key {
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    padding: 1rem;
+}
+.itflow-gs-key {
+    background: var(--bs-tertiary-bg);
+}
+.itflow-gs-day {
+    min-width: 3.25rem;
+}
+/* People and clients - a grey initials tile beside each */
+.itflow-gs-people > li {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 0;
+}
+.itflow-gs-people > li + li {
+    border-top: 1px solid var(--bs-border-color);
+}
+.itflow-gs-person-initials,
+.itflow-gs-pack-icon,
+.itflow-gs-card-icon {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    font-weight: 600;
+}
+.itflow-gs-pack-icon,
+.itflow-gs-card-icon {
+    border-radius: .5rem;
+    font-weight: 400;
+    font-size: .9rem;
+}
+.itflow-gs-packs label[for] {
+    cursor: pointer;
+}
+.itflow-gs-packs .list-group-item.is-here .itflow-gs-pack-icon,
+.itflow-gs-packs .list-group-item.is-here .fw-semibold {
+    opacity: .6;
+}
+.itflow-gs-pack-about {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* "or", across the card between two ways of doing a step */
+.itflow-gs-or {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 1.5rem 0;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+}
+.itflow-gs-or::before,
+.itflow-gs-or::after {
+    content: "";
+    flex: 1 1 auto;
+    border-top: 1px solid var(--bs-border-color);
+}
+/* The summary */
+.itflow-gs-done-mark {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    background: var(--bs-success);
+    color: #fff;
+}
+.itflow-gs-done-mark.is-partial {
+    background: var(--bs-primary);
+}
+.itflow-gs-summary .list-group-item {
+    background: transparent;
+}
+/* The dashboard's card - each step a chip, ticked as it is done */
+.itflow-gs-card {
+    border-left: 3px solid var(--bs-primary);
+}
+.itflow-gs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .6rem;
+    border-radius: 2rem;
+    font-size: .8rem;
+    text-decoration: none;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+}
+.itflow-gs-chip:hover {
+    color: var(--bs-body-color);
+    border-color: var(--bs-secondary-color);
+}
+.itflow-gs-chip.is-done {
+    color: var(--bs-success-text-emphasis);
+    background: var(--bs-success-bg-subtle);
+    border-color: var(--bs-success-border-subtle);
+}
+.itflow-gs-chip.is-skipped {
+    border-style: dashed;
+    background: transparent;
+}
+@media (max-width: 575.98px) {
+    .itflow-gs-brand {
+        font-size: 1.25rem;
+    }
+    .itflow-gs-brand .itflow-setup-brand-sub {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   Starter content's Pick which (admin/includes/starter_content_pick.php,
+   js/starter_content.js) - on Maintenance > Starter Content and Get started:
+   what a pack would add, each item ticked and shown as it will look, in a
+   box that scrolls; and Preview's window.
+   ========================================================================== */
+.itflow-starter-pick > summary {
+    color: var(--bs-link-color);
+    cursor: pointer;
+    width: max-content;
+}
+.itflow-starter-pick-box {
+    max-height: 20rem;
+    overflow-y: auto;
+    padding: .25rem .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    background: var(--bs-body-bg);
+    text-align: start;
+}
+/* One to a line, each with what it is for; tags two or more across, as they are only their pill */
+.itflow-starter-pick-items {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+.itflow-starter-pick-items.is-pills {
+    grid-template-columns: repeat(auto-fill, minmax(min(12rem, 100%), 1fr));
+    column-gap: 1rem;
+}
+.itflow-starter-item {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    padding: .4rem 0;
+    min-width: 0;
+}
+.itflow-starter-pick-items:not(.is-pills) .itflow-starter-item + .itflow-starter-item {
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+.itflow-starter-item > .form-check-input {
+    margin-top: .2rem;
+}
+.itflow-starter-item-label {
+    cursor: pointer;
+    flex: 1 1 auto;
+    font-weight: 400;
+    margin-bottom: 0;
+}
+/* A tag named longer than its column wraps inside its pill rather than pushing the box sideways */
+.itflow-starter-item-label .itflow-tag {
+    max-width: 100%;
+    white-space: normal;
+}
+.itflow-starter-item-about {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.itflow-starter-pick-group {
+    grid-column: 1 / -1;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--bs-secondary-color);
+    margin: .6rem 0 .1rem;
+}
+.itflow-starter-pick-group:first-child {
+    margin-top: .25rem;
+}
+/* Maintenance > Starter Content - the list under its pack, in the first column */
+.itflow-starter-pack-cell {
+    min-width: 18rem;
+}
+/* Preview - the facts as a list beside their labels, then what it says as it reads */
+.itflow-starter-preview-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .35rem 1rem;
+    margin-bottom: 1rem;
+}
+.itflow-starter-preview-facts dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.itflow-starter-preview-facts dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.itflow-starter-preview-head {
+    font-size: .8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--bs-secondary-color);
+    margin: 1.25rem 0 .5rem;
+}
+.itflow-starter-preview-doc,
+.itflow-starter-preview-notes {
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    padding: .75rem 1rem;
+    background: var(--bs-tertiary-bg);
+    overflow-x: auto;
+}
+.itflow-starter-preview-doc table {
+    width: 100%;
+    margin-bottom: .75rem;
+    border-collapse: collapse;
+}
+.itflow-starter-preview-doc th,
+.itflow-starter-preview-doc td {
+    border: 1px solid var(--bs-border-color);
+    padding: .25rem .5rem;
+    vertical-align: top;
+}
+.itflow-starter-preview-doc > :last-child {
+    margin-bottom: 0;
+}
+.itflow-starter-preview-list {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+}
+.itflow-starter-preview-list > li {
+    padding: .15rem 0;
+}
+/* [Words in brackets] - filled in when it is used */
+.itflow-starter-fill {
+    background: rgba(var(--bs-primary-rgb), .12);
+    color: var(--bs-emphasis-color);
+    border-radius: .25rem;
+    padding: 0 .2rem;
+}
+@media (max-width: 575.98px) {
+    .itflow-starter-preview-facts {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    .itflow-starter-preview-facts dd {
+        margin-bottom: .5rem;
+    }
+}
+
+/* ==========================================================================
+   Settings (admin/settings*.php, functions/settings.php, js/settings.js) - a
+   page header, sections with what they are for beside their fields, a save
+   bar that says when something is changed, the overview's tiles and Find a
+   setting.
+   ========================================================================== */
+.itflow-settings-head {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+.itflow-settings-head-icon {
+    flex: 0 0 auto;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .75rem;
+    font-size: 1.15rem;
+    color: var(--itflow-accent, var(--bs-primary));
+    background: color-mix(in srgb, var(--itflow-accent, var(--bs-primary)) 12%, transparent);
+}
+.itflow-settings-card > .card-body {
+    padding: 0 1.25rem;
+}
+.itflow-settings-section {
+    padding: 1.5rem 0;
+}
+.itflow-settings-section + .itflow-settings-section {
+    border-top: 1px solid var(--bs-border-color);
+}
+@media (min-width: 992px) {
+    .itflow-settings-section-about {
+        padding-right: 1.5rem;
+    }
+}
+.itflow-settings-field + .itflow-settings-field {
+    margin-top: 1rem;
+}
+.itflow-settings-field .form-switch + .form-text,
+.itflow-settings-field .form-switch ~ .form-text {
+    margin-top: .1rem;
+    padding-left: 2.5em;
+}
+.itflow-settings-field .form-label {
+    font-weight: 500;
+}
+/* A setting gone to from Find a setting */
+.itflow-settings-lit {
+    border-radius: .5rem;
+    animation: itflow-settings-lit 2.6s ease-out;
+}
+@keyframes itflow-settings-lit {
+    0%, 35% {
+        background-color: color-mix(in srgb, var(--bs-warning) 28%, transparent);
+        box-shadow: 0 0 0 .5rem color-mix(in srgb, var(--bs-warning) 28%, transparent);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: 0 0 0 .5rem transparent;
+    }
+}
+/* The save bar - at the foot of the form, and of the window while the form runs past it */
+.itflow-settings-savebar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin: 0 -1.25rem;
+    padding: .75rem 1.25rem;
+    border-top: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    border-radius: 0 0 var(--bs-card-border-radius, .375rem) var(--bs-card-border-radius, .375rem);
+}
+.itflow-settings-savebar-note {
+    visibility: hidden;
+}
+.itflow-settings-savebar.is-dirty {
+    box-shadow: 0 -.5rem 1rem rgba(0, 0, 0, .08);
+}
+.itflow-settings-savebar.is-dirty .itflow-settings-savebar-note {
+    visibility: visible;
+}
+.itflow-settings-savebar:not(.is-dirty) [data-settings-undo] {
+    visibility: hidden;
+}
+/* What a value will look like - money and a date, a next number */
+.itflow-settings-sample {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1rem;
+    padding: .6rem .9rem;
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+    font-size: .9rem;
+}
+.itflow-settings-sample[hidden] {
+    display: none;
+}
+.itflow-settings-sample > span:not(:first-child) {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+/* The number the next one gets, and a clash with one in use */
+.itflow-settings-sample.itflow-settings-next {
+    gap: .35rem .5rem;
+}
+.itflow-settings-next [data-settings-clash] {
+    flex-basis: 100%;
+}
+/* A sentence saying how what is set works out - the reminder schedule, how a trip bills */
+.itflow-settings-note {
+    padding: .6rem .9rem;
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+    font-size: .875rem;
+}
+/* A picture - the logo, the tab icon - as it is, or as picked */
+.itflow-settings-picture {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 5rem;
+    padding: .75rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-tertiary-bg);
+}
+.itflow-settings-picture img {
+    max-width: 100%;
+    max-height: 6rem;
+}
+.itflow-settings-picture.is-icon img {
+    width: 2rem;
+    height: 2rem;
+}
+/* The overview's what-needs-looking-at - the text takes the room, the button goes under it only when there is none */
+.itflow-settings-attention-text {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+/* A theme colour's dot */
+.itflow-settings-dot {
+    display: inline-block;
+    width: .75rem;
+    height: .75rem;
+    margin-right: .4rem;
+    border-radius: 50%;
+    vertical-align: -.05rem;
+    background: var(--itflow-accent, var(--bs-primary));
+}
+/* The overview - Find a setting, and a tile for each page */
+.itflow-settings-find {
+    position: relative;
+    max-width: 44rem;
+}
+.itflow-settings-results {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    top: calc(100% + .25rem);
+    max-height: 26rem;
+    overflow-y: auto;
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .15);
+}
+.itflow-settings-results mark {
+    padding: 0;
+    background: color-mix(in srgb, var(--bs-warning) 40%, transparent);
+    color: inherit;
+}
+.itflow-settings-results .list-group-item.active .text-body-secondary {
+    color: inherit !important;
+}
+.itflow-settings-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: .75rem;
+}
+.itflow-settings-tile {
+    display: flex;
+    gap: .9rem;
+    align-items: flex-start;
+    padding: 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .6rem;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    text-decoration: none;
+    transition: border-color .15s, box-shadow .15s;
+}
+.itflow-settings-tile:hover,
+.itflow-settings-tile:focus-visible {
+    border-color: var(--itflow-accent, var(--bs-primary));
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .06);
+    color: var(--bs-body-color);
+}
+.itflow-settings-tile.is-off {
+    opacity: .6;
+}
+.itflow-settings-tile-icon {
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .5rem;
+    color: var(--itflow-accent, var(--bs-primary));
+    background: color-mix(in srgb, var(--itflow-accent, var(--bs-primary)) 12%, transparent);
+}
+.itflow-settings-tile-title {
+    display: block;
+    font-weight: 600;
+}
+.itflow-settings-tile-about {
+    display: block;
+    font-size: .8125rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-settings-tile-now {
+    display: block;
+    margin-top: .4rem;
+    font-size: .8125rem;
+    overflow-wrap: anywhere;
+}
+/* Modules - one row each, what it holds under its name */
+.itflow-settings-module + .itflow-settings-module {
+    margin-top: .25rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+}
+/* A short list of what is what - Telemetry's report */
+.itflow-settings-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .15rem 1rem;
+}
+.itflow-settings-list dt {
+    font-weight: 400;
+    color: var(--bs-secondary-color);
+}
+.itflow-settings-list dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* Fields that mean nothing while their switch is off - still there to set up */
+[data-settings-depends-on] {
+    transition: opacity .15s;
+}
+[data-settings-depends-on].is-off {
+    opacity: .55;
+}
+
+/* ---------- Mail Queue ---------- */
+/* Why an email failed, under its status on the list */
+.itflow-mail-queue-why {
+    max-width: 22rem;
+}
+/* The email as it will arrive - its own white page, whatever the theme */
+.itflow-mail-queue-frame {
+    height: 45vh;
+    min-height: 18rem;
+    background: #fff;
+}
+.itflow-mail-queue-facts dd {
+    margin-bottom: .35rem;
+}
+
+/* An AI summary of a ticket (agent/modals/ticket/ticket_summary.php) - its sections close together */
+.itflow-ai-summary h6 {
+    font-weight: 600;
+    margin: 1rem 0 0.35rem;
+}
+.itflow-ai-summary ul {
+    margin-bottom: 0.25rem;
+    padding-left: 1.25rem;
+}
+.itflow-ai-summary p:last-child {
+    margin-bottom: 0;
+}
+/* Write it with AI - each line's numbers, side by side, wrapping on a phone */
+.itflow-ai-line-qty {
+    flex: 0 0 7rem;
+}
+.itflow-ai-line-billed {
+    flex: 0 0 9.5rem;
+}
+.itflow-ai-line-price {
+    flex: 0 0 9rem;
+}
+
+/* Admin > Debug (admin/debug.php) - a grey tile for each section's icon, and
+   each check as its level's icon beside what was found and what to do */
+.itflow-debug-section-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: .5rem;
+    font-size: .85rem;
+    color: var(--bs-secondary-color);
+    background-color: var(--bs-secondary-bg);
+}
+.itflow-debug-item {
+    display: flex;
+    gap: .6rem;
+    align-items: flex-start;
+}
+.itflow-debug-item-icon {
+    margin-top: .2rem;
+}
+.itflow-debug-fix {
+    color: var(--bs-secondary-color);
+    overflow-wrap: anywhere;
+}
+.itflow-debug-fix code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.itflow-debug-attention li + li {
+    border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+.itflow-debug-bar {
+    height: .4rem;
+}
+/* Its figures wrap as flex rather than grid, so a short last row stretches
+   across rather than leaving empty cells */
+.itflow-debug-stats .itflow-report-stats {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+.itflow-debug-stats .itflow-report-stat {
+    flex: 1 1 8.5rem;
+}
+.itflow-debug-stats .itflow-report-stat-value {
+    font-size: 1.25rem;
+}
+
+/* A ticket status's badge (ticketStatusBadgeHtml()) - its colour, with dark or white text, whichever reads on it */
+.itflow-ticket-status {
+    background-color: var(--itflow-status-bg, var(--bs-secondary));
+    color: var(--itflow-status-text, #fff);
+}
+
+/* Contracts as documents (includes/contract_paper.php) - the document from
+   contractDocumentHtml(), which carries classes and no styles of its own, the
+   signature block, and the signing pad (includes/contract_signature_pad.php,
+   js/signature_pad.js). The pad and the signatures are drawn on white in
+   either theme - what is signed goes on paper; in dark mode a drawn
+   signature shown on the page is turned light. */
+.itflow-contract-doc-title {
+    margin: 1.5rem 0 .35rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-wrap: balance;
+}
+.itflow-contract-doc-between {
+    margin-bottom: 1.25rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-contract-doc-parties {
+    width: 100%;
+    margin-bottom: .5rem;
+}
+.itflow-contract-doc-parties td {
+    padding: 0 1.5rem .75rem 0;
+    vertical-align: top;
+}
+.itflow-contract-doc-label {
+    margin-bottom: .2rem;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.itflow-contract-doc-muted {
+    font-size: .875rem;
+    color: var(--bs-secondary-color);
+}
+.itflow-contract-doc-heading {
+    margin: 1.5rem 0 .5rem;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--bs-primary-text-emphasis);
+}
+.itflow-contract-doc-table {
+    width: 100%;
+    margin-bottom: .5rem;
+    border-collapse: collapse;
+    font-size: .9rem;
+}
+.itflow-contract-doc-table th,
+.itflow-contract-doc-table td {
+    padding: .45rem .6rem .45rem 0;
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    text-align: left;
+    vertical-align: top;
+}
+.itflow-contract-doc-table thead th {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+.itflow-contract-doc-summary th {
+    width: 26%;
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+}
+.itflow-contract-doc-terms {
+    overflow-wrap: anywhere;
+}
+.itflow-contract-doc-terms img {
+    max-width: 100%;
+    height: auto;
+}
+.itflow-contract-signatures {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 2rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--bs-border-color-translucent);
+    break-inside: avoid;
+}
+.itflow-contract-signature-mark {
+    display: flex;
+    align-items: flex-end;
+    height: 4.5rem;
+    margin-bottom: .35rem;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.itflow-contract-signature-mark img {
+    max-width: 100%;
+    max-height: 4.25rem;
+}
+[data-bs-theme="dark"] .itflow-contract-signature-mark img {
+    filter: invert(1) hue-rotate(180deg);
+}
+.itflow-contract-signature-typed,
+.itflow-signature-typed-preview {
+    font-family: "Segoe Script", "Bradley Hand", "Snell Roundhand", "Brush Script MT", cursive;
+    font-size: 1.75rem;
+    line-height: 1.2;
+}
+.itflow-signature-canvas-wrap {
+    position: relative;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: #fff;
+}
+.itflow-signature-canvas {
+    display: block;
+    width: 100%;
+    height: 10rem;
+    cursor: crosshair;
+    touch-action: none;
+}
+.itflow-signature-line {
+    position: absolute;
+    right: 1rem;
+    bottom: 2.25rem;
+    left: 1rem;
+    border-bottom: 1px dashed #adb5bd;
+    pointer-events: none;
+}
+.itflow-signature-hint {
+    position: absolute;
+    bottom: .55rem;
+    left: 1rem;
+    font-size: .8rem;
+    color: #6c757d;
+    pointer-events: none;
+}
+.itflow-signature-hint.is-error {
+    color: #b02a37;
+    font-weight: 600;
+}
+.itflow-signature-typed-preview {
+    display: flex;
+    align-items: center;
+    min-height: 5.5rem;
+    padding: .5rem 1rem;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: #fff;
+    color: #1d2433;
+    white-space: nowrap;
+}
+.itflow-signature-typed-preview.is-empty {
+    font-family: inherit;
+    font-size: .875rem;
+    color: #6c757d;
+}
+.itflow-contract-trail {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: .875rem;
+}
+.itflow-contract-trail li {
+    display: flex;
+    gap: .6rem;
+    padding: .3rem 0;
+}
+.itflow-contract-trail li > i {
+    margin-top: .2rem;
+    color: var(--bs-secondary-color);
+}
+/* Prepaid hours on a contract - what is left, and a bar of what was used (a <progress>, as the portal allows no inline styles) */
+.itflow-contract-hours-left {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+.itflow-hours-bar {
+    display: block;
+    width: 100%;
+    height: .6rem;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-primary);
+    appearance: none;
+    -webkit-appearance: none;
+}
+.itflow-hours-bar::-webkit-progress-bar {
+    background-color: var(--bs-secondary-bg);
+    border-radius: 999px;
+}
+.itflow-hours-bar::-webkit-progress-value {
+    background-color: var(--bs-primary);
+    border-radius: 999px;
+}
+.itflow-hours-bar::-moz-progress-bar {
+    background-color: var(--bs-primary);
+    border-radius: 999px;
+}
+@media (max-width: 575.98px) {
+    .itflow-contract-signatures {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .itflow-contract-doc-parties td {
+        display: block;
+        width: 100% !important;
+    }
+}
+
+/* Joining the client portal - from an invite or a sign-up (client/join.php): room for two fields to a row */
+@media (min-width: 576px) {
+    .login-box.itflow-join-box {
+        width: 460px;
     }
 }

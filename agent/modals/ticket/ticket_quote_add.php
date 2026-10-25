@@ -32,7 +32,9 @@ $ticket_sql = mysqli_query(
 
 $row = mysqli_fetch_assoc($ticket_sql);
 $client_id = intval($row['client_id']);
-$client_rate = floatval($row['client_rate']);
+// The contract in force's rate, else the client's own, else the default
+$client_rate_info = contractClientRate($client_id);
+$client_rate = $client_rate_info['rate'];
 $ticket_prefix = escapeHtml($row['ticket_prefix']);
 $ticket_number = intval($row['ticket_number']);
 $ticket_category = intval($row['ticket_category']);
@@ -109,21 +111,11 @@ ob_start();
                         <div class="input-group">
                                 <span class="input-group-text"><i class="fa fa-fw fa-list"></i></span>
 
-                            <select class="form-select select2" name="category">
+                            <select class="form-select select2" name="category" required>
                                 <option value="">- Select a Category -</option>
-                                <?php
-                                $sql = mysqli_query($mysqli, "SELECT category_id, category_name, category_color, category_icon FROM categories WHERE category_type = 'Income' AND category_archived_at IS NULL ORDER BY category_name ASC");
-                                while ($row = mysqli_fetch_assoc($sql)) {
-                                    $category_id = intval($row['category_id']);
-                                    $category_name = escapeHtml($row['category_name']);
-                                    ?>
-                                    <option value="<?= $category_id ?>"<?= selectOptionColor($row['category_color'] ?? '', $row['category_icon'] ?? '') ?>><?= $category_name ?></option>
-                                <?php } ?>
+                                <?= categoryOptionsHtml('Income') ?>
                             </select>
-
-                                <button type="button" class="btn btn-secondary ajax-modal" title="New category" data-modal-url="/admin/modals/category/category_add.php?category=Expense">
-                                    <i class="fas fa-fw fa-plus"></i>
-                                </button>
+                            <?= categoryAddButtonHtml('Income', 'btn btn-secondary') ?>
                         </div>
                     </div>
                 </div>
@@ -190,7 +182,7 @@ ob_start();
                             <input type="text" class="form-control" inputmode="decimal" pattern="-?[0-9]*\.?[0-9]{0,2}" name="price" value="<?= number_format($client_rate, 2, '.', '') ?>" required>
                         </div>
                         <small class="form-text text-muted">
-                            The client's hourly rate is <strong><?= numfmt_format_currency($currency_format, $client_rate, $session_company_currency); ?></strong>
+                            <?= escapeHtml(ucfirst($client_rate_info['note'])) ?> is <strong><?= numfmt_format_currency($currency_format, $client_rate, $session_company_currency); ?></strong> an hour
                         </small>
                     </div>
                 </div>
@@ -199,19 +191,9 @@ ob_start();
             <div class="mb-3">
                 <label>Tax <strong class="text-danger">*</strong></label>
                 <div class="input-group">
-                        <span class="input-group-text"><i class="fa fa-fw fa-piggy-bank"></i></span>
-
+                    <span class="input-group-text"><i class="fa fa-fw fa-piggy-bank"></i></span>
                     <select class="form-select select2" name="tax_id" required>
-                        <option value="0">None</option>
-                        <?php
-                        $taxes_sql = mysqli_query($mysqli, "SELECT tax_id, tax_name, tax_percent FROM taxes WHERE tax_archived_at IS NULL ORDER BY tax_name ASC");
-                        while ($row = mysqli_fetch_assoc($taxes_sql)) {
-                            $tax_id_select = intval($row['tax_id']);
-                            $tax_name = escapeHtml($row['tax_name']);
-                            $tax_percent = floatval($row['tax_percent']);
-                            ?>
-                            <option value="<?= $tax_id_select ?>"><?= "$tax_name $tax_percent%" ?></option>
-                        <?php } ?>
+                        <?= taxSelectOptions(taxDefaultFor($client_id, 'time')) ?>
                     </select>
                 </div>
             </div>

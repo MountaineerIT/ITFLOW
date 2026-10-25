@@ -43,7 +43,8 @@ enforceUserPermission('module_credential');
 
 $can_edit = credentialCan(2);
 $can_delete = credentialCan(3) && !empty($config_destructive_deletes_enable);
-$can_share = lookupUserPermission('module_support') >= 2;
+$can_share = shareCanMake('Credential');
+$can_request = $client_url && shareCanMake('Request');
 
 // Client Filter (all clients)
 $client = '';
@@ -73,7 +74,7 @@ $shows = [
     'otp' => ['label' => 'With 2FA', 'icon' => 'fa-clock', 'where' => "c.credential_otp_secret <> ''"],
     'nootp' => ['label' => 'No 2FA', 'icon' => 'fa-unlock', 'where' => "(c.credential_otp_secret IS NULL OR c.credential_otp_secret = '')"],
     'due' => ['label' => "Not changed in $rotate_days days", 'icon' => 'fa-history', 'where' => "(c.credential_password_changed_at IS NULL OR c.credential_password_changed_at < NOW() - INTERVAL $rotate_days DAY)"],
-    'shared' => ['label' => 'Shared', 'icon' => 'fa-share-alt', 'where' => "c.credential_id IN (SELECT item_related_id FROM shared_items WHERE item_type = 'Credential' AND item_active = 1 AND item_expire_at > NOW() AND (COALESCE(item_view_limit, 0) = 0 OR item_views < item_view_limit))"],
+    'shared' => ['label' => 'Shared', 'icon' => 'fa-share-alt', 'where' => "c.credential_id IN (SELECT item_related_id FROM shared_items WHERE item_type = 'Credential' AND " . shareOpenSql() . ")"],
 ];
 $show = isset($shows[$_GET['show'] ?? '']) ? ($_GET['show'] ?? '') : '';
 $show_query = $shows[$show]['where'] ? 'AND ' . $shows[$show]['where'] : '';
@@ -159,6 +160,11 @@ $filter_url = function ($changes) use ($client_url) {
                 <?php } ?>
                 <button type="button" class="btn btn-primary dropdown-toggle <?= $can_edit ? 'dropdown-toggle-split' : '' ?>" data-bs-toggle="dropdown"><?= $can_edit ? '' : '<i class="fas fa-ellipsis-h"></i>' ?></button>
                 <div class="dropdown-menu dropdown-menu-end">
+                    <?php if ($can_request) { ?>
+                        <a class="dropdown-item text-dark ajax-modal" href="#" data-modal-url="modals/share/share_add.php?type=Request&amp;client_id=<?= intval($client_id) ?>">
+                            <i class="fa fa-fw fa-inbox me-2"></i>Ask the client for a login
+                        </a>
+                    <?php } ?>
                     <?php if ($client_url && $can_edit) { ?>
                         <a class="dropdown-item text-dark ajax-modal" href="#" data-modal-url="modals/credential/credential_import.php?<?= $client_url ?>">
                             <i class="fa fa-fw fa-upload me-2"></i>Import
@@ -170,9 +176,11 @@ $filter_url = function ($changes) use ($client_url) {
                             <i class="fa fa-fw fa-download me-2"></i>Export
                         </a>
                     <?php } ?>
+                    <?php if (reportCanOpen('credential_rotation')) { ?>
                     <a class="dropdown-item text-dark" href="reports/credential_rotation.php<?= $client_url ? '?client_id=' . intval($client_id) : '' ?>">
                         <i class="fa fa-fw fa-history me-2"></i>Rotation report
                     </a>
+                    <?php } ?>
                 </div>
             </div>
             <?php } ?>
@@ -198,7 +206,7 @@ $filter_url = function ($changes) use ($client_url) {
                         // Tags in use on credentials in this scope, plus any already picked
                         $sql_tags_filter = mysqli_query($mysqli, "
                             SELECT tag_id, tag_name, tag_color, tag_icon FROM tags
-                            WHERE tag_type = 4
+                            WHERE tag_type = 4 AND (tag_archived_at IS NULL OR tag_id IN ($tag_filter))
                             AND (
                                 EXISTS (SELECT 1 FROM credential_tags JOIN credentials ON credentials.credential_id = credential_tags.credential_id
                                     WHERE credential_tags.tag_id = tags.tag_id " . clientScopeSql('credential_client_id') . " $client_query)
@@ -208,7 +216,7 @@ $filter_url = function ($changes) use ($client_url) {
                         ");
                         while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
                             $tag_id = intval($row['tag_id']); ?>
-                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
+                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= tagOptionLook($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
                         <?php } ?>
                     </select>
                 </div>
@@ -423,7 +431,7 @@ $filter_url = function ($changes) use ($client_url) {
                                         </a>
                                     <?php } ?>
                                     <?php if ($can_share && !$credential_archived_at) { ?>
-                                        <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/credential/credential_share.php?id=<?= $credential_id ?>">
+                                        <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/share/share_add.php?type=Credential&amp;id=<?= $credential_id ?>">
                                             <i class="fas fa-fw fa-share-alt text-secondary me-2"></i>Share
                                         </a>
                                     <?php } ?>
@@ -461,13 +469,21 @@ $filter_url = function ($changes) use ($client_url) {
             </table>
         </div>
     </form>
-    <?php if (!$num_rows[0]) { ?>
-        <div class="itflow-asset-empty">
-            <i class="fas fa-key fa-2x mb-2 opacity-50"></i>
-            <div><?= $q || $tag_query || $show ? 'No credentials match.' : 'No credentials yet.' ?></div>
-        </div>
-    <?php } ?>
-    <?php require_once "../includes/filter_footer.php"; ?>
+    <?php
+    $empty_state = [
+        'thing' => 'credentials',
+        'icon' => 'fa-key',
+        'filtered' => $q || $tag_query,
+        'views' => ['show'],
+        'view' => emptyStatePill($shows, $show, '', ['nootp', 'due']),
+        'text' => 'The logins for their systems, encrypted in the vault.',
+        'actions' => $can_edit ? array_merge(
+            [['label' => 'New Credential', 'modal' => "modals/credential/credential_add.php?$client_url", 'size' => 'lg']],
+            $client_url ? [['label' => 'Import', 'modal' => "modals/credential/credential_import.php?$client_url", 'icon' => 'fa-upload']] : []
+        ) : [],
+    ];
+    require_once "../includes/filter_footer.php";
+    ?>
 </div>
 
 <?php if (!empty($_GET['open'])) { ?>

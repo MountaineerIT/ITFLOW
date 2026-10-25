@@ -255,6 +255,12 @@ $company_week = mitTsCompanySchedule();
                     $accounts = mysqli_fetch_all(mysqli_query($mysqli, "SELECT account_id, account_name FROM accounts WHERE account_archived_at IS NULL OR account_id = " . intval($reimb['account_id']) . " ORDER BY account_name"), MYSQLI_ASSOC); ?>
                     <h6 class="text-muted text-uppercase small mb-3">Reimbursements</h6>
                     <div class="row g-3 mb-4">
+                        <?php $mit_itflow_pays = mitReimbItflowPaysBack(); ?>
+                        <?php if ($mit_itflow_pays) { ?>
+                            <div class="col-12"><div class="alert alert-info small mb-0" data-mit-reimb-itflow>People are paid back through ITFlow: mileage waits under
+                                Trips (driven in their own vehicle) at ITFlow's mileage rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Admin &gt; Trips; until then the rate here is used)' ?>,
+                                and approved purchases wait under Expenses &gt; Reimburse as paid personally - no account is needed for them.</div></div>
+                        <?php } ?>
                         <div class="col-md-4">
                             <label class="form-label">Mileage rate</label>
                             <div class="input-group">
@@ -274,7 +280,7 @@ $company_week = mitTsCompanySchedule();
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Paid from account</label>
+                            <label class="form-label">Paid from account<?= $mit_itflow_pays ? ' <span class="text-muted small">(not used - paid back in ITFlow)</span>' : '' ?></label>
                             <select class="form-select" name="reimb_account">
                                 <option value="0">- Pick an account -</option>
                                 <?php foreach ($accounts as $account) { ?>

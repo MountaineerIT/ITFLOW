@@ -152,6 +152,18 @@ if ($project_filter) {
 }
 if (function_exists('mitBoardTicketsFilter')) { mitBoardTicketsFilter($filter_sql); } // Mountaineer IT: service boards
 
+// Tags - a ticket with any of them
+$tag_filter_ids = tagFilterIds();
+if ($tag_filter_ids) {
+    $filter_sql[] = tagFilterSql('ticket', $tag_filter_ids, 'tickets.ticket_id');
+    $tag_filter_names = [];
+    $sql_tag_names = mysqli_query($mysqli, "SELECT tag_name FROM tags WHERE tag_type = 12 AND tag_id IN (" . implode(',', $tag_filter_ids) . ") ORDER BY tag_name");
+    while ($row = mysqli_fetch_row($sql_tag_names)) {
+        $tag_filter_names[] = escapeHtml($row[0]);
+    }
+    $active_filters[] = ['label' => 'Tags', 'value' => implode(', ', $tag_filter_names), 'drop' => ['tags' => null]];
+}
+
 // SLA state - the dashboard's "SLA breached" links here
 $sla_filters = [
     'breached' => ['SLA breached', 'ticket_sla_id > 0 AND (ticket_response_sla_alert_stage = 2 OR ticket_resolution_sla_alert_stage = 2 OR ticket_response_sla_met = 0 OR ticket_resolution_sla_met = 0)'],
@@ -190,7 +202,8 @@ if ($date_filter_active) {
 if ($q !== '') {
     $filter_sql[] = "AND (CONCAT(ticket_prefix, ticket_number) LIKE '%$q%' OR ticket_subject LIKE '%$q%' OR client_name LIKE '%$q%'
         OR contact_name LIKE '%$q%' OR contact_email LIKE '%$q%' OR ticket_status_name LIKE '%$q%' OR ticket_priority LIKE '%$q%'
-        OR user_name LIKE '%$q%' OR asset_name LIKE '%$q%' OR vendor_name LIKE '%$q%' OR ticket_vendor_ticket_number LIKE '%$q%' OR category_name LIKE '%$q%')";
+        OR user_name LIKE '%$q%' OR asset_name LIKE '%$q%' OR vendor_name LIKE '%$q%' OR ticket_vendor_ticket_number LIKE '%$q%' OR category_name LIKE '%$q%'
+        " . tagSearchSql('ticket', $q, 'tickets.ticket_id') . ")";
 }
 
 $filters = clientScopeSql('ticket_client_id') . " $client_query " . implode(' ', $filter_sql);
@@ -240,7 +253,7 @@ $ticket_select_columns =
     ticket_response_sla_alert_stage, ticket_resolution_sla_alert_stage,
     ticket_status_id, ticket_status_name, ticket_status_color, ticket_status_pauses_sla,
     client_name, contact_id, contact_name, contact_email, contact_photo,
-    user_name, user_avatar, asset_name, category_name, category_color, project_prefix, project_number, project_name,
+    user_name, user_avatar, asset_name, category_name, category_color, category_icon, project_prefix, project_number, project_name,
     " . ticketLastSpokeSql() . " AS ticket_last_spoke";
 
 $ticket_joins =
@@ -297,7 +310,7 @@ $export_extra = [
                         <i class="fa fa-fw fa-redo-alt me-2"></i>Recurring tickets
                     </a>
                     <a class="dropdown-item text-dark ajax-modal" href="#"
-                        data-modal-url="<?= buildExportModalUrl('modals/ticket/ticket_export.php', ['client_id', 'client', 'status', 'billing', 'category', 'priority', 'assigned', 'sla', 'project', 'q'], $export_extra) ?>">
+                        data-modal-url="<?= buildExportModalUrl('modals/ticket/ticket_export.php', ['client_id', 'client', 'status', 'billing', 'category', 'priority', 'assigned', 'sla', 'project', 'tags', 'q'], $export_extra) ?>">
                         <i class="fa fa-fw fa-download me-2"></i>Export
                     </a>
                 </div>
@@ -375,6 +388,9 @@ $export_extra = [
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_edit_category.php" data-bulk="true">
                                         <i class="fas fa-fw fa-tag me-2"></i>Set category
                                     </a>
+                                    <a class="dropdown-item" href="#" data-tag-picker data-tag-entity="ticket" data-tag-bulk data-csrf="<?= $_SESSION['csrf_token'] ?>">
+                                        <i class="fas fa-fw fa-tags me-2"></i>Tags
+                                    </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_add_project.php" data-bulk="true">
                                         <i class="fas fa-fw fa-project-diagram me-2"></i>Add to a project
                                     </a>
@@ -417,10 +433,9 @@ $export_extra = [
                         <label class="form-label small text-body-secondary mb-1">Status</label>
                         <select onchange="this.form.submit()" class="form-select select2" name="status[]" data-placeholder="Any status" multiple>
                             <?php
-                            $sql_ticket_status = mysqli_query($mysqli, "SELECT ticket_status_id, ticket_status_name, ticket_status_color FROM ticket_statuses WHERE ticket_status_active = 1 ORDER BY ticket_status_order, ticket_status_id");
-                            while ($row = mysqli_fetch_assoc($sql_ticket_status)) {
-                                $filter_status_id = intval($row['ticket_status_id']); ?>
-                                <option value="<?= $filter_status_id ?>" <?= in_array($filter_status_id, $status_filter, true) ? 'selected' : '' ?><?= selectOptionColor($row['ticket_status_color'] ?? '') ?>><?= escapeHtml($row['ticket_status_name']) ?></option>
+                            // The ones in use - and a switched-off one when it is asked for (from Admin > Ticket Statuses), so it stays picked
+                            foreach (ticketStatusOptions($status_filter) as $filter_status_id => $row) { ?>
+                                <option value="<?= $filter_status_id ?>" <?= in_array($filter_status_id, $status_filter, true) ? 'selected' : '' ?><?= selectOptionColor($row['ticket_status_color'] ?? '') ?> title="<?= escapeHtml(ticketStatusAbout($row)) ?>"><?= escapeHtml($row['ticket_status_name']) ?><?= intval($row['ticket_status_active']) === 1 ? '' : ' (switched off)' ?></option>
                             <?php } ?>
                         </select>
                     </div>
@@ -437,12 +452,7 @@ $export_extra = [
                         <label class="form-label small text-body-secondary mb-1">Category</label>
                         <select onchange="this.form.submit()" class="form-select select2" name="category">
                             <option value="">Any category</option>
-                            <?php
-                            $sql_categories_filter = mysqli_query($mysqli, "SELECT category_id, category_name, category_color, category_icon FROM categories WHERE category_type = 'Ticket' AND (category_archived_at IS NULL OR category_id = $category_filter) ORDER BY category_name");
-                            while ($row = mysqli_fetch_assoc($sql_categories_filter)) {
-                                $filter_category_id = intval($row['category_id']); ?>
-                                <option value="<?= $filter_category_id ?>" <?= $category_filter === $filter_category_id ? 'selected' : '' ?><?= selectOptionColor($row['category_color'] ?? '', $row['category_icon'] ?? '') ?>><?= escapeHtml($row['category_name']) ?></option>
-                            <?php } ?>
+                            <?= categoryFilterOptionsHtml('Ticket', $category_filter, "SELECT DISTINCT ticket_category FROM tickets WHERE ticket_category <> ''") ?>
                         </select>
                     </div>
                     <div class="col-lg-3 col-md-6">
@@ -458,6 +468,12 @@ $export_extra = [
                                 $filter_project_id = intval($row['project_id']); ?>
                                 <option value="<?= $filter_project_id ?>" <?= $project_filter === $filter_project_id ? 'selected' : '' ?> data-icon="fas fa-project-diagram" data-description="<?= escapeHtml($row['project_prefix'] . intval($row['project_number'])) ?>"><?= escapeHtml($row['project_name']) ?></option>
                             <?php } ?>
+                        </select>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <label class="form-label small text-body-secondary mb-1">Tags</label>
+                        <select onchange="this.form.submit()" class="form-select select2" name="tags[]" data-placeholder="Any tag" multiple>
+                            <?= tagFilterOptionsHtml('ticket', $tag_filter_ids, '1 ' . clientScopeSql('ticket_client_id') . ($client_url ? " AND ticket_client_id = $client_id" : '')) ?>
                         </select>
                     </div>
                     <?php if ($sla_in_use) { ?>
@@ -514,7 +530,7 @@ $export_extra = [
                         <a href="<?= escapeHtml($filter_url($filter['drop'])) ?>" class="text-danger ms-1" title="Remove this filter"><i class="fas fa-times"></i></a>
                     </span>
                 <?php } ?>
-                <a href="<?= escapeHtml($filter_url(['status' => null, 'priority' => null, 'category' => null, 'project' => null, 'sla' => null, 'billing' => null, 'canned_date' => null, 'dtf' => null, 'dtt' => null])) ?>" class="small text-danger ms-1">Clear</a>
+                <a href="<?= escapeHtml($filter_url(['status' => null, 'priority' => null, 'category' => null, 'project' => null, 'tags' => null, 'sla' => null, 'billing' => null, 'canned_date' => null, 'dtf' => null, 'dtt' => null])) ?>" class="small text-danger ms-1">Clear</a>
             </div>
         <?php } ?>
     </div>
@@ -528,15 +544,16 @@ $export_extra = [
     ?>
 </div>
 
-<?php if (!empty($_GET['open'])) { ?>
+<?php if (!empty($_GET['open']) || !empty($_GET['new_from_template'])) { ?>
     <script>
-        // Opened from somewhere that wants one ticket's quick look
+        // Opened from somewhere that wants one ticket's quick look - or a new
+        // ticket from a template (New ticket from it, Admin > Ticket Templates)
         document.addEventListener('DOMContentLoaded', function () {
             var open = document.createElement('a');
             open.className = 'ajax-modal';
             open.href = '#';
             open.dataset.modalSize = 'lg';
-            open.dataset.modalUrl = 'modals/ticket/ticket.php?id=<?= intval($_GET['open']) ?>';
+            open.dataset.modalUrl = <?= json_encode(!empty($_GET['open']) ? 'modals/ticket/ticket.php?id=' . intval($_GET['open']) : 'modals/ticket/ticket_add.php?ticket_template_id=' . intval($_GET['new_from_template'])) ?>;
             document.body.appendChild(open);
             open.click();
             open.remove();

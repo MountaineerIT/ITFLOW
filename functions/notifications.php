@@ -27,14 +27,15 @@ function notificationTypeModules() {
         'module_sales' => [
             'Invoice', 'Invoice Paid', 'Invoice Viewed', 'Invoice Overdue', 'Invoice Late Charge',
             'Draft Invoices', 'Recurring Sent', 'Recurring Generated',
-            'Quote Viewed', 'Quote Accepted', 'Quote Declined', 'Quote File',
+            'Quote Viewed', 'Quote Accepted', 'Quote Declined', 'Quote File', 'Low Stock',
         ],
         'module_financial' => ['Expense', 'Expense Created'],
         'module_support' => [
             'Ticket', 'Ticket SLA', 'Pending Tickets', 'Feedback', 'Recurring Ticket', 'Project',
             'Domain Expiring', 'Certificate Expiring', 'Asset Warranty Expiring', 'Service Review',
+            // Shared links - they open Shared Links (agent/shares.php), which is Support's
+            'Shared link opened', 'Shared link locked', 'Login sent back', 'Share Viewed',
         ],
-        'module_client' => ['Share Viewed'],
     ];
 }
 
@@ -70,6 +71,7 @@ function notificationTypeStyle($type) {
         [['accepted'], 'check-circle', 'success'],
         [['overdue', 'late charge'], 'exclamation-triangle', 'warning'],
         [['expiring'], 'hourglass-half', 'warning'],
+        [['stock'], 'boxes', 'warning'],
         [['viewed'], 'eye', 'info'],
         [['quote'], 'comment-dollar', 'primary'],
         [['invoice', 'recurring sent', 'recurring generated'], 'file-invoice-dollar', 'primary'],

@@ -490,33 +490,33 @@ function mitTicketTechMail($ticket_id, $user_id, $start, $end, $kind) {
 }
 
 /**
- * A client replied (cron/ticket_email_parser.php, client/post.php): the same email the lead was
- * queued, for each helper who can see the client. $mail is the lead's queued row, already escaped for
- * the queue. A ticket with no lead sends no email to copy, so its helpers are not emailed either (as
- * ITFlow does for it).
+ * A client replied (cron/ticket_email_parser.php, client/post.php - after ITFlow's ticketMailAssigneeReplied): the same "client
+ * replied" email ITFlow sends the lead (ticketAgentEmailContent 'replied'), for each helper who can see the client. $how portal |
+ * email, $reply the reply's HTML, $by who wrote it. As ITFlow, a ticket with no lead mails nobody.
  */
-function mitTicketTechsCopyMail($ticket_id, array $mail) {
-    global $mysqli;
-    if (!mitNotifyOn('helper_copy')) {
-        return;
+function mitTicketTechsCopyReply($ticket_id, $how, $reply, $by) {
+    global $config_app_name;
+    if (!mitNotifyOn('helper_copy') || !mitTicketTechsReady()) {
+        return 0;
     }
-    $client_id = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_client_id FROM tickets WHERE ticket_id = " . intval($ticket_id)))[0] ?? 0);
-    // The lead's body greets them by name ("Hello <name>,") - the parser writes the name as HTML, the portal as it is
-    $lead = stripslashes((string) $mail['recipient_name']);
-    $greetings = ['Hello ' . mitSqlHtml(escapeHtml($lead)) . ',', 'Hello ' . $mail['recipient_name'] . ','];
-    $copies = [];
+    $row = ticketRow($ticket_id);
+    $lead = $row ? ticketMailAgent($row['ticket_assigned_to']) : null;
+    if (!$lead) {
+        return 0;
+    }
+    $client_id = intval($row['ticket_client_id']);
+    $recipients = [];
     foreach (mitTicketTechs($ticket_id) as $user_id => $tech) {
-        if (!filter_var($tech['user_email'], FILTER_VALIDATE_EMAIL) || strcasecmp($tech['user_email'], stripslashes((string) $mail['recipient'])) === 0
-            || !mitAgentCanSeeClient($user_id, $client_id)) {
+        if (!filter_var($tech['user_email'], FILTER_VALIDATE_EMAIL) || strcasecmp($tech['user_email'], $lead['email']) === 0 || !mitAgentCanSeeClient($user_id, $client_id)) {
             continue;
         }
-        // The same greeting with the helper's name, written the same way
-        $copies[] = ['recipient' => escapeSql($tech['user_email']), 'recipient_name' => escapeSql($tech['user_name']),
-            'body' => str_replace($greetings, ['Hello ' . mitSqlHtml(escapeHtml($tech['user_name'])) . ',', 'Hello ' . escapeSql($tech['user_name']) . ','], (string) $mail['body'])] + $mail;
+        $recipients[] = ['email' => $tech['user_email'], 'name' => $tech['user_name'], 'footnote' => 'You get this as a tech helping on ' . ticketReference($row) . '.'];
     }
-    if ($copies) {
-        addToMailQueue($copies);
+    if (!$recipients) {
+        return 0;
     }
+    return ticketMailAgents($recipients, ($config_app_name ?: 'ITFlow') . " - Ticket updated - [" . ticketReference($row) . "] " . $row['ticket_subject'],
+        ticketAgentEmailContent($row, 'replied', ['how' => $how, 'message' => (string) $reply, 'by' => (string) $by]));
 }
 
 /*

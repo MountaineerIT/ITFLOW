@@ -263,13 +263,71 @@ function dashboardAttention($access) {
             'label' => 'Draft invoices', 'icon' => 'pen', 'tone' => 'secondary',
             'url' => '/agent/invoices.php?status=Draft',
         ];
+        // The same rule as products.php?type=reorder
+        $items[] = [
+            'count' => productReorderCount(),
+            'label' => 'Stock to reorder', 'icon' => 'shopping-basket', 'tone' => 'warning', 'detail' => 'At or under the reorder level',
+            'url' => '/agent/products.php?type=reorder',
+        ];
+        // Lines on recurring invoices, drafts and quotes still at an old catalog price
+        $reprice = productRepriceCount();
+        $items[] = [
+            'count' => intval($reprice['lines']),
+            'label' => 'Lines at an old price', 'icon' => 'tags', 'tone' => 'warning',
+            'detail' => $reprice['monthly'] > 0 ? '+' . dashboardMoney($reprice['monthly']) . ' a month on recurring' : ($reprice['lines'] ? 'On recurring invoices, drafts and quotes' : null),
+            'url' => '/agent/products_reprice.php',
+        ];
+        // Hardware sold in the last 90 days that isn't on the client's assets yet
+        if ($access['support']) {
+            $hardware = productHardwarePending(90);
+            $items[] = [
+                'count' => $hardware['units'],
+                'label' => 'Hardware not on assets', 'icon' => 'laptop', 'tone' => 'info',
+                'detail' => $hardware['units'] ? 'Sold on ' . $hardware['invoices'] . ' invoice' . ($hardware['invoices'] === 1 ? '' : 's') . ' in 90 days' : null,
+                'url' => '/agent/invoices.php?hardware=1&dtf=' . date('Y-m-d', strtotime('-90 days')) . '&dtt=' . date('Y-m-d'),
+            ];
+        }
         if ($access['tickets']) {
             $items[] = [
-                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE ticket_resolved_at IS NOT NULL
-                    AND ticket_billable = 1 AND ticket_invoice_id = 0 $ticket_scope"),
+                'count' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE " . billingUnbilledSql() . " $ticket_scope"),
                 'label' => 'Resolved, not invoiced', 'icon' => 'receipt', 'tone' => 'info',
-                'url' => '/agent/tickets.php?billing=unbilled&state=closed',
+                'url' => '/agent/unbilled_time.php',
             ];
+        }
+        // What we paid for clients to bill on to them, on no invoice yet
+        if ($access['financial']) {
+            $to_bill = expenseUnbilledCount();
+            $items[] = [
+                'count' => $to_bill['count'],
+                'label' => 'Expenses to bill', 'icon' => 'shopping-cart', 'tone' => 'info',
+                'detail' => $to_bill['count'] ? dashboardMoney($to_bill['value']) . ' to bill on' : null,
+                'url' => '/agent/expenses.php?show=to_bill',
+            ];
+            // What agents paid personally and haven't been paid back for
+            $owed = expenseToReimburseCount();
+            $items[] = [
+                'count' => $owed['count'],
+                'label' => 'Expenses to reimburse', 'icon' => 'hand-holding-usd', 'tone' => 'warning',
+                'detail' => $owed['count'] ? dashboardMoney($owed['total']) . ' owed to ' . ($owed['agents'] === 1 ? '1 agent' : $owed['agents'] . ' agents') : null,
+                'url' => '/agent/expenses.php?show=to_reimburse',
+            ];
+            // Trips to bill to clients, and the driving in their own vehicles not paid for yet
+            $trips_to_bill = tripUnbilledCount();
+            $items[] = [
+                'count' => $trips_to_bill['count'],
+                'label' => 'Trips to bill', 'icon' => 'route', 'tone' => 'info',
+                'detail' => $trips_to_bill['count'] ? dashboardMoney($trips_to_bill['value']) . ' of travel' : null,
+                'url' => '/agent/unbilled_time.php',
+            ];
+            if (tripPayBackOn()) {
+                $mileage = tripToClaimCount();
+                $items[] = [
+                    'count' => $mileage['count'],
+                    'label' => 'Mileage to pay back', 'icon' => 'car-side', 'tone' => 'warning',
+                    'detail' => $mileage['count'] ? dashboardMoney($mileage['value']) . ' owed to ' . ($mileage['agents'] === 1 ? '1 agent' : $mileage['agents'] . ' agents') : null,
+                    'url' => '/agent/trips.php?show=to_pay',
+                ];
+            }
         }
     }
 
@@ -430,7 +488,7 @@ function dashboardSchedule($days = 7, $limit = 30) {
         AND ((event_repeat IS NOT NULL AND event_repeat != '') OR event_start >= '$from' OR event_end >= '$from')
         AND (event_created_by = $user_id
             OR EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id AND a.attendee_user_id = $user_id)
-            OR (event_created_by = 0 AND NOT EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id AND a.attendee_user_id > 0))) " . clientScopeSql('event_client_id')
+            OR (event_created_by = 0 AND NOT EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id AND a.attendee_user_id > 0))) " . clientScopeSql('event_client_id') . calendarEventScopeSql()
     );
     while ($row = mysqli_fetch_assoc($sql)) {
         foreach (expandRecurringEvent($row, $from, $to) as $occurrence) {
@@ -585,17 +643,16 @@ function dashboardMoney($amount) {
 }
 
 /**
- * SQL: a revenue that is income - it has a category, and it is not the in
- * side of a transfer between accounts. The transfer handler leaves both
- * halves without a category; one that has been given one since (the demo data
- * files them as "Account Transfer") is still only money moving between
- * accounts. The out side is never spending: it has no vendor.
+ * SQL: a revenue that is income - any that is not the in side of a transfer
+ * between accounts, categorised or not, as the Income list counts it
+ * (incomeRevenueSql()). The out side of a transfer is never spending: it has
+ * no vendor.
  */
 function dashboardRevenueSql() {
-    return "revenue_category_id > 0 AND revenue_id NOT IN (SELECT transfer_revenue_id FROM transfers)";
+    return incomeRevenueSql('revenues.revenue_id');
 }
 
-/** Cash basis, as the Income reports: invoice payments plus categorised revenues. */
+/** Cash basis, as the Income list and reports: invoice payments plus other income. */
 function dashboardIncome($start, $end) {
     return dashboardSum("SELECT SUM(payment_amount) FROM payments WHERE payment_date BETWEEN '$start' AND '$end'")
         + dashboardSum("SELECT SUM(revenue_amount) FROM revenues WHERE " . dashboardRevenueSql() . " AND revenue_date BETWEEN '$start' AND '$end'");
@@ -632,7 +689,8 @@ function dashboardMoneyCards($access, $period) {
         $cards[] = ['label' => 'Expenses', 'value' => $expenses, 'change' => dashboardChange($expenses, $expenses_prev), 'good' => 'down',
             'url' => '/agent/expenses.php?canned_date=custom&dtf=' . $period['start'] . '&dtt=' . $period['end']];
         $cards[] = ['label' => 'Profit', 'value' => $income - $expenses, 'change' => dashboardChange($income - $expenses, $income_prev - $expenses_prev), 'good' => 'up',
-            'url' => '/agent/reports/profit_loss.php'];
+            // Profit & Loss for those who may open reports, the period's money in and out for anyone else
+            'url' => reportCanOpen('profit_loss') ? '/agent/reports/profit_loss.php' : '/agent/transactions.php?canned_date=custom&dtf=' . $period['start'] . '&dtt=' . $period['end']];
     }
 
     if ($access['sales']) {
@@ -641,8 +699,7 @@ function dashboardMoneyCards($access, $period) {
         $invoice_scope = clientScopeSql('invoice_client_id');
         $recurring_scope = clientScopeSql('recurring_invoice_client_id');
         $receivables = dashboardSum("SELECT SUM(balance) FROM (" . dashboardOpenInvoicesSql($invoice_scope) . ") AS open_invoices WHERE balance > 0");
-        $mrr = dashboardSum("SELECT SUM(recurring_invoice_amount) FROM recurring_invoices WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL AND recurring_invoice_frequency = 'month' $recurring_scope")
-            + dashboardSum("SELECT SUM(recurring_invoice_amount) FROM recurring_invoices WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL AND recurring_invoice_frequency = 'year' $recurring_scope") / 12;
+        $mrr = dashboardSum("SELECT SUM(" . recurringInvoiceMonthlySql() . ") FROM recurring_invoices WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL $recurring_scope");
 
         $cards[] = ['label' => 'Receivables', 'value' => $receivables, 'change' => null, 'note' => 'Owed to you now',
             'url' => '/agent/invoices.php?status=Unpaid'];
@@ -651,8 +708,7 @@ function dashboardMoneyCards($access, $period) {
     }
 
     if ($access['financial']) {
-        $recurring_expenses = dashboardSum("SELECT SUM(recurring_expense_amount) FROM recurring_expenses WHERE recurring_expense_status = 1 AND recurring_expense_archived_at IS NULL AND recurring_expense_frequency = 1")
-            + dashboardSum("SELECT SUM(recurring_expense_amount) FROM recurring_expenses WHERE recurring_expense_status = 1 AND recurring_expense_archived_at IS NULL AND recurring_expense_frequency = 2") / 12;
+        $recurring_expenses = recurringExpenseMonthlyTotal();
         $cards[] = ['label' => 'Recurring expenses', 'value' => $recurring_expenses, 'change' => null, 'note' => 'Per month',
             'url' => '/agent/recurring_expenses.php'];
     }
@@ -774,7 +830,7 @@ function dashboardExpectedIncome($from, $to, $months) {
         FROM recurring_invoices
         WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL AND recurring_invoice_next_date <= '$to'");
     while ($row = mysqli_fetch_assoc($sql)) {
-        $step = $row['recurring_invoice_frequency'] === 'year' ? 12 : 1;
+        $step = recurringInvoiceMonths($row['recurring_invoice_frequency']);
         // A bill date already passed is one the nightly job has yet to run - it goes out today
         $bill = max($row['recurring_invoice_next_date'], $from);
         for ($guard = 0; $bill <= $to && $guard < 120; $guard++) {
@@ -794,18 +850,17 @@ function dashboardExpectedExpenses($from, $to, $months) {
 
     $values = array_fill_keys($months, 0.0);
 
-    $sql = mysqli_query($mysqli, "SELECT recurring_expense_next_date, recurring_expense_frequency, recurring_expense_amount
-        FROM recurring_expenses
-        WHERE recurring_expense_status = 1 AND recurring_expense_archived_at IS NULL AND recurring_expense_vendor_id > 0
-        AND recurring_expense_next_date <= '$to'");
+    // Each run on its schedule (functions/expenses.php) - monthly, quarterly or
+    // yearly on its own day, none after its end date. A missed run not yet
+    // recorded still goes out, so it counts in the first month shown.
+    $sql = mysqli_query($mysqli, "SELECT recurring_expenses.* FROM recurring_expenses
+        WHERE " . recurringExpenseRunningSql() . " AND recurring_expense_next_date <= '$to'");
     while ($row = mysqli_fetch_assoc($sql)) {
-        $step = intval($row['recurring_expense_frequency']) === 2 ? 12 : 1;
-        $date = max($row['recurring_expense_next_date'], $from);
-        for ($guard = 0; $date <= $to && $guard < 120; $guard++) {
-            if (isset($values[substr($date, 0, 7)])) {
-                $values[substr($date, 0, 7)] += floatval($row['recurring_expense_amount']);
+        foreach (recurringExpenseRunsUntil($row, $to) as $date) {
+            $key = substr(max($date, $from), 0, 7);
+            if (isset($values[$key])) {
+                $values[$key] += floatval($row['recurring_expense_amount']);
             }
-            $date = dashboardShiftMonths($date, $step);
         }
     }
 
@@ -878,7 +933,7 @@ function dashboardTopClients($period, $limit = 8) {
                 WHERE payment_date BETWEEN '$start' AND '$end' " . clientScopeSql('invoice_client_id') . "
             UNION ALL
             SELECT revenue_client_id, revenue_amount FROM revenues
-                WHERE revenue_category_id > 0 AND revenue_client_id > 0 AND revenue_date BETWEEN '$start' AND '$end' " . clientScopeSql('revenue_client_id') . "
+                WHERE " . dashboardRevenueSql() . " AND revenue_client_id > 0 AND revenue_date BETWEEN '$start' AND '$end' " . clientScopeSql('revenue_client_id') . "
         ) AS income
         JOIN clients USING (client_id)
         GROUP BY client_id, client_name
@@ -894,7 +949,7 @@ function dashboardTopClients($period, $limit = 8) {
     return ['clients' => $clients, 'income' => dashboardIncome($start, $end)];
 }
 
-/** Miles per month over the chart's 12 months, and the total for the period. */
+/** The distance driven each month over the chart's 12 months (miles or kilometres - unit), and the total for the period. */
 function dashboardTrips($period) {
     $months = dashboardChartMonths($period);
     $from = $months[0] . '-01';
@@ -907,6 +962,7 @@ function dashboardTrips($period) {
         'miles' => dashboardMonthly("SELECT DATE_FORMAT(trip_date, '%Y-%m') AS m, SUM(trip_miles) AS v FROM trips
             WHERE trip_archived_at IS NULL AND trip_date BETWEEN '$from' AND '$to' GROUP BY m", $months),
         'period_total' => dashboardSum("SELECT SUM(trip_miles) FROM trips WHERE trip_archived_at IS NULL AND trip_date BETWEEN '{$period['start']}' AND '{$period['end']}'"),
+        'unit' => ucfirst(tripUnit()),
     ];
 }
 
@@ -971,25 +1027,9 @@ function dashboardBreakdowns($period) {
     ];
 }
 
-/** Balance of every open account: opening balance, plus money in, minus money out. */
+/** Every open account with its balance - accountsList(), the one balance rule. */
 function dashboardAccountBalances() {
-    global $mysqli;
-
-    $sql = mysqli_query($mysqli, "
-        SELECT account_id, account_name, opening_balance
-            + COALESCE((SELECT SUM(payment_amount) FROM payments WHERE payment_account_id = account_id), 0)
-            + COALESCE((SELECT SUM(revenue_amount) FROM revenues WHERE revenue_account_id = account_id), 0)
-            - COALESCE((SELECT SUM(expense_amount) FROM expenses WHERE expense_account_id = account_id), 0) AS balance
-        FROM accounts
-        WHERE account_archived_at IS NULL
-        ORDER BY account_name
-    ");
-
-    $accounts = [];
-    while ($row = mysqli_fetch_assoc($sql)) {
-        $accounts[] = $row;
-    }
-    return $accounts;
+    return array_values(accountsList(false));
 }
 
 function dashboardLatestIncome($limit = 5) {

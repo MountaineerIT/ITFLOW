@@ -81,7 +81,7 @@ $sql = mysqli_query(
     $mysqli,
     "SELECT SQL_CALC_FOUND_ROWS vendors.vendor_id, vendor_name, vendor_description, vendor_account_number, vendor_code, vendor_contact_name,
         vendor_contact_phone, vendor_contact_phone_country_code, vendor_contact_email, vendor_phone, vendor_phone_country_code, vendor_extension,
-        vendor_email, vendor_website, vendor_hours, vendor_sla, vendor_favorite, vendor_archived_at, vendor_client_id, vendor_template_name,
+        vendor_email, vendor_website, vendor_status_page, vendor_hours, vendor_sla, vendor_favorite, vendor_archived_at, vendor_client_id, vendor_template_name,
         client_id, client_name
     FROM vendors
     LEFT JOIN clients ON client_id = vendor_client_id
@@ -89,7 +89,7 @@ $sql = mysqli_query(
     WHERE $archive_query
     $tag_query
     AND (vendor_name LIKE '%$q%' OR vendor_description LIKE '%$q%' OR vendor_account_number LIKE '%$q%' OR vendor_website LIKE '%$q%'
-        OR vendor_contact_name LIKE '%$q%' OR vendor_email LIKE '%$q%' OR vendor_contact_email LIKE '%$q%' OR vendor_notes LIKE '%$q%'
+        OR vendor_status_page LIKE '%$q%' OR vendor_portal LIKE '%$q%' OR vendor_contact_name LIKE '%$q%' OR vendor_email LIKE '%$q%' OR vendor_contact_email LIKE '%$q%' OR vendor_notes LIKE '%$q%'
         OR vendor_phone LIKE '%$phone_query%' OR vendor_contact_phone LIKE '%$phone_query%'" . ($view === 'clients' ? " OR client_name LIKE '%$q%'" : '') . "
         OR vendors.vendor_id IN (SELECT vendor_id FROM vendor_tags JOIN tags USING (tag_id) WHERE tag_name LIKE '%$q%'))
     $client_query
@@ -110,6 +110,9 @@ $vendors_counts = vendorCounts($vendors);
 
 $has_templates = (bool) mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM vendor_templates WHERE vendor_template_archived_at IS NULL LIMIT 1"));
 $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$client_id" : ($view === 'clients' ? 'view=clients' : ''));
+
+// The vendor templates this client should have a vendor from, and hasn't
+$missing_templates = $view === 'client' && !$archived ? vendorTemplatesMissingFor($client_id) : [];
 
 ?>
 
@@ -196,7 +199,7 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
                         // Tags in use on vendors in this scope, plus any already picked
                         $sql_tags_filter = mysqli_query($mysqli, "
                             SELECT tag_id, tag_name, tag_color, tag_icon FROM tags
-                            WHERE tag_type = 6
+                            WHERE tag_type = 6 AND (tag_archived_at IS NULL OR tag_id IN ($tag_filter))
                             AND (
                                 EXISTS (SELECT 1 FROM vendor_tags JOIN vendors ON vendors.vendor_id = vendor_tags.vendor_id
                                     WHERE vendor_tags.tag_id = tags.tag_id " . clientScopeSql('vendor_client_id') . " $client_query)
@@ -206,7 +209,7 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
                         ");
                         while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
                             $tag_id = intval($row['tag_id']); ?>
-                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
+                            <option value="<?= $tag_id ?>" <?php if (isset($_GET['tags']) && is_array($_GET['tags']) && in_array($tag_id, $_GET['tags'])) { echo 'selected'; } ?><?= tagOptionLook($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= escapeHtml($row['tag_name']) ?></option>
                         <?php } ?>
                     </select>
                 </div>
@@ -255,6 +258,21 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
             </div>
         </form>
     </div>
+    <?php if ($missing_templates) { ?>
+        <!-- The vendor templates this client should have a vendor from, and hasn't -->
+        <div class="card-header py-2 bg-warning-subtle d-flex flex-wrap align-items-center gap-2 itflow-vendors-missing">
+            <span class="small text-warning-emphasis fw-semibold"><i class="fas fa-fw fa-clipboard-check me-1"></i><?= count($missing_templates) === 1 ? 'A vendor it should have' : 'Vendors it should have' ?>:</span>
+            <?php foreach ($missing_templates as $missing_id => $missing_name) { ?>
+                <?php if ($can_edit) { ?>
+                    <button type="button" class="btn btn-sm btn-light border py-0 ajax-modal" data-modal-size="lg" data-modal-url="modals/vendor/vendor_add.php?client_id=<?= $client_id ?>&template_id=<?= $missing_id ?>" title="Add it from the template" data-missing-template-id="<?= $missing_id ?>">
+                        <i class="fas fa-plus me-1 text-secondary"></i><?= escapeHtml($missing_name) ?>
+                    </button>
+                <?php } else { ?>
+                    <span class="badge rounded-pill text-bg-light border fw-normal" data-missing-template-id="<?= $missing_id ?>"><?= escapeHtml($missing_name) ?></span>
+                <?php } ?>
+            <?php } ?>
+        </div>
+    <?php } ?>
     <form id="bulkActions" action="post.php" method="post">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
@@ -306,6 +324,7 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
                     $vendor_phone_text = $row['vendor_phone'] ? escapeHtml(formatPhoneNumber($row['vendor_phone'], $row['vendor_phone_country_code'])) : '';
                     $vendor_email = escapeHtml($row['vendor_email']);
                     $vendor_website_url = vendorWebsiteUrl($row['vendor_website']);
+                    $vendor_status_url = vendorWebsiteUrl($row['vendor_status_page']);
                     $vendor_support_when = escapeHtml(implode(' · ', array_filter([$row['vendor_hours'], $row['vendor_sla']])));
                     $vendor_account = escapeHtml($row['vendor_account_number']);
                     $vendor_pin = vendorSecretHtml($row['vendor_code']);
@@ -349,13 +368,14 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
                                 <div class="text-nowrap"><?= $vendor_phone ?><button type="button" class="itflow-copy clipboardjs" title="Copy phone number" data-clipboard-text="<?= $vendor_phone_text ?>"><i class="far fa-copy"></i></button></div>
                             <?php } ?>
                             <?php if ($vendor_support_when) { ?><div class="small text-body-secondary"><i class="far fa-clock me-1"></i><?= $vendor_support_when ?></div><?php } ?>
-                            <?php if ($vendor_email || $vendor_website_url) { ?>
+                            <?php if ($vendor_email || $vendor_website_url || $vendor_status_url) { ?>
                                 <div class="small d-flex align-items-center gap-2 mt-1">
                                     <?php if ($vendor_email) { ?><span class="text-truncate itflow-vendor-email"><a href="mailto:<?= $vendor_email ?>"><?= $vendor_email ?></a><button type="button" class="itflow-copy clipboardjs" title="Copy email" data-clipboard-text="<?= $vendor_email ?>"><i class="far fa-copy"></i></button></span><?php } ?>
                                     <?php if ($vendor_website_url) { ?><a class="text-body-secondary" href="<?= escapeHtml($vendor_website_url) ?>" target="_blank" rel="noopener" title="<?= escapeHtml(vendorWebsiteLabel($row['vendor_website'])) ?>"><i class="fas fa-globe"></i></a><?php } ?>
+                                    <?php if ($vendor_status_url) { ?><a class="text-body-secondary" href="<?= escapeHtml($vendor_status_url) ?>" target="_blank" rel="noopener" title="Status page - <?= escapeHtml(vendorWebsiteLabel($row['vendor_status_page'])) ?>"><i class="fas fa-heartbeat"></i></a><?php } ?>
                                 </div>
                             <?php } ?>
-                            <?php if (!$vendor_phone && !$vendor_support_when && !$vendor_email && !$vendor_website_url) { ?><span class="text-body-secondary">-</span><?php } ?>
+                            <?php if (!$vendor_phone && !$vendor_support_when && !$vendor_email && !$vendor_website_url && !$vendor_status_url) { ?><span class="text-body-secondary">-</span><?php } ?>
                         </td>
                         <td>
                             <?php if ($vendor_account) { ?>
@@ -444,13 +464,18 @@ $add_url = "modals/vendor/vendor_add.php?" . ($view === 'client' ? "client_id=$c
             </table>
         </div>
     </form>
-    <?php if (!$num_rows[0]) { ?>
-        <div class="itflow-asset-empty">
-            <i class="fas fa-building fa-2x mb-2 opacity-50"></i>
-            <div><?= $q || $tag_query ? 'No vendors match.' : ($view === 'ours' ? 'None of our own vendors yet - the suppliers expenses are booked against.' : 'No vendors yet - their ISP, phone provider and software makers.') ?></div>
-        </div>
-    <?php } ?>
-    <?php require_once "../includes/filter_footer.php"; ?>
+    <?php
+    $empty_state = [
+        'thing' => 'vendors',
+        'icon' => 'fa-building',
+        'filtered' => $q || $tag_query,
+        'views' => ['view'],
+        'title' => $view === 'ours' ? 'None of our own vendors yet' : 'No vendors yet',
+        'text' => $view === 'ours' ? 'The suppliers expenses are booked against.' : 'Their ISP, phone provider and software makers.',
+        'actions' => $can_edit ? [['label' => 'New Vendor', 'modal' => $add_url, 'size' => 'lg']] : [],
+    ];
+    require_once "../includes/filter_footer.php";
+    ?>
 </div>
 
 <script src="../js/bulk_actions.js"></script>

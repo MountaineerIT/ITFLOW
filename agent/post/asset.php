@@ -43,13 +43,8 @@ if (isset($_POST['add_asset'])) {
 
     $asset_id = mysqli_insert_id($mysqli);
 
-    // Add Tags
-    if (isset($_POST['tags'])) {
-        foreach($_POST['tags'] as $tag) {
-            $tag = intval($tag);
-            mysqli_query($mysqli, "INSERT INTO asset_tags SET asset_tag_asset_id = $asset_id, asset_tag_tag_id = $tag");
-        }
-    }
+    // Tags - asset tags only, and an admin can type a new one in (functions/tags.php)
+    tagSetForRecord('asset', $asset_id, (array) ($_POST['tags'] ?? []));
 
     // Add Photo
     if (isset($_FILES['file']['tmp_name'])) {
@@ -163,17 +158,8 @@ if (isset($_POST['edit_asset'])) {
         mysqli_query($mysqli,"UPDATE assets SET asset_photo = NULL WHERE asset_id = $asset_id");
     }
 
-    // Tags
-    // Delete existing tags
-    mysqli_query($mysqli, "DELETE FROM asset_tags WHERE asset_tag_asset_id = $asset_id");
-
-    // Add new tags
-    if (isset($_POST['tags'])) {
-        foreach($_POST['tags'] as $tag) {
-            $tag = intval($tag);
-            mysqli_query($mysqli, "INSERT INTO asset_tags SET asset_tag_asset_id = $asset_id, asset_tag_tag_id = $tag");
-        }
-    }
+    // Tags - asset tags only, and an admin can type a new one in (functions/tags.php)
+    tagSetForRecord('asset', $asset_id, (array) ($_POST['tags'] ?? []));
 
     // Add to History
     mysqli_query($mysqli,"INSERT INTO asset_history SET asset_history_status = '$status', asset_history_description = '$session_name updated $name', asset_history_asset_id = $asset_id");
@@ -1228,6 +1214,16 @@ if (isExportRequest('export_assets')) {
         $location_query = '';
     }
 
+    // Status Filter
+    $status_filter = trim(strip_tags((string) ($_POST['status'] ?? '')));
+    if ($status_filter !== '') {
+        $status_query = "AND asset_status = '" . escapeSql($status_filter) . "'";
+        $filter_summary['Status'] = $status_filter;
+    } else {
+        // Default - any
+        $status_query = '';
+    }
+
     // Tags Filter
     if (isset($_POST['tags']) && is_array($_POST['tags']) && !empty($_POST['tags'])) {
         $tag_filter = implode(",", array_map('intval', $_POST['tags']));
@@ -1280,6 +1276,7 @@ if (isExportRequest('export_assets')) {
         AND (asset_name LIKE '%$q%' OR asset_description LIKE '%$q%' OR asset_type LIKE '%$q%' OR interface_ip LIKE '%$q%' OR interface_ipv6 LIKE '%$q%' OR interface_mac LIKE '%$q%' OR asset_make LIKE '%$q%' OR asset_model LIKE '%$q%' OR asset_serial LIKE '%$q%' OR asset_os LIKE '%$q%' OR contact_name LIKE '%$q%' OR location_name LIKE '%$q%' OR client_name LIKE '%$q%' OR tag_name LIKE '%$q%')
         AND ($type_query)
         " . clientScopeSql('asset_client_id') . "
+        $status_query
         $location_query
         $expire_query
         $client_query

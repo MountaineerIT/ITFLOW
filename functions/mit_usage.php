@@ -277,7 +277,7 @@ function mitUsageApplyLines($invoice_id, $recurring_invoice_id, array $lines) {
         mitUsageRecordTagCounts($client_id);
     }
     $recurring_items = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_quantity FROM recurring_invoice_items
-        WHERE item_recurring_invoice_id = " . intval($recurring_invoice_id) . " ORDER BY item_id ASC"), MYSQLI_ASSOC);
+        WHERE item_recurring_invoice_id = " . intval($recurring_invoice_id) . " ORDER BY item_order ASC, item_id ASC"), MYSQLI_ASSOC); // the order ITFlow copies them in (billingItems)
     $invoice_items = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id FROM invoice_items WHERE item_invoice_id = $invoice_id ORDER BY item_id ASC"), MYSQLI_ASSOC);
     $applied = 0;
     $flagged = 0;

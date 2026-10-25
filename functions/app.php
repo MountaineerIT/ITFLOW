@@ -106,48 +106,6 @@ function getTicketStatusName($ticket_status) {
 
 
 /**
- * Copies a ticket template's tasks onto a ticket.
- *
- * Called anywhere a ticket is raised from a template - the ticket add modals,
- * the bulk asset add, and every recurring ticket run (cron, force, bulk force).
- * Tasks are a snapshot: editing the template later does not touch tickets that
- * have already been raised from it.
- *
- * @param int $ticket_id          The ticket to attach the tasks to.
- * @param int $ticket_template_id The template to copy tasks from. 0 = no-op.
- *
- * @return int The number of tasks created.
- */
-function addTasksFromTicketTemplate($ticket_id, $ticket_template_id) {
-
-    global $mysqli;
-
-    $ticket_id = intval($ticket_id);
-    $ticket_template_id = intval($ticket_template_id);
-
-    if (!$ticket_id || !$ticket_template_id) {
-        return 0;
-    }
-
-    $sql_task_templates = mysqli_query($mysqli, "SELECT task_template_completion_estimate, task_template_name, task_template_order FROM task_templates WHERE task_template_ticket_template_id = $ticket_template_id ORDER BY task_template_order ASC");
-
-    $tasks_added = 0;
-
-    while ($row = mysqli_fetch_assoc($sql_task_templates)) {
-        $task_order = intval($row['task_template_order']);
-        $task_name = escapeSql($row['task_template_name']);
-        $task_completion_estimate = intval($row['task_template_completion_estimate']);
-
-        mysqli_query($mysqli, "INSERT INTO tasks SET task_name = '$task_name', task_order = $task_order, task_completion_estimate = $task_completion_estimate, task_ticket_id = $ticket_id");
-
-        $tasks_added++;
-    }
-
-    return $tasks_added;
-
-}
-
-/**
  * Copies a recurring ticket's task list onto a ticket it has just raised.
  *
  * Recurring tickets own their tasks (see recurring_ticket_tasks) rather than
@@ -643,47 +601,6 @@ function checkForUpdates() {
 
 }
 
-function getMonthlyTax($tax_name, $month, $year, $mysqli) {
-    // Cash basis - tax is booked to the month the money arrived, in proportion to
-    // how much of the invoice that payment covered. Driving off payments (rather
-    // than invoice_items) counts each payment exactly once, and pre-aggregating
-    // the line items stops a multi-payment invoice multiplying its own tax.
-    $sql = "SELECT SUM(invoice_tax.tax_total * (payments.payment_amount / invoices.invoice_amount)) AS monthly_tax
-            FROM payments
-            INNER JOIN invoices ON invoices.invoice_id = payments.payment_invoice_id
-            INNER JOIN (SELECT item_invoice_id, SUM(item_tax) AS tax_total
-                        FROM invoice_items
-                        WHERE item_tax_id = (SELECT tax_id FROM taxes WHERE tax_name = '$tax_name')
-                        GROUP BY item_invoice_id) AS invoice_tax
-                ON invoice_tax.item_invoice_id = invoices.invoice_id
-            WHERE YEAR(payments.payment_date) = $year AND MONTH(payments.payment_date) = $month
-            AND invoices.invoice_amount > 0";
-    $result = mysqli_query($mysqli, $sql);
-    $row = mysqli_fetch_assoc($result);
-    return $row['monthly_tax'] ?? 0;
-}
-
-function getQuarterlyTax($tax_name, $quarter, $year, $mysqli) {
-    // Calculate start and end months for the quarter
-    $start_month = ($quarter - 1) * 3 + 1;
-    $end_month = $start_month + 2;
-
-    // SQL to calculate quarterly tax - see getMonthlyTax for why it is shaped this way
-    $sql = "SELECT SUM(invoice_tax.tax_total * (payments.payment_amount / invoices.invoice_amount)) AS quarterly_tax
-            FROM payments
-            INNER JOIN invoices ON invoices.invoice_id = payments.payment_invoice_id
-            INNER JOIN (SELECT item_invoice_id, SUM(item_tax) AS tax_total
-                        FROM invoice_items
-                        WHERE item_tax_id = (SELECT tax_id FROM taxes WHERE tax_name = '$tax_name')
-                        GROUP BY item_invoice_id) AS invoice_tax
-                ON invoice_tax.item_invoice_id = invoices.invoice_id
-            WHERE YEAR(payments.payment_date) = $year AND MONTH(payments.payment_date) BETWEEN $start_month AND $end_month
-            AND invoices.invoice_amount > 0";
-    $result = mysqli_query($mysqli, $sql);
-    $row = mysqli_fetch_assoc($result);
-    return $row['quarterly_tax'] ?? 0;
-}
-
 function addToMailQueue($data) {
 
     global $mysqli;
@@ -874,14 +791,14 @@ function getSentMethods() {
  * Products for the line-item autocomplete on invoices, quotes and recurring
  * invoices.
  *
- * All three pages share js/product_autocomplete.js, so they must all be handed
- * the same shape. They used to carry a SELECT each and they drifted: quote and
+ * All three pages share js/billing_items.js, so they must all be handed the
+ * same shape. They used to carry a SELECT each and they drifted: quote and
  * recurring invoice only selected label/description/price/tax, so the shared
  * onSelect wrote item.product_name - undefined - into the item name field.
  *
  * Returns a JSON string ready to emit into the page.
  */
-function getProductsForAutocomplete($mysqli): string
+function getProductsForAutocomplete($mysqli, $client_id = 0): string
 {
     $products = [];
 
@@ -896,16 +813,24 @@ function getProductsForAutocomplete($mysqli): string
             product_tax_id AS tax,
             tax_percent,
             product_id AS prod_id,
-            COALESCE(SUM(product_stock.stock_qty), 0) AS available_stock
+            product_frequency AS frequency,
+            product_seat_source AS seat_source,
+            product_track_stock AS track_stock,
+            " . productStockSql() . " AS available_stock
         FROM products
-        LEFT JOIN product_stock ON product_id = stock_product_id
         LEFT JOIN taxes ON product_tax_id = tax_id
         WHERE product_archived_at IS NULL
-        GROUP BY product_id
         ORDER BY product_name ASC
     ");
 
     while ($row = mysqli_fetch_assoc($sql)) {
+        // For a client, the rate a line of it gets them - none when they are
+        // tax exempt, their own rate in place of the product's (functions/tax.php)
+        if ($client_id) {
+            $row['tax'] = taxDefaultFor($client_id, 'product', intval($row['tax']));
+            $tax_row = taxRow($row['tax']);
+            $row['tax_percent'] = $tax_row ? $tax_row['tax_percent'] : null;
+        }
         $products[] = $row;
     }
 

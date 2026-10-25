@@ -82,25 +82,21 @@ function mitNoResponseButton(array $ticket) {
  * ticket is open and its tasks are done. Returns how many were emailed.
  */
 function mitNoResponseResolve(array $row, $message) {
-    global $mysqli, $session_user_id, $config_smtp_provider, $config_base_url, $config_ticket_from_email;
+    global $mysqli, $session_user_id;
     $ticket_id = intval($row['ticket_id']);
     $html = nl2br(escapeHtml(trim((string) $message)));
     mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . mitSqlHtml($html) . "', ticket_reply_type = 'Public',
         ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = $ticket_id");
 
+    // ITFlow's "resolved" email (26.11's emailHtml look: reply line, company details, the conversation), its words ours
     $mailed = 0;
-    if (!empty($config_smtp_provider) && !empty($row['contact_email'])) {
-        // ITFlow's ticketMailCompany() hands these back SQL-escaped; the body here is escaped once, at the end
-        $company = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT company_name, company_phone, company_phone_country_code FROM companies WHERE company_id = 1")) ?: [];
-        $company_name = (string) ($company['company_name'] ?? '');
-        $company_phone = formatPhoneNumber($company['company_phone'] ?? '', $company['company_phone_country_code'] ?? '');
-        $reference = escapeHtml(ticketReference($row));
-        $link = 'https://' . escapeHtml($config_base_url) . '/guest/guest_view_ticket.php?ticket_id=' . $ticket_id . '&url_key=' . escapeHtml($row['ticket_url_key']);
-        $body = "<i style='color: #808080'>##- Please type your reply above this line -##</i><br><br>$html<br><br>Ticket: $reference<br>Subject: "
-            . escapeHtml($row['ticket_subject']) . "<br>Portal: <a href='$link'>View ticket</a><br><br>--<br>" . escapeHtml($company_name) . ' - Support<br>'
-            . escapeHtml($config_ticket_from_email) . '<br>' . escapeHtml($company_phone);
-        // ticketMailContactAndWatchers takes SQL-escaped text (as ITFlow's own mails build it)
-        $mailed = intval(ticketMailContactAndWatchers($ticket_id, escapeSql("Ticket resolved - [" . ticketReference($row) . "] - " . $row['ticket_subject']), mitSqlHtml($body)));
+    $ticket = ticketRow($ticket_id);
+    if ($ticket && !empty($row['contact_email'])) {
+        $content = ticketEmailContent($ticket, 'resolved', ['message' => '', 'by' => stripslashes((string) ($GLOBALS['session_name'] ?? ''))]);
+        $content['intro'] = mitTextParagraphs($message);
+        unset($content['message']);
+        $content['history'] = [];
+        $mailed = intval(ticketMailSend($ticket_id, "Ticket resolved - [" . ticketReference($ticket) . "] - " . $ticket['ticket_subject'], ticketEmailPreview($content)));
     }
 
     ticketResolve($row, ' - no response from the client');
@@ -122,8 +118,9 @@ function mitNoResponseNotSql($alias = 't') {
 /*
  * The "Ticket resolved" email (ITFlow's ticketMailResolved) in the company's own words: mit_settings resolved_message, edited on the
  * same Admin > Settings > Ticket card. Empty = ITFlow's own email, unchanged. One guarded line in functions/ticket.php
- * ticketMailResolved swaps the body for mitResolvedMailBody's. The "type your reply above this line" marker and the company signature
- * are added around it as ITFlow does; the subject stays ITFlow's.
+ * ticketMailResolved passes ITFlow's email content (ticketEmailContent) through mitResolvedMailContent, which puts our words in as
+ * its paragraphs; ITFlow's email keeps its reply line, button (the ticket link), the agent's note (where [Note] is), the conversation
+ * and the company's details. The subject stays ITFlow's.
  */
 
 const MIT_RESOLVED_DEFAULT = "Hello [Contact],\n\n"
@@ -145,33 +142,32 @@ function mitResolvedTemplate() {
 
 /** The placeholders the resolved email may use, and what each is for. */
 function mitResolvedPlaceholders() {
-    return mitNoResponsePlaceholders() + ['[Status]' => 'its status', '[Ticket Link]' => 'a link to view or re-open it',
+    return mitNoResponsePlaceholders() + ['[Status]' => 'its status', '[Ticket Link]' => 'the words "the button below" - the email has a button to view or re-open it',
         '[Note]' => 'what the agent wrote when resolving (left out when nothing was)'];
 }
 
 /**
- * The resolved email's body in the company's words, SQL-escaped as ticketMailContactAndWatchers takes it - or null when none is
- * saved (ITFlow's own body is used). $note is ITFlow's: the agent's words, already SQL-escaped HTML, or ''.
+ * ITFlow's resolved email ($content, from ticketEmailContent) in the company's words - unchanged when none are saved. $note is
+ * ITFlow's: the agent's words as HTML, or ''.
  */
-function mitResolvedMailBody(array $row, $note = '') {
-    global $mysqli, $config_base_url, $config_ticket_from_email;
+function mitResolvedMailContent(array $row, $note, array $content) {
     $template = mitResolvedTemplateSaved();
     if ($template === '') {
-        return null;
+        return $content;
     }
-    $ticket_id = intval($row['ticket_id']);
-    $link = 'https://' . $config_base_url . '/guest/guest_view_ticket.php?ticket_id=' . $ticket_id . '&url_key=' . $row['ticket_url_key'];
     $text = mitNoResponseFill(strtr($template, ['[Status]' => (string) ($row['ticket_status_name'] ?? '')]), $row);
-    // An empty note takes its line with it
-    if ($note === '') {
-        $text = preg_replace('/[ \t]*\[Note\][ \t]*(\n\n|\n)?/', '', $text);
+    // The ticket link is ITFlow's button now; the note stays ITFlow's quoted message, only where [Note] is
+    $has_note = strpos($text, '[Note]') !== false;
+    $text = preg_replace('/[ \t]*\[Note\][ \t]*(\n\n|\n)?/', '', str_replace('[Ticket Link]', 'the button below', $text));
+    $content['intro'] = mitTextParagraphs($text);
+    if (!$has_note || trim(emailPlainText((string) $note)) === '') {
+        unset($content['message']);
     }
-    $html = nl2br(escapeHtml(trim($text)));
-    $html = str_replace('[Ticket Link]', "<a href='" . escapeHtml($link) . "'>View ticket</a>", $html);
-    $company = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT company_name, company_phone, company_phone_country_code FROM companies WHERE company_id = 1")) ?: [];
-    $html = "<i style='color: #808080'>##- Please type your reply above this line -##</i><br><br>$html<br><br>--<br>" . escapeHtml($company['company_name'] ?? '')
-        . ' - Support<br>' . escapeHtml($config_ticket_from_email) . '<br>' . escapeHtml(formatPhoneNumber($company['company_phone'] ?? '', $company['company_phone_country_code'] ?? ''));
-    // The note is already escaped for SQL - put it in after escaping the rest
-    $body = mitSqlHtml(str_replace('[Note]', '%%MIT_RESOLVED_NOTE%%', $html));
-    return str_replace('%%MIT_RESOLVED_NOTE%%', $note !== '' ? "--------------------------------<br>$note<br>--------------------------------" : '', $body);
+    return ticketEmailPreview($content);
+}
+
+/** Plain text in paragraphs for emailHtml's intro - blank lines split them, single line breaks are kept as spaces. */
+function mitTextParagraphs($text) {
+    $paragraphs = preg_split('/\n\s*\n/', str_replace("\r", '', trim((string) $text)));
+    return array_values(array_filter(array_map(function ($p) { return trim(preg_replace('/\s*\n\s*/', ' ', $p)); }, $paragraphs), 'strlen'));
 }

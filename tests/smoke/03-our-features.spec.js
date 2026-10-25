@@ -365,7 +365,7 @@ test('modern look: on by default, light and dark, client tiles; Classic turns it
         await expect(page.locator('.app-header')).toHaveAttribute('data-bs-theme', 'light');
         await expect(page.locator('.app-header.navbar')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
         // A status keeps its own colour as a tint
-        await expect(page.locator('.badge[style*="background"]').first()).toHaveClass(/mit-tone/);
+        await expect(page.locator('.badge[style*="background"], .badge[style*="--itflow-status-bg"]').first()).toHaveClass(/mit-tone/);
 
         // A client's lists open with count tiles that link to what they count
         for (const [list, first] of [['assets', 'Assets'], ['software', 'Licenses'], ['tickets', 'Open']]) {
@@ -383,25 +383,7 @@ test('modern look: on by default, light and dark, client tiles; Classic turns it
             await expect(money.locator('.itflow-dash-money-value')).toHaveCSS('white-space', 'nowrap');
         }
 
-        // Quotes and invoices read as a document: tinted item headings, a broken logo picture hidden
-        let documents = 0;
-        for (const kind of ['quote', 'invoice']) {
-            await visit(page, `agent/${kind}s.php`);
-            const first = page.locator(`table a[href^="${kind}.php?"][href*="${kind}_id="]`).first();
-            if (await first.count()) {
-                documents++;
-                await visit(page, 'agent/' + (await first.getAttribute('href')));
-                // A soft tint of the theme colour (worked out by the browser, so not one fixed value)
-                const head = await page.locator('#items > thead > tr > th').nth(1).evaluate((th) => getComputedStyle(th).backgroundColor);
-                expect(head).not.toMatch(/^rgba\(0, 0, 0, 0\)$|^rgb\(255, 255, 255\)$|^transparent$/);
-                for (const logo of await page.locator('img[alt="Company logo"]').all()) {
-                    if (!(await logo.evaluate((img) => img.naturalWidth))) {
-                        await expect(logo).toBeHidden();
-                    }
-                }
-            }
-        }
-        expect(documents, 'a quote or an invoice to look at').toBeGreaterThan(0);
+        // Quotes and invoices: ITFlow 26.11 draws them as a document itself (includes/billing_paper.php) - nothing of ours to check
 
         // Dark: same look on dark panels, the top bar stays dark
         await set({ dark_mode: '1' });
@@ -446,12 +428,14 @@ test('sign-in page: the dark backdrop with its network art loads, and the skip l
 });
 
 test('modern look follows the company theme colour (Admin > Settings > Theme), and the Theme page lays out', async ({ page }) => {
+    // ITFlow 26.11's Theme page: pick a colour, then Save
     const pick = async (colour) => {
         await visit(page, 'admin/settings_theme.php');
-        await Promise.all([page.waitForNavigation(), page.locator(`label[for="theme-${colour}"]`).click()]);
+        await page.locator(`label[for="theme-${colour}"]`).click();
+        await submit(page.locator('form[data-settings-theme-form]'), 'edit_theme_settings');
     };
     await visit(page, 'admin/settings_theme.php');
-    const before = await page.locator('input[name="edit_theme_settings"]:checked').getAttribute('value');
+    const before = await page.locator('input[name="config_theme"]:checked').getAttribute('value');
     test.skip(await page.locator('link[href*="/css/mit_theme.css"]').count() === 0, 'the modern look is off for this login');
     try {
         // Each colour's name sits under its preview on one line (ITFlow's Preferences swatch rule no longer shrinks them)

@@ -60,6 +60,9 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                         <?= $client_name ?>
                         <?php if ($client_is_lead) { ?><span class="badge rounded-pill text-bg-info align-middle fs-6 fw-normal ms-1">Lead</span><?php } ?>
                         <?php if ($client_archived_at) { ?><span class="badge rounded-pill text-bg-secondary align-middle fs-6 fw-normal ms-1">Archived</span><?php } ?>
+                        <?php if (!empty($config_module_enable_accounting) && ($ov_tax = taxClient($client_id))['exempt']) { ?>
+                            <span class="badge rounded-pill align-middle fs-6 fw-normal ms-1 <?= $ov_tax['expired'] ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success-emphasis' ?>" title="<?= escapeHtml(taxExemptText($ov_tax)) ?>"><?= $ov_tax['expired'] ? 'Tax exempt - certificate expired' : 'Tax exempt' ?></span>
+                        <?php } ?>
                     </h1>
                     <div class="d-flex flex-wrap align-items-center gap-1">
                         <?php if ($client_type) { ?>
@@ -69,6 +72,11 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                     </div>
                 </div>
                 <div class="d-flex gap-2 ms-auto itflow-ov-hero-actions">
+                    <?php if (aiReady('General')) { ?>
+                        <button type="button" class="btn btn-outline-secondary ajax-modal" data-modal-url="modals/client/client_briefing.php?client_id=<?= $client_id ?>" data-modal-size="lg" title="How things stand with them, by AI - before a call, a visit or a quarterly review">
+                            <i class="fas fa-magic"></i><span class="d-none d-sm-inline ms-2">Briefing</span>
+                        </button>
+                    <?php } ?>
                     <?php if ($access['add_ticket'] && !$client_archived_at) { ?>
                         <button type="button" class="btn btn-primary ajax-modal" data-modal-url="modals/ticket/ticket_add.php?client_id=<?= $client_id ?>" data-modal-size="lg">
                             <i class="fas fa-plus me-2"></i>New Ticket
@@ -128,7 +136,6 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                     <?php if ($open_tickets['tickets']) { ?>
                         <div class="list-group list-group-flush">
                             <?php foreach ($open_tickets['tickets'] as $ticket) {
-                                $status_color = preg_match('/^#[0-9a-f]{3,8}$/i', (string) $ticket['ticket_status_color']) ? $ticket['ticket_status_color'] : '#6c757d';
                                 $last_activity = $ticket['ticket_updated_at'] ?: $ticket['ticket_created_at'];
                                 $ticket_who = trim(implode(', ', array_filter([$ticket['contact_name'], $ticket['user_name'] ? 'assigned to ' . $ticket['user_name'] : 'unassigned'])));
                                 ?>
@@ -141,7 +148,7 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                                     <?php if ($ticket['sla_breached']) { ?>
                                         <span class="badge rounded-pill text-bg-danger" title="Past SLA"><i class="fas fa-stopwatch me-1" aria-hidden="true"></i>SLA</span>
                                     <?php } ?>
-                                    <span class="badge rounded-pill text-white d-none d-sm-inline" style="background-color: <?= $status_color ?>"><?= escapeHtml($ticket['ticket_status_name']) ?></span>
+                                    <span class="d-none d-sm-inline"><?= ticketStatusHtml($ticket['ticket_status_name'], $ticket['ticket_status_color'], 'detail') ?></span>
                                     <span class="small text-body-secondary text-nowrap d-none d-md-inline" title="Last activity <?= escapeHtml($last_activity) ?>"><?= escapeHtml(timeAgo($last_activity)) ?></span>
                                 </a>
                             <?php } ?>
@@ -420,39 +427,39 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
             <div class="col-md-6 col-xl-4">
                 <div class="card h-100 mb-0">
                     <div class="card-header d-flex align-items-center">
-                        <h3 class="card-title mb-0 me-auto">Active share links</h3>
+                        <h3 class="card-title mb-0 me-auto">Shared links</h3>
+                        <a class="small" href="shares.php?client_id=<?= $client_id ?>">All shared links</a>
                     </div>
                     <div class="list-group list-group-flush">
                         <?php foreach ($shared_items as $item) {
-                            $item_views = intval($item['item_views']);
-                            $item_limit = intval($item['item_view_limit']);
                             $item_related_id = intval($item['item_related_id']);
-                            // A credential's name only for those who may see credentials
-                            $item_label = escapeHtml(($item['item_type'] === 'Credential' && !$access['credentials'] ? '' : $item['item_name']) ?: $item['item_type']);
+                            $item_label = escapeHtml(shareName($item));
+                            $item_type_info = shareTypes()[$item['item_type']] ?? ['label' => $item['item_type'], 'icon' => 'fa-share-alt'];
                             // Documents and files look and open as they do everywhere else
-                            if ($item['item_type'] === 'Document') {
+                            if ($item['item_type'] === 'Document' && $item['item_name']) {
                                 $item_tile = documentTile('sm');
-                                $item_label = "<a href=\"document.php?client_id=$client_id&amp;document_id=$item_related_id\">$item_label</a>";
-                            } elseif ($item['item_type'] === 'File') {
+                            } elseif ($item['item_type'] === 'File' && $item['file_ext']) {
                                 $item_tile = fileTypeTile($item['file_ext'], 'sm');
-                                $item_label = "<a class=\"ajax-modal\" href=\"#\" data-modal-size=\"lg\" data-modal-url=\"modals/file/file.php?id=$item_related_id\">$item_label</a>";
-                            } elseif ($item['item_type'] === 'Credential' && $item['item_name'] && $access['credentials']) {
-                                // Its tile, opening its quick look - with the password and 2FA there for whoever may see them
+                            } elseif ($item['item_type'] === 'Credential' && $item['credential_uri'] !== null) {
                                 $item_tile = credentialTile(['credential_name' => $item['item_name'], 'credential_uri' => $item['credential_uri'], 'credential_description' => $item['credential_description']], 'sm');
-                                $item_label = "<a class=\"ajax-modal\" href=\"#\" data-modal-url=\"modals/credential/credential.php?id=$item_related_id\">$item_label</a>";
                             } else {
-                                $item_tile = '<span class="itflow-link-icon" title="' . escapeHtml($item['item_type']) . '" aria-hidden="true"><i class="fas fa-fw fa-' . ($item['item_type'] === 'Credential' ? 'key' : 'share-square') . '"></i></span>';
+                                $item_tile = '<span class="itflow-link-icon" title="' . escapeHtml($item_type_info['label']) . '" aria-hidden="true"><i class="fas fa-fw ' . $item_type_info['icon'] . '"></i></span>';
                             }
+                            $item_received = $item['item_type'] === 'Request' && $item['item_received_at'];
                             ?>
                             <div class="list-group-item d-flex align-items-center gap-2 py-2">
                                 <?= $item_tile ?>
                                 <span class="flex-grow-1 overflow-hidden">
-                                    <span class="d-block text-truncate"><?= $item_label ?></span>
+                                    <a class="d-block text-truncate ajax-modal" href="#" data-modal-url="modals/share/share.php?id=<?= intval($item['item_id']) ?>"><?= $item_label ?></a>
                                     <span class="d-block small text-body-secondary text-truncate">
-                                        <?= $item['item_recipient'] ? escapeHtml($item['item_recipient']) . ', ' : '' ?><?= $item_views ?><?= $item_limit ? " of $item_limit" : '' ?> view<?= ($item_limit ?: $item_views) === 1 ? '' : 's' ?>, expires <?= escapeHtml(timeAgo($item['item_expire_at'])) ?>
+                                        <?php if ($item_received) { ?>
+                                            <span class="text-warning-emphasis"><i class="fas fa-inbox me-1"></i>Sent back <?= escapeHtml(timeAgo($item['item_received_at'])) ?> - save it</span>
+                                        <?php } else { ?>
+                                            <?= escapeHtml(ucfirst(($item['item_recipient'] ? $item['item_recipient'] . ', ' : '') . strtolower(shareViewsText($item)) . ', expires ' . timeAgo($item['item_expire_at']))) ?>
+                                        <?php } ?>
                                     </span>
                                 </span>
-                                <a class="btn btn-sm btn-link text-danger confirm-link" href="post.php?deactivate_shared_item=<?= intval($item['item_id']) ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>" title="Turn off this link"><i class="fas fa-fw fa-unlink" aria-hidden="true"></i></a>
+                                <?php if (!$item_received && shareCanMake($item['item_type'])) { ?><a class="btn btn-sm btn-link text-danger confirm-link" href="post.php?share_revoke=<?= intval($item['item_id']) ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>" title="Turn off this link"><i class="fas fa-fw fa-unlink" aria-hidden="true"></i></a><?php } ?>
                             </div>
                         <?php } ?>
                     </div>
@@ -464,7 +471,7 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
             <div class="card h-100 mb-0">
                 <div class="card-header d-flex align-items-center">
                     <h3 class="card-title mb-0 me-auto">Recent activity</h3>
-                    <?php if ($session_is_admin) { ?><a class="small" href="../admin/audit_logs.php?client=<?= $client_id ?>">Audit log</a><?php } ?>
+                    <a class="small" href="audit_log.php?client_id=<?= $client_id ?>">Audit log</a>
                 </div>
                 <?php if ($activity) { ?>
                     <div class="list-group list-group-flush">
@@ -508,17 +515,58 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                         <span class="itflow-dash-money-value"><?= $money_format($money['recurring']) ?><span class="fs-6 fw-normal text-body-secondary">/mo</span></span>
                         <span class="small text-body-tertiary"><?= $num_recurring_invoices ?> recurring invoice<?= $num_recurring_invoices === 1 ? '' : 's' ?></span>
                     </a>
-                    <?php if ($access['tickets']) { ?>
-                        <a href="tickets.php?client_id=<?= $client_id ?>&billing=unbilled&state=closed" class="itflow-dash-rail-item">
+                    <?php if ($access['tickets'] || $money['unbilled_expenses']) {
+                        $unbilled_total = $money['unbilled_value'] + $money['unbilled_expense_value']; ?>
+                        <a href="unbilled_time.php?client_id=<?= $client_id ?>" class="itflow-dash-rail-item">
                             <span class="small text-body-secondary">Not yet invoiced</span>
-                            <span class="itflow-dash-money-value <?= $money['unbilled_tickets'] ? 'text-info-emphasis' : '' ?>"><?= $money['unbilled_tickets'] ?> <span class="fs-6 fw-normal text-body-secondary">ticket<?= $money['unbilled_tickets'] === 1 ? '' : 's' ?></span></span>
-                            <span class="small text-body-tertiary"><?= $money['unbilled_seconds'] ? dashboardDuration($money['unbilled_seconds']) . ' logged' : 'Resolved and billable' ?></span>
+                            <span class="itflow-dash-money-value <?= $unbilled_total > 0 ? 'text-info-emphasis' : '' ?>"><?= $money_format($unbilled_total) ?></span>
+                            <span class="small text-body-tertiary">
+                                <?php if ($access['tickets']) { ?><?= $money['unbilled_tickets'] ?> ticket<?= $money['unbilled_tickets'] === 1 ? '' : 's' ?><?= $money['unbilled_seconds'] && !$money['unbilled_expenses'] ? ', ' . dashboardDuration($money['unbilled_seconds']) . ' logged' : '' ?><?php } ?><?= $access['tickets'] && $money['unbilled_expenses'] ? ', ' : '' ?><?= $money['unbilled_expenses'] ? $money['unbilled_expenses'] . ' expense' . ($money['unbilled_expenses'] === 1 ? '' : 's') : '' ?>
+                            </span>
+                        </a>
+                    <?php } ?>
+                    <?php if ($access['sales'] && contractsReady()) {
+                        $overview_contracts = contractClientActive($client_id);
+                        $overview_contract = $overview_contracts[0] ?? null;
+                        // Prepaid hours left across them
+                        $overview_hours = contractHoursLeftFor(array_column($overview_contracts, 'contract_id'));
+                        $overview_hours_left = round(array_sum(array_column($overview_hours, 'left')), 2); ?>
+                        <a href="<?= $overview_contract && count($overview_contracts) === 1 ? 'contract.php?client_id=' . $client_id . '&contract_id=' . intval($overview_contract['contract_id']) : 'contracts.php?client_id=' . $client_id ?>" class="itflow-dash-rail-item" data-overview-contract>
+                            <span class="small text-body-secondary">Contract</span>
+                            <?php if ($overview_contract) {
+                                $overview_state = contractState($overview_contract); ?>
+                                <span class="fs-5 fw-semibold text-truncate" title="<?= escapeHtml($overview_contract['contract_name']) ?>"><?= escapeHtml($overview_contract['contract_name']) ?></span>
+                                <span class="small <?= in_array($overview_state['key'], ['ending', 'renewing'], true) ? 'text-' . ($overview_state['key'] === 'ending' ? 'warning' : 'primary') . '-emphasis' : 'text-body-tertiary' ?>"><?= escapeHtml($overview_state['when']) ?><?= count($overview_contracts) > 1 ? ' · ' . (count($overview_contracts) - 1) . ' more' : '' ?></span>
+                                <?php if ($overview_hours) { ?>
+                                    <span class="small <?= $overview_hours_left > 0 ? 'text-body-tertiary' : 'text-warning-emphasis' ?>" data-overview-hours><i class="fas fa-hourglass-half me-1" aria-hidden="true"></i><?= escapeHtml(contractHoursText($overview_hours_left)) ?> prepaid left</span>
+                                <?php } ?>
+                            <?php } else { ?>
+                                <span class="fs-5 fw-semibold text-body-tertiary">None</span>
+                                <span class="small text-body-tertiary">No contract in force</span>
+                            <?php } ?>
                         </a>
                     <?php } ?>
                     <div class="itflow-dash-rail-item">
+                        <?php
+                        // A contract in force sets the rate and net terms, where it has them
+                        $overview_rate = contractClientRate($client_id);
+                        $overview_net_contract = contractTermsOn($client_id, date('Y-m-d'), 'net');
+                        $overview_net = $overview_net_contract ? intval($overview_net_contract['contract_net_terms']) : intval($client_net_terms);
+                        $overview_from = $overview_rate['contract_name'] ?: ($overview_net_contract['contract_name'] ?? '');
+                        ?>
                         <span class="small text-body-secondary">Terms</span>
-                        <span class="itflow-dash-money-value"><?= $money_format($client_rate) ?><span class="fs-6 fw-normal text-body-secondary">/hr</span></span>
-                        <span class="small text-body-tertiary"><?= $client_net_terms ? "Net $client_net_terms" : 'Due on receipt' ?><?= $client_tax_id_number ? ", tax ID $client_tax_id_number" : '' ?></span>
+                        <span class="itflow-dash-money-value"><?= $money_format($overview_rate['source'] === 'default' ? $client_rate : $overview_rate['rate']) ?><span class="fs-6 fw-normal text-body-secondary">/hr</span></span>
+                        <span class="small text-body-tertiary"><?= $overview_net ? "Net $overview_net" : 'Due on receipt' ?><?= $client_tax_id_number ? ", tax ID $client_tax_id_number" : '' ?></span>
+                        <?php if ($overview_from !== '') { ?>
+                            <span class="small text-body-tertiary text-truncate" data-overview-terms-contract title="While it is in force, the contract's rate and net terms apply"><i class="fas fa-file-contract me-1" aria-hidden="true"></i>From <?= escapeHtml($overview_from) ?></span>
+                        <?php } ?>
+                        <?php
+                        $overview_tax = taxClient($client_id);
+                        $overview_rate = taxRow(taxDefaultFor($client_id));
+                        ?>
+                        <span class="small <?= $overview_tax['exempt'] && $overview_tax['expired'] ? 'text-warning-emphasis' : 'text-body-tertiary' ?>"<?= $overview_tax['exempt'] ? ' title="' . escapeHtml(taxExemptText($overview_tax)) . '"' : '' ?>>
+                            <?= $overview_tax['exempt'] ? ($overview_tax['expired'] ? 'Tax exempt - certificate expired' : 'Tax exempt') : ($overview_rate ? 'Tax: ' . escapeHtml(taxLabel($overview_rate)) : 'No tax rate') ?>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -573,7 +621,7 @@ $money_format = function ($amount) use ($currency_format, $client_currency_code,
                                     <a href="recurring_invoice.php?client_id=<?= $client_id ?>&recurring_invoice_id=<?= intval($recurring['recurring_invoice_id']) ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2">
                                         <span class="flex-grow-1 overflow-hidden">
                                             <span class="d-block text-truncate"><?= escapeHtml($recurring['recurring_invoice_scope'] ?: $recurring['recurring_invoice_prefix'] . $recurring['recurring_invoice_number']) ?></span>
-                                            <span class="d-block small text-body-secondary"><?= $recurring['recurring_invoice_frequency'] === 'year' ? 'Yearly' : 'Monthly' ?>, next <?= escapeHtml(date('M j', strtotime($recurring['recurring_invoice_next_date']))) ?></span>
+                                            <span class="d-block small text-body-secondary"><?= recurringInvoiceFrequencies()[$recurring['recurring_invoice_frequency']] ?? 'Monthly' ?>, next <?= escapeHtml(date('M j', strtotime($recurring['recurring_invoice_next_date']))) ?></span>
                                         </span>
                                         <span class="fw-semibold text-nowrap"><?= $money_format($recurring['recurring_invoice_amount']) ?></span>
                                     </a>

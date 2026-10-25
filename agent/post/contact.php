@@ -2,6 +2,10 @@
 
 /*
  * ITFlow - GET/POST request handler for client contacts
+ *
+ * Inviting people to a client's portal: send_portal_invites (POST), and
+ * resend_portal_invite and cancel_portal_invite (GET with the token), all
+ * Client Modify (functions/portal_invite.php).
  */
 
 defined('FROM_POST_HANDLER') || die("Direct file access is not allowed");
@@ -42,13 +46,8 @@ if (isset($_POST['add_contact'])) {
 
     $contact_id = mysqli_insert_id($mysqli);
 
-    // Add Tags
-    if (isset($_POST['tags'])) {
-        foreach($_POST['tags'] as $tag) {
-            $tag = intval($tag);
-            mysqli_query($mysqli, "INSERT INTO contact_tags SET contact_id = $contact_id, tag_id = $tag");
-        }
-    }
+    // Tags - contact tags only, and an admin can type a new one in (functions/tags.php)
+    tagSetForRecord('contact', $contact_id, (array) ($_POST['tags'] ?? []));
 
     //Update Primary contact in clients if primary contact is checked
     if ($contact_primary == 1) {
@@ -75,11 +74,17 @@ if (isset($_POST['add_contact'])) {
         }
     }
 
-    logAudit("Contact", "Create", "$session_name created contact $name", $client_id, $contact_id);
+    // Their invite to the portal - a link to set a password, never the password (functions/portal.php)
+    $invited = null;
+    if ($user_id && !empty($_POST['send_email'])) {
+        $invited = portalMailInvite($user_id);
+    }
+
+    logAudit("Contact", "Create", "$session_name created contact $name" . ($invited ? ' and emailed a client portal invite' : ''), $client_id, $contact_id);
 
     triggerCustomAction('contact_create', $contact_id);
 
-    flashAlert("Contact <strong>" . stripslashes($name) . "</strong> created");
+    flashAlert("Contact <strong>" . stripslashes($name) . "</strong> created" . ($invited ? ' and invited to the client portal' : ($invited === false ? ' - the portal invite was not sent, as ' . (portalMailReady() ? 'their email address is not valid' : 'outgoing mail is not set up') : '')), $invited === false ? 'warning' : 'success');
 
     redirect();
 
@@ -174,17 +179,8 @@ if (isset($_POST['edit_contact'])) {
         mysqli_query($mysqli,"UPDATE contacts SET contact_photo = NULL WHERE contact_id = $contact_id");
     }
 
-    // Tags
-    // Delete existing tags
-    mysqli_query($mysqli, "DELETE FROM contact_tags WHERE contact_id = $contact_id");
-
-    // Add new tags
-    if (isset($_POST['tags'])) {
-        foreach($_POST['tags'] as $tag) {
-            $tag = intval($tag);
-            mysqli_query($mysqli, "INSERT INTO contact_tags SET contact_id = $contact_id, tag_id = $tag");
-        }
-    }
+    // Tags - contact tags only, and an admin can type a new one in (functions/tags.php)
+    tagSetForRecord('contact', $contact_id, (array) ($_POST['tags'] ?? []));
 
     // Update Primary contact in clients if primary contact is checked
     if ($contact_primary == 1) {
@@ -192,57 +188,17 @@ if (isset($_POST['edit_contact'])) {
         mysqli_query($mysqli,"UPDATE contacts SET contact_primary = 1, contact_important = 1 WHERE contact_id = $contact_id");
     }
 
-    // Send contact a welcome e-mail, if specified
-    if ($send_email && $auth_method && $config_smtp_provider && $contact_user_id) {
-
-        // Sanitize Config vars from get_settings.php
-        $config_ticket_from_email = escapeSql($config_ticket_from_email);
-        $config_ticket_from_name = escapeSql($config_ticket_from_name);
-        $config_mail_from_email = escapeSql($config_mail_from_email);
-        $config_mail_from_name = escapeSql($config_mail_from_name);
-        $config_base_url = escapeSql($config_base_url);
-
-        // Get Company Phone Number
-        $sql = mysqli_query($mysqli,"SELECT company_name, company_phone FROM companies WHERE company_id = 1");
-        $row = mysqli_fetch_assoc($sql);
-        $company_name = escapeSql($row['company_name']);
-        $company_phone = escapeSql(formatPhoneNumber($row['company_phone']));
-
-        // Authentication info (azure, reset password, or tech-provided temporary password)
-
-        if ($auth_method == 'azure') {
-            $password_info = "Login with your Microsoft (Azure AD) account.";
-        } elseif ($contact_password === '') {
-            $password_info = "Request a password reset at https://$config_base_url/client/login_reset.php";
-        } else {
-            $password_info = mysqli_real_escape_string($mysqli, $contact_password . " -- Please change on first login");
-        }
-
-        $subject = "Your new $company_name portal account";
-        $body = "Hello $name,<br><br>$company_name has created a support portal account for you. <br><br>Username: $email<br>Password: $password_info<br><br>Login URL: https://$config_base_url/client/<br><br>--<br>$company_name - Support<br>$config_ticket_from_email<br>$company_phone";
-
-        // Queue Mail
-        $data = [
-            [
-                'from' => $config_mail_from_email,
-                'from_name' => $config_mail_from_name,
-                'recipient' => $email,
-                'recipient_name' => $name,
-                'subject' => $subject,
-                'body' => $body,
-            ]
-        ];
-        addToMailQueue($data);
-        // Get Email ID for reference
-        $email_id = mysqli_insert_id($mysqli);
-
+    // Their invite to the portal - a link to set a password, never the password (functions/portal.php)
+    $invited = null;
+    if ($send_email && $auth_method && $contact_user_id) {
+        $invited = portalMailInvite($contact_user_id);
     }
 
-    logAudit("Contact", "Edit", "$session_name edited contact $name", $client_id, $contact_id);
+    logAudit("Contact", "Edit", "$session_name edited contact $name" . ($invited ? ' and emailed a client portal invite' : ''), $client_id, $contact_id);
 
     triggerCustomAction('contact_update', $contact_id);
 
-    flashAlert("Contact <strong>" . stripslashes($name) . "</strong> updated");
+    flashAlert("Contact <strong>" . stripslashes($name) . "</strong> updated" . ($invited ? ' and invited to the client portal' : ($invited === false ? ' - the portal invite was not sent, as ' . (portalMailReady() ? 'their email address is not valid' : 'outgoing mail is not set up') : '')), $invited === false ? 'warning' : 'success');
 
     redirect();
 
@@ -542,60 +498,23 @@ if (isset($_POST['send_bulk_mail_now'])) {
 
     enforceUserPermission('module_client', 2);
 
-    if (isset($_POST['contact_ids'])) {
+    $contact_ids = array_values(array_filter(array_map('intval', (array) ($_POST['contact_ids'] ?? []))));
 
-        $count = count($_POST['contact_ids']);
-
-        // Send only from one of the configured sender addresses (the ones the modal offers)
-        $mail_senders = [
-            $config_mail_from_email => $config_mail_from_name,
-            $config_invoice_from_email => $config_invoice_from_name,
-            $config_quote_from_email => $config_quote_from_name,
-            $config_ticket_from_email => $config_ticket_from_name,
-        ];
-        $mail_from = $_POST['mail_from'] ?? '';
-        if (empty($mail_from) || !array_key_exists($mail_from, $mail_senders)) {
-            $mail_from = $config_mail_from_email;
+    // Every contact picked - checked before anything is queued
+    $recipients = [];
+    $company_name = (string) (billingCompany()['company_name'] ?? '');
+    foreach ($contact_ids as $contact_id) {
+        $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT contact_client_id, contact_email, contact_name, client_name FROM contacts
+            JOIN clients ON client_id = contact_client_id WHERE contact_id = $contact_id AND contact_archived_at IS NULL"));
+        if (!$row) {
+            continue;
         }
-        $mail_from_name = trim($_POST['mail_from_name'] ?? '') ?: $mail_senders[$mail_from];
-        $mail_from = escapeSql($mail_from);
-        $mail_from_name = escapeSql($mail_from_name);
-        $subject = escapeSql($_POST['subject']);
-        $body = mysqli_escape_string($mysqli, $_POST['body']);
-        $queued_at = escapeSql($_POST['queued_at']);
-
-        // Add Emails
-        foreach($_POST['contact_ids'] as $contact_id) {
-            $contact_id = intval($contact_id);
-
-            $sql = mysqli_query($mysqli,"SELECT contact_client_id, contact_email, contact_name FROM contacts WHERE contact_id = $contact_id");
-            $row = mysqli_fetch_assoc($sql);
-            $contact_name = escapeSql($row['contact_name']);
-            $contact_email = escapeSql($row['contact_email']);
-            $client_id = intval($row['contact_client_id']);
-
-            enforceClientAccess();
-
-            // Queue Mail
-            $data[] = [
-                'from' => $mail_from,
-                'from_name' => $mail_from_name,
-                'recipient' => $contact_email,
-                'recipient_name' => $contact_name,
-                'subject' => $subject,
-                'body' => $body,
-                'queued_at' => $queued_at
-            ];
-        }
-        addToMailQueue($data);
-
-        logAudit("Bulk Mail", "Send", "$session_name sent $count messages via bulk mail");
-
-        flashAlert("<strong>$count</strong> messages queued");
-
+        enforceClientAccess(intval($row['contact_client_id']));
+        $recipients[] = ['email' => trim((string) $row['contact_email']), 'name' => (string) $row['contact_name'],
+            'footnote' => "You received this as a contact for {$row['client_name']} with $company_name."];
     }
 
-    redirect();
+    emailBulkPost($recipients, count($contact_ids));
 
 }
 
@@ -841,6 +760,156 @@ if (isset($_GET['anonymize_contact'])) {
 
     flashAlert("Contact <strong>" . stripslashes($contact_name) . "</strong> anonymized and archived", 'error');
 
+    redirect();
+
+}
+
+if (isset($_GET['portal_view_as'])) {
+
+    /*
+     * View as contact - the client portal as this contact sees it, read only,
+     * in this browser (functions/portal.php). Needs read access to clients and
+     * support and access to the client; billing shows when the agent's role
+     * also reads sales and financial. Logged, and the portal says so on every
+     * page until they leave it.
+     */
+    validateCSRFToken();
+
+    $contact_id = intval($_GET['portal_view_as']);
+    $access = portalViewAsAccess($session_user_id, $contact_id);
+    if (!$access) {
+        flashAlert("You can't view the portal as that contact - it needs the client portal on, read access to clients and support, and the client", 'error');
+        redirect();
+    }
+
+    // A portal sign-in left over in this browser would take the place of the view
+    unset($_SESSION['client_logged_in'], $_SESSION['client_id'], $_SESSION['contact_id']);
+    $_SESSION['portal_view_as'] = ['contact_id' => $contact_id, 'started' => time()];
+
+    logAudit("Contact", "View As", "$session_name viewed the client portal as " . escapeSql($access['contact_name']), $access['client_id'], $contact_id);
+
+    redirect('/client/index.php');
+
+}
+
+if (isset($_GET['reset_contact_portal_mfa'])) {
+
+    // Turn off a contact's two-step sign-in for the client portal - a lost phone
+    validateCSRFToken();
+
+    enforceUserPermission('module_client', 2);
+
+    $contact_id = intval($_GET['reset_contact_portal_mfa']);
+    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT contact_name, contact_email, contact_client_id, contact_user_id FROM contacts WHERE contact_id = $contact_id"));
+    $client_id = intval($row['contact_client_id'] ?? 0);
+
+    enforceClientAccess();
+
+    if (!$row || !intval($row['contact_user_id'])) {
+        flashAlert("That contact has no client portal account", 'error');
+        redirect();
+    }
+
+    portalMfaReset(intval($row['contact_user_id']));
+    logAudit("Contact", "Edit", "$session_name turned off two-step sign-in for " . escapeSql($row['contact_name']) . " in the client portal", $client_id, $contact_id);
+    portalMailAccountChange($row['contact_email'], $row['contact_name'], 'mfa_off_by_us');
+
+    flashAlert("Two-step sign-in is off for <strong>" . escapeHtml($row['contact_name']) . "</strong> - they sign in with their password alone until they set it up again");
+
+    redirect();
+
+}
+
+if (isset($_POST['send_portal_invites'])) {
+
+    // Invite people to a client's portal - each is emailed a link to join (functions/portal_invite.php)
+    validateCSRFToken();
+
+    enforceUserPermission('module_client', 2);
+
+    $client_id = intval($_POST['client_id'] ?? 0);
+
+    enforceClientAccess();
+
+    $client = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT client_name, client_archived_at FROM clients WHERE client_id = $client_id LIMIT 1"));
+    $back = "contacts.php?client_id=$client_id&role=invites";
+    if (!$client || $client['client_archived_at'] || !portalInvitesReady() || intval($config_client_portal_enable) !== 1) {
+        flashAlert("People can't be invited to this client's portal", 'error');
+        redirect($back);
+    }
+    if (!portalMailReady()) {
+        flashAlert("Outgoing mail isn't set up, so an invite can't be sent", 'error');
+        redirect($back);
+    }
+
+    $parsed = portalInviteParse($_POST['emails'] ?? '');
+    if (!$parsed['people']) {
+        flashAlert($parsed['bad'] ? '<strong>' . escapeHtml($parsed['bad'][0]) . '</strong> is not an email address' : 'Put in an email address to invite', 'error');
+        redirect($back);
+    }
+    if (count($parsed['people']) > PORTAL_INVITE_MAX) {
+        flashAlert('That is ' . count($parsed['people']) . ' addresses - invite up to ' . PORTAL_INVITE_MAX . ' at a time', 'error');
+        redirect($back);
+    }
+
+    $done = portalInviteSend($client_id, $parsed['people'], ['billing' => !empty($_POST['billing']), 'technical' => !empty($_POST['technical'])], ['user_id' => $session_user_id]);
+    $sent = array_merge($done['invited'], $done['resent']);
+    if ($sent) {
+        logAudit("Contact", "Invite", "$session_name invited " . escapeSql(implode(', ', $sent)) . " to the client portal", $client_id);
+    }
+
+    $lines = [];
+    if ($done['invited']) {
+        $lines[] = 'Invited <strong>' . (count($done['invited']) === 1 ? escapeHtml($done['invited'][0]) : count($done['invited']) . ' people') . '</strong> to the portal';
+    }
+    if ($done['resent']) {
+        $lines[] = 'Sent the invite again to <strong>' . (count($done['resent']) === 1 ? escapeHtml($done['resent'][0]) : count($done['resent']) . ' people') . '</strong>, with a new link';
+    }
+    $left_out = $parsed['bad'] ? array_map(function ($bad) { return escapeHtml($bad) . ' (not an email address)'; }, $parsed['bad']) : [];
+    foreach ($done['skipped'] as $email => $why) {
+        $left_out[] = escapeHtml($email) . ' (' . escapeHtml($why) . ')';
+    }
+    if ($left_out) {
+        $lines[] = 'Left out: ' . implode(', ', $left_out);
+    }
+    flashAlert(implode('<br>', $lines), $sent ? ($left_out ? 'warning' : 'success') : 'error');
+
+    redirect($back);
+
+}
+
+if (isset($_GET['resend_portal_invite']) || isset($_GET['cancel_portal_invite'])) {
+
+    // Send an invite that is waiting again - a new link, the old one stops working - or cancel it
+    validateCSRFToken();
+
+    enforceUserPermission('module_client', 2);
+
+    $resend = isset($_GET['resend_portal_invite']);
+    $invite = portalInvitesReady() ? portalInviteRow($resend ? $_GET['resend_portal_invite'] : $_GET['cancel_portal_invite']) : null;
+    $client_id = intval($invite['invite_client_id'] ?? 0);
+
+    enforceClientAccess();
+
+    if (!$invite || $invite['invite_kind'] !== 'invite' || !in_array(portalInviteState($invite), ['pending', 'expired'], true)) {
+        flashAlert("That invite isn't waiting any more - it may have been accepted or cancelled", 'error');
+        redirect();
+    }
+    $email = escapeSql($invite['invite_email']);
+
+    if ($resend) {
+        if (!portalInviteResend($invite['invite_id'], $client_id)) {
+            flashAlert("The invite couldn't be sent - check outgoing mail in Admin > Settings > Mail", 'error');
+            redirect();
+        }
+        logAudit("Contact", "Invite", "$session_name sent the client portal invite to $email again", $client_id);
+        flashAlert("Sent the invite to <strong>" . escapeHtml($invite['invite_email']) . "</strong> again - the link in the last one no longer works");
+        redirect();
+    }
+
+    portalInviteCancel($invite['invite_id'], $client_id);
+    logAudit("Contact", "Cancel", "$session_name cancelled the client portal invite to $email", $client_id);
+    flashAlert("Cancelled the invite to <strong>" . escapeHtml($invite['invite_email']) . "</strong> - its link no longer works");
     redirect();
 
 }

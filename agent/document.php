@@ -1,10 +1,14 @@
 <?php
 
 /*
- * A document - read it, edit it, share or print it, see what it is linked to
- * and every earlier version of it. Laid out like the asset and contact pages:
+ * A document - read it, edit it, share or print it, see what it is linked to,
+ * every earlier version of it and who did what to it. Laid out like the asset and contact pages:
  * a header card with the actions, the content beside a column of what goes
  * with it.
+ *
+ * When its template says how often documents made from it are reviewed, it
+ * says when it is next due - or that it is due - and can be marked as
+ * reviewed; it can be linked to the template it came from after the fact.
  *
  * Open to anyone with access to the client, like the files list; changing it
  * takes support write access, like the handlers behind it.
@@ -15,11 +19,14 @@ require_once "includes/inc_all_client.php";
 $document_id = intval($_GET['document_id'] ?? 0);
 
 $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT document_archived_at, document_client_visible, document_content, document_created_at,
-    document_description, document_folder_id, document_name, document_updated_at,
-    creator.user_name AS created_by_name, updater.user_name AS updated_by_name
+    document_description, document_folder_id, document_name, document_updated_at, document_reviewed_at, document_template_id, document_template_name,
+    document_template_review_months, document_template_archived_at,
+    creator.user_name AS created_by_name, updater.user_name AS updated_by_name, reviewer.user_name AS reviewed_by_name
     FROM documents
     LEFT JOIN users creator ON document_created_by = creator.user_id
     LEFT JOIN users updater ON document_updated_by = updater.user_id
+    LEFT JOIN users reviewer ON document_reviewed_by = reviewer.user_id AND document_reviewed_by > 0
+    LEFT JOIN document_templates USING (document_template_id)
     WHERE document_client_id = $client_id AND document_id = $document_id
     LIMIT 1"));
 
@@ -39,6 +46,9 @@ $document_visible = intval($row['document_client_visible']);
 $document_updated_at = $row['document_updated_at'] ?: $row['document_created_at'];
 $document_updated_by = escapeHtml($row['updated_by_name'] ?: $row['created_by_name']);
 
+// Its review, when its template asks for one - not for an archived document
+$review = !$document_archived && $row['document_template_name'] !== null ? documentReviewState($row) : null;
+
 $folder_tree = folderTree($client_id);
 $document_folder_id = isset($folder_tree[intval($row['document_folder_id'])]) ? intval($row['document_folder_id']) : 0;
 $folder_path = folderPath($folder_tree, $document_folder_id);
@@ -53,6 +63,7 @@ while ($version = mysqli_fetch_assoc($sql_versions)) {
 }
 
 $csrf = $_SESSION['csrf_token'];
+$document_tags_display = tagPills('document', $document_id, tagsForRecord('document', $document_id), "files.php?client_id=$client_id&", $can_edit && !$document_archived);
 
 // Tab title - used raw, the header escapes it
 $page_title = $row['document_name'];
@@ -77,13 +88,20 @@ $page_title = $row['document_name'];
                 <span class="text-break"><?= $document_name ?></span>
                 <?php if ($document_archived) { ?><span class="badge rounded-pill text-bg-secondary fw-normal fs-6">Archived</span><?php } ?>
                 <?php if ($document_visible) { ?><span class="badge rounded-pill bg-info-subtle text-info-emphasis fw-normal fs-6" title="Technical contacts can read this in the client portal">Portal</span><?php } ?>
+                <?php if ($review && $review['due']) { ?><span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-normal fs-6" title="Due <?= date('M j, Y', strtotime($review['next'])) ?>"><i class="fas fa-calendar-check me-1"></i>Review due</span><?php } ?>
             </h1>
             <?php if ($document_description) { ?>
                 <div class="text-body-secondary"><?= $document_description ?></div>
             <?php } ?>
+            <?php if ($document_tags_display) { ?>
+                <div class="mt-1"><?= $document_tags_display ?></div>
+            <?php } ?>
             <div class="small text-body-secondary mt-1">
                 <span title="<?= escapeHtml($document_updated_at) ?>">Updated <?= timeAgo($document_updated_at) ?></span><?= $document_updated_by ? " by $document_updated_by" : '' ?>
                 &middot; Created <?= date('M j, Y', strtotime($row['document_created_at'])) ?><?= $row['created_by_name'] ? ' by ' . escapeHtml($row['created_by_name']) : '' ?>
+                <?php if ($row['document_template_name'] !== null) { ?>
+                    &middot; From template <?= $session_is_admin ? '<a class="text-reset" href="/admin/document_template.php?document_template_id=' . intval($row['document_template_id']) . '">' . escapeHtml($row['document_template_name']) . '</a>' : escapeHtml($row['document_template_name']) ?>
+                <?php } ?>
                 <?php if ($versions) { ?>&middot; <a class="text-reset" href="#documentHistory"><?= count($versions) ?> earlier version<?= count($versions) === 1 ? '' : 's' ?></a><?php } ?>
             </div>
         </div>
@@ -93,9 +111,14 @@ $page_title = $row['document_name'];
                     <i class="fas fa-edit me-2"></i>Edit
                 </button>
             <?php } ?>
-            <?php if (!$document_archived) { ?>
-                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#shareModal" onclick="populateShareModal(<?= "$client_id, 'Document', $document_id" ?>)" title="Share a link to it">
-                    <i class="fas fa-share me-2"></i>Share
+            <?php if (!$document_archived && aiReady('Documentation')) { ?>
+                <button type="button" class="btn btn-outline-secondary ajax-modal" data-modal-size="lg" data-modal-url="modals/document/document_review.php?id=<?= $document_id ?>" title="AI reads it and says what to fix or check, and what is out of date">
+                    <i class="fas fa-clipboard-check"></i><span class="d-none d-md-inline ms-2">Review with AI</span>
+                </button>
+            <?php } ?>
+            <?php if (!$document_archived && shareCanMake('Document')) { ?>
+                <button type="button" class="btn btn-outline-secondary ajax-modal" data-modal-url="modals/share/share_add.php?type=Document&amp;id=<?= $document_id ?>" title="Share a link to it">
+                    <i class="fas fa-share-alt me-2"></i>Share
                 </button>
             <?php } ?>
             <a class="btn btn-outline-secondary" href="post.php?export_document=<?= $document_id ?>&csrf_token=<?= $csrf ?>" title="Export as PDF"><i class="fas fa-file-pdf"></i><span class="d-none d-md-inline ms-2">PDF</span></a>
@@ -174,9 +197,37 @@ $page_title = $row['document_name'];
             </div>
         </div>
 
-        <!-- Where it lives -->
+        <!-- Where it lives, and where it came from -->
         <div class="card mb-3">
             <div class="card-body">
+                <div class="itflow-glance-item" title="Template">
+                    <i class="fas fa-fw fa-puzzle-piece"></i>
+                    <span class="min-w-0 d-flex align-items-center">
+                        <?php if ($row['document_template_name'] !== null) { ?>
+                            <span class="text-truncate">From <?= $session_is_admin ? '<a href="/admin/document_template.php?document_template_id=' . intval($row['document_template_id']) . '">' . escapeHtml($row['document_template_name']) . '</a>' : escapeHtml($row['document_template_name']) ?></span>
+                        <?php } else { ?>
+                            <span class="text-body-secondary">Not from a template</span>
+                        <?php } ?>
+                        <?php if ($can_edit && !$document_archived) { ?>
+                            <a class="itflow-copy ajax-modal" href="#" data-modal-url="modals/document/document_template_link.php?id=<?= $document_id ?>" title="Change the template it counts as made from"><i class="fas fa-pen"></i></a>
+                        <?php } ?>
+                    </span>
+                </div>
+                <?php if ($review) { ?>
+                    <div class="itflow-glance-item<?= $review['due'] ? ' text-warning-emphasis' : '' ?>" title="Review">
+                        <i class="fas fa-fw fa-calendar-check"></i>
+                        <span class="min-w-0">
+                            <span class="d-block"><?= $review['due'] ? '<strong>Review due</strong> since ' . date('M j, Y', strtotime($review['next'])) : 'Next review ' . date('M j, Y', strtotime($review['next'])) ?></span>
+                            <span class="d-block small text-body-secondary">
+                                <?= $review['reviewed'] ? 'Reviewed' : (strtotime($review['last']) === strtotime($row['document_created_at']) ? 'Made' : 'Edited') ?> <?= timeAgo($review['last']) ?><?= $review['reviewed'] && $row['reviewed_by_name'] !== null ? ' by ' . escapeHtml($row['reviewed_by_name']) : '' ?>
+                                &middot; <?= lcfirst(DOCUMENT_TEMPLATE_REVIEW_MONTHS[intval($row['document_template_review_months'])] ?? '') ?>
+                            </span>
+                            <?php if ($can_edit) { ?>
+                                <a class="btn btn-sm <?= $review['due'] ? 'btn-warning' : 'btn-light border' ?> mt-2" href="post.php?mark_document_reviewed=<?= $document_id ?>&csrf_token=<?= $csrf ?>"><i class="fas fa-check me-1"></i>Mark reviewed</a>
+                            <?php } ?>
+                        </span>
+                    </div>
+                <?php } ?>
                 <div class="itflow-glance-item" title="Folder">
                     <i class="fas fa-fw fa-folder"></i>
                     <span class="min-w-0 d-flex align-items-center">
@@ -203,7 +254,7 @@ $page_title = $row['document_name'];
         <!-- Every earlier version -->
         <div class="card mb-3" id="documentHistory">
             <div class="card-header">
-                <h3 class="card-title mb-0"><i class="fas fa-fw fa-history me-2 text-body-secondary"></i>History</h3>
+                <h3 class="card-title mb-0"><i class="fas fa-fw fa-layer-group me-2 text-body-secondary"></i>Versions</h3>
             </div>
             <ul class="list-group list-group-flush itflow-document-history">
                 <li class="list-group-item">
@@ -233,6 +284,11 @@ $page_title = $row['document_name'];
             </ul>
         </div>
 
+        <!-- Who did what to it, from the audit log -->
+        <div class="d-print-none">
+            <?= auditLogHistoryCard(auditLogHistory('Document', $document_id, 10), ['client_id' => $client_id]) ?>
+        </div>
+
     </div>
 
 </div>
@@ -241,5 +297,4 @@ $page_title = $row['document_name'];
 
 <?php
 
-require_once "modals/share_modal.php";
 require_once "../includes/footer.php";

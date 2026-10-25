@@ -6,6 +6,8 @@
  * search. Header with renewal and seat state, the facts to copy (key, order
  * reference, vendor account and phone), quick notes, then tabs for only what
  * has something in it: devices, users, keys, credentials, documents, files.
+ * A license made from a license template says which - and, for someone who
+ * sees Sales, the product it is sold as.
  */
 
 require_once '../../../includes/modal_header.php';
@@ -33,10 +35,12 @@ $vendor_account = escapeHtml($license['vendor_account_number']);
 $vendor_phone = contactPhoneLink($license['vendor_phone'], $license['vendor_phone_country_code'], $license['vendor_extension']);
 
 $seats = softwareSeats($license['seats_used'], $license['software_seats']);
+$template = intval($license['software_template_id']) ? softwareTemplateRow($license['software_template_id']) : null;
 $renewal = softwareRenewal($license['software_expire']);
 
 $can_edit = lookupUserPermission('module_support') >= 2 && !$software_archived;
 $can_credentials = lookupUserPermission('module_credential') >= 1;
+$license_tags_display = tagPills('license', $software_id, tagsForRecord('license', $software_id), "software.php?client_id=$client_id&", $can_edit);
 
 $holders = softwareSeatHolders($software_id);
 $keys = softwareKeys($software_id);
@@ -79,6 +83,12 @@ ob_start();
                 <?php if ($license['software_type']) { ?><span><?= escapeHtml($license['software_type']) ?></span><?php } ?>
                 <?php if ($license['software_license_type']) { ?><span><i class="fas fa-fw <?= softwareLicenseTypeIcon($license['software_license_type']) ?> me-1"></i><?= escapeHtml($license['software_license_type']) ?></span><?php } ?>
                 <span><?= escapeHtml($license['client_name']) ?></span>
+                <?php if ($template) { ?>
+                    <span title="The license template it was made from"><i class="fas fa-fw fa-puzzle-piece me-1"></i>From <?= !empty($session_is_admin) ? '<a class="text-reset" href="/admin/software_template.php?software_template_id=' . intval($template['software_template_id']) . '">' . escapeHtml($template['software_template_name']) . '</a>' : escapeHtml($template['software_template_name']) ?></span>
+                    <?php if (!empty($template['product_name']) && !$template['product_archived_at'] && lookupUserPermission('module_sales') >= 1) { ?>
+                        <span title="The product it is sold as"><i class="fas fa-fw fa-box-open me-1"></i>Sold as <a class="text-reset" href="/agent/product.php?product_id=<?= intval($template['software_template_product_id']) ?>"><?= escapeHtml($template['product_name']) ?></a> · <?= escapeHtml(softwareTemplatePriceText($template)) ?></span>
+                    <?php } ?>
+                <?php } ?>
             </div>
         </div>
     </div>
@@ -89,6 +99,9 @@ ob_start();
 
     <?php if ($software_description) { ?>
         <div class="text-body-secondary mb-3"><?= $software_description ?></div>
+    <?php } ?>
+    <?php if ($license_tags_display) { ?>
+        <div class="mb-3"><?= $license_tags_display ?></div>
     <?php } ?>
 
     <!-- At a glance - the icons say what each line is -->

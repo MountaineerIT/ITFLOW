@@ -10,7 +10,7 @@
  * from them in tabs with counts: cases (tickets with their reference, open
  * first), licenses, assets bought from them, domains they host, services,
  * portal logins, documents, files and history. For one of ours: what we spend
- * with them and the recurring expenses. "Also used by" lists the agent's
+ * with them, the recurring expenses and the catalog items bought from them. "Also used by" lists the agent's
  * other clients with the same vendor - who else an outage hits.
  *
  * The open tab follows the URL hash (#cases) and is remembered between visits.
@@ -51,6 +51,8 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
     $vendor_email = escapeHtml($vendor['vendor_email']);
     $vendor_website_url = vendorWebsiteUrl($vendor['vendor_website']);
     $vendor_website_label = escapeHtml(vendorWebsiteLabel($vendor['vendor_website']));
+    $vendor_status_url = vendorWebsiteUrl($vendor['vendor_status_page']);
+    $vendor_portal_url = vendorWebsiteUrl($vendor['vendor_portal']);
     $vendor_hours = escapeHtml($vendor['vendor_hours']);
     $vendor_sla = escapeHtml($vendor['vendor_sla']);
     $vendor_account = escapeHtml($vendor['vendor_account_number']);
@@ -129,43 +131,67 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
     $spend = null;
     if ($is_ours && $can_financial) {
         $spend = vendorSpend($vendor_id);
-        $sql = mysqli_query($mysqli, "SELECT expense_id, expense_date, expense_amount, expense_currency_code, expense_description, expense_reference, category_name, account_name
+        $sql = mysqli_query($mysqli, "SELECT expense_id, expense_date, expense_amount, expense_currency_code, expense_description, expense_reference, expense_receipt, category_name, account_name,
+                expense_paid_by, (SELECT payer.user_name FROM users AS payer WHERE payer.user_id = expense_paid_by) AS paid_by_name
             FROM expenses
             LEFT JOIN categories ON category_id = expense_category_id
             LEFT JOIN accounts ON account_id = expense_account_id
-            WHERE expense_vendor_id = $vendor_id AND expense_archived_at IS NULL
+            WHERE expense_vendor_id = $vendor_id AND expense_archived_at IS NULL " . clientScopeSql('expense_client_id') . "
             ORDER BY expense_date DESC, expense_id DESC
             LIMIT 25");
         while ($row = mysqli_fetch_assoc($sql)) {
             $expenses[] = $row;
         }
-        $sql = mysqli_query($mysqli, "SELECT recurring_expense_id, recurring_expense_frequency, recurring_expense_next_date, recurring_expense_status, recurring_expense_amount,
-                recurring_expense_currency_code, recurring_expense_description, category_name
+        $sql = mysqli_query($mysqli, "SELECT recurring_expense_id, recurring_expense_frequency, recurring_expense_anchor_day, recurring_expense_next_date, recurring_expense_end_date,
+                recurring_expense_status, recurring_expense_amount, recurring_expense_currency_code, recurring_expense_description, category_name
             FROM recurring_expenses
             LEFT JOIN categories ON category_id = recurring_expense_category_id
-            WHERE recurring_expense_vendor_id = $vendor_id AND recurring_expense_archived_at IS NULL
+            WHERE recurring_expense_vendor_id = $vendor_id AND recurring_expense_archived_at IS NULL " . clientScopeSql('recurring_expense_client_id') . "
             ORDER BY recurring_expense_status DESC, recurring_expense_next_date ASC");
         while ($row = mysqli_fetch_assoc($sql)) {
             $recurring[] = $row;
         }
     }
 
+    // What we buy from one of ours - the catalog items they supply
+    $vendor_products = [];
+    $can_sales = lookupUserPermission('module_sales') >= 1;
+    if ($is_ours && $can_sales) {
+        $sql = mysqli_query($mysqli, "SELECT product_id, product_name, product_type, product_code, product_vendor_part, product_price, product_cost, product_currency_code,
+                product_track_stock, product_frequency, product_seat_source, " . productStockSql() . " AS product_stock
+            FROM products
+            WHERE product_vendor_id = $vendor_id AND product_archived_at IS NULL
+            ORDER BY product_name ASC");
+        while ($row = mysqli_fetch_assoc($sql)) {
+            $vendor_products[] = $row;
+        }
+    }
+
+    // Kept in step with the template it was made from - where it differs; or, made by hand, a template it looks like
+    $template_row = intval($vendor['vendor_template_id']) ? vendorTemplateInfo($vendor['vendor_template_id']) : null;
+    $template_differences = $template_row && !$vendor_archived_at ? vendorTemplateDifferences($template_row, $vendor) : [];
+    $template_match = !$template_row && !$vendor_archived_at && $can_edit ? vendorTemplateMatchFor($vendor) : null;
+
     $elsewhere = lookupUserPermission('module_client') >= 1 ? vendorElsewhere($vendor) : [];
-    $history = vendorHistory($vendor_id, 100);
+    $history = auditLogHistory('Vendor', $vendor_id);
 
     if ($is_ours) {
         $vendor_tabs = [
             'expenses' => ['label' => 'Expenses', 'icon' => 'fa-receipt', 'count' => $spend ? $spend['count'] : 0],
             'recurring' => ['label' => 'Recurring', 'icon' => 'fa-redo-alt', 'count' => count($recurring)],
+            'products' => ['label' => 'Products', 'icon' => 'fa-box-open', 'count' => count($vendor_products)],
             'cases' => ['label' => 'Cases', 'icon' => 'fa-life-ring', 'count' => $case_count, 'badge' => $case_open_count],
             'domains' => ['label' => 'Client domains', 'icon' => 'fa-globe', 'count' => count($domains)],
-            'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => count($history)],
+            'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => $history['count']],
         ];
         if (!$domains) {
             unset($vendor_tabs['domains']);
         }
         if (!$can_financial) {
             unset($vendor_tabs['expenses'], $vendor_tabs['recurring']);
+        }
+        if (!$can_sales) {
+            unset($vendor_tabs['products']);
         }
         if (!$case_count) {
             unset($vendor_tabs['cases']);
@@ -180,7 +206,7 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
             'logins' => ['label' => 'Logins', 'icon' => 'fa-key', 'count' => count($logins)],
             'documents' => ['label' => 'Documents', 'icon' => 'fa-file-alt', 'count' => count($documents)],
             'files' => ['label' => 'Files', 'icon' => 'fa-paperclip', 'count' => count($files)],
-            'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => count($history)],
+            'history' => ['label' => 'History', 'icon' => 'fa-history', 'count' => $history['count']],
         ];
         if (!$can_support) {
             unset($vendor_tabs['cases'], $vendor_tabs['licenses'], $vendor_tabs['assets'], $vendor_tabs['domains'], $vendor_tabs['services'], $vendor_tabs['documents'], $vendor_tabs['files']);
@@ -230,7 +256,13 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                 <div class="text-body-secondary small d-flex flex-wrap column-gap-3 row-gap-1">
                     <?php if ($vendor_description) { ?><span><?= $vendor_description ?></span><?php } ?>
                     <?php if ($vendor_hours) { ?><span><i class="fas fa-fw fa-clock me-1"></i><?= $vendor_hours ?></span><?php } ?>
-                    <?php if ($vendor['vendor_template_name']) { ?><span title="Made from this template"><i class="fas fa-fw fa-puzzle-piece me-1"></i><?= escapeHtml($vendor['vendor_template_name']) ?></span><?php } ?>
+                    <?php if ($vendor['vendor_template_name']) { ?>
+                        <?php if (!empty($session_is_admin)) { ?>
+                            <a class="text-reset" href="/admin/vendor_template.php?vendor_template_id=<?= intval($vendor['vendor_template_id']) ?>" title="Made from this template - open it" data-vendor-template-link><i class="fas fa-fw fa-puzzle-piece me-1"></i><?= escapeHtml($vendor['vendor_template_name']) ?></a>
+                        <?php } else { ?>
+                            <span title="Made from this template"><i class="fas fa-fw fa-puzzle-piece me-1"></i><?= escapeHtml($vendor['vendor_template_name']) ?></span>
+                        <?php } ?>
+                    <?php } ?>
                 </div>
                 <?php if ($vendor_tags_display) { ?>
                     <div class="mt-2"><?= $vendor_tags_display ?></div>
@@ -247,12 +279,15 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                 <?php if ($vendor_website_url) { ?>
                     <a class="btn btn-outline-primary" href="<?= escapeHtml($vendor_website_url) ?>" target="_blank" rel="noopener"><i class="fas fa-external-link-alt me-2"></i>Support site</a>
                 <?php } ?>
+                <?php if ($vendor_status_url) { ?>
+                    <a class="btn btn-outline-primary" href="<?= escapeHtml($vendor_status_url) ?>" target="_blank" rel="noopener" title="Whether they have an outage" data-vendor-status-page><i class="fas fa-heartbeat me-2"></i>Status page</a>
+                <?php } ?>
                 <?php if ($can_new) { ?>
                     <div class="dropdown">
                         <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-plus me-2"></i>New</button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <?php if ($is_ours) { ?>
-                                <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/expense/expense_add.php?vendor_id=<?= $vendor_id ?>">
+                                <a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/expense/expense_add.php?vendor_id=<?= $vendor_id ?>">
                                     <i class="fa fa-fw fa-receipt text-secondary me-2"></i>Expense
                                 </a>
                                 <a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/recurring_expense/recurring_expense_add.php?vendor_id=<?= $vendor_id ?>">
@@ -297,6 +332,24 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                             <i class="fas fa-fw fa-ellipsis-v"></i>
                         </button>
                         <div class="dropdown-menu">
+                            <?php if ($template_row) { ?>
+                                <?php if ($template_differences) { ?>
+                                    <a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/vendor/vendor_template_update.php?vendor_id=<?= $vendor_id ?>">
+                                        <i class="fas fa-fw fa-sync-alt text-secondary me-2"></i>Update from template
+                                    </a>
+                                <?php } ?>
+                                <a class="dropdown-item confirm-link" href="post.php?unlink_vendor_template=<?= $vendor_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>"
+                                    data-confirm-title="Unlink from <?= escapeHtml($template_row['vendor_template_name']) ?>?" data-confirm-text="<?= $vendor_name ?> stays as it is, and is no longer kept in step with the template." data-confirm-button="Unlink">
+                                    <i class="fas fa-fw fa-unlink text-secondary me-2"></i>Unlink from template
+                                </a>
+                                <div class="dropdown-divider"></div>
+                            <?php } ?>
+                            <?php if (!empty($session_is_admin) && !$vendor['vendor_template_name'] && !$vendor_archived_at) { ?>
+                                <a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="/admin/modals/vendor_template/vendor_template_add.php?from_vendor=<?= $vendor_id ?>" title="A vendor template starting from this vendor, so other clients can have it">
+                                    <i class="fas fa-fw fa-puzzle-piece text-secondary me-2"></i>Make a template from it
+                                </a>
+                                <div class="dropdown-divider"></div>
+                            <?php } ?>
                             <?php if ($vendor_archived_at) { ?>
                                 <a class="dropdown-item" href="post.php?restore_vendor=<?= $vendor_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">
                                     <i class="fas fa-fw fa-redo text-secondary me-2"></i>Restore
@@ -318,6 +371,27 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
             </div>
         </div>
     </div>
+
+    <?php if ($template_differences) { ?>
+        <!-- Says something other than the template it was made from -->
+        <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 d-print-none" data-vendor-template-differs="<?= escapeHtml(implode(',', array_keys($template_differences))) ?>">
+            <i class="fas fa-fw fa-not-equal"></i>
+            <span class="flex-grow-1 small">Differs from the <strong><?= escapeHtml($template_row['vendor_template_name']) ?></strong> template it was made from in its <?= escapeHtml(vendorTemplateLabelsText($template_differences)) ?> - its own, or the template changed since.</span>
+            <?php if ($can_edit) { ?>
+                <button type="button" class="btn btn-sm btn-warning ajax-modal" data-modal-size="lg" data-modal-url="modals/vendor/vendor_template_update.php?vendor_id=<?= $vendor_id ?>"><i class="fas fa-sync-alt me-1"></i>Update from template</button>
+            <?php } ?>
+        </div>
+    <?php } elseif ($template_match) { ?>
+        <!-- Made by hand, and looks like one of the templates -->
+        <form action="post.php" method="post" class="alert alert-info d-flex flex-wrap align-items-center gap-2 py-2 d-print-none" data-vendor-template-match="<?= intval($template_match['vendor_template_id']) ?>">
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="vendor_template_id" value="<?= intval($template_match['vendor_template_id']) ?>">
+            <input type="hidden" name="vendor_ids[]" value="<?= $vendor_id ?>">
+            <i class="fas fa-fw fa-puzzle-piece"></i>
+            <span class="flex-grow-1 small">Looks like the <strong><?= escapeHtml($template_match['vendor_template_name']) ?></strong> vendor template. Link it, and it counts as made from it and is kept in step with it - nothing here changes unless you say so.</span>
+            <button type="submit" name="link_vendors_to_template" class="btn btn-sm btn-info"><i class="fas fa-link me-1"></i>Link to template</button>
+        </form>
+    <?php } ?>
 
     <div class="row g-3">
 
@@ -350,6 +424,14 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                         <?php if ($vendor_website_url) { ?>
                             <dt>Site</dt>
                             <dd class="text-break"><a href="<?= escapeHtml($vendor_website_url) ?>" target="_blank" rel="noopener"><?= $vendor_website_label ?><i class="fas fa-external-link-alt ms-1 small"></i></a></dd>
+                        <?php } ?>
+                        <?php if ($vendor_status_url) { ?>
+                            <dt>Status</dt>
+                            <dd class="text-break"><a href="<?= escapeHtml($vendor_status_url) ?>" target="_blank" rel="noopener"><?= escapeHtml(vendorWebsiteLabel($vendor['vendor_status_page'])) ?><i class="fas fa-external-link-alt ms-1 small"></i></a></dd>
+                        <?php } ?>
+                        <?php if ($vendor_portal_url) { ?>
+                            <dt>Portal</dt>
+                            <dd class="text-break"><a href="<?= escapeHtml($vendor_portal_url) ?>" target="_blank" rel="noopener" title="Support portal - where cases are opened"><?= escapeHtml(vendorWebsiteLabel($vendor['vendor_portal'])) ?><i class="fas fa-external-link-alt ms-1 small"></i></a></dd>
                         <?php } ?>
                     </dl>
                 </div>
@@ -664,7 +746,7 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                             <div class="d-flex gap-2">
                                 <a class="btn btn-sm btn-outline-secondary" href="expenses.php?vendor=<?= $vendor_id ?>"><i class="fas fa-list me-2"></i>All</a>
                                 <?php if ($can_financial_edit && !$vendor_archived_at) { ?>
-                                    <button type="button" class="btn btn-sm btn-primary ajax-modal" data-modal-url="modals/expense/expense_add.php?vendor_id=<?= $vendor_id ?>"><i class="fas fa-plus me-2"></i>New Expense</button>
+                                    <button type="button" class="btn btn-sm btn-primary ajax-modal" data-modal-size="lg" data-modal-url="modals/expense/expense_add.php?vendor_id=<?= $vendor_id ?>"><i class="fas fa-plus me-2"></i>New Expense</button>
                                 <?php } ?>
                             </div>
                         </div>
@@ -675,12 +757,12 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                                     <tbody>
                                     <?php foreach ($expenses as $expense) { ?>
                                         <tr>
-                                            <td class="text-nowrap"><a class="ajax-modal" href="#" data-modal-url="modals/expense/expense_edit.php?id=<?= intval($expense['expense_id']) ?>"><?= escapeHtml($expense['expense_date']) ?></a></td>
+                                            <td class="text-nowrap"><a class="ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/expense/expense.php?id=<?= intval($expense['expense_id']) ?>"><?= escapeHtml($expense['expense_date']) ?></a><?php if ($expense['expense_receipt']) { ?><i class="fas fa-paperclip text-success small ms-1" title="Receipt attached"></i><?php } ?></td>
                                             <td class="w-100">
                                                 <div><?= escapeHtml(truncate((string) $expense['expense_description'], 90)) ?: '<span class="text-body-secondary">-</span>' ?></div>
                                                 <div class="small text-body-secondary"><?= escapeHtml(implode(' · ', array_filter([$expense['category_name'], $expense['expense_reference']]))) ?></div>
                                             </td>
-                                            <td class="text-nowrap small"><?= escapeHtml($expense['account_name']) ?></td>
+                                            <td class="text-nowrap small"><?= intval($expense['expense_paid_by']) ? '<i class="fas fa-hand-holding-usd text-body-secondary me-1" title="Paid personally"></i>' . escapeHtml($expense['paid_by_name'] ?: 'An agent') : escapeHtml($expense['account_name']) ?></td>
                                             <td class="text-end text-nowrap font-monospace"><?= numfmt_format_currency($currency_format, floatval($expense['expense_amount']), $expense['expense_currency_code']) ?></td>
                                         </tr>
                                     <?php } ?>
@@ -709,10 +791,10 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                                     <thead class="text-nowrap table-light"><tr><th>Next</th><th>Every</th><th>What for</th><th class="text-end">Amount</th></tr></thead>
                                     <tbody>
                                     <?php foreach ($recurring as $recurring_expense) {
-                                        $active = intval($recurring_expense['recurring_expense_status']) === 1; ?>
+                                        $active = recurringExpenseState($recurring_expense) === 'active'; ?>
                                         <tr class="<?= $active ? '' : 'text-body-secondary' ?>">
-                                            <td class="text-nowrap"><a class="ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/recurring_expense/recurring_expense_edit.php?id=<?= intval($recurring_expense['recurring_expense_id']) ?>"><?= escapeHtml($recurring_expense['recurring_expense_next_date']) ?></a><?php if (!$active) { ?> <span class="badge rounded-pill text-bg-secondary fw-normal">Paused</span><?php } ?></td>
-                                            <td class="text-nowrap"><?= intval($recurring_expense['recurring_expense_frequency']) === 1 ? 'Month' : 'Year' ?></td>
+                                            <td class="text-nowrap"><a class="ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/recurring_expense/recurring_expense.php?id=<?= intval($recurring_expense['recurring_expense_id']) ?>"><?= escapeHtml($recurring_expense['recurring_expense_next_date']) ?></a><?php if (!$active) { ?> <?= recurringExpenseNextPill($recurring_expense) ?><?php } ?></td>
+                                            <td class="text-nowrap"><?= ['month' => 'Month', 'quarter' => 'Quarter', 'year' => 'Year'][$recurring_expense['recurring_expense_frequency']] ?? 'Month' ?></td>
                                             <td class="w-100">
                                                 <div><?= escapeHtml(truncate((string) $recurring_expense['recurring_expense_description'], 90)) ?: '<span class="text-body-secondary">-</span>' ?></div>
                                                 <div class="small text-body-secondary"><?= escapeHtml($recurring_expense['category_name']) ?></div>
@@ -729,27 +811,53 @@ if (!$vendor || (isset($_GET['client_id']) && $vendor_client_id !== intval($clie
                     </div>
                     <?php } ?>
 
+                    <?php if (isset($vendor_tabs['products'])) { ?>
+                    <!-- What we buy from them - catalog items -->
+                    <div class="tab-pane fade" id="vendor-pane-products" role="tabpanel">
+                        <div class="itflow-asset-pane-bar">
+                            <span class="text-body-secondary small">Products and services in the catalog bought from them, with their part number.</span>
+                            <a class="btn btn-sm btn-outline-secondary" href="products.php?vendor=<?= $vendor_id ?>"><i class="fas fa-box-open me-2"></i>In Products</a>
+                        </div>
+                        <?php if ($vendor_products) { ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="text-nowrap table-light"><tr><th>Item</th><th class="d-none d-md-table-cell">Part #</th><th class="text-end">Cost</th><th class="text-end">Price</th><th class="text-end d-none d-sm-table-cell">Stock</th></tr></thead>
+                                    <tbody>
+                                    <?php foreach ($vendor_products as $vendor_product) { ?>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <?= productTile($vendor_product['product_type'], 'sm') ?>
+                                                    <div class="min-w-0">
+                                                        <a class="fw-semibold" href="product.php?product_id=<?= intval($vendor_product['product_id']) ?>"><?= escapeHtml($vendor_product['product_name']) ?></a>
+                                                        <div class="small text-body-secondary"><?= escapeHtml(implode(' · ', array_filter([$vendor_product['product_code'], $vendor_product['product_frequency'] ? productBilledText($vendor_product['product_frequency'], $vendor_product['product_seat_source']) : '']))) ?: '&nbsp;' ?></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="d-none d-md-table-cell font-monospace small"><?= $vendor_product['product_vendor_part'] ? escapeHtml($vendor_product['product_vendor_part']) : '<span class="text-body-secondary">-</span>' ?></td>
+                                            <td class="text-end itflow-money"><?= floatval($vendor_product['product_cost']) > 0 ? escapeHtml(billingMoney($vendor_product['product_cost'], $vendor_product['product_currency_code'])) : '<span class="text-body-secondary">-</span>' ?></td>
+                                            <td class="text-end itflow-money">
+                                                <?= escapeHtml(billingMoney($vendor_product['product_price'], $vendor_product['product_currency_code'])) ?>
+                                                <div><?= productMarginPill(productMargin($vendor_product['product_price'], $vendor_product['product_cost'])) ?></div>
+                                            </td>
+                                            <td class="text-end d-none d-sm-table-cell"><?= intval($vendor_product['product_track_stock']) ? escapeHtml(billingQuantity($vendor_product['product_stock'])) : '<span class="text-body-secondary">-</span>' ?></td>
+                                        </tr>
+                                    <?php } ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php } else { ?>
+                            <div class="itflow-asset-empty">Nothing in the catalog comes from them. Pick them as the vendor on a product to list it here.</div>
+                        <?php } ?>
+                    </div>
+                    <?php } ?>
+
                     <!-- History, from the audit log -->
                     <div class="tab-pane fade" id="vendor-pane-history" role="tabpanel">
                         <div class="itflow-asset-pane-bar">
                             <span class="text-body-secondary small">Edits, links and notes - newest first.</span>
                         </div>
-                        <?php if ($history) {
-                            $history_icons = ['Create' => 'fa-plus', 'Edit' => 'fa-edit', 'Archive' => 'fa-archive', 'Restore' => 'fa-redo', 'Link' => 'fa-link', 'Unlink' => 'fa-unlink']; ?>
-                            <ul class="list-group list-group-flush">
-                                <?php foreach ($history as $entry) { ?>
-                                    <li class="list-group-item d-flex gap-3 py-2">
-                                        <span class="itflow-asset-icon itflow-asset-icon-sm itflow-asset-tone-other" title="<?= escapeHtml($entry['log_action']) ?>"><i class="fas fa-fw <?= $history_icons[$entry['log_action']] ?? 'fa-circle' ?>"></i></span>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <div><?= escapeHtml($entry['log_description']) ?></div>
-                                            <div class="small text-body-secondary"><?= escapeHtml($entry['user_name'] ?: 'System') ?> &middot; <span title="<?= escapeHtml($entry['log_created_at']) ?>"><?= timeAgo($entry['log_created_at']) ?></span></div>
-                                        </div>
-                                    </li>
-                                <?php } ?>
-                            </ul>
-                        <?php } else { ?>
-                            <div class="itflow-asset-empty">Nothing logged yet.</div>
-                        <?php } ?>
+                        <?= auditLogHistoryHtml($history, ['client_id' => $client_id]) ?>
                     </div>
 
                 </div>

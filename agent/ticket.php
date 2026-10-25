@@ -454,15 +454,34 @@ if (isset($_GET['ticket_id'])) {
             $resolve_confirm_text .= "It closes on its own after $config_ticket_autoclose_hours hours unless the client replies.";
         }
 
-        // Only offer the summary when an AI model is actually set up for it
-        $ai_summary_available = (bool) getAiModel('Tickets');
+        // AI - offered only when a model is set up for it and the role may use AI (functions/ai_ticket.php)
+        $ai_summary_available = aiReady('Tickets');
+        $ai_triage_available = $ai_summary_available && $can_edit_ticket && $ticket_is_open && aiTriageReady();
+        // A ticket with no client is written up in your own company's documents, when there is one
+        $ai_document_client_id = $client_id ?: intval($config_internal_client_id ?? 0);
+        $ai_document_available = $can_edit_ticket && $ai_document_client_id > 0 && aiReady('Documentation');
+        // What AI triage suggests that the ticket doesn't have yet
+        $ai_triage = $ai_summary_available && aiTriageReady() ? aiTriageRow($ticket_id) : null;
+        $ai_triage_changes = $ai_triage && $ai_triage['ai_triage_state'] === 'suggested' && $ticket_is_open ? aiTriageChanges($ai_triage, $ticket) : [];
 
         // Billing actions, decided once - the header shows Invoice once the work is done
         $show_quote_button = $can_edit_ticket && $config_module_enable_accounting && $ticket_billable == 1 && empty($quote_id) && empty($invoice_id) && lookupUserPermission("module_sales") >= 2;
-        $show_invoice_button = $can_edit_ticket && $config_module_enable_accounting && $ticket_billable == 1 && empty($invoice_id) && lookupUserPermission("module_sales") >= 2;
+        // Prepaid hours on a contract it drew from - all of it covered leaves nothing to invoice
+        $ticket_prepaid_kept_out = false;
+        $ticket_prepaid_uses = $config_module_enable_accounting && lookupUserPermission("module_sales") >= 1 ? contractHoursTicketUses($ticket_id, $ticket_prepaid_kept_out) : [];
+        $ticket_prepaid_hours = round(array_sum(array_column($ticket_prepaid_uses, 'contract_block_use_hours')), 2);
+        $ticket_prepaid_full = in_array('1', array_map('strval', array_column($ticket_prepaid_uses, 'contract_block_use_full')), true);
+        $show_invoice_button = $can_edit_ticket && $config_module_enable_accounting && $ticket_billable == 1 && empty($invoice_id) && !$ticket_prepaid_full && lookupUserPermission("module_sales") >= 2;
+
+        // Trips - the driving done for it: anyone working it can log theirs (functions/trips.php)
+        $show_trips = $config_module_enable_accounting && $client_id > 0;
+        $ticket_trips = $show_trips ? tripsFor('trip_ticket_id', $ticket_id, 5) : [];
+        [$ticket_trip_count, $ticket_trip_miles] = $show_trips ? tripTotalsFor('trip_ticket_id', $ticket_id) : [0, 0.0];
 
         // Values in the Details panel are links only when they can actually be changed
         $can_change_fields = $can_edit_ticket && !$ticket_is_closed;
+
+        $ticket_tags_display = tagPills('ticket', $ticket_id, tagsForRecord('ticket', $ticket_id), $client_id ? "tickets.php?client_id=$client_id&" : 'tickets.php?', $can_change_fields);
 
         ?>
 
@@ -514,6 +533,9 @@ if (isset($_GET['ticket_id'])) {
                                 <?php } ?>
                                 <span class="text-info ms-1" id="ticket_collision_viewing"></span>
                             </div>
+                            <?php if ($ticket_tags_display) { ?>
+                                <div class="mt-2 d-print-none"><?= $ticket_tags_display ?></div>
+                            <?php } ?>
 
                         </div>
 
@@ -522,7 +544,7 @@ if (isset($_GET['ticket_id'])) {
                             the rarer actions live in the menu; Invoice comes out of it once
                             the work is done, which is when it is actually wanted.
                         -->
-                        <?php if ($can_edit_ticket || $ai_summary_available) { ?>
+                        <?php if ($can_edit_ticket || $ai_summary_available || $show_trips) { ?>
                             <div class="ticket-actions d-flex flex-wrap align-items-center gap-2 d-print-none">
 
                                 <?php if ($can_edit_ticket && $ticket_is_open) { ?>
@@ -576,6 +598,27 @@ if (isset($_GET['ticket_id'])) {
                                                 <i class="fas fa-fw fa-magic me-2"></i>Summarize with AI
                                             </a>
                                         <?php } ?>
+                                        <?php if ($ai_triage_available) { ?>
+                                            <a class="dropdown-item" href="post.php?triage_ticket_ai=<?= $ticket_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>" title="Suggests a category and priority, to apply or dismiss">
+                                                <i class="fas fa-fw fa-sort-amount-down me-2"></i>Triage with AI
+                                            </a>
+                                        <?php } ?>
+                                        <?php if ($ai_document_available) { ?>
+                                            <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_document.php?ticket_id=<?= $ticket_id ?>" data-modal-size="xl" title="A document for next time, drafted by AI from the ticket">
+                                                <i class="fas fa-fw fa-file-medical me-2"></i>Write up as a document
+                                            </a>
+                                        <?php } ?>
+                                        <?php if (($ai_summary_available || $ai_document_available) && ($show_trips || $can_edit_ticket)) { ?>
+                                            <div class="dropdown-divider"></div>
+                                        <?php } ?>
+                                        <?php if ($show_trips) { ?>
+                                            <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/trip/trip_add.php?ticket_id=<?= $ticket_id ?>" data-modal-size="lg">
+                                                <i class="fas fa-fw fa-route me-2"></i>Log a trip
+                                            </a>
+                                            <?php if ($can_edit_ticket) { ?>
+                                                <div class="dropdown-divider"></div>
+                                            <?php } ?>
+                                        <?php } ?>
                                         <?php if ($can_edit_ticket) { ?>
                                             <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_merge.php?ticket_id=<?= $ticket_id ?>">
                                                 <i class="fas fa-fw fa-clone me-2"></i>Merge into another ticket
@@ -620,6 +663,44 @@ if (isset($_GET['ticket_id'])) {
 
             <div class="ticket-layout-main">
 
+                <?php if ($ai_triage_changes) { ?>
+                    <!-- What AI triage suggests, to apply or dismiss -->
+                    <form action="post.php" method="post" class="alert alert-info d-print-none py-2 mb-3" data-ai-triage>
+                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                        <input type="hidden" name="ticket_id" value="<?= $ticket_id ?>">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <i class="fas fa-fw fa-robot"></i>
+                            <strong class="me-1">AI triage suggests</strong>
+                            <?php foreach ($ai_triage_changes as $field => $change) { ?>
+                                <label class="form-check-label d-inline-flex align-items-center gap-1 me-2" data-ai-triage-change="<?= $field ?>">
+                                    <input class="form-check-input mt-0" type="checkbox" name="apply[]" value="<?= $field ?>" checked <?= $can_change_fields ? '' : 'disabled' ?>>
+                                    <?= $field === 'category' ? 'Category' : 'Priority' ?>
+                                    <?php if ($field === 'priority') { ?>
+                                        <?= ticketPriorityHtml($change[1], 'detail') ?>
+                                    <?php } else { ?>
+                                        <strong><?= escapeHtml($change[1]) ?></strong>
+                                    <?php } ?>
+                                    <span class="small opacity-75">(<?= escapeHtml($change[0] === 'none' ? 'none now' : 'now ' . $change[0]) ?>)</span>
+                                </label>
+                            <?php } ?>
+                            <?php if ($can_change_fields) { ?>
+                                <div class="ms-auto d-flex gap-2">
+                                    <button type="submit" name="apply_ticket_ai_triage" class="btn btn-sm btn-info"><i class="fas fa-fw fa-check me-1"></i>Apply</button>
+                                    <button type="submit" name="dismiss_ticket_ai_triage" class="btn btn-sm btn-light border"><i class="fas fa-fw fa-times me-1"></i>Dismiss</button>
+                                </div>
+                            <?php } ?>
+                        </div>
+                        <?php if (trim((string) $ai_triage['ai_triage_summary']) !== '' || trim((string) $ai_triage['ai_triage_reason']) !== '') { ?>
+                            <div class="small mt-1" data-ai-triage-summary>
+                                <?= escapeHtml((string) $ai_triage['ai_triage_summary']) ?>
+                                <?php if (trim((string) $ai_triage['ai_triage_reason']) !== '' && isset($ai_triage_changes['priority'])) { ?>
+                                    <span class="opacity-75">- <?= escapeHtml(lcfirst((string) $ai_triage['ai_triage_reason'])) ?></span>
+                                <?php } ?>
+                            </div>
+                        <?php } ?>
+                    </form>
+                <?php } ?>
+
                 <!-- The original request -->
                 <div class="card mb-3">
                     <div class="card-header px-3 py-2">
@@ -653,6 +734,44 @@ if (isset($_GET['ticket_id'])) {
                         <?php } ?>
                     </div>
                 </div>
+
+                <!-- Fill-ins - what its template asked for when it was raised, and the answers -->
+                <?php
+                $ticket_fill_ins = ticketFillInsStored('ticket', $ticket_id);
+                if ($ticket_fill_ins) {
+                    $fill_in_template = intval($ticket['ticket_template_id'] ?? 0) ? ticketTemplateRow($ticket['ticket_template_id']) : null;
+                    ?>
+                    <div class="card mb-3 itflow-ticket-fill-ins">
+                        <div class="card-header px-3 py-2">
+                            <h5 class="card-title mt-1"><i class="fas fa-fw fa-pen-square me-2"></i>Fill-ins<?php if ($fill_in_template) { ?> <span class="small fw-normal text-secondary ms-1">from <?= escapeHtml($fill_in_template['ticket_template_name']) ?></span><?php } ?></h5>
+                            <div class="card-tools">
+                                <?php if ($can_edit_ticket && !$ticket_is_closed) { ?>
+                                    <a class="btn btn-tool ajax-modal" href="#" data-modal-url="modals/ticket/ticket_fill_ins.php?id=<?= $ticket_id ?>" title="Answer or change">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                <?php } ?>
+                                <button type="button" class="btn btn-tool" title="Show/hide" data-lte-toggle="card-collapse">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row row-cols-1 row-cols-sm-2 g-2">
+                                <?php foreach ($ticket_fill_ins as $answer) {
+                                    $answer_text = ticketFillInText($answer); ?>
+                                    <div>
+                                        <div class="small text-secondary"><?= escapeHtml($answer['name']) ?><?php if (!$answer['client']) { ?><i class="fas fa-user-lock ms-1" title="Agents only - not shown to the client"></i><?php } ?></div>
+                                        <?php if ($answer_text !== '') { ?>
+                                            <div class="text-break"><?= escapeHtml($answer_text) ?></div>
+                                        <?php } else { ?>
+                                            <div class="<?= $answer['required'] ? 'text-warning-emphasis' : 'text-secondary' ?> fst-italic">Not answered<?= $answer['required'] ? ' yet' : '' ?></div>
+                                        <?php } ?>
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php } ?>
 
                 <!-- Reply composer - only while the ticket is still being worked -->
                 <?php if ($can_edit_ticket && $ticket_is_open) { ?>
@@ -698,56 +817,24 @@ if (isset($_GET['ticket_id'])) {
                                         <?= function_exists('mitReplyRecipientsField') ? mitReplyRecipientsField($ticket_id, $can_email_reply) : '' // Mountaineer IT: who an internal note notifies / an email goes to ?>
 
                                         <?php
-
                                         /*
-                                         * Canned responses offered on this ticket: the ones tied to its
-                                         * category, plus the general ones that are offered everywhere.
-                                         * Names only - the body is fetched when one is picked, so a
-                                         * shelf of long responses does not ride along with every ticket.
+                                         * Canned responses offered on this ticket: the agent's own, then
+                                         * the ones for its category, then the ones offered on every
+                                         * ticket. Names only - the body is fetched, filled in for this
+                                         * ticket, when one is picked, so a shelf of long responses does
+                                         * not ride along with every ticket. / in the reply box offers the
+                                         * same ones. The picker is there with none on offer too, to save
+                                         * the reply as one.
                                          */
-                                        $sql_canned_responses = mysqli_query($mysqli, "SELECT canned_response_id, canned_response_name, canned_response_category_id
-                                            FROM canned_responses
-                                            WHERE canned_response_archived_at IS NULL
-                                            AND (canned_response_category_id = 0 OR canned_response_category_id = $ticket_category)
-                                            ORDER BY canned_response_name ASC");
-
-                                        $canned_responses_for_category = [];
-                                        $canned_responses_general = [];
-
-                                        while ($canned_row = mysqli_fetch_assoc($sql_canned_responses)) {
-                                            if (intval($canned_row['canned_response_category_id']) === 0) {
-                                                $canned_responses_general[] = $canned_row;
-                                            } else {
-                                                $canned_responses_for_category[] = $canned_row;
-                                            }
-                                        }
-
-                                        if ($canned_responses_for_category || $canned_responses_general) { ?>
-
-                                            <div class="mb-3">
-                                                <select class="form-select" id="canned_response_picker" aria-label="Insert a canned response">
-                                                    <option value="">- Insert a canned response -</option>
-                                                    <?php if ($canned_responses_for_category) { ?>
-                                                        <optgroup label="<?= $ticket_category_display ?>">
-                                                            <?php foreach ($canned_responses_for_category as $canned_row) { ?>
-                                                                <option value="<?= intval($canned_row['canned_response_id']) ?>"><?= escapeHtml($canned_row['canned_response_name']) ?></option>
-                                                            <?php } ?>
-                                                        </optgroup>
-                                                    <?php } ?>
-                                                    <?php if ($canned_responses_general) { ?>
-                                                        <optgroup label="All categories">
-                                                            <?php foreach ($canned_responses_general as $canned_row) { ?>
-                                                                <option value="<?= intval($canned_row['canned_response_id']) ?>"><?= escapeHtml($canned_row['canned_response_name']) ?></option>
-                                                            <?php } ?>
-                                                        </optgroup>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-
-                                        <?php } ?>
+                                        $canned_picker_groups = cannedResponsesForTicket(intval($ticket_category), $session_user_id);
+                                        $canned_picker_id = 'cannedPickerReply';
+                                        $canned_picker_editor = 'ticket_reply';
+                                        $canned_picker_ticket_id = intval($ticket_id);
+                                        require __DIR__ . "/includes/inc_canned_response_picker.php";
+                                        ?>
 
                                         <div class="mb-3">
-                                            <textarea class="form-control tinymceTicket" id="ticket_reply" name="ticket_reply" placeholder="Type a response"></textarea>
+                                            <textarea class="form-control tinymceTicket" id="ticket_reply" name="ticket_reply" placeholder="Type a response" data-canned-picker="cannedPickerReply" data-ai-client-id="<?= intval($client_id) ?>" data-ai-ticket-id="<?= $ticket_id ?>"></textarea>
                                         </div>
 
                                         <div class="mb-3">
@@ -982,7 +1069,7 @@ if (isset($_GET['ticket_id'])) {
                                         </span>
                                     <?php } else { ?>
                                         <span class="ticket-prop-static">
-                                            <span class="badge rounded-pill text-light" style="background-color: <?= $ticket_status_color ?>"><?= $ticket_status_name ?></span>
+                                            <?= ticketStatusHtml($ticket['ticket_status_name'], $ticket['ticket_status_color'], 'detail') ?>
                                         </span>
                                     <?php } ?>
                                 </dd>
@@ -1045,7 +1132,7 @@ if (isset($_GET['ticket_id'])) {
                             <div class="ticket-prop">
                                 <dt>Category</dt>
                                 <dd>
-                                    <?php $category_value = $ticket_category ? $ticket_category_display : "<span class='text-muted'>None</span>"; ?>
+                                    <?php $category_value = $ticket_category ? categoryMarkHtml($ticket['category_color'] ?? '', $ticket['category_icon'] ?? '', '<i class="fas fa-circle itflow-ticket-dot"%s aria-hidden="true"></i>') . $ticket_category_display : "<span class='text-muted'>None</span>"; ?>
                                     <?php if ($can_change_fields && function_exists('mitTicketPickButton')) { ?>
                                         <?= mitTicketPickButton('mit_category', $ticket_id, intval($ticket['ticket_category']), $category_value, 'Change category') // Mountaineer IT: in place ?>
                                     <?php } elseif ($can_change_fields) { ?>
@@ -1117,6 +1204,30 @@ if (isset($_GET['ticket_id'])) {
                                         <?php } ?>
                                     </dd>
                                 </div>
+                                <?php if ($ticket_prepaid_uses || $ticket_prepaid_kept_out) {
+                                    $prepaid_contract = $ticket_prepaid_uses[0] ?? null; ?>
+                                    <div class="ticket-prop" data-ticket-prepaid>
+                                        <dt>Prepaid</dt>
+                                        <dd>
+                                            <?php if ($prepaid_contract) { ?>
+                                                <a href="contract.php?client_id=<?= intval($prepaid_contract['contract_client_id']) ?>&contract_id=<?= intval($prepaid_contract['contract_id']) ?>" class="ticket-prop-edit" title="Open the contract">
+                                                    <span><i class="fa fa-fw fa-hourglass-half text-secondary me-1"></i><?= escapeHtml(contractHoursText($ticket_prepaid_hours)) ?> from <?= escapeHtml($prepaid_contract['contract_name']) ?><?= $ticket_prepaid_full ? '' : ' - the rest is billed' ?></span>
+                                                </a>
+                                            <?php } else { ?>
+                                                <span class="ticket-prop-static">
+                                                    <span class="text-muted" title="Its prepaid hours were put back - it is billed as usual">Put back</span>
+                                                    <?php if (empty($invoice_id) && lookupUserPermission("module_sales") >= 2) { ?>
+                                                        <form action="post.php" method="post" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                            <input type="hidden" name="ticket_id" value="<?= $ticket_id ?>">
+                                                            <button type="submit" name="draw_contract_hours" value="1" class="btn btn-link btn-sm p-0 ms-1 align-baseline" title="Draw its time from the prepaid hours after all">Draw it</button>
+                                                        </form>
+                                                    <?php } ?>
+                                                </span>
+                                            <?php } ?>
+                                        </dd>
+                                    </div>
+                                <?php } ?>
                             <?php } ?>
 
                             <div class="ticket-prop">
@@ -1240,6 +1351,43 @@ if (isset($_GET['ticket_id'])) {
                                 <div class="small mt-2 pt-2 border-top text-body-secondary itflow-ticket-site-notes" title="Access notes"><i class="fa fa-fw fa-door-open me-1"></i><?= nl2br(escapeHtml($ticket_location_notes)) ?></div>
                             <?php } ?>
                         </div>
+                    </div>
+                <?php } ?>
+
+                <!-- Trips - the driving done for it, for an onsite ticket or once there is some -->
+                <?php if ($show_trips && ($ticket_trip_count || $ticket_onsite)) { ?>
+                    <div class="card mb-3 itflow-ticket-trips">
+                        <div class="card-header px-3 py-2">
+                            <h5 class="card-title mt-1"><i class="fas fa-fw fa-route me-2"></i>Trips<?php if ($ticket_trip_count) { ?> <span class="badge text-bg-secondary ms-1"><?= $ticket_trip_count ?></span><?php } ?></h5>
+                            <div class="card-tools">
+                                <a class="btn btn-tool ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/trip/trip_add.php?ticket_id=<?= $ticket_id ?>" title="Log a trip"><i class="fas fa-plus"></i></a>
+                            </div>
+                        </div>
+                        <?php if ($ticket_trips) { ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach ($ticket_trips as $trip) { ?>
+                                    <a href="#" class="list-group-item list-group-item-action px-3 py-2 ajax-modal" data-modal-size="lg" data-modal-url="modals/trip/trip.php?id=<?= intval($trip['trip_id']) ?>">
+                                        <div class="d-flex justify-content-between gap-2">
+                                            <span class="small text-truncate"><?= escapeHtml(date('M j', strtotime($trip['trip_date']))) ?> &middot; <?= escapeHtml($trip['driver_name'] ?? 'Unknown') ?></span>
+                                            <span class="small fw-semibold text-nowrap"><?= escapeHtml(tripMilesText($trip['trip_miles'])) ?><?php if (intval($trip['round_trip'])) { ?><i class="fas fa-sync-alt text-body-secondary ms-1" title="Round trip"></i><?php } ?></span>
+                                        </div>
+                                        <div class="small text-body-secondary text-truncate"><?= escapeHtml($trip['trip_source']) ?> &rarr; <?= escapeHtml($trip['trip_destination']) ?></div>
+                                    </a>
+                                <?php } ?>
+                            </div>
+                            <div class="card-footer px-3 py-2 small d-flex justify-content-between">
+                                <span class="text-body-secondary"><?= escapeHtml(tripMilesText($ticket_trip_miles)) ?> driven</span>
+                                <?php if ($ticket_trip_count > count($ticket_trips)) { ?>
+                                    <a href="trips.php?client_id=<?= $client_id ?>&amp;ticket_id=<?= $ticket_id ?>">All <?= $ticket_trip_count ?></a>
+                                <?php } else { ?>
+                                    <a href="trips.php?client_id=<?= $client_id ?>&amp;ticket_id=<?= $ticket_id ?>">Open in Trips</a>
+                                <?php } ?>
+                            </div>
+                        <?php } else { ?>
+                            <div class="card-body p-3 small text-body-secondary">
+                                An onsite ticket - drove out for it? <a href="#" class="ajax-modal" data-modal-size="lg" data-modal-url="modals/trip/trip_add.php?ticket_id=<?= $ticket_id ?>">Log the trip</a> to keep the driving with the ticket.
+                            </div>
+                        <?php } ?>
                     </div>
                 <?php } ?>
 
@@ -1518,6 +1666,11 @@ if (isset($_GET['ticket_id'])) {
                                 <?php if ($vendor_website_url) { ?>
                                     <div class="mt-1 text-truncate"><i class="fa fa-fw fa-globe text-secondary me-2"></i><a href="<?= escapeHtml($vendor_website_url) ?>" target="_blank" rel="noopener noreferrer" title="<?= $vendor_website ?>"><?= escapeHtml(vendorWebsiteLabel($ticket['vendor_website'])) ?></a></div>
                                 <?php } ?>
+                                <?php $vendor_status_url = vendorWebsiteUrl($ticket['vendor_status_page']);
+                                if ($vendor_status_url) { ?>
+                                    <!-- Whether it is them - their outages -->
+                                    <div class="mt-1 text-truncate"><i class="fa fa-fw fa-heartbeat text-secondary me-2"></i><a href="<?= escapeHtml($vendor_status_url) ?>" target="_blank" rel="noopener noreferrer" title="Their status page - <?= escapeHtml(vendorWebsiteLabel($ticket['vendor_status_page'])) ?>">Status page</a></div>
+                                <?php } ?>
                             <?php } ?>
 
                             <?php if ($project_id) { ?>
@@ -1721,43 +1874,6 @@ if (!empty($can_edit_ticket) && !empty($ticket_is_open)) { ?>
                     positions: positions
                 });
             }
-        });
-    }
-
-    // Canned responses - insert at the cursor rather than replacing, so picking one into a
-    // half-written reply adds to it. The body is fetched on demand; TinyMCE owns the field
-    // by now, so setting the textarea value directly would do nothing visible.
-    const cannedPicker = document.getElementById('canned_response_picker');
-    if (cannedPicker) {
-        cannedPicker.addEventListener('change', function () {
-            const cannedId = cannedPicker.value;
-            if (!cannedId) return;
-
-            cannedPicker.disabled = true;
-
-            fetch('ajax.php?get_canned_response=' + encodeURIComponent(cannedId))
-                .then(response => response.json())
-                .then(data => {
-                    const editor = window.tinymce ? tinymce.get('ticket_reply') : null;
-
-                    if (editor) {
-                        editor.insertContent(data.body);
-                        editor.focus();
-                    } else {
-                        // TinyMCE failed to load - fall back to the plain textarea
-                        const textarea = document.getElementById('ticket_reply');
-                        if (textarea) {
-                            textarea.value += data.body;
-                        }
-                    }
-                })
-                .catch(() => {
-                    alert('Could not load that canned response.');
-                })
-                .finally(() => {
-                    cannedPicker.disabled = false;
-                    cannedPicker.value = '';
-                });
         });
     }
 

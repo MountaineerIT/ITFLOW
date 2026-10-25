@@ -13,6 +13,12 @@
  * receipt) when a category and account are set (Admin > Timesheets > Settings - ts_mileage_rate,
  * ts_reimb_category, ts_reimb_account).
  *
+ * Paid back through ITFlow (26.11, mitReimbItflowPaysBack): ITFlow's own "paid personally" expenses and Reimburse step pay
+ * people back. Our mileage trips are marked as driven in their own vehicle (trip_own_vehicle), so they wait in Trips' pay-back
+ * list at ITFlow's mileage rate (which then is ours too); approved purchases become expenses paid by the person
+ * (expense_paid_by, on no account, vendor matched by name or "Staff purchases"), waiting in Expenses' Reimburse list. An entry
+ * whose trip was claimed or whose expense was paid back is locked here.
+ *
  * Who: anyone who can edit the ticket logs their own; the person, or someone who may correct their timesheet,
  * changes or removes one while the period is open (mitTsWhyLocked). Follows the Timesheets switch.
  * Pages: the Reimbursements box on the ticket (mitReimbTicketCard, layout box "reimburse", icon fa-receipt),
@@ -42,10 +48,34 @@ function mitReimbOn() {
     return mitReimbReady() && mitTsOn();
 }
 
-/** The settings: rate per mile (0 = not set), and the expense category and account purchases are recorded under. */
+/** Does ITFlow pay people back itself (26.11: expenses.expense_paid_by, trips.trip_own_vehicle)? */
+function mitReimbItflowPaysBack() {
+    global $mysqli;
+    static $yes = null;
+    if ($yes === null) {
+        try {
+            $yes = mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM expenses LIKE 'expense_paid_by'")) === 1
+                && mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM trips LIKE 'trip_own_vehicle'")) === 1;
+        } catch (Throwable $e) {
+            $yes = false;
+        }
+    }
+    return $yes;
+}
+
+/** ITFlow's own mileage rate (Admin > Trips), 0 when not set or not there. */
+function mitReimbItflowRate() {
+    return mitReimbItflowPaysBack() && function_exists('tripRules') ? (float) tripRules()['rate'] : 0.0;
+}
+
+/**
+ * The settings: rate per mile (0 = not set - ITFlow's own rate when it has one, so the timesheet shows what ITFlow will pay),
+ * and the expense category and account purchases are recorded under (no account once ITFlow pays back - paid personally).
+ */
 function mitReimbSettings() {
+    $itflow_rate = mitReimbItflowRate();
     return [
-        'rate' => max(0, round((float) mitSetting('ts_mileage_rate', '0'), 4)),
+        'rate' => $itflow_rate > 0 ? round($itflow_rate, 4) : max(0, round((float) mitSetting('ts_mileage_rate', '0'), 4)),
         'category_id' => intval(mitSetting('ts_reimb_category', '0')),
         'account_id' => intval(mitSetting('ts_reimb_account', '0')),
     ];
@@ -155,7 +185,45 @@ function mitReimbWhyLocked(array $row) {
     if ($user_id !== intval($session_user_id) && !mitTsMayCorrect($user_id)) {
         return 'Only ' . ($row['user_name'] ?? 'they') . ', or whoever corrects their timesheet, can change it.';
     }
+    if ($paid = mitReimbPaidBack($row)) {
+        return $paid;
+    }
     return mitTsWhyDayLocked($user_id, $row['entry_date']);
+}
+
+/** '' or why an entry is settled in ITFlow: its trip claimed for mileage, or its expense paid back. */
+function mitReimbPaidBack(array $row) {
+    global $mysqli;
+    if (!mitReimbItflowPaysBack()) {
+        return '';
+    }
+    if (intval($row['trip_id'] ?? 0) && intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT trip_expense_id FROM trips WHERE trip_id = " . intval($row['trip_id'])))[0] ?? 0)) {
+        return 'Its mileage has been paid back in ITFlow (Trips) - it can no longer change.';
+    }
+    if (intval($row['expense_id'] ?? 0) && intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT expense_reimbursement_id FROM expenses WHERE expense_id = " . intval($row['expense_id'])))[0] ?? 0)) {
+        return 'It has been paid back in ITFlow (Expenses > Reimburse) - it can no longer change.';
+    }
+    return '';
+}
+
+/** The vendor a paid-personally purchase goes under: our own vendor of that name, else "Staff purchases" (made once). */
+function mitReimbVendorId($name) {
+    global $mysqli;
+    $name = trim((string) $name);
+    if ($name !== '') {
+        $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT vendor_id FROM vendors WHERE vendor_client_id = 0 AND vendor_archived_at IS NULL
+            AND LOWER(vendor_name) = LOWER('" . escapeSql($name) . "') LIMIT 1"));
+        if ($row) {
+            return intval($row[0]);
+        }
+    }
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT vendor_id FROM vendors WHERE vendor_client_id = 0 AND vendor_name = 'Staff purchases'
+        ORDER BY vendor_archived_at IS NULL DESC, vendor_id LIMIT 1"));
+    if ($row) {
+        return intval($row[0]);
+    }
+    mysqli_query($mysqli, "INSERT INTO vendors SET vendor_name = 'Staff purchases', vendor_description = 'Things agents bought themselves, paid back (timesheet reimbursements)', vendor_client_id = 0");
+    return intval(mysqli_insert_id($mysqli));
 }
 
 /*
@@ -203,7 +271,9 @@ function mitReimbSave(array $ticket, ?array $row, array $post, array $files) {
         $amount = round($miles * $rate, 2);
         $purpose = mb_substr("$reference - " . $ticket['ticket_subject'], 0, 200);
         $trip_set = "trip_date = '$date', trip_purpose = '" . escapeSql($purpose) . "', trip_source = '" . escapeSql(mb_substr($source, 0, 200)) . "',
-            trip_destination = '" . escapeSql(mb_substr($destination, 0, 200)) . "', trip_miles = $miles, round_trip = $round_trip, trip_user_id = $user_id, trip_client_id = $client_id";
+            trip_destination = '" . escapeSql(mb_substr($destination, 0, 200)) . "', trip_miles = $miles, round_trip = $round_trip, trip_user_id = $user_id, trip_client_id = $client_id"
+            // ITFlow 26.11 pays back trips driven in one's own vehicle (Trips > pay back) - ours are
+            . (mitReimbItflowPaysBack() ? ", trip_own_vehicle = 1, trip_ticket_id = " . intval($ticket['ticket_id']) : '');
         $trip_id = intval($row['trip_id'] ?? 0);
         if ($trip_id && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM trips WHERE trip_id = $trip_id"))) {
             mysqli_query($mysqli, "UPDATE trips SET $trip_set WHERE trip_id = $trip_id");
@@ -372,7 +442,8 @@ function mitReimbRecordEnded() {
 function mitReimbRecordExpenses($user_id, array $period) {
     global $mysqli, $config_module_enable_accounting, $session_company_currency;
     $settings = mitReimbSettings();
-    if (!mitReimbReady() || intval($config_module_enable_accounting ?? 0) !== 1 || !$settings['category_id'] || !$settings['account_id']) {
+    $paid_back = mitReimbItflowPaysBack();
+    if (!mitReimbReady() || intval($config_module_enable_accounting ?? 0) !== 1 || !$settings['category_id'] || (!$paid_back && !$settings['account_id'])) {
         return 0;
     }
     $currency = $session_company_currency ?: (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT company_currency FROM companies WHERE company_id = 1"))[0];
@@ -389,7 +460,10 @@ function mitReimbRecordExpenses($user_id, array $period) {
         }
         $description = mitReimbExpenseDescription($row);
         mysqli_query($mysqli, "INSERT INTO expenses SET expense_date = '" . escapeSql($row['entry_date']) . "', expense_amount = " . round((float) $row['amount'], 2) . ",
-            expense_currency_code = '" . escapeSql($currency) . "', expense_account_id = " . intval($settings['account_id']) . ", expense_vendor_id = 0,
+            expense_currency_code = '" . escapeSql($currency) . "', "
+            // Paid personally: on no account until ITFlow's Reimburse pays the person back (which needs a vendor)
+            . ($paid_back ? "expense_account_id = 0, expense_paid_by = " . intval($user_id) . ", expense_vendor_id = " . mitReimbVendorId($row['vendor'] ?? '') . ","
+                : "expense_account_id = " . intval($settings['account_id']) . ", expense_vendor_id = 0,") . "
             expense_client_id = " . intval($row['client_id']) . ", expense_category_id = " . intval($settings['category_id']) . ",
             expense_description = '" . escapeSql($description) . "', expense_reference = 'Reimbursement " . intval($row['reimb_id']) . "'"
             . ($receipt !== '' ? ", expense_receipt = '" . escapeSql($receipt) . "'" : ''));

@@ -14,8 +14,9 @@
     }
 
     function tone(root) {
-        root.querySelectorAll('.badge[style*="background"]').forEach(function (badge) {
-            var colour = badge.style.backgroundColor;
+        // An inline background, or ITFlow 26.11's status colour (--itflow-status-bg)
+        root.querySelectorAll('.badge[style*="background"], .badge[style*="--itflow-status-bg"]').forEach(function (badge) {
+            var colour = badge.style.backgroundColor || badge.style.getPropertyValue('--itflow-status-bg').trim();
             if (colour && badge.style.getPropertyValue('--mit-tone') !== colour) {
                 badge.style.setProperty('--mit-tone', colour);
                 badge.classList.add('mit-tone');

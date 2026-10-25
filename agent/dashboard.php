@@ -93,6 +93,45 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
     <?php } ?>
 </div>
 
+<?php
+// What is left to set up on a new install, for an admin - until it is done, skipped or dismissed (functions/getting_started.php)
+$getting_started = gettingStartedCard();
+if ($getting_started) {
+    $gs_card_progress = $getting_started['progress'];
+    $gs_card_next = $getting_started['steps'][$gs_card_progress['next']]; ?>
+    <section class="card itflow-gs-card mb-4" aria-labelledby="dashGettingStarted" data-gs-card>
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <span class="itflow-gs-card-icon" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
+                <div class="min-w-0 flex-grow-1">
+                    <h2 id="dashGettingStarted" class="h6 fw-semibold mb-1">Finish setting up <span class="text-body-secondary fw-normal">· <?= $gs_card_progress['done'] ?> of <?= $gs_card_progress['total'] ?></span></h2>
+                    <div class="progress itflow-gs-progress mb-2" role="progressbar" aria-label="How far setting up has got" aria-valuenow="<?= $gs_card_progress['done'] ?>" aria-valuemin="0" aria-valuemax="<?= $gs_card_progress['total'] ?>">
+                        <div class="progress-bar" style="width: <?= round($gs_card_progress['done'] * 100 / max(1, $gs_card_progress['total'])) ?>%"></div>
+                    </div>
+                    <div class="small text-body-secondary">Next: <strong class="text-body"><?= escapeHtml($gs_card_next['title']) ?></strong> - <?= escapeHtml($gs_card_next['status']) ?></div>
+                </div>
+                <form action="/admin/post.php" method="post" class="m-0 flex-shrink-0">
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                    <button type="submit" name="getting_started_dismiss" value="1" class="btn-close" aria-label="Don't show this on the dashboard" title="Don't show this on the dashboard" data-gs-card-dismiss></button>
+                </form>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                <ul class="list-unstyled d-flex flex-wrap gap-1 mb-0 me-auto itflow-gs-card-steps">
+                    <?php foreach ($getting_started['steps'] as $gs_card_key => $gs_card_step) {
+                        $gs_card_state = $gs_card_step['done'] ? 'done' : ($gs_card_step['skipped'] ? 'skipped' : 'todo'); ?>
+                        <li>
+                            <a href="<?= gettingStartedUrl($gs_card_key) ?>" class="itflow-gs-chip is-<?= $gs_card_state ?>" data-gs-card-step="<?= $gs_card_key ?>" title="<?= escapeHtml($gs_card_step['title'] . ' - ' . $gs_card_step['status']) ?>">
+                                <i class="fas fa-fw <?= $gs_card_state === 'done' ? 'fa-check' : ($gs_card_state === 'skipped' ? 'fa-minus' : $gs_card_step['icon']) ?>"></i><?= escapeHtml($gs_card_step['label']) ?>
+                            </a>
+                        </li>
+                    <?php } ?>
+                </ul>
+                <a href="<?= gettingStartedUrl($gs_card_progress['next']) ?>" class="btn btn-primary btn-sm" data-gs-card-continue>Carry on<i class="fas fa-arrow-right ms-2"></i></a>
+            </div>
+        </div>
+    </section>
+<?php } ?>
+
 <?php $mit_align_dash = $attention !== null && function_exists('mitAlignDashCard') ? mitAlignDashCard($attention, $access) : ''; echo $mit_align_dash; // Mountaineer IT: MSP Align, in place of Needs attention ?>
 <?php if ($attention !== null && $mit_align_dash === '') { ?>
 
@@ -152,7 +191,6 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
                                 'client_id' => intval($ticket['ticket_client_id']) ?: null,
                                 'ticket_id' => intval($ticket['ticket_id']),
                             ]));
-                            $status_color = preg_match('/^#[0-9a-f]{3,8}$/i', (string) $ticket['ticket_status_color']) ? $ticket['ticket_status_color'] : '#6c757d';
                             $last_activity = $ticket['ticket_updated_at'] ?: $ticket['ticket_created_at'];
                             ?>
                             <a href="<?= escapeHtml($ticket_url) ?>" class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2">
@@ -166,7 +204,7 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
                                 <?php if ($ticket['sla_breached']) { ?>
                                     <span class="badge rounded-pill text-bg-danger" title="SLA breached"><i class="fas fa-stopwatch me-1" aria-hidden="true"></i>SLA</span>
                                 <?php } ?>
-                                <span class="badge rounded-pill text-white d-none d-sm-inline" style="background-color: <?= $status_color ?>"><?= escapeHtml($ticket['ticket_status_name']) ?></span>
+                                <span class="d-none d-sm-inline"><?= ticketStatusHtml($ticket['ticket_status_name'], $ticket['ticket_status_color'], 'detail') ?></span>
                                 <span class="small text-body-secondary text-nowrap d-none d-md-inline" title="Last activity <?= escapeHtml($last_activity) ?>"><?= escapeHtml(timeAgo($last_activity)) ?></span>
                             </a>
                         <?php } ?>
@@ -410,8 +448,8 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
                         <ul class="list-group list-group-flush">
                             <?php foreach ($accounts as $account) { ?>
                                 <li class="list-group-item d-flex justify-content-between gap-3">
-                                    <span class="text-truncate"><?= escapeHtml($account['account_name']) ?></span>
-                                    <span class="text-nowrap <?= floatval($account['balance']) < 0 ? 'text-danger' : '' ?>"><?= escapeHtml(dashboardMoney($account['balance'])) ?></span>
+                                    <a class="text-truncate text-reset" href="/agent/transactions.php?account=<?= intval($account['account_id']) ?>"><?= escapeHtml($account['account_name']) ?></a>
+                                    <span class="text-nowrap <?= floatval($account['balance']) < 0 ? ($account['type'] === 3 ? 'text-warning-emphasis' : 'text-danger') : '' ?>"><?= escapeHtml($account['type'] === 3 && floatval($account['balance']) < 0 ? accountBalanceText($account) : dashboardMoney($account['balance'])) ?></span>
                                 </li>
                             <?php } ?>
                         </ul>
@@ -602,10 +640,10 @@ $tone_text = ['danger' => 'text-danger-emphasis', 'warning' => 'text-warning-emp
                 <div class="card h-100 mb-0">
                     <div class="card-header d-flex align-items-center">
                         <h3 class="card-title mb-0 me-auto">Trips</h3>
-                        <span class="small text-body-secondary"><?= number_format($chart_data['trips']['period_total'], 1) ?> mi <?= escapeHtml(strtolower($period['label'])) ?></span>
+                        <span class="small text-body-secondary"><?= number_format($chart_data['trips']['period_total'], 1) ?> <?= tripUnit(true) ?> <?= escapeHtml(strtolower($period['label'])) ?></span>
                     </div>
                     <div class="card-body">
-                        <div class="itflow-dash-chart"><canvas id="dashTrips" aria-label="Miles per month"></canvas></div>
+                        <div class="itflow-dash-chart"><canvas id="dashTrips" aria-label="<?= ucfirst(tripUnit()) ?> per month"></canvas></div>
                     </div>
                 </div>
             </div>

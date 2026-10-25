@@ -27,7 +27,7 @@ $sql = mysqli_query($mysqli, "SELECT recurring_invoice_id, recurring_invoice_pre
     ORDER BY client_name ASC, recurring_invoice_next_date ASC");
 while ($row = mysqli_fetch_assoc($sql)) {
     $amount = floatval($row['recurring_invoice_amount']);
-    $row['monthly'] = $row['recurring_invoice_frequency'] === 'year' ? $amount / 12 : $amount;
+    $row['monthly'] = recurringInvoiceMonthly($amount, $row['recurring_invoice_frequency']);
     $invoices[] = $row;
 }
 
@@ -77,8 +77,8 @@ $invoice_columns = [
     }],
     'recurring_invoice_scope' => ['label' => 'Scope', 'class' => 'small itflow-report-text'],
     'category_name' => ['label' => 'Category', 'class' => 'small text-body-secondary'],
-    'recurring_invoice_frequency' => ['label' => 'Every', 'csv' => function ($row) { return $row['recurring_invoice_frequency'] === 'year' ? 'Year' : 'Month'; }, 'html' => function ($row) {
-        return $row['recurring_invoice_frequency'] === 'year' ? 'Year' : 'Month';
+    'recurring_invoice_frequency' => ['label' => 'Every', 'csv' => function ($row) { return ucfirst(recurringInvoicePeriodWord($row['recurring_invoice_frequency'])); }, 'html' => function ($row) {
+        return ucfirst(recurringInvoicePeriodWord($row['recurring_invoice_frequency']));
     }],
     'recurring_invoice_amount' => ['label' => 'Amount', 'type' => 'money'],
     'monthly' => ['label' => 'Per month', 'type' => 'money', 'class' => 'fw-semibold'],
@@ -98,8 +98,7 @@ if (reportExporting()) {
 // What comes off it every month
 $costs = 0.0;
 if ($can_see_costs && !$client_id) {
-    $costs = dashboardSum("SELECT SUM(recurring_expense_amount) FROM recurring_expenses WHERE recurring_expense_status = 1 AND recurring_expense_archived_at IS NULL AND recurring_expense_vendor_id > 0 AND recurring_expense_frequency = 1")
-        + dashboardSum("SELECT SUM(recurring_expense_amount) FROM recurring_expenses WHERE recurring_expense_status = 1 AND recurring_expense_archived_at IS NULL AND recurring_expense_vendor_id > 0 AND recurring_expense_frequency = 2") / 12;
+    $costs = recurringExpenseMonthlyTotal();
 }
 // What bills in the next 30 days
 $next_30 = 0.0;

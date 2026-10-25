@@ -5,11 +5,6 @@ require_once '../../../includes/modal_header.php';
 // Filters
 $leads_filter = intval($_GET['lead'] ?? 0);
 
-// Selects
-$referral_sql = mysqli_query($mysqli, "SELECT category_name FROM categories WHERE category_type = 'Referral' AND category_archived_at IS NULL ORDER BY category_name ASC");
-
-$sql_tags_select = mysqli_query($mysqli, "SELECT tag_id, tag_name FROM tags WHERE tag_type = 1 ORDER BY tag_name ASC");
-
 $net_terms_array = array (
     '0'=>'On Receipt',
     '7'=>'7 Days',
@@ -94,18 +89,9 @@ ob_start();
                             <span class="input-group-text"><i class="fa fa-fw fa-link"></i></span>
                         <select class="form-select select2" data-tags="true" name="referral">
                             <option value="">- Select Referral -</option>
-                            <?php
-
-                            while ($row = mysqli_fetch_assoc($referral_sql)) {
-                                $referral = escapeHtml($row['category_name']); ?>
-                                <option><?= $referral ?></option>
-                            <?php } ?>
-
+                            <?= categoryOptionsHtml('Referral') ?>
                         </select>
-                            <button class="btn btn-secondary ajax-modal" title="New category" type="button"
-                                data-modal-url="../admin/modals/category/category_add.php?category=Referral">
-                                <i class="fas fa-fw fa-plus"></i>
-                            </button>
+                        <?= categoryAddButtonHtml('Referral', 'btn btn-secondary') ?>
                     </div>
                 </div>
 
@@ -121,21 +107,9 @@ ob_start();
                     <label>Tags</label>
                     <div class="input-group">
                             <span class="input-group-text"><i class="fa fa-fw fa-tags"></i></span>
-                        <select class="form-select select2" name="tags[]" data-placeholder="- Select Tags -"multiple>
-                            <?php
-
-                            while ($row = mysqli_fetch_assoc($sql_tags_select)) {
-                                $tag_id_select = intval($row['tag_id']);
-                                $tag_name_select = escapeHtml($row['tag_name']);
-                                ?>
-                                <option value="<?= $tag_id_select ?>"><?= $tag_name_select ?></option>
-                            <?php } ?>
-
+                        <select class="form-select select2" name="tags[]" data-placeholder="Add some tags" multiple<?= !empty($session_is_admin) ? ' data-tags="true"' : '' ?>>
+                            <?= tagOptionsHtml('client', []) ?>
                         </select>
-                            <button class="btn btn-secondary ajax-modal" title="New tag" type="button"
-                                data-modal-url="../admin/modals/tag/tag_add.php?type=1">
-                                <i class="fas fa-fw fa-plus"></i>
-                            </button>
                     </div>
                 </div>
 
@@ -311,6 +285,21 @@ ob_start();
                                 <span class="input-group-text"><i class="fa fa-fw fa-balance-scale"></i></span>
                             <input type="text" class="form-control" name="tax_id_number" placeholder="Tax ID Number" maxlength="255">
                         </div>
+                    </div>
+
+                    <?php
+                    $client_tax = [];
+                    $client_tax_key = 'New';
+                    require __DIR__ . '/client_tax_fields.php';
+                    ?>
+
+                    <div class="mb-3">
+                        <input type="hidden" name="reminders_field" value="1">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input" name="reminders" value="1" id="clientRemindersNew" checked>
+                            <label class="form-check-label" for="clientRemindersNew">Payment reminders and statements</label>
+                        </div>
+                        <small class="text-secondary">Emailed as set in Invoice Settings. Off, this client gets neither - invoices can still be sent by hand.</small>
                     </div>
 
 

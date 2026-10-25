@@ -44,6 +44,9 @@ if (empty($client_top_head_skip)) {
             </a>
             <?php if ($client_is_lead) { ?><span class="badge rounded-pill text-bg-info fw-normal">Lead</span><?php } ?>
             <?php if ($client_archived_at) { ?><span class="badge rounded-pill text-bg-secondary fw-normal">Archived</span><?php } ?>
+            <?php if (!empty($config_module_enable_accounting) && ($client_head_tax = taxClient($client_id))['exempt']) { ?>
+                <span class="badge rounded-pill fw-normal <?= $client_head_tax['expired'] ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success-emphasis' ?>" title="<?= escapeHtml(taxExemptText($client_head_tax)) ?>"><?= $client_head_tax['expired'] ? 'Tax exempt - certificate expired' : 'Tax exempt' ?></span>
+            <?php } ?>
             <?= tagPills('client', $client_id, $client_tags) ?>
             <?= function_exists('mitAlignClientButton') ? mitAlignClientButton($client_id) : '' // Mountaineer IT: MSP Align ?>
             <?= function_exists('mitClientHeadMeta') ? mitClientHeadMeta() : '' // Mountaineer IT: contact line ?>
@@ -124,5 +127,7 @@ if (empty($client_top_head_skip)) {
 
 <?php
 // require_once "modals/client/client_credit_add.php"; --Credit Not Ready 2025-08-27
-require_once "modals/client/client_delete.php";
-require_once "modals/client/client_download_pdf.php";
+// Only where Delete Client is in the menu (includes/client_actions_menu.php)
+if (lookupUserPermission("module_client") >= 3 && !empty($client_archived_at)) {
+    require_once "modals/client/client_delete.php";
+}

@@ -101,7 +101,7 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
     await submit(add, 'add_invoice');
     made.invoiceId = Number(new URL(page.url()).searchParams.get('invoice_id'));
     expect(made.invoiceId, `invoice page (${await flash(page)})`).toBeGreaterThan(0);
-    await post(page, '/agent/post.php', { add_invoice_item: '1', invoice_id: String(made.invoiceId), name: 'Smoke test labour', description: '', qty: '2', price: '50', tax_id: '0', item_order: '1', product_id: '0' });
+    await post(page, '/agent/post.php', { billing_item_save: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test labour', description: '', qty: '2', price: '50', tax_id: '0', product_id: '0' });
 
     // Awaiting approval; ITFlow's own email buttons are gone while QuickBooks emails invoices
     await visit(page, invoicePage(), errors);
@@ -112,7 +112,7 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
     await expect(bar(page)).toContainText('Approved');
 
     // Changing it after approval sends it back for approval
-    await post(page, '/agent/post.php', { add_invoice_item: '1', invoice_id: String(made.invoiceId), name: 'Smoke test extra', description: '', qty: '1', price: '10', tax_id: '0', item_order: '2', product_id: '0' });
+    await post(page, '/agent/post.php', { billing_item_save: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test extra', description: '', qty: '1', price: '10', tax_id: '0', product_id: '0' });
     await visit(page, invoicePage(), errors);
     await expect(bar(page)).toContainText('Changed since approval');
     await visit(page, 'agent/mit_invoice_approvals.php?show=changed', errors);
@@ -138,8 +138,12 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
     // Locked: the change is refused, the lines are as sent, the status followed
     await visit(page, invoicePage(), errors);
     await expect(bar(page)).toContainText('In QuickBooks');
-    await expect(page.locator('[data-modal-url*="payment_add.php"]')).toBeHidden();
-    await post(page, '/agent/post.php', { add_invoice_item: '1', invoice_id: String(made.invoiceId), name: 'Smoke test refused', description: '', qty: '1', price: '1', tax_id: '0', item_order: '3', product_id: '0' });
+    // Every Add Payment button (ITFlow 26.11 has one in the header and one by the payments) and the line controls are hidden
+    for (const hidden of ['[data-modal-url*="payment_add.php"]', '[data-modal-url*="billing_item.php"]', '#add-line', '.itflow-paper-actions']) {
+        const shown = await page.locator(hidden).evaluateAll((els) => els.filter((el) => el.offsetParent !== null).length);
+        expect(shown, `${hidden} hidden while locked`).toBe(0);
+    }
+    await post(page, '/agent/post.php', { billing_item_save: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test refused', description: '', qty: '1', price: '1', tax_id: '0', product_id: '0' });
     await visit(page, invoicePage(), errors);
     await expect(page.locator('body')).not.toContainText('Smoke test refused');
     await expect(page.locator('body')).toContainText('Sent');

@@ -57,11 +57,14 @@ function mitProcVendorOptions($selected) {
     return $html;
 }
 
-/** The product modals' "Order from" field (agent/modals/product/product_add.php / product_edit.php). */
+/**
+ * The product modals' "Order from" field. Not used since ITFlow 26.11, whose product form has its own Vendor
+ * (products.product_vendor_id - the same column, which purchase orders read); kept for a checkout without it.
+ */
 function mitProductVendorField($product_id) {
     global $mysqli;
     // Procurement's own field: only for roles with Procurement Edit
-    if (!mitProductVendorReady() || mitProcLevel() < 2) {
+    if (!mitProductVendorReady() || mitProcLevel() < 2 || mitProductItflowFields()) {
         return '';
     }
     $current = intval($product_id) ? intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT product_vendor_id FROM products WHERE product_id = " . intval($product_id)))[0] ?? 0) : 0;
@@ -69,14 +72,24 @@ function mitProductVendorField($product_id) {
         . '<select class="form-select select2" name="product_vendor_id">' . mitProcVendorOptions($current) . '</select></div>';
 }
 
-/** Save it (called from mitProductSave). */
+/** Does ITFlow's product form have its own cost / vendor / stock tracking (26.11 - products.product_track_stock)? */
+function mitProductItflowFields() {
+    global $mysqli;
+    static $yes = null;
+    if ($yes === null) {
+        $yes = mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM products LIKE 'product_track_stock'")) === 1;
+    }
+    return $yes;
+}
+
+/** Save it (before ITFlow 26.11 only - its form now saves the vendor). 0 = none, as ITFlow keeps it. */
 function mitProductVendorSave($product_id, array $post) {
     global $mysqli;
-    if (!mitProductVendorReady() || !isset($post['product_vendor_id']) || mitProcLevel() < 2) {
+    if (!mitProductVendorReady() || !isset($post['product_vendor_id']) || mitProcLevel() < 2 || mitProductItflowFields()) {
         return;
     }
     $vendor_id = intval($post['product_vendor_id']);
-    mysqli_query($mysqli, "UPDATE products SET product_vendor_id = " . ($vendor_id && isset(mitProcVendors()[$vendor_id]) ? $vendor_id : 'NULL') . " WHERE product_id = " . intval($product_id));
+    mysqli_query($mysqli, "UPDATE products SET product_vendor_id = " . ($vendor_id && isset(mitProcVendors()[$vendor_id]) ? $vendor_id : 0) . " WHERE product_id = " . intval($product_id));
 }
 
 /** product_id => [type, vendor_id, cost] for a list of products. */
@@ -86,7 +99,7 @@ function mitProductsInfo(array $product_ids) {
     $info = [];
     if ($product_ids) {
         $vendor = mitProductVendorReady() ? 'product_vendor_id' : 'NULL';
-        $cost = mitQuoteColumnsReady() ? 'product_cost' : 'NULL';
+        $cost = mitQuoteColumnsReady() ? 'NULLIF(product_cost, 0)' : 'NULL'; // ITFlow keeps 0 for no cost
         $result = mysqli_query($mysqli, "SELECT product_id, product_type, product_tax_id, product_price, $vendor AS vendor_id, $cost AS cost FROM products WHERE product_id IN (" . implode(',', $product_ids) . ")");
         while ($row = mysqli_fetch_assoc($result)) {
             $info[intval($row['product_id'])] = $row;
@@ -168,6 +181,32 @@ function mitProcProjectField($name, $client_id, $selected, $label = 'Project') {
         . '<div class="form-text" data-mit-project-hint' . ($empty ? '' : ' hidden') . '>'
         . ($client_id ? 'This client has no open projects' : 'There are no open projects without a client')
         . ' - completed and archived projects are not listed.</div>';
+}
+
+/**
+ * After ITFlow 26.11's quoteConvert made the invoice (agent/post/quote.php add_quote_to_invoice): each quote line ticked to order
+ * (mitProcQuoteConvertFields) goes to procurement with the invoice line it became - matched in order by name and quantity, as
+ * quoteConvert copies the one-time lines (billingCopyLines).
+ */
+function mitProcAfterQuoteConvert($quote_id, $invoice_id, $client_id, array $post) {
+    global $mysqli;
+    if (empty($post['mit_proc_lines']) || mitProcLevel() < 2) {
+        return;
+    }
+    $invoice_items = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_name, item_quantity FROM invoice_items WHERE item_invoice_id = " . intval($invoice_id) . " ORDER BY item_id"), MYSQLI_ASSOC);
+    $used = [];
+    foreach (billingItems('quote', $quote_id) as $line) {
+        if (empty($post['mit_proc_lines'][intval($line['item_id'])]['send'])) {
+            continue;
+        }
+        foreach ($invoice_items as $k => $invoice_item) {
+            if (!isset($used[$k]) && $invoice_item['item_name'] === $line['item_name'] && (float) $invoice_item['item_quantity'] === (float) $line['item_quantity']) {
+                $used[$k] = true;
+                mitProcFromQuoteLine(intval($line['item_id']), intval($invoice_item['item_id']), intval($invoice_id), intval($client_id), $post);
+                break;
+            }
+        }
+    }
 }
 
 /** Hook in add_quote_to_invoice, after each invoice line: a ticked line goes on the list to order. */

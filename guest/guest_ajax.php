@@ -11,7 +11,6 @@ require_once "../config.php";
 // Set Timezone
 require_once "../includes/inc_set_timezone.php";
 require_once "../functions.php";
-require_once "../libs/totp/totp.php";
 
 
 /*
@@ -121,57 +120,5 @@ if (isset($_GET['stripe_create_pi'])) {
         echo json_encode(['error' => $e->getMessage()]);
     }
 
-    exit;
-}
-
-/*
- * Returns the current TOTP code for a shared credential
- * Authenticated via the share ID + key, same as guest_view_item.php
- */
-if (isset($_GET['get_share_totp_token'])) {
-
-    header('Content-Type: application/json');
-
-    $item_id = intval($_GET['id']);
-    $item_key = escapeSql($_GET['key']);
-
-    // Active + expiry checks apply, so revoking the share stops codes immediately.
-    //  BINARY so the type matches exactly, as the agent-side permission check does.
-    $sql = mysqli_query($mysqli, "SELECT item_related_id, item_client_id, item_views, item_view_limit FROM shared_items WHERE item_id = $item_id AND item_key = '$item_key' AND item_type = BINARY 'Credential' AND item_active = 1 AND item_expire_at > NOW() LIMIT 1");
-
-    if (!$sql || mysqli_num_rows($sql) !== 1) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    $row = mysqli_fetch_assoc($sql);
-
-    // The page view already used up the last view, so codes keep rotating for a short
-    //  while after it (the view is logged with the share as its entity), then stop
-    if (intval($row['item_view_limit']) > 0 && intval($row['item_views']) >= intval($row['item_view_limit'])) {
-        $recent_view = mysqli_query($mysqli, "SELECT log_id FROM logs WHERE log_type = 'Share' AND log_action = 'View' AND log_entity_id = $item_id AND log_created_at > NOW() - INTERVAL 10 MINUTE LIMIT 1");
-        if (!$recent_view || mysqli_num_rows($recent_view) !== 1) {
-            exit(json_encode(['error' => 'invalid']));
-        }
-    }
-    $credential_id = intval($row['item_related_id']);
-    $client_id = intval($row['item_client_id']);
-
-    $credential_sql = mysqli_query($mysqli, "SELECT credential_otp_secret FROM credentials WHERE credential_id = $credential_id AND credential_client_id = $client_id LIMIT 1");
-
-    if (!$credential_sql || mysqli_num_rows($credential_sql) !== 1) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    // Tidied the same way as the agent side - seeds saved with spaces or as an otpauth:// link still work
-    $totp_secret = credentialOtpSeed(mysqli_fetch_assoc($credential_sql)['credential_otp_secret']);
-
-    if (empty($totp_secret)) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    echo json_encode([
-        'token' => TokenAuth6238::getTokenCode($totp_secret),
-        'expires_in' => 30 - (time() % 30)
-    ]);
     exit;
 }

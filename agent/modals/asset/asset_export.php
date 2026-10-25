@@ -23,6 +23,9 @@ $client_filter = intval($_GET['client'] ?? 0);
 // Location Filter
 $location_filter = intval($_GET['location'] ?? 0);
 
+// Status Filter
+$status_filter = trim(strip_tags((string) ($_GET['status'] ?? '')));
+
 // Tags Filter
 $tag_filter = (isset($_GET['tags']) && is_array($_GET['tags'])) ? array_map('intval', $_GET['tags']) : [];
 
@@ -83,7 +86,7 @@ ob_start();
                 <select class="form-select select2" name="client">
                     <option value="">- All Clients -</option>
                     <?php
-                    $sql_clients_filter = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients WHERE EXISTS (SELECT 1 FROM assets WHERE asset_client_id = client_id) ORDER BY client_name ASC");
+                    $sql_clients_filter = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients WHERE EXISTS (SELECT 1 FROM assets WHERE asset_client_id = client_id)" . clientScopeSql('client_id') . " ORDER BY client_name ASC");
                     while ($row = mysqli_fetch_assoc($sql_clients_filter)) {
                         $filter_client_id = intval($row['client_id']);
                         $filter_client_name = escapeHtml($row['client_name']);
@@ -120,20 +123,22 @@ ob_start();
         <?php } ?>
 
         <div class="mb-3">
+            <label>Status</label>
+            <div class="input-group">
+                    <span class="input-group-text"><i class="fa fa-fw fa-circle"></i></span>
+                <select class="form-select select2" name="status">
+                    <option value="">- All Statuses -</option>
+                    <?= categoryFilterOptionsHtml('asset_status', $status_filter, "SELECT DISTINCT asset_status FROM assets WHERE asset_status IS NOT NULL AND asset_status <> ''" . ($client_id ? " AND asset_client_id = $client_id" : '') . clientScopeSql('asset_client_id')) ?>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
             <label>Tags</label>
             <div class="input-group">
                     <span class="input-group-text"><i class="fa fa-fw fa-tags"></i></span>
                 <select class="form-select select2" name="tags[]" data-placeholder="- All Tags -" multiple>
-                    <?php
-                    $sql_tags_filter = mysqli_query($mysqli, "SELECT tag_id, tag_name, tag_color, tag_icon FROM tags WHERE tag_type = 5 ORDER BY tag_name ASC");
-                    while ($row = mysqli_fetch_assoc($sql_tags_filter)) {
-                        $filter_tag_id = intval($row['tag_id']);
-                        $filter_tag_name = escapeHtml($row['tag_name']);
-                    ?>
-                        <option <?php if (in_array($filter_tag_id, $tag_filter, true)) { echo "selected"; } ?> value="<?= $filter_tag_id ?>"<?= selectOptionColor($row['tag_color'] ?? '', $row['tag_icon'] ?? '') ?>><?= $filter_tag_name ?></option>
-                    <?php
-                    }
-                    ?>
+                    <?= tagOptionsHtml('asset', $tag_filter) ?>
                 </select>
             </div>
         </div>

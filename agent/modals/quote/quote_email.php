@@ -1,5 +1,10 @@
 <?php
 
+/*
+ * Send a quote to the client's contacts picked, with a note and the PDF.
+ * ?quote_id=. Posts email_quote.
+ */
+
 require_once '../../../includes/modal_header.php';
 
 enforceUserPermission('module_sales', 2);
@@ -9,12 +14,17 @@ $quote_id = intval($_GET['quote_id']);
 $sql = mysqli_query($mysqli, "SELECT quote_client_id, quote_number, quote_prefix, quote_status
     FROM quotes WHERE quote_id = $quote_id LIMIT 1");
 $row = mysqli_fetch_assoc($sql);
+if (!$row) {
+    exit(json_encode(['error' => 'That quote no longer exists.']));
+}
 $quote_prefix = escapeHtml($row['quote_prefix']);
 $quote_number = intval($row['quote_number']);
 $quote_status = escapeHtml($row['quote_status']);
 $client_id = intval($row['quote_client_id']);
 
 enforceClientAccess();
+
+$doc = billingRow('quote', $quote_id);
 
 // Wider than the invoice picker - see documentContactFilterSql(). A quote is
 // read by whoever scoped the work as often as by whoever signs it.
@@ -54,9 +64,7 @@ ob_start();
 ?>
 
 <div class="modal-header bg-dark">
-    <h5 class="modal-title text-white">
-        <i class="fa fa-fw fa-paper-plane me-2"></i>Email Quote <?= "$quote_prefix$quote_number" ?>
-    </h5>
+    <h5 class="modal-title"><i class="fas fa-fw fa-paper-plane me-2"></i>Send Quote <span class="fw-normal text-white-50 ms-1"><?= escapeHtml(billingNumber('quote', $doc)) ?> &middot; <?= escapeHtml($doc['client_name']) ?></span></h5>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
 <form action="post.php" method="post" autocomplete="off">
@@ -67,7 +75,7 @@ ob_start();
 
         <?php if ($contact_count == 0) { ?>
 
-            <p class="text-muted mb-0">
+            <p class="text-body-secondary mb-0">
                 This client has no primary, billing, technical or important contact with an email
                 address, so there is nobody to send a quote to. Flag a contact with one of those
                 roles, or use Mark Sent to record that the quote went out some other way.
@@ -75,7 +83,20 @@ ob_start();
 
         <?php } else { ?>
 
-            <label class="mb-2">Send to <strong class="text-danger">*</strong></label>
+            <!-- What goes out -->
+            <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded bg-body-tertiary">
+                <?= billingTile('quote') ?>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="fw-semibold"><?= escapeHtml(billingNumber('quote', $doc)) ?><?= trim((string) $doc['quote_scope']) !== '' ? ' - ' . escapeHtml($doc['quote_scope']) : '' ?></div>
+                    <div class="small text-body-secondary">An email with a link to view it, accept or decline it, and download it as a PDF.</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-semibold itflow-money"><?= escapeHtml(quoteAmountText(quoteGroups($doc), $doc['quote_currency_code'])) ?></div>
+                    <div class="small text-body-secondary">valid until <?= escapeHtml($doc['quote_expire']) ?></div>
+                </div>
+            </div>
+
+            <label class="form-label">Send to <strong class="text-danger">*</strong></label>
 
             <div class="list-group mb-3">
 
@@ -114,8 +135,19 @@ ob_start();
 
             </div>
 
+            <label class="form-label">Message <span class="text-body-secondary fw-normal small">in the email, above the quote</span></label>
+            <div class="input-group mb-3">
+                <span class="input-group-text align-items-start pt-2"><i class="fas fa-fw fa-comment"></i></span>
+                <textarea class="form-control" name="note" rows="3" maxlength="2000" placeholder="Optional - a word of your own: what it covers, what happens next"></textarea>
+            </div>
+
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" name="attach_pdf" value="1" id="quoteEmailPdf<?= $quote_id ?>" <?= billingReminderRules()['attach_pdf'] ? 'checked' : '' ?>>
+                <label class="form-check-label" for="quoteEmailPdf<?= $quote_id ?>">Attach the PDF</label>
+            </div>
+
             <?php if ($quote_status !== 'Draft') { ?>
-                <p class="text-muted mb-0">
+                <p class="text-body-secondary small mb-0">
                     <i class="fa fa-fw fa-info-circle me-1"></i>This quote is
                     <strong><?= $quote_status ?></strong>, so sending it will not change its status.
                 </p>
