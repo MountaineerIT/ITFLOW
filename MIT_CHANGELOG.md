@@ -4,6 +4,21 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.140 - 2026-10-25
+- Full check after the ITFlow 26.11 merge: every addition reviewed against the new code, and every page and window opened as nine different users (admin, technician, accountant, view-only, client-limited and more) plus the client portal on a computer and a phone - about 3,900 pages with no errors. Fixes:
+- Fix: ITFlow's new "View portal as them" on a contact signed you out of ITFlow.
+- Fix: invoices in a QuickBooks batch could still get payments from ITFlow's new bank-statement import, lines from Unbilled Time, or new prices from Products > Update prices.
+- Fix: procurement now follows ITFlow's own stock tracking - only products set to track stock move stock, through ITFlow's stock history; a quote line ordered for the client no longer leaves the shelf count short; received assets show on the invoice's Hardware box.
+- Fix: usage-billed and ticket-parts invoices work tax out with ITFlow's new tax rules (multi-part rates, discount before tax).
+- Fix: the ticket page layout knew nothing of ITFlow's new Fill-ins and Trips boxes and the AI suggestions banner, which could push the conversation above the reply box.
+- Fix: email replies now also go to client contacts who asked ITFlow for every update, and each person is greeted by their own name.
+- Fix: changing a calendar entry's agents, or moving it on Dispatch, now needs the same rights as ITFlow's Edit event; moving a ticket to another client from Dispatch takes its trips along.
+- Fix: no double "Ticket Scheduled" email to a contact who asked for every update; the guest page's "Add to calendar" keeps the booking's real length.
+- Development mode now also stops ITFlow's new log forwarding (so a test copy can't send to production's log server).
+- The quote profit box shows one-time and monthly / quarterly / yearly lines separately; "send to procurement" lists one-time lines only.
+- Admin > Roles explains what each level of Procurement, Timesheets and Dispatch allows; Admin > Modules and Company say what changed when only our settings changed; the mileage rate field follows ITFlow's rate.
+- Faster: database update M041 adds indexes for a count ITFlow 26.11 runs on every page and for the audit log's filters (measured on a 50,000-ticket copy: Unbilled Time 241 to 118 ms, Audit logs 1.5 to 1.2 s, most pages 10-40% quicker).
+
 ## 26.10.139 - 2026-10-25
 - Fix: on MariaDB 11.8 (Debian 13) the dashboard, Products and quote pages were blank after the ITFlow 26.11 merge ("Illegal mix of collations"). Some of ITFlow's tables (quote_items, recurring_invoice_items, task_approvals, asset_tags) had been created with the server's own collation instead of ITFlow's utf8mb4_general_ci, and ITFlow's new "lines at an old price" count joins them with the others. The database updater now converts any such table to ITFlow's collation each time it runs (tables with a deliberate binary column are left and logged). Run `php scripts/update_cli.php --update_db` once to fix an install now.
 

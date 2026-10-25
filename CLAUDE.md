@@ -1017,6 +1017,11 @@ model: see DEPLOYMENT.md.
   indexes are used, not COALESCE(resolved, closed). Left as ITFlow has them: the Tickets list's tab counts and
   SQL_CALC_FOUND_ROWS paging (about 0.4 s on the closed list at 50,000), Ticket Summary's reply-time sum over its range,
   and global search's LIKE over every reply (about 1 s at 300,000 replies).
+  Post-merge pass (Oct 25, 26.10.140): the copy (`itflow_perf`) updated to 3.4.7; the test install serves it as `itflow-perf.test`
+  (`/var/www/itflow_perf`, site `zz-itflow-perf` - named to sort after the main site, which must stay Apache's default for the 127.0.0.1
+  stand-ins). M041 adds tickets (invoice + billable + archived for ITFlow's every-page unbilled count; category), logs (type; action).
+  Left as ITFlow has them: global search (1.5 s), Audit logs' SQL_CALC_FOUND_ROWS list (0.8 s), Ticket Summary (1.1 s), the kanban
+  (7 MB of card markup for 1,570 open tickets), the closed list (0.4 s).
 - Upstream develop merged again (Oct 25, 26.10.135 - 98 commits, ITFlow DB 2.8.9 -> 3.4.7; APP_VERSION still 26.10). Where things
   moved - this supersedes the file names above where they differ:
   - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). Two lines in
