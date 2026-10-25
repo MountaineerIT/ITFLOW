@@ -286,6 +286,7 @@ $paper_bill_lines = array_filter([
                                     </select>
                                 </div>
                             <?php } ?>
+                            <?= $paper_type === 'quote' && function_exists('mitPaperAddFields') ? mitPaperAddFields($paper) : '' // Mountaineer IT: staff only - our cost and markup on a new quote line ?>
                             <div class="itflow-paper-add-price">
                                 <label class="form-label small text-body-secondary mb-0">Price</label>
                                 <input type="text" class="form-control form-control-sm text-end" name="price" form="billingAddLine" inputmode="decimal" placeholder="0.00" data-line-price>

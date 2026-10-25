@@ -439,6 +439,17 @@ function mitQuoteItemSave($item_id, array $post, array $files, $is_new = false) 
     if (!empty($post['mit_pricing_present'])) {
         // Our fields were on the form (ITFlow 26.11's Edit Line window - mitQuoteLineFields)
         [$cost, $method, $percent] = mitPricingPosted($post, 'item');
+        if ($cost === null && $is_new && $product_id) {
+            // The add row left blank on a product: the product's cost, priced as typed
+            $product_cost = (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT product_cost FROM products WHERE product_id = $product_id"))[0] ?? 0);
+            if ($product_cost > 0) {
+                [$cost, $method, $percent] = [$product_cost, 'price', null];
+            }
+        }
+        if ($cost === null && $method !== 'price') {
+            $method = '';
+            $percent = null;
+        }
         $set = "item_cost = " . ($cost === null ? 'NULL' : $cost)
             . ", item_price_method = " . ($method === '' ? 'NULL' : "'$method'")
             . ", item_price_percent = " . ($percent === null ? 'NULL' : $percent);
@@ -481,6 +492,34 @@ function mitQuoteLineFields($quote_id, array $item) {
     return '<div class="mt-3"><input type="hidden" name="mit_pricing_present" value="1">'
         . mitPricingFields(['item_cost', 'item_price_method', 'item_price_percent'], $extra['item_cost'] ?? null, $extra['item_price_method'] ?? null, $extra['item_price_percent'] ?? null)
         . (mitQuoteSettings()['show_images'] ? mitImageField('item_image', $extra['item_image'] ?? '') : '') . '</div>';
+}
+
+/**
+ * ITFlow 26.11's add-a-line row on a quote (includes/billing_paper.php): our cost, price by and % beside the Price box, on
+ * the row's own form (billingAddLine). js/mit_quote_pricing.js works the price out and fills them from a picked product.
+ */
+function mitPaperAddFields(array $paper) {
+    if (!mitQuoteColumnsReady() || empty($paper['edit'])) {
+        return '';
+    }
+    $settings = mitQuoteSettings();
+    $fmt = rtrim(rtrim(number_format((float) $settings['percent'], 2, '.', ''), '0'), '.');
+    global $session_company_currency;
+    $html = '<input type="hidden" name="mit_pricing_present" value="1" form="billingAddLine">'
+        . '<div class="itflow-paper-add-price" data-mit-add-pricing data-mit-currency="' . escapeHtml($session_company_currency ?? 'USD') . '">'
+        . '<label class="form-label small text-warning-emphasis mb-0" title="Only staff see this">Our cost</label>'
+        . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_cost" form="billingAddLine" inputmode="decimal" placeholder="0.00" data-mit-cost></div>'
+        . '<div class="itflow-paper-add-seat"><label class="form-label small text-warning-emphasis mb-0">Price by</label>'
+        . '<select class="form-select form-select-sm border-warning-subtle bg-warning-subtle" name="item_price_method" form="billingAddLine" data-mit-method>';
+    foreach (MIT_PRICE_METHODS as $value => $label) {
+        $html .= '<option value="' . $value . '"' . ($value === $settings['method'] ? ' selected' : '') . '>' . $label . '</option>';
+    }
+    return $html . '</select></div>'
+        . '<div class="itflow-paper-add-qty"><label class="form-label small text-warning-emphasis mb-0">%</label>'
+        . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_price_percent" form="billingAddLine" inputmode="decimal" value="' . escapeHtml($fmt) . '" data-mit-pct></div>'
+        . '<div class="small text-body-secondary" style="order: 99; flex-basis: 100%" data-mit-hint data-mit-quiet data-mit-currency="' . escapeHtml($session_company_currency ?? 'USD') . '"></div>'
+        . '<script>window.mitProductPricing = ' . mitProductsPricingJson() . ';</script>'
+        . '<script src="' . mitAsset('/js/mit_quote_pricing.js') . '"></script>';
 }
 
 /** Hook in a quote copy: the new line gets the old one's product, cost, method, % and its own copy of the image. */

@@ -1029,10 +1029,12 @@ model: see DEPLOYMENT.md.
   - Invoices / quotes / recurring invoices are one shared page: lines are saved by `agent/post/billing.php` (billing_item_save /
     billing_ai_lines / billing_item_delete / billing_remove_tax - one guarded `mitQboGuardInvoice` line each for invoices, and
     `mitQuoteItemSave` / `mitQuoteItemDelete` for quotes), reordered in `agent/ajax.php` billing_items_order (409 when locked), drawn by
-    `includes/billing_paper.php` (two lines: `mitPaperLineImage` before a line's name, `mitPaperLineExtras` - staff only: a quote line's
-    cost badge, an invoice line's procurement status - after it; agent pages pass `'mit_staff' => true` in `$paper`). Quote line cost /
-    markup / image: `mitQuoteLineFields` in the Edit Line window (`agent/modals/billing/billing_item.php`, multipart; posts
-    `mit_pricing_present` - without it a save leaves our pricing alone; a new line from a product takes the product's cost). PDF image:
+    `includes/billing_paper.php` (three lines: `mitPaperLineImage` before a line's name, `mitPaperLineExtras` - staff only: a quote line's
+    cost badge, an invoice line's procurement status - after it; agent pages pass `'mit_staff' => true` in `$paper`; and
+    `mitPaperAddFields` before the add-a-line row's Price on quotes - Our cost / Price by / % on the `billingAddLine` form, filled from a
+    picked product). Quote line cost / markup / image: `mitQuoteLineFields` in the Edit Line window (`agent/modals/billing/billing_item.php`,
+    multipart). Both post `mit_pricing_present` - without it a save leaves our pricing alone; a new line from a product with no cost
+    typed takes the product's cost. PDF image:
     one inline call in `functions/billing_pdf.php`. Quote -> invoice procurement: `mitProcAfterQuoteConvert` after `quoteConvert()`
     in `agent/post/quote.php` (matches lines by name + quantity). Recurring invoices: `recurringInvoiceGenerate()` in
     `functions/billing.php` (nightly and Invoice Now) - one line after billingRecalc sets `$mit_hold` (`mitUsageApply`,
