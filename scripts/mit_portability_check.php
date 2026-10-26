@@ -94,7 +94,12 @@ foreach ($stock as $table => $columns) {
     }
 }
 
-// 2. Columns we added to ITFlow's tables: stock ITFlow never fills them, so they must accept being left out
+// 2. Columns we added to ITFlow's tables: stock ITFlow never fills them, so they must accept being left out. A column neither
+// db.sql nor our updates (admin/database_updates/mountaineerit/) mention came from somewhere else - added by hand, another tool
+$our_updates = '';
+foreach (glob(dirname(__DIR__) . '/admin/database_updates/mountaineerit/M*.php') as $file) {
+    $our_updates .= file_get_contents($file);
+}
 foreach ($stock as $table => $columns) {
     foreach ($live[$table] ?? [] as $column => $info) {
         if (isset($columns[$column])) {
@@ -103,9 +108,10 @@ foreach ($stock as $table => $columns) {
         $optional = $info['IS_NULLABLE'] === 'YES' || $info['COLUMN_DEFAULT'] !== null
             || stripos($info['EXTRA'], 'auto_increment') !== false || !empty($info['GENERATION_EXPRESSION']);
         if (!$optional) {
-            $problems[] = "Our column `$table`.`$column` is NOT NULL with no default - stock ITFlow's inserts into `$table` would fail.";
+            $whose = strpos($our_updates, $column) !== false ? 'Our column' : 'Unknown column (not ITFlow\'s, not added by our updates)';
+            $problems[] = "$whose `$table`.`$column` is NOT NULL with no default - stock ITFlow's inserts into `$table` would fail" . ($whose === 'Our column' ? '.' : ' (and ITFlow\'s own do now).');
         } else {
-            $notes[] = "Extra column `$table`.`$column` (ours - stock ITFlow ignores it).";
+            $notes[] = "Extra column `$table`.`$column` (" . (strpos($our_updates, $column) !== false ? 'ours' : 'not ITFlow\'s, not added by our updates') . ' - stock ITFlow ignores it).';
         }
     }
 }

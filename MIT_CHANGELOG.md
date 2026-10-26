@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.145 - 2026-10-26
+- The stock-ITFlow portability check now tells our own columns apart from ones neither ITFlow nor our updates made (added by hand or by another tool) - such a required column is reported as "Unknown column" and also breaks ITFlow's own forms today.
+
 ## 26.10.144 - 2026-10-26
 - New daily Consistency Check (Admin > Maintenance > Cron): checks that our data still agrees with ITFlow's own records - payroll payments against their timesheets and expenses, QuickBooks batches against ITFlow payments, billed ticket parts, usage-billed invoice lines, boards, Outlook links, database updates. When something disagrees the job fails, so Cron Watch emails the admins with what it found. Read only - it changes nothing.
 - For updates: a hook check that fails when an ITFlow update drops one of our hooks into its files, and one command (scripts/mit_verify.sh) that runs every check - syntax, hooks, consistency, stock-ITFlow portability and the smoke tests - before anything is promoted.
