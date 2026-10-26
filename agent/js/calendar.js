@@ -208,7 +208,7 @@
         initialDate: root.dataset.initialDate || undefined,
         headerToolbar: mobile
             ? {left: 'prev,next', center: 'title', right: 'today'}
-            : {left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,mitTimeGrid7,timeGridDay,listWeek'}, // Mountaineer IT: + 7 days
+            : {left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridMit7,timeGridDay,listWeek'}, // MountaineerIT: + 7 days
         footerToolbar: mobile ? {center: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'} : false,
         noEventsText: 'Nothing on the calendar for these days',
         firstDay: Number(root.dataset.firstDay) || 0,
@@ -226,11 +226,12 @@
         views: {
             // Side by side past three, the rest go behind "+N more"
             timeGrid: {eventMaxStack: 3},
-            // Mountaineer IT: seven days from any day - the arrows move it a day at a time, so a booking can be dragged across a
+            // Mountaineer IT: seven days from any day - named timeGrid... so the event drawing above treats it as a time grid (full
+            // detail on each booking); the arrows move it a day at a time, so a booking can be dragged across a
             // weekend (Sunday and Monday side by side) without leaving the view
-            mitTimeGrid7: {type: 'timeGrid', duration: {days: 7}, dateIncrement: {days: 1}}
+            timeGridMit7: {type: 'timeGrid', duration: {days: 7}, dateIncrement: {days: 1}} // MountaineerIT
         },
-        buttons: {mitTimeGrid7: {text: '7 days', hint: 'Seven days from any day - the arrows move a day at a time'}}, // Mountaineer IT (FullCalendar v7 labels)
+        buttons: {timeGridMit7: {text: '7 days', hint: 'Seven days from any day - the arrows move a day at a time'}}, // MountaineerIT (FullCalendar v7 labels)
 
         events: function (info, success, failure) {
             const end = new Date(info.end.getTime());

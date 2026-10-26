@@ -30,12 +30,35 @@ document.addEventListener('DOMContentLoaded', function () {
         // Nothing left behind: just the header line (functions/mit_left_behind.php gives the calendar its full height back)
         if (card) {
             card.classList.toggle('mit-empty', n === 0);
-            window.dispatchEvent(new Event('resize'));
+            fit();
         }
         hint.textContent = n
             ? 'Open tickets booked on a day that has gone - drag one onto the calendar to book it again.'
             : 'Nothing left behind - every open ticket booked before today has been moved on.';
     }
+
+    // One row of tickets shows (the rest scroll in the list), and the calendar takes the rest of the screen above it
+    const calendarEl = document.getElementById('calendar');
+    function fit() {
+        const first = list.firstElementChild;
+        list.style.maxHeight = first ? (first.offsetHeight + 2) + 'px' : '';
+        if (calendarEl && card && !card.classList.contains('mit-empty') && window.innerWidth >= 992) {
+            const calTop = calendarEl.getBoundingClientRect().top + window.scrollY;
+            const below = card.offsetHeight + 48; // the card, its gap and the calendar card's padding under the calendar
+            const height = Math.max(416, Math.floor(window.innerHeight - calTop - below - 12));
+            root.style.setProperty('--mit-cal-h', height + 'px');
+        } else {
+            root.style.removeProperty('--mit-cal-h');
+        }
+        window.dispatchEvent(new Event('resize')); // FullCalendar fits itself to its new height
+    }
+    let fitTimer = 0;
+    window.addEventListener('resize', function (e) {
+        if (e.isTrusted) {
+            clearTimeout(fitTimer);
+            fitTimer = setTimeout(fit, 150);
+        }
+    });
 
     function openModal(url) {
         const link = document.createElement('a');

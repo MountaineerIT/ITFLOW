@@ -69,25 +69,28 @@ function mitLeftBehindCard() {
     if (!calendarCanScheduleTickets()) {
         return '';
     }
-    // Under the calendar, its width (agent/calendar.php): the rows as a grid, a few lines high, and the calendar a little shorter
-    // while there are any, so both fit on the screen for dragging; nothing left behind = one line
+    // Under the calendar, its width (agent/calendar.php): one row of tickets showing (the rest scroll inside it), and the calendar
+    // takes the rest of the screen - its height is set by agent/js/mit_left_behind.js (--mit-cal-h) from where the two sit;
+    // nothing left behind = the header line only
     return '<style>
         .mit-left-behind-item .mit-left-behind-days { flex-shrink: 0; }
-        #mitLeftBehind { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem; max-height: 10.5rem; overflow-y: auto; }
+        #mitLeftBehind { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem; overflow-y: auto; }
         #mitLeftBehind > .itflow-cal-unscheduled { margin: 0 !important; }
+        #mitLeftBehindCard .card-header { gap: .75rem; }
+        #mitLeftBehindHint { min-width: 0; }
         #mitLeftBehindCard.mit-empty .card-body { display: none; }
         @media (min-width: 992px) {
-            #itflowCalendar:has(#mitLeftBehindCard:not(.mit-empty)) #calendar { height: calc(100vh - 25rem) !important; min-height: 26rem; }
+            #itflowCalendar:has(#mitLeftBehindCard:not(.mit-empty)) #calendar { height: var(--mit-cal-h, calc(100vh - 19rem)) !important; min-height: 26rem; }
         }
         #itflowCalendar .mit-left-behind { outline: 2px dashed var(--bs-danger); outline-offset: -2px; }
     </style>
     <div class="card mt-3 mit-empty" id="mitLeftBehindCard">
         <div class="card-header py-2 d-flex align-items-center">
             <span class="fw-semibold text-nowrap"><i class="fas fa-fw fa-history text-danger me-1"></i>Left behind</span>
+            <span class="small text-body-secondary text-truncate d-none d-md-inline" id="mitLeftBehindHint">Open tickets booked on a day that has gone - drag one onto the calendar to book it again.</span>
             <span class="badge rounded-pill text-bg-danger ms-auto" id="mitLeftBehindCount"></span>
         </div>
         <div class="card-body p-2">
-            <div class="small text-body-secondary px-1 mb-2" id="mitLeftBehindHint">Open tickets booked on a day that has gone - drag one onto the calendar to book it again.</div>
             <div id="mitLeftBehind"></div>
         </div>
     </div>

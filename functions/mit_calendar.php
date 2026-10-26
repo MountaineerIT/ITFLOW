@@ -344,7 +344,10 @@ function mitCalendarState($user_id, $page) {
 /** Only the keys the calendar page uses, in the shapes it expects. */
 function mitCleanCalendarState(array $state) {
     $clean = [];
-    if (isset($state['view']) && in_array($state['view'], ['dayGridMonth', 'timeGridWeek', 'mitTimeGrid7', 'timeGridDay', 'listWeek', 'listMonth', 'listDay'], true)) {
+    if (($state['view'] ?? '') === 'mitTimeGrid7') {
+        $state['view'] = 'timeGridMit7'; // the 7 days view's first name (26.10.147)
+    }
+    if (isset($state['view']) && in_array($state['view'], ['dayGridMonth', 'timeGridWeek', 'timeGridMit7', 'timeGridDay', 'listWeek', 'listMonth', 'listDay'], true)) {
         $clean['view'] = $state['view'];
     }
     if (isset($state['agent'])) {

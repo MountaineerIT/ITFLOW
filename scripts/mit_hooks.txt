@@ -111,13 +111,13 @@ hook	agent/invoice.php	mit_quotes	1
 hook	agent/invoice.php	mit_staff	1
 hook	agent/invoices.php	mitQboListBadge	3
 hook	agent/invoices.php	mit_qbo_ids	2
+hook	agent/js/calendar.js	MountaineerIT	3
 hook	agent/js/calendar.js	data-mit-agent	1
 hook	agent/js/calendar.js	mit-cal-agent	2
 hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
 hook	agent/js/calendar.js	mitStriped	3
-hook	agent/js/calendar.js	mitTimeGrid7	3
 hook	agent/js/calendar.js	mit_calendar	2
 hook	agent/js/calendar.js	mit_calendar_state	2
 hook	agent/js/calendar.js	mit_event_agents	2

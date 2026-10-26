@@ -230,6 +230,10 @@ test('calendar: the 7 days view moves a day at a time, so a weekend can be cross
     await page.locator('button[title*="next" i], button[aria-label*="next" i]').first().click();
     await expect.poll(async () => (await days())[0], 'next moves one day').toBe(first[1]);
     expect((await days())[6], 'a new day at the end').not.toBe(first[6]);
+    // Bookings in it are drawn as in Week (time, who, icon, detail on separate lines) - a timed entry drawn in Month's one-line
+    // style (is-daygrid) means the view is not seen as a time grid (agent/js/calendar.js checks the name starts with timeGrid)
+    expect(await page.locator('.itflow-cal-event.is-daygrid').evaluateAll((els) => els.filter((e) => /\d:\d\d/.test(e.textContent)).length),
+        'timed entries drawn as time-grid blocks').toBe(0);
     // Remembered like the other views: back on 7 dated days (from today)
     await page.reload();
     await expect.poll(async () => (await days()).length, 'still 7 days after a reload').toBe(7);
@@ -250,8 +254,12 @@ test('calendar: Left behind sits under the calendar, as wide as it, both on the 
     expect(box.y, 'under the calendar').toBeGreaterThan(cal.y + cal.height - 1);
     expect(Math.abs(box.width - cal.width), 'as wide as the calendar (its card)').toBeLessThan(60);
     expect(await page.locator('.itflow-cal-side #mitLeftBehindCard').count(), 'not in the left column').toBe(0);
-    // With rows to drag, the top of the list is on the screen with the calendar
-    if (await page.locator('#mitLeftBehind > *').count()) {
-        expect(box.y + 60, 'its first rows on the screen').toBeLessThan(page.viewportSize().height);
+    // With rows to drag: one row shows (the rest scroll inside it) and the whole card is on the screen under the calendar
+    const rows = page.locator('#mitLeftBehind > *');
+    if (await rows.count()) {
+        const list = await page.locator('#mitLeftBehind').boundingBox();
+        const row = await rows.first().boundingBox();
+        expect(list.height, 'one row of tickets').toBeLessThan(row.height * 1.5);
+        expect(box.y + box.height, 'the card ends on the screen').toBeLessThanOrEqual(page.viewportSize().height);
     }
 });

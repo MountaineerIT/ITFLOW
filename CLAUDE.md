@@ -170,19 +170,23 @@ model: see DEPLOYMENT.md.
   picker (Everyone = everyone's) and the client; drag a row onto the calendar to book it again (calendar.js's own `drop` /
   `booked()` - rows carry the To schedule data attributes; the move keeps the booking's length), click for the quick look. Their
   old bookings get class `mit-left-behind` (dashed red) and "Left behind" in the detail (`mitLeftBehindMark`). Hooks: one line in
-  `agent/calendar.php` under the calendar's card in the main column (`mitLeftBehindCard` - 26.10.147: moved from the left column; rows
-  in a grid at most 10.5rem high, the calendar `calc(100vh - 25rem)` from 992 px while there are rows so both fit for dragging, one
-  header line when empty - `.mit-empty`, set by the script), `agent/ajax.php?mit_left_behind`, and
+  `agent/calendar.php` under the calendar's card in the main column (`mitLeftBehindCard` - 26.10.147: moved from the left column;
+  26.10.148: one row of tickets shows - the script sets the list's max-height to its first row, the rest scroll inside it - and the
+  calendar takes the rest of the screen: `fit()` in `agent/js/mit_left_behind.js` sets `--mit-cal-h` on `#itflowCalendar` from where
+  the calendar and the card sit (min 416 px, from 992 px wide, again on resize), used by the card's CSS; the hint is in the header;
+  one header line when empty - `.mit-empty`, set by the script), `agent/ajax.php?mit_left_behind`, and
   `functions/calendar.php`'s tickets-source hook now calls `mitCalendarTicketItems` (left behind, then `mitProjectCalendarItems`).
   Dispatch has it as a third queue tab, "Left behind" (`mitDispatchQueue` tab `left_behind` = `mitLeftBehindSql()`, oldest booking
   first, the card shows the booked day; every agent's, following the board / client / priority filters).
   To schedule on Everyone lists every agent's unscheduled tickets with the agent named (`agent/ajax.php` calendar_unscheduled:
   user_id 0 = all assigned, `user_name`; `agent/js/calendar.js` loadUnscheduled sends `agentId()`), and `agent/calendar.php` loads
   calendar.js through `mitAsset` so browsers fetch our changes.
-  "7 days" view (26.10.147): `mitTimeGrid7` in `agent/js/calendar.js` (views: timeGrid, duration 7 days, dateIncrement 1 day; label
-  in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week) - seven days
-  from any day, the arrows move one day, so a booking can be dragged across a weekend; allowed in the saved state's view list
-  (`functions/mit_calendar.php`). Smoke: last test in `08-calendar.spec.js`.
+  "7 days" view (26.10.147): `timeGridMit7` in `agent/js/calendar.js` (views: timeGrid, duration 7 days, dateIncrement 1 day; label
+  in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week; its lines carry
+  a `MountaineerIT` comment for the hook check) - seven days from any day, the arrows move one day, so a booking can be dragged
+  across a weekend; allowed in the saved state's view list (`functions/mit_calendar.php`, which maps its first name `mitTimeGrid7`).
+  The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw
+  bookings as time-grid blocks (26.10.148 - as `mitTimeGrid7` they were drawn as month's one-line items). Smoke: `08-calendar.spec.js`.
   Entries assigned to agents (26.10.115): `functions/mit_event_agents.php` (ours, required from mit_calendar.php) - ITFlow's own
   attendee agents (`calendar_event_attendees.attendee_user_id`) are the assignment; no tables. New Event from an agent's calendar
   starts with them (`mitEventDefaultAgents` - one line in `agent/modals/calendar/calendar_event_add.php`, `agent_id` sent by

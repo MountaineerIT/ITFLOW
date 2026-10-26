@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.148 - 2026-10-26
+- Calendar: bookings in the "7 days" view show their full detail again (time, who, ticket, client), as in Week - they were cut to one line.
+- Calendar: the calendar is taller - it fills the screen down to the Left behind list, which shows one row of tickets (scroll it for more) with its hint in the header line.
+
 ## 26.10.147 - 2026-10-26
 - Calendar: new "7 days" view beside Week - seven days in a row starting on any day, and the arrows move it one day at a time. Step it so Sunday and Monday sit side by side and a booking can be dragged across the weekend without changing weeks. It is remembered like the other views.
 - Calendar: the Left behind list now sits under the calendar, as wide as it, with its tickets side by side - the calendar gets a little shorter while there are any, so you can drag one up onto a day without scrolling. With nothing left behind it is a single line.
