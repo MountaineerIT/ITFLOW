@@ -242,6 +242,7 @@ hook	agent/user/user_preferences.php	mitTsPreferenceFields	1
 hook	api/v1/clients/delete.php	mitQboClientLock	2
 hook	api/v1/clients/delete.php	mitQuoteImagesDelete	1
 hook	api/v1/clients/delete.php	mitTicketPartsDeleting	1
+hook	api/v1/clients/delete.php	mitTsDeleteBlocked	2
 hook	api/v1/enforce_api_rbac.php	mit_usage	2
 hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
 hook	api/v1/products/read.php	mitProductApiColumns	2
@@ -250,6 +251,7 @@ hook	client/includes/footer.php	mit_portal_tables	1
 hook	client/login_microsoft.php	mitPortalEntraTenant	1
 hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
 hook	client/login_reset.php	mitLoginHead	2
+hook	client/pay.php	mitQboTakesPayments	2
 hook	client/post.php	mitQboGuardPayment	2
 hook	client/post.php	mitSessionRestamp	6
 hook	client/post.php	mitTicketTechsCopyReply	2
@@ -260,6 +262,7 @@ hook	cron/mail_queue.php	mitM365GraphSendMail	1
 hook	cron/mail_queue.php	mitM365GraphSendReady	2
 hook	cron/mail_queue.php	mit_dev_mode	1
 hook	cron/mail_queue.php	mit_graph	3
+hook	cron/nightly_tasks.php	mitQboSendsReminders	2
 hook	cron/nightly_tasks.php	mitQboTakesPayments	4
 hook	cron/nightly_tasks.php	mitRecurringTicketByDayColumn	1
 hook	cron/ticket_email_parser.php	mitAgentCanWorkTicket	2
@@ -294,9 +297,11 @@ hook	functions.php	mit_usage	1
 hook	functions/app.php	MountaineerIT	1
 hook	functions/app.php	mitTicketScheduleEnd	1
 hook	functions/backup.php	mit_receipts	1
+hook	functions/billing.php	mitProcQuoteConvertGroups	2
 hook	functions/billing.php	mitQboHandlesInvoiceMail	2
 hook	functions/billing.php	mitUsageApply	2
 hook	functions/billing.php	mit_hold	2
+hook	functions/billing_pay.php	mitQboCardPaymentBooked	2
 hook	functions/billing_pdf.php	mitQuotePdfImage	2
 hook	functions/calendar.php	mitAgentColor	1
 hook	functions/calendar.php	mitByDayDate	1
@@ -367,6 +372,7 @@ hook	functions/ticket.php	mit_watchers	4
 hook	functions/ticket_fields.php	mitNotifyOn	8
 hook	functions/user.php	mitSessionRestamp	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
+hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
 hook	includes/billing_paper.php	mitPaperAddFields	2
 hook	includes/billing_paper.php	mitPaperLineExtras	2
 hook	includes/billing_paper.php	mitPaperLineImage	2

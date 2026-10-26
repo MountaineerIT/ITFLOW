@@ -15,9 +15,7 @@ $client_id = intval($ticket['ticket_client_id']);
 if (!$client_id) {
     exit(json_encode(['error' => 'Move the ticket to a client before billing it.']));
 }
-$parts = array_filter(mitTicketParts($ticket_id), function ($part) {
-    return !intval($part['invoice_id']);
-});
+$parts = array_filter(mitTicketParts($ticket_id), 'mitTicketPartBillable');
 $drafts = mysqli_fetch_all(mysqli_query($mysqli, "SELECT invoice_id, invoice_prefix, invoice_number, invoice_scope, invoice_date FROM invoices
     WHERE invoice_client_id = $client_id AND invoice_status = 'Draft' ORDER BY invoice_id DESC"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($mysqli, "SELECT category_id, category_name FROM categories WHERE category_type = 'Income' AND category_archived_at IS NULL ORDER BY category_name"), MYSQLI_ASSOC);

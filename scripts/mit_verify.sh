@@ -3,7 +3,7 @@
 #   sh scripts/mit_verify.sh [install folder]      default /var/www/itflow (the test install - never production for the smoke tests)
 #   MIT_VERIFY_SKIP_SMOKE=1 sh scripts/mit_verify.sh /var/www/itflow    the read-only checks only (safe on production)
 # Runs: PHP syntax of every file but libs/, the hook check (our hooks in ITFlow's files), the consistency check and the stock
-# ITFlow portability check on the install, then the smoke tests. Stops at the first failure.
+# ITFlow portability check on the install, then the scenario checks and the smoke tests. Stops at the first failure.
 set -e
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALL="${1:-/var/www/itflow}"
@@ -23,6 +23,8 @@ PORT="$(php "$INSTALL/scripts/mit_portability_check.php")" || { echo "$PORT"; ex
 echo "$PORT" | grep -E '^Portable'
 
 if [ -z "$MIT_VERIFY_SKIP_SMOKE" ]; then
+    echo "== Scenario checks (tests/scenarios - they write rows, test install only)"
+    php "$REPO/tests/scenarios/run.php" "$INSTALL"
     echo "== Smoke tests"
     cd "$REPO/tests/smoke" && ITFLOW_PHP_LOG="${ITFLOW_PHP_LOG:-/var/log/apache2/itflow-error.log}" ITFLOW_ROOT="$INSTALL" npx playwright test
 fi

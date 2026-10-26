@@ -188,7 +188,7 @@ if (reportExporting('detail')) {
             if ($c['answers']['rest_missed']) {
                 $notes[] = 'Could not take a rest break (premium owed)';
             }
-            // Hours left empty: the record of the day, not more hours - the code rows below add up to the time worked
+            // Hours left empty: the record of the day, not more hours - the rows below (less "Not clocked") add up to the time worked
             $days[] = ['date' => $date, 'code' => 'Work times', 'kind' => 'Time record', 'paid' => '', 'hours' => null,
                 'note' => mitTsHours($c['clocked'], false, 'decimal') . ' h worked: ' . implode('; ', $notes)];
         }
@@ -200,6 +200,12 @@ if (reportExporting('detail')) {
             }
             if (!empty($d['unallocated'])) {
                 $days[] = ['date' => $date, 'code' => 'Work - not on a code', 'kind' => 'Work', 'paid' => 'Yes', 'hours' => $d['unallocated'] * 60];
+            }
+            // California: ticket / code time outside the typed times is in the rows here but not worked - taken off, so the day adds up
+            $not_clocked = !empty($d['ca']) ? max(0, $d['billable'] + $d['other'] + $d['work'] + $d['lost'] - $d['clocked']) : 0;
+            if ($not_clocked) {
+                $days[] = ['date' => $date, 'code' => 'Not clocked', 'kind' => 'Not worked', 'paid' => 'No', 'hours' => -$not_clocked * 60,
+                    'note' => 'Ticket or code time outside the start / end times typed for the day - not paid until the times are put right'];
             }
             if ($d['auto_lost']) {
                 $days[] = ['date' => $date, 'code' => 'Unaccounted (lost)', 'kind' => 'Lost time', 'paid' => $settings['auto_lost_paid'] ? 'Yes' : 'No', 'hours' => $d['auto_lost'] * 60];

@@ -99,7 +99,7 @@ function mitStockMove($product_id, $qty, $type, $note, array $opts = []) {
         productStockMove($product_id, $qty, $type, $opts + ['note' => $note]);
         return;
     }
-    mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . round((float) $qty) . ", stock_note = '" . escapeSql(mb_substr($note, 0, 500)) . "', stock_product_id = " . intval($product_id));
+    mysqli_query($mysqli, "INSERT INTO product_stock SET stock_qty = " . round((float) $qty, 2) . ", stock_note = '" . escapeSql(mb_substr($note, 0, 500)) . "', stock_product_id = " . intval($product_id));
 }
 
 /**

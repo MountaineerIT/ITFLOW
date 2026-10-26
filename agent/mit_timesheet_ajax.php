@@ -63,6 +63,16 @@ if (isset($_POST['save_day']) || isset($_POST['save_entry'])) {
         $reply($why === '', $why === '' ? 'Ticket time saved' : $why);
     }
 
+    // Under the timesheet's lock (as submit / approve take it), and checked again inside: a save can't land after an approval
+    $lock = 'ts_sheet_' . $user_id . '_' . $period['start'];
+    if (!mitLock($lock, 10)) {
+        $reply(false, 'The timesheet is being submitted or approved right now - try again in a moment.');
+    }
+    if (($locked = mitTsWhyLocked(mitTsSheet($user_id, $period))) !== '') {
+        mitUnlock($lock);
+        $mit_fail($locked, 403);
+    }
+    register_shutdown_function('mitUnlock', $lock);
     if (mitTsCaOn($user_id, $period['end']) && isset($_POST['times'])) {
         [$ok, $message] = mitTsCaSave($sheet, $period, [$date => (array) $_POST['times']], [$date => (array) ($_POST['answers'] ?? [])], $_POST['reason'] ?? '');
         if (!$ok) {

@@ -41,8 +41,9 @@ function mitProjectTicketsReady() {
 }
 
 /**
- * The Tickets page's views (agent/tickets.php $shows): service tickets only, plus a "Projects" view of the
- * project ones - unless a project was picked in the filters, which shows that project's tickets as before.
+ * The Tickets page's views (agent/tickets.php $shows): service tickets only, plus a "Projects" view of the open
+ * project ones - unless a project was picked in the filters, which shows that project's tickets as before. Mine,
+ * Closed and All keep them.
  */
 function mitProjectTicketsShows(array &$shows, $base_sql, $project_filter) {
     if (!mitProjectTicketsApart() || intval($project_filter)) {
@@ -53,7 +54,11 @@ function mitProjectTicketsShows(array &$shows, $base_sql, $project_filter) {
         if ($key === 'closed') {
             $out['projects'] = mitProjectTicketsShow($base_sql);
         }
-        $show['where'] = '(' . $show['where'] . ') AND tickets.ticket_project_id = 0';
+        // A tech's own tickets, the closed ones and All keep project tickets - otherwise a finished project ticket could only be
+        // found with the Project filter
+        if (!in_array($key, ['mine', 'closed', 'all'], true)) {
+            $show['where'] = '(' . $show['where'] . ') AND tickets.ticket_project_id = 0';
+        }
         $out[$key] = $show;
     }
     if (!isset($out['projects'])) {

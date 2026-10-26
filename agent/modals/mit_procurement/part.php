@@ -131,7 +131,7 @@ ob_start();
         <?php } ?>
     </div>
     <div class="modal-footer">
-        <?php if ($part && !$on_po) { ?>
+        <?php if ($part && (!$on_po || $part['proc_status'] === 'received')) { ?>
             <a href="post.php?mit_part_remove=<?= $part_id ?>&ticket_id=<?= $ticket_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-outline-danger confirm-link me-auto"><i class="fas fa-trash me-2"></i>Remove</a>
         <?php } ?>
         <button type="submit" name="mit_part_save" class="btn btn-primary text-bold"><i class="fas fa-check me-2"></i><?= $part ? 'Save' : 'Add' ?></button>

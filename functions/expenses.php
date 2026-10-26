@@ -307,7 +307,7 @@ function expenseSave(array $in, $expense_id = 0, &$error = '') {
         $error = 'That is money paid back to ' . $existing['reimbursed_to_name'] . ' - undo the reimbursement to change it';
         return 0;
     }
-    if ($existing && function_exists('mitReimbExpenseWhyLocked') && ($error = mitReimbExpenseWhyLocked($existing)) !== '') { // Mountaineer IT: paid through payroll
+    if (function_exists('mitReimbExpenseWhyLocked') && ($error = mitReimbExpenseWhyLocked($existing ?: [], $in)) !== '') { // Mountaineer IT: paid through payroll, or on a locked timesheet day
         return 0;
     }
 

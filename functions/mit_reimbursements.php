@@ -437,6 +437,11 @@ function mitReimbItems(array $user_ids, $from, $to) {
 
 /** An item's state: who pays it and whether it is paid - [label, tone] in 'state', and 'owed' / 'via'. */
 function mitReimbItemFinish(array $item) {
+    // A ticket of a client the signed-in agent can't see: its number only, not its subject (as the timesheet's own entries do)
+    if (intval($item['ticket_id'] ?? 0) && !empty($GLOBALS['session_user_id']) && empty($GLOBALS['session_is_admin'])
+        && !hasClientAccess(intval(getFieldById('tickets', intval($item['ticket_id']), 'ticket_client_id')))) {
+        $item['where'] = 'A ticket you cannot see';
+    }
     $payroll = mitReimbViaPayroll();
     $paid_date = $item['paid'] !== '' ? date('M j', strtotime($item['paid'])) : '';
     $by_payroll = $item['paid'] !== '' && strpos($item['reference'], 'Payroll') === 0;
@@ -795,13 +800,37 @@ function mitReimbTripWhyLocked($trip_id, array $new = []) {
 }
 
 /** Why ITFlow may not change or delete this expense (functions/expenses.php expenseSave / expenseDelete): paid through payroll. */
-function mitReimbExpenseWhyLocked(array $expense) {
+function mitReimbExpenseWhyLocked(array $expense, array $in = []) {
     global $mysqli;
-    if (!empty($GLOBALS['mit_reimb_undoing']) || !intval($expense['expense_reimbursement_id'] ?? 0)) {
+    if (!empty($GLOBALS['mit_reimb_undoing'])) {
         return '';
     }
-    $reference = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT reimbursement_reference FROM reimbursements WHERE reimbursement_id = " . intval($expense['expense_reimbursement_id'])))[0] ?? '');
-    return strpos($reference, 'Payroll') === 0 ? 'It was paid through payroll with a timesheet (' . $reference . ') - reopen that timesheet to change it.' : '';
+    if (intval($expense['expense_reimbursement_id'] ?? 0)) {
+        $reference = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT reimbursement_reference FROM reimbursements WHERE reimbursement_id = " . intval($expense['expense_reimbursement_id'])))[0] ?? '');
+        if (strpos($reference, 'Payroll') === 0) {
+            return 'It was paid through payroll with a timesheet (' . $reference . ') - reopen that timesheet to change it.';
+        }
+    }
+    // Paid personally (payroll pays it back with their timesheet): not onto, off or within a day of a submitted / approved timesheet,
+    // as trips (mitReimbTripWhyLocked) - an approved period's payroll would never pay it, a submitted one would change under its approver
+    if (!mitReimbReady() || !mitReimbViaPayroll()) {
+        return '';
+    }
+    $checks = [];
+    if (intval($expense['expense_paid_by'] ?? 0)) {
+        $checks[] = [intval($expense['expense_paid_by']), (string) $expense['expense_date']];
+    }
+    if ($in && (string) ($in['account'] ?? '') === 'personal') {
+        $checks[] = [intval($in['paid_by'] ?? 0), trim((string) ($in['date'] ?? ''))];
+    }
+    foreach ($checks as [$user_id, $date]) {
+        if ($user_id && calendarIsDate($date) && ($held = mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved']))) {
+            $name = (string) getFieldById('users', $user_id, 'user_name');
+            return 'Paid personally on ' . date('M j', strtotime($date)) . ', which is on ' . ($name !== '' ? "$name's" : 'their') . ' timesheet - ' . $held[$date] . '. '
+                . ($held[$date] === 'approved' ? 'Reopen it' : 'Send it back') . ' to change what they paid for on that day.';
+        }
+    }
+    return '';
 }
 
 /** Why ITFlow may not undo this reimbursement (functions/expenses.php reimbursementDelete): a timesheet's payroll payment is undone by reopening it. */
@@ -841,7 +870,8 @@ function mitReimbRecordEnded() {
         if (date('Y-m-d') <= date('Y-m-d', strtotime($period['end'] . " +$wait days"))) {
             continue;  // still settling
         }
-        foreach (mitTsUsers() as $user_id => $user) {
+        // Anyone with something in that period - someone who has left since included
+        foreach (mitTsUsers(mitTsUsersWithActivity($period['start'], $period['end'])) as $user_id => $user) {
             if (($done = mitReimbRecordExpenses($user_id, $period)) > 0) {
                 $log[] = "{$user['user_name']}: $done purchase(s) recorded as expenses for {$period['label']}";
             }
@@ -858,8 +888,14 @@ function mitReimbRecordEnded() {
                 }
                 continue;
             }
-            mitSetSetting($done_key, date('Y-m-d'));
-            if (($paid = mitReimbPayrollClose($user_id, $period, 0)) !== '') {
+            $paid = mitReimbPayrollClose($user_id, $period, 0);
+            // Done once it worked; a failure (ITFlow refused to claim or reimburse) is tried again next run - it pays only what is still owed
+            $failed = preg_match('/not (marked )?paid/', $paid);
+            if (!$failed) {
+                mitSetSetting($done_key, date('Y-m-d'));
+            }
+            if ($paid !== '' && (!$failed || mitSetting("{$done_key}_problem", '') !== date('Y-m-d'))) {
+                $failed && mitSetSetting("{$done_key}_problem", date('Y-m-d'));
                 $log[] = "{$user['user_name']}, {$period['label']}: $paid";
             }
         }

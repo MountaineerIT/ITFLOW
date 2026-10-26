@@ -573,6 +573,13 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0) {
         $lines[] = ['DetailType' => 'DiscountLineDetail', 'Amount' => $discount, 'DiscountLineDetail' => ['PercentBased' => false]];
     }
 
+    // QuickBooks makes the invoice in the customer's currency (the company's own unless multicurrency is on there) - an invoice in
+    // another currency would go over with the same numbers in the wrong money
+    $home = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT company_currency FROM companies WHERE company_id = 1"))[0] ?? '');
+    if ($home !== '' && strtoupper((string) $invoice['invoice_currency_code']) !== strtoupper($home)) {
+        $problems[] = 'The invoice is in ' . $invoice['invoice_currency_code'] . ', not ' . $home . ' - enter it in QuickBooks by hand and mark it "Already in QuickBooks".';
+    }
+
     $payload = [
         'CustomerRef' => ['value' => (string) ($customer['qbo_id'] ?? '')],
         'DocNumber' => mitQboDocNumber($invoice),
@@ -602,6 +609,10 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0) {
                 $problems[] = 'The invoice\'s tax has no QuickBooks tax code - map it under Tax codes.';
             } else {
                 $payload['TxnTaxDetail'] = ['TxnTaxCodeRef' => ['value' => $code]];
+                // Tax on the discounted amount or the full one, as ITFlow worked it out (Admin > Taxes), not QuickBooks' own default
+                if ($discount > 0 && function_exists('taxSettings')) {
+                    $payload['ApplyTaxAfterDiscount'] = taxSettings()['discount_before'];
+                }
             }
         }
     }

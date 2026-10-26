@@ -358,7 +358,7 @@ if (isset($_POST['email_invoice'])) {
     $invoice_id = intval($invoice['invoice_id']);
     $client_id = intval($invoice['client_id']);
     $number = billingNumber('invoice', $invoice);
-    if (function_exists('mitQboGuardEmail')) { mitQboGuardEmail(); } // Mountaineer IT: QuickBooks Online emails invoices
+    if (function_exists('mitQboGuardEmail')) { mitQboGuardEmail($invoice_id); } // Mountaineer IT: QuickBooks Online emails invoices
 
     enforceClientAccess();
 

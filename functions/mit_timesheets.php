@@ -464,6 +464,26 @@ function mitTsStartDate($user_id) {
     return $created[intval($user_id)] ?? '';
 }
 
+/**
+ * The last day someone worked here, for auto lost time ('' = still here): archived - the day they were archived; disabled - the
+ * last day they logged anything (ticket time or hours on a code), as ITFlow keeps no date for that.
+ */
+function mitTsEndDate($user_id) {
+    global $mysqli;
+    static $ends = null;
+    if ($ends === null) {
+        $ends = [];
+        $result = mysqli_query($mysqli, "SELECT user_id, DATE(user_archived_at) AS archived,
+                GREATEST(COALESCE((SELECT DATE(MAX(ticket_reply_created_at)) FROM ticket_replies WHERE ticket_reply_by = users.user_id), '1970-01-01'),
+                    COALESCE((SELECT MAX(entry_date) FROM mit_time_entries WHERE mit_time_entries.user_id = users.user_id AND minutes > 0), '1970-01-01')) AS last_seen
+            FROM users WHERE user_type = 1 AND (user_archived_at IS NOT NULL OR user_status <> 1)");
+        while ($row = mysqli_fetch_assoc($result)) {
+            $ends[intval($row['user_id'])] = (string) ($row['archived'] ?: $row['last_seen']);
+        }
+    }
+    return $ends[intval($user_id)] ?? '';
+}
+
 /** A person's normal week, [1..7 => minutes]. */
 function mitTsSchedule($user_id) {
     $own = mitTsPerson($user_id)['schedule'];
@@ -730,11 +750,23 @@ function mitTsUsersWithActivity($from, $to) {
     }
     $from = escapeSql($from);
     $to = escapeSql($to);
+    // Ticket time (a day either side - a reply is dated where its author was), own-vehicle trips and expenses paid personally too, so
+    // someone who left with only ticket time in their last period is still paid for it
+    $trips = mitColumnReady('trips', 'trip_own_vehicle') ? " UNION SELECT trip_user_id FROM trips WHERE trip_own_vehicle = 1 AND trip_date BETWEEN '$from' AND '$to' AND trip_user_id > 0" : '';
+    $paid_by = mitColumnReady('expenses', 'expense_paid_by') ? " UNION SELECT expense_paid_by FROM expenses WHERE expense_paid_by > 0 AND expense_date BETWEEN '$from' AND '$to'" : '';
     $result = mysqli_query($mysqli, "SELECT DISTINCT user_id FROM mit_time_entries WHERE entry_date BETWEEN '$from' AND '$to' AND minutes > 0
         UNION SELECT user_id FROM mit_timesheets WHERE period_end >= '$from' AND period_start <= '$to' AND status <> 'open'"
         . (mitReimbReady() ? " UNION SELECT user_id FROM mit_reimbursements WHERE entry_date BETWEEN '$from' AND '$to'" : ''));
     while ($row = mysqli_fetch_row($result)) {
         $ids[] = intval($row[0]);
+    }
+    // ... only for people who keep a timesheet (an API login's or an owner's ticket time is not a timesheet)
+    $result = mysqli_query($mysqli, "SELECT ticket_reply_by FROM ticket_replies WHERE ticket_reply_created_at BETWEEN DATE_SUB('$from', INTERVAL 1 DAY) AND DATE_ADD('$to', INTERVAL 2 DAY)
+            AND ticket_reply_time_worked > '00:00:00' AND ticket_reply_by > 0" . $trips . $paid_by);
+    while ($row = mysqli_fetch_row($result)) {
+        if (!in_array(intval($row[0]), $ids, true) && mitTsKeepsTimesheet(intval($row[0]))) {
+            $ids[] = intval($row[0]);
+        }
     }
     return $ids;
 }
@@ -898,16 +930,21 @@ function mitTsDayLockHelp($why) {
  * approved timesheet (or one that has closed itself) its time stays as it was - refused with a message (and nothing
  * saved) when it would change. The words can still be edited with the time left alone.
  */
-function mitTsReplyTimeGuard($ticket_reply_id, $new_time) {
+function mitTsReplyTimeGuard($ticket_reply_id, $new_time, $new_type = null) {
     global $mysqli;
     if (!mitTsReady() || !mitModuleOn('timesheets') || !mitTsSettings()['ticket_time']) {
         return;
     }
     $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_type, ticket_reply_time_worked, TIME_TO_SEC(ticket_reply_time_worked) AS seconds, ticket_reply_created_at,
         ticket_reply_archived_at FROM ticket_replies WHERE ticket_reply_id = " . intval($ticket_reply_id)));
-    if (!$reply || $reply['ticket_reply_archived_at'] !== null || (string) $reply['ticket_reply_time_worked'] === (string) $new_time
-        || (intval($reply['seconds']) === 0 && mitReplyTimesSeconds($new_time) === 0)
-        || (!mitTsSettings()['ticket_internal'] && $reply['ticket_reply_type'] === 'Internal')) {
+    // Counted on timesheets before and after (internal notes count only when Admin > Timesheets says so)
+    $counts = function ($type, $seconds) {
+        return $seconds > 0 && (mitTsSettings()['ticket_internal'] || $type !== 'Internal');
+    };
+    $before = $reply ? $counts($reply['ticket_reply_type'], intval($reply['seconds'])) : false;
+    $after = $reply ? $counts($new_type ?? $reply['ticket_reply_type'], mitReplyTimesSeconds($new_time)) : false;
+    if (!$reply || $reply['ticket_reply_archived_at'] !== null || (!$before && !$after)
+        || ($before === $after && (string) $reply['ticket_reply_time_worked'] === (string) $new_time)) {
         return;
     }
     // The day it was worked (its times, functions/mit_reply_times.php), else where the person was when it was posted
@@ -927,9 +964,17 @@ function mitTsReplyTimeGuard($ticket_reply_id, $new_time) {
  * its own copy of its ticket time, so it does not change.)
  */
 function mitTsDeleteGuard($ticket_id, $client_id = 0) {
+    if (($why = mitTsDeleteBlocked($ticket_id, $client_id)) !== '') {
+        flashAlert(escapeHtml($why), 'error');
+        redirect();
+    }
+}
+
+/** Why the ticket (or all the client's tickets) can't be deleted for timesheets - '' when it can. Also for the API. */
+function mitTsDeleteBlocked($ticket_id, $client_id = 0) {
     global $mysqli;
     if (!mitTsReady() || !mitModuleOn('timesheets') || !mitTsSettings()['ticket_time']) {
-        return;
+        return '';
     }
     $which = intval($client_id) ? 'ticket_client_id = ' . intval($client_id) : 'ticket_id = ' . intval($ticket_id);
     $submitted = [];
@@ -938,7 +983,7 @@ function mitTsDeleteGuard($ticket_id, $client_id = 0) {
         $submitted[intval($row['user_id'])][] = $row;
     }
     if (!$submitted) {
-        return;
+        return '';
     }
     $ready = function_exists('mitReplyTimesReady') && mitReplyTimesReady();
     $result = mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_prefix, ticket_number, " . ($ready ? 'mrt.work_start' : 'NULL AS work_start') . "
@@ -951,12 +996,12 @@ function mitTsDeleteGuard($ticket_id, $client_id = 0) {
         foreach ($submitted[$user_id] as $sheet) {
             if ($date >= $sheet['period_start'] && $date <= $sheet['period_end']) {
                 $who = mitTsUsers([$user_id])[$user_id]['user_name'] ?? "user $user_id";
-                flashAlert('Not deleted: ticket ' . escapeHtml(ticketReference($row)) . ' has time on ' . escapeHtml($who) . "'s timesheet for "
-                    . escapeHtml(mitTsRangeText($sheet['period_start'], $sheet['period_end'])) . ', which is waiting for approval. Approve it or send it back first.', 'error');
-                redirect();
+                return 'Not deleted: ticket ' . ticketReference($row) . ' has time on ' . $who . "'s timesheet for "
+                    . mitTsRangeText($sheet['period_start'], $sheet['period_end']) . ', which is waiting for approval. Approve it or send it back first.';
             }
         }
     }
+    return '';
 }
 
 /** May the signed-in agent change this timesheet's hours? Returns '' or why not. */
@@ -1195,6 +1240,7 @@ function mitTsDaysRead(array $user_ids, $from, $to) {
         $user_id = intval($user_id);
         $days[$user_id] = [];
         $started = mitTsStartDate($user_id);
+        $ended = mitTsEndDate($user_id);
         $today = mitTsToday($user_id);
         $break_rule = mitTsBreakRule($user_id);
         foreach (mitTsDateRange($from, $to) as $date) {
@@ -1227,7 +1273,7 @@ function mitTsDaysRead(array $user_ids, $from, $to) {
             }
             if (isset($tickets[$user_id][$date]['auto_lost'])) {
                 $d['auto_lost'] = $tickets[$user_id][$date]['auto_lost'];
-            } elseif ($auto && $date < $today && $date >= $started) {
+            } elseif ($auto && $date < $today && $date >= $started && ($ended === '' || $date <= $ended)) {
                 // Lunch and breaks are accounted for - they are not lost time
                 $accounted = $d['billable'] + $d['other'] + $d['work'] + $d['lost'] + $d['leave_paid'] + $d['leave_unpaid'] + $d['break'] + $d['break_paid'];
                 $d['auto_lost'] = max(0, mitTsExpected($user_id, $date) - $accounted);
@@ -1244,6 +1290,7 @@ function mitTsDaysRead(array $user_ids, $from, $to) {
                 $d['auto_lost'] = 0;
                 $d['unpaid_work'] = 0;
                 $d['break_paid'] = 0;
+                $d['break_code_paid'] = 0; // inside the typed times, not paid on top
                 $d['ca'] = true;
                 $d['clocked'] = $c['clocked'];
                 $d['unallocated'] = max(0, $c['clocked'] - ($d['billable'] + $d['other'] + $d['work'] + $d['lost']));

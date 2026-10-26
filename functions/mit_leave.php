@@ -310,7 +310,7 @@ function mitLeaveAccrueEnded() {
         if (date('Y-m-d') <= date('Y-m-d', strtotime($period['end'] . " +$wait days"))) {
             continue;  // still settling
         }
-        foreach (mitTsUsers() as $user_id => $user) {
+        foreach (mitTsUsers(mitTsUsersWithActivity($period['start'], $period['end'])) as $user_id => $user) {
             $done = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM mit_leave_ledger WHERE user_id = $user_id AND kind = 'accrual' AND ref = '" . escapeSql($period['start']) . "'"))[0]);
             $accrues = array_filter(mitLeaveBanksFor($user_id), function ($bank) {
                 return in_array($bank['bank_method'], ['period', 'worked'], true);

@@ -35,6 +35,7 @@ if (!$provider) {
     $error = 'Choose the invoices to pay first';
 } else {
     $selection = billingPaySelection($session_client_id, (array) $checkout['ids'], $error);
+    if ($selection && function_exists('mitQboTakesPayments') && array_filter(array_keys($selection['cents']), 'mitQboTakesPayments')) { $selection = null; $error = 'One of these invoices is paid through our accounting system now - use the payment link on its email'; } // Mountaineer IT: paid in QuickBooks Online
 }
 
 if ($selection) {

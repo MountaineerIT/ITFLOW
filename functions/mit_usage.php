@@ -104,6 +104,11 @@ function mitUsageSaveLine($recurring_item_id, $source, $metric, $tag_id, $min_qt
         mysqli_query($mysqli, "DELETE FROM mit_usage_lines WHERE recurring_item_id = $recurring_item_id");
         return '';
     }
+    // ITFlow 26.11 counts seats on a line itself (Billed by users / devices) - one count per line, not both
+    if (mitColumnReady('recurring_invoice_items', 'item_seat_source')
+        && (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_seat_source FROM recurring_invoice_items WHERE item_id = $recurring_item_id"))[0] ?? '') !== '') {
+        return '"' . $item['item_name'] . '" is already billed by ITFlow\'s seat count - take that off the line first, or use it instead.';
+    }
     $tag_id = intval($tag_id);
     if ($source === 'tag') {
         if (!$tag_id || !mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM tags WHERE tag_id = $tag_id AND tag_type = 3"))) {

@@ -1461,6 +1461,7 @@ function quoteConvert($quote_id, array $opts, &$error = '') {
     }
     $by = (string) ($opts['by'] ?? 'ITFlow');
     $groups = quoteLineGroups(billingItems('quote', $quote_id), $quote['quote_discount_amount']);
+    if (function_exists('mitProcQuoteConvertGroups')) { $groups = mitProcQuoteConvertGroups($groups); } // Mountaineer IT: lines ordered for the client don't come off the shelf
     $valid_date = function ($date) {
         $date = (string) $date;
         return ($parsed = DateTime::createFromFormat('!Y-m-d', $date)) && $parsed->format('Y-m-d') === $date ? $date : '';

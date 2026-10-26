@@ -166,8 +166,8 @@ ob_start();
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label">Paid from</label>
-                        <select class="form-select" name="account">
-                            <option value="0">Not paid yet / no account</option>
+                        <select class="form-select" name="account" required>
+                            <option value="">- Pick the account -</option>
                             <?php foreach ($accounts as $account) { ?>
                                 <option value="<?= intval($account['account_id']) ?>"><?= escapeHtml($account['account_name']) ?></option>
                             <?php } ?>

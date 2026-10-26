@@ -408,6 +408,7 @@ function billingStripeBook($pi, $client_id, array $by = []) {
             payment_account_id = $account_id, payment_method = 'Stripe', payment_reference = '$reference', payment_invoice_id = $invoice_id");
         $first_payment_id = $first_payment_id ?: intval(mysqli_insert_id($mysqli));
         $status = updateInvoiceStatusFromPayments($invoice_id);
+        if (function_exists('mitQboCardPaymentBooked')) { mitQboCardPaymentBooked($invoice_id, $amount, $pi_id); } // Mountaineer IT: also to be recorded in QuickBooks Online
         $invoice = billingRow('invoice', $invoice_id, false);
         $number = billingNumber('invoice', $invoice);
         $money = billingMoney($amount, $currency);

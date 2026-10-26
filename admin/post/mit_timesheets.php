@@ -31,6 +31,14 @@ if (isset($_POST['mit_charge_code_save'])) {
         . ", code_daily_max = " . ($daily_max ? $daily_max : 'NULL')
         . ", code_closure_fill = " . (empty($_POST['closure_fill']) ? 0 : 1);
     if ($code_id) {
+        // Kind and paid decide approved periods' pay, leave and lost time, which are read from the code: not changed under them
+        $was = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT code_kind, code_paid FROM mit_charge_codes WHERE code_id = $code_id"));
+        if ($was && ($was['code_kind'] !== $kind || intval($was['code_paid']) !== (empty($_POST['paid']) ? 0 : 1))
+            && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_time_entries e JOIN mit_timesheets s ON s.user_id = e.user_id AND s.status = 'approved'
+                AND e.entry_date BETWEEN s.period_start AND s.period_end WHERE e.code_id = $code_id AND e.minutes > 0 LIMIT 1"))) {
+            flashAlert('It has hours on approved timesheets, so its kind and whether it is paid stay as they are - those periods were paid that way. Archive it and make a new code instead.', 'error');
+            redirect();
+        }
         mysqli_query($mysqli, "UPDATE mit_charge_codes SET $set WHERE code_id = $code_id");
     } else {
         $sort = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(MAX(code_sort), 0) + 1 FROM mit_charge_codes"))[0]);
@@ -108,6 +116,11 @@ if (isset($_POST['mit_ts_settings_save'])) {
     // Changing the pay period moves where periods start; timesheets already kept stay on their own dates
     [$old_type, $old_anchor] = mitTsPeriodSettings();
     $moved = $old_type !== $type || ($type === 'biweekly' && $old_anchor !== $anchor);
+    // Not while timesheets wait for approval: under new dates they could no longer be opened, approved or sent back
+    if ($moved && ($waiting = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM mit_timesheets WHERE status = 'submitted'"))[0]))) {
+        flashAlert("Not saved - $waiting timesheet" . ($waiting === 1 ? ' is' : 's are') . ' waiting for approval. Approve or send them back first, then change the pay period (best on the first day of a new period).', 'error');
+        redirect();
+    }
     $kept = $moved && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_timesheets LIMIT 1")) > 0;
     mitSetSetting('timesheet_period', $type);
     if (calendarIsDate($anchor)) {

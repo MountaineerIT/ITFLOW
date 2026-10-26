@@ -82,7 +82,7 @@ function mitTsViewDays($user_id, array $period, array $only = []) {
             ];
         }
         // What the day adds up to: hours worked (the typed times on California rules), leave, and paid breaks
-        $total = ($d['ca'] ? $d['clocked'] : $d['billable'] + $d['other'] + $d['work'] + $d['lost'] + $d['break_paid']) + $d['leave_paid'] + $d['leave_unpaid'];
+        $total = ($d['ca'] ? $d['clocked'] : $d['billable'] + $d['other'] + $d['work'] + $d['lost'] + $d['break_paid'] + $d['break_code_paid']) + $d['leave_paid'] + $d['leave_unpaid'];
         $out[$date] = [
             'dow' => date('D', strtotime($date)),
             'label' => date('M j', strtotime($date)),

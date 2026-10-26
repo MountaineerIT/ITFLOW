@@ -46,7 +46,8 @@ function mitHookFiles($root) {
         }));
     foreach ($it as $file) {
         $rel = ltrim(substr($file->getPathname(), strlen($root)), '/');
-        if (preg_match('/\.(php|js|css)$/', $rel) || basename($rel) === '.htaccess') {
+        // config.php is the install's own (a test install's stand-in addresses), not ITFlow's code
+        if ($rel !== 'config.php' && (preg_match('/\.(php|js|css)$/', $rel) || basename($rel) === '.htaccess')) {
             $files[] = $rel;
         }
     }

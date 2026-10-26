@@ -37,6 +37,6 @@ if (!mitTsOn()) {
     cronJobStop();
 }
 
-foreach (array_merge(mitTsFillEndedClosures(), mitTsSendReminders(), mitLeaveAccrueEnded(), mitReimbRecordEnded(), mitLeaveReady() ? mitLeaveYearEnds() : []) as $mit_ts_line) {
+foreach (array_merge(function_exists('mitTsHolidaySweep') ? mitTsHolidaySweep() : [], mitTsFillEndedClosures(), mitTsSendReminders(), mitLeaveAccrueEnded(), mitReimbRecordEnded(), mitLeaveReady() ? mitLeaveYearEnds() : []) as $mit_ts_line) {
     echo "$mit_ts_line\n";
 }

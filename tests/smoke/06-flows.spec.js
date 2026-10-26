@@ -249,7 +249,7 @@ test('a ticket in a project leaves the Tickets board and comes back when taken o
     await submit(modal, 'edit_ticket_project');
 
     expect(await onList('open'), 'a project ticket is off Open').toBe(0);
-    expect(await onList('all'), 'and off All').toBe(0);
+    expect(await onList('all'), 'but still under All (and Closed / Mine) - findable once done').toBeGreaterThan(0);
     expect(await onList('projects'), 'but on the Projects view').toBeGreaterThan(0);
 
     // Booked, it is in the project color under the calendar's Projects source - not under Scheduled tickets

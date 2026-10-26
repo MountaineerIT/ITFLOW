@@ -261,6 +261,7 @@ if (isset($_GET['invoice_id'], $_GET['url_key']) && !isset($_GET['payment_intent
 
     // Add Payment to History
     mysqli_query($mysqli, "INSERT INTO payments SET payment_date = '$pi_date', payment_amount = $pi_amount_paid, payment_currency_code = '$pi_currency', payment_account_id = $stripe_account, payment_method = 'Stripe', payment_reference = 'Stripe - $pi_id', payment_invoice_id = $invoice_id");
+    if (function_exists('mitQboCardPaymentBooked')) { mitQboCardPaymentBooked($invoice_id, $pi_amount_paid, $pi_id); } // Mountaineer IT: also to be recorded in QuickBooks Online
     
     mysqli_query($mysqli, "INSERT INTO history SET history_status = 'Paid', history_description = 'Online Payment added (client) - $ip - $os - $browser', history_invoice_id = $invoice_id");
 

@@ -1286,7 +1286,7 @@ if (isset($_POST['edit_ticket_reply'])) {
     $ticket_reply_type = in_array($_POST['ticket_reply_type'] ?? '', ['Public', 'Internal'], true) ? $_POST['ticket_reply_type'] : $reply['ticket_reply_type'];
     $ticket_reply_time_worked = escapeSql(ticketTimeWorked($_POST['time'] ?? ''));
     if (function_exists('mitReplyTimesFromEdit')) { $ticket_reply_time_worked = mitReplyTimesFromEdit($ticket_reply_id, $_POST, $ticket_reply_time_worked); } // Mountaineer IT: when the work was done
-    if (function_exists('mitTsReplyTimeGuard')) { mitTsReplyTimeGuard($ticket_reply_id, $ticket_reply_time_worked); } // Mountaineer IT: time on a submitted timesheet stays
+    if (function_exists('mitTsReplyTimeGuard')) { mitTsReplyTimeGuard($ticket_reply_id, $ticket_reply_time_worked, $ticket_reply_type); } // Mountaineer IT: time on a submitted timesheet stays
 
     mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply = '$ticket_reply', ticket_reply_type = '$ticket_reply_type', ticket_reply_time_worked = '$ticket_reply_time_worked' WHERE ticket_reply_id = $ticket_reply_id");
     if (function_exists('mitReplyTimesSavePending')) { mitReplyTimesSavePending($ticket_reply_id); } // Mountaineer IT

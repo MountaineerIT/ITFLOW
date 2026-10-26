@@ -261,8 +261,9 @@ function mitQboGuardInvoice($invoice_id) {
 }
 
 /** While QuickBooks is connected it emails the invoices - ITFlow's invoice emails are refused. */
-function mitQboGuardEmail() {
-    if (mitQboConnected()) {
+function mitQboGuardEmail($invoice_id = 0) {
+    // Connected, or (after a Disconnect) the invoice is still in QuickBooks through a batch
+    if (mitQboConnected() || (intval($invoice_id) && mitQboTakesPayments($invoice_id))) {
         flashAlert('QuickBooks Online emails invoices - approve the invoice and send it in a QuickBooks batch (Billing > QuickBooks Batches).', 'error');
         redirect();
     }
@@ -277,6 +278,30 @@ function mitQboInQuickBooks($invoice_id) {
 /** Does a payment for this invoice belong in QuickBooks (it is in a batch, sent or about to be)? */
 function mitQboTakesPayments($invoice_id) {
     return (bool) mitQboActiveEntry($invoice_id);
+}
+
+/**
+ * Does QuickBooks send this invoice's reminders and late fees (cron/nightly_tasks.php skips it)? In a batch, or entered in
+ * QuickBooks by hand ("Already in QuickBooks") - a late fee line added in ITFlow alone would make the two balances differ.
+ */
+function mitQboSendsReminders($invoice_id) {
+    return mitQboTakesPayments($invoice_id) || (function_exists('mitQboManualRows') && mitQboManualRows([intval($invoice_id)]));
+}
+
+/**
+ * A card payment ITFlow booked (Stripe) on an invoice in a QuickBooks batch - set up before it was batched, or a checkout left
+ * open. The money was taken, so it stays booked; the entry says so and agents are told to record it in QuickBooks too (the sync
+ * counts it as paid another way, so it does not add it twice).
+ */
+function mitQboCardPaymentBooked($invoice_id, $amount, $reference) {
+    global $mysqli;
+    $entry = mitQboActiveEntry($invoice_id);
+    if (!$entry) {
+        return;
+    }
+    $text = 'A card payment of ' . number_format((float) $amount, 2) . " ($reference) was taken in ITFlow - record it in QuickBooks too.";
+    mysqli_query($mysqli, "UPDATE mit_qbo_batch_invoices SET warning = CONCAT_WS(' ', warning, '" . escapeSql($text) . "') WHERE entry_id = " . intval($entry['entry_id']));
+    appNotify('Invoice Payment', escapeSql('QuickBooks: ' . $text), '/agent/invoice.php?invoice_id=' . intval($invoice_id), intval(getFieldById('invoices', intval($invoice_id), 'invoice_client_id')));
 }
 
 /** An invoice in a batch takes its payments in QuickBooks - ITFlow refuses them (the sync brings them back). */
@@ -294,7 +319,9 @@ function mitQboGuardPaymentEdit($payment_id) {
         return;
     }
     $payment_id = intval($payment_id);
-    if (mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_qbo_batch_invoices WHERE payment_id = $payment_id AND entry_status = 'sent' LIMIT 1"))) {
+    if (mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_qbo_batch_invoices e WHERE e.entry_status = 'sent' AND (e.payment_id = $payment_id
+        OR EXISTS (SELECT 1 FROM payments p WHERE p.payment_id = $payment_id AND p.payment_invoice_id = e.invoice_id AND p.payment_method = 'QuickBooks Online'
+            AND p.payment_reference = CONCAT('QuickBooks invoice ', e.qbo_doc_number))) LIMIT 1"))) {
         flashAlert('That payment comes from QuickBooks Online and follows it - change it in QuickBooks.', 'error');
         redirect();
     }
@@ -444,16 +471,21 @@ function mitQboSendEntry(array $entry, array $items, $email) {
             return $fail(implode(' ', $problems));
         }
         try {
-            // A try that failed may still have made the invoice (a timeout after QuickBooks saved it) - take that one rather than make it twice
+            // An earlier try - this entry's, or one in a batch since deleted or taken out - may already have made the invoice (a
+            // timeout after QuickBooks saved it): take that one rather than make it twice. Always looked for, one query.
             $answer = null;
-            if ((string) ($entry['error'] ?? '') !== '') {
-                foreach (mitQboQueryAll('Invoice', 'DocNumber = ' . mitQboQuote($payload['DocNumber'])) as $found) {
-                    if (($found['DocNumber'] ?? '') === $payload['DocNumber'] && ($found['CustomerRef']['value'] ?? '') === $payload['CustomerRef']['value']
-                        && floatval($found['TotalAmt'] ?? 0) > 0
-                        && strpos((string) ($found['PrivateNote'] ?? ''), 'From ITFlow invoice') !== false) {
-                        $answer = ['Invoice' => $found];
-                        break;
+            foreach (mitQboQueryAll('Invoice', 'DocNumber = ' . mitQboQuote($payload['DocNumber'])) as $found) {
+                if (($found['DocNumber'] ?? '') === $payload['DocNumber'] && ($found['CustomerRef']['value'] ?? '') === $payload['CustomerRef']['value']
+                    && floatval($found['TotalAmt'] ?? 0) > 0
+                    && strpos((string) ($found['PrivateNote'] ?? ''), 'From ITFlow invoice') !== false) {
+                    // One taken out of a batch and left in QuickBooks on purpose is not taken back silently
+                    $left = mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_qbo_batch_invoices WHERE invoice_id = $invoice_id AND entry_status = 'removed'
+                        AND removed_how = 'unlinked' AND qbo_invoice_id = '" . escapeSql((string) ($found['Id'] ?? '')) . "'"));
+                    if ($left) {
+                        return $fail('QuickBooks already has ' . $payload['DocNumber'] . ' from ITFlow (taken out of a batch earlier and left there) - mark the invoice "Already in QuickBooks" instead, or void that one in QuickBooks first.');
                     }
+                    $answer = ['Invoice' => $found];
+                    break;
                 }
             }
             $answer = $answer ?? mitQboApi('POST', '/invoice', $payload);
@@ -544,7 +576,8 @@ function mitQboBatchSend($batch_id) {
 /**
  * Take an invoice out of its batch. Not yet in QuickBooks: it just comes out (and unlocks). In QuickBooks: $how 'void' voids it
  * there (refused while it has payments), 'unlink' leaves it there - either way ITFlow's invoice unlocks and needs approving
- * again; voided it goes back to Draft, unlinked it keeps the payments already brought back (as ordinary ITFlow payments). Not
+ * again; voided it goes back to Draft, unlinked it stays sent, is marked "Already in QuickBooks" (mit_qbo_manual) and keeps the
+ * payments already brought back (as ordinary ITFlow payments). Not
  * while its batch is being sent. Returns '' or the problem.
  */
 function mitQboRemoveEntry($entry_id, $how = 'void') {
@@ -554,9 +587,15 @@ function mitQboRemoveEntry($entry_id, $how = 'void') {
     if (!mitLock("qbo_batch_$batch_id", 5)) {
         return 'Its batch is being sent right now - try again in a moment.';
     }
+    // Not while the payment sync runs either - it could bring a payment back onto the invoice being taken out
+    if (!mitLock('qbo_sync', 5)) {
+        mitUnlock("qbo_batch_$batch_id");
+        return 'QuickBooks payments are being brought back right now - try again in a moment.';
+    }
     try {
         return mitQboRemoveEntryLocked($entry_id, $how);
     } finally {
+        mitUnlock('qbo_sync');
         mitUnlock("qbo_batch_$batch_id");
     }
 }
@@ -572,6 +611,11 @@ function mitQboRemoveEntryLocked($entry_id, $how) {
     $removed_how = 'removed';
     if ($entry['entry_status'] === 'sent' && (string) $entry['qbo_invoice_id'] !== '') {
         if ($how === 'void') {
+            foreach (mitQboOwnPayments($entry) as $payment) {
+                if (mitQboPaymentHeld($payment)) {
+                    return 'A payment the sync brought back for it is reconciled or deposited in ITFlow - take it out without voiding, or put that right first.';
+                }
+            }
             try {
                 $qbo = mitQboApi('GET', '/invoice/' . rawurlencode($entry['qbo_invoice_id']))['Invoice'] ?? [];
                 if (round(floatval($qbo['Balance'] ?? 0), 2) < round(floatval($qbo['TotalAmt'] ?? 0), 2)) {
@@ -588,21 +632,22 @@ function mitQboRemoveEntryLocked($entry_id, $how) {
         mysqli_query($mysqli, "DELETE FROM mit_invoice_approvals WHERE invoice_id = $invoice_id");
         if ($removed_how === 'voided') {
             // Voided (nothing was paid there): back to a Draft to be approved again; the sync's payment, if any, goes with it
-            if ($entry['payment_id']) {
-                mysqli_query($mysqli, "DELETE FROM payments WHERE payment_id = " . intval($entry['payment_id']));
+            foreach (mitQboOwnPayments($entry) as $payment) {
+                mysqli_query($mysqli, "DELETE FROM payments WHERE payment_id = " . intval($payment['payment_id']));
             }
             mysqli_query($mysqli, "UPDATE invoices SET invoice_status = 'Draft' WHERE invoice_id = $invoice_id AND invoice_status IN ('Sent', 'Viewed', 'Partial', 'Paid')");
             $status = 'Draft';
         } else {
-            // Left in QuickBooks: money already received stays recorded - the payment becomes an ordinary ITFlow payment
+            // Left in QuickBooks: money already received stays recorded - the payment becomes an ordinary ITFlow payment. The
+            // invoice stays sent and is marked "Already in QuickBooks", so it is not approved and sent there a second time
             $status = mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM payments WHERE payment_invoice_id = $invoice_id LIMIT 1"))
-                ? (updateInvoiceStatusFromPayments($invoice_id) ?? $entry['invoice_status']) : 'Draft';
-            if ($status === 'Draft') {
-                mysqli_query($mysqli, "UPDATE invoices SET invoice_status = 'Draft' WHERE invoice_id = $invoice_id AND invoice_status IN ('Sent', 'Viewed')");
+                ? (updateInvoiceStatusFromPayments($invoice_id) ?? $entry['invoice_status']) : $entry['invoice_status'];
+            if (mitQboManualReady()) {
+                mysqli_query($mysqli, "INSERT IGNORE INTO mit_qbo_manual SET invoice_id = $invoice_id, marked_by = " . intval($session_user_id));
             }
         }
         mysqli_query($mysqli, "INSERT INTO history SET history_status = '" . escapeSql((string) $status) . "', history_description = 'Taken out of QuickBooks batch " . intval($entry['batch_id'])
-            . ($removed_how === 'voided' ? ' and voided in QuickBooks' : ' (left in QuickBooks)') . " by " . escapeSql(stripslashes($session_name)) . "', history_invoice_id = $invoice_id");
+            . ($removed_how === 'voided' ? ' and voided in QuickBooks' : ' (left in QuickBooks - marked as already there)') . " by " . escapeSql(stripslashes($session_name)) . "', history_invoice_id = $invoice_id");
     }
     mysqli_query($mysqli, "UPDATE mit_qbo_batch_invoices SET entry_status = 'removed', payment_id = NULL, removed_by = " . intval($session_user_id) . ", removed_at = NOW(),
         removed_how = '$removed_how' WHERE entry_id = $entry_id");
@@ -676,7 +721,7 @@ function mitQboPaymentSyncLocked() {
     }
     $result = mysqli_query($mysqli, "SELECT e.entry_id, e.invoice_id, e.qbo_invoice_id, e.qbo_doc_number, e.qbo_total, e.payment_id, invoice_amount, invoice_currency_code
         FROM mit_qbo_batch_invoices e JOIN invoices ON invoices.invoice_id = e.invoice_id
-        WHERE e.entry_status = 'sent' AND e.qbo_invoice_id IS NOT NULL AND e.sent_at > NOW() - INTERVAL 1 YEAR
+        WHERE e.entry_status = 'sent' AND e.qbo_invoice_id IS NOT NULL AND (e.sent_at > NOW() - INTERVAL 1 YEAR OR e.qbo_balance IS NULL OR e.qbo_balance > 0)
             AND (e.qbo_balance IS NULL OR e.qbo_balance > 0 OR e.paid_synced_at IS NULL OR e.paid_synced_at < NOW() - INTERVAL 1 DAY)
         ORDER BY e.paid_synced_at IS NOT NULL, e.paid_synced_at LIMIT 2000");
     $entries = [];
@@ -722,33 +767,54 @@ function mitQboApplyPaid(array $entry, $qbo_total, $qbo_balance, $account, $void
     global $mysqli;
     $entry_id = intval($entry['entry_id']);
     $invoice_id = intval($entry['invoice_id']);
-    $amount = floatval($entry['invoice_amount']);
-    // What the sync's payment should be: all of ITFlow's amount when QuickBooks says paid, else what was paid there - less any
-    // payment recorded in ITFlow before it went to QuickBooks. Voided there: nothing.
-    $paid = $voided ? 0.0 : round($qbo_balance <= 0.004 ? $amount : min($amount, max(0, $qbo_total - $qbo_balance)), 2);
-    $own_id = intval($entry['payment_id'] ?? 0);
-    $others = floatval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE payment_invoice_id = $invoice_id
-        AND payment_id != $own_id"))[0]);
-    $target = round(max(0, $paid - $others), 2);
-    $current = $own_id ? mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT payment_amount FROM payments WHERE payment_id = $own_id")) : null;
-    $changed = false;
-    if ($target > 0 && !$current) {
-        $currency = escapeSql((string) $entry['invoice_currency_code']);
-        $reference = escapeSql('QuickBooks invoice ' . $entry['qbo_doc_number']);
-        mysqli_query($mysqli, "INSERT INTO payments SET payment_date = CURDATE(), payment_amount = $target, payment_currency_code = '$currency',
-            payment_method = 'QuickBooks Online', payment_reference = '$reference', payment_account_id = " . intval($account) . ", payment_invoice_id = $invoice_id");
-        $own_id = mysqli_insert_id($mysqli);
-        $changed = true;
-    } elseif ($target > 0 && round(floatval($current['payment_amount']), 2) !== $target) {
-        mysqli_query($mysqli, "UPDATE payments SET payment_amount = $target, payment_date = CURDATE() WHERE payment_id = $own_id");
-        $changed = true;
-    } elseif ($target <= 0 && $current) {
-        mysqli_query($mysqli, "DELETE FROM payments WHERE payment_id = $own_id");
-        $own_id = 0;
-        $changed = true;
+    // Taken out of the batch while this run was going: leave it
+    if (!mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_qbo_batch_invoices WHERE entry_id = $entry_id AND entry_status = 'sent'"))) {
+        return false;
     }
-    mysqli_query($mysqli, "UPDATE mit_qbo_batch_invoices SET payment_id = " . ($own_id ? $own_id : 'NULL') . ", qbo_total = " . floatval($qbo_total) . ",
-        qbo_balance = " . floatval($qbo_balance) . ", paid_synced_at = NOW() WHERE entry_id = $entry_id");
+    $amount = floatval($entry['invoice_amount']);
+    // What the sync's payments should come to: all of ITFlow's amount when QuickBooks says paid, else what was paid there - less
+    // any payment recorded in ITFlow another way. Voided there: nothing.
+    $paid = $voided ? 0.0 : round($qbo_balance <= 0.004 ? $amount : min($amount, max(0, $qbo_total - $qbo_balance)), 2);
+    $own = mitQboOwnPayments($entry);
+    $own_sum = round(array_sum(array_column($own, 'payment_amount')), 2);
+    $others = floatval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(payment_amount), 0) FROM payments WHERE payment_invoice_id = $invoice_id"))[0]) - $own_sum;
+    $target = round(max(0, $paid - $others), 2);
+    $diff = round($target - $own_sum, 2);
+    $changed = false;
+    $warning = null;
+    if ($diff > 0) {
+        // More paid: a payment of its own for the difference, dated today - the ones before it (deposited, reconciled) stay as they are
+        $currency = escapeSql((string) $entry['invoice_currency_code']);
+        $reference = escapeSql(mitQboPaymentReference($entry));
+        mysqli_query($mysqli, "INSERT INTO payments SET payment_date = CURDATE(), payment_amount = $diff, payment_currency_code = '$currency',
+            payment_method = 'QuickBooks Online', payment_reference = '$reference', payment_account_id = " . intval($account) . ", payment_invoice_id = $invoice_id");
+        $changed = true;
+    } elseif ($diff < 0) {
+        // Less (a payment taken off or refunded there, or voided): the newest of ours go first - never one that is reconciled or deposited
+        $need = -$diff;
+        foreach (array_reverse($own) as $payment) {
+            if ($need <= 0) {
+                break;
+            }
+            if (mitQboPaymentHeld($payment)) {
+                $warning = 'QuickBooks shows less paid than ITFlow, but the payment is reconciled or deposited in ITFlow - put it right by hand.';
+                break;
+            }
+            $amount_now = round(floatval($payment['payment_amount']), 2);
+            if ($amount_now <= $need + 0.004) {
+                mysqli_query($mysqli, "DELETE FROM payments WHERE payment_id = " . intval($payment['payment_id']));
+                $need = round($need - $amount_now, 2);
+            } else {
+                mysqli_query($mysqli, "UPDATE payments SET payment_amount = " . round($amount_now - $need, 2) . " WHERE payment_id = " . intval($payment['payment_id']));
+                $need = 0;
+            }
+            $changed = true;
+        }
+    }
+    $newest = mitQboOwnPayments($entry);
+    $own_id = $newest ? intval(end($newest)['payment_id']) : 0;
+    mysqli_query($mysqli, "UPDATE mit_qbo_batch_invoices SET payment_id = " . ($own_id ?: 'NULL') . ", qbo_total = " . floatval($qbo_total) . ",
+        qbo_balance = " . floatval($qbo_balance) . ", paid_synced_at = NOW()" . ($warning !== null ? ", warning = '" . escapeSql($warning) . "'" : '') . " WHERE entry_id = $entry_id");
     if ($changed) {
         $before = mysqli_fetch_row(mysqli_query($mysqli, "SELECT invoice_status FROM invoices WHERE invoice_id = $invoice_id"))[0];
         $after = updateInvoiceStatusFromPayments($invoice_id);
@@ -756,6 +822,33 @@ function mitQboApplyPaid(array $entry, $qbo_total, $qbo_balance, $account, $void
             . number_format($paid, 2) . " paid', history_invoice_id = $invoice_id");
     }
     return $changed;
+}
+
+/** The reference on the payments the sync records for an entry. */
+function mitQboPaymentReference(array $entry) {
+    return 'QuickBooks invoice ' . $entry['qbo_doc_number'];
+}
+
+/** The payments the sync recorded for an entry's invoice, oldest first (rows with payment_id, payment_amount, the reconcile / deposit links). */
+function mitQboOwnPayments(array $entry) {
+    global $mysqli;
+    $ids = [];
+    if (intval($entry['payment_id'] ?? 0)) {
+        $ids[] = intval($entry['payment_id']); // recorded before 26.10.150, with whatever reference it had
+    }
+    $result = mysqli_query($mysqli, "SELECT payment_id, payment_amount, payment_reconciliation_id, payment_deposit_transfer_id FROM payments
+        WHERE payment_invoice_id = " . intval($entry['invoice_id']) . " AND payment_method = 'QuickBooks Online'
+        AND (payment_reference = '" . escapeSql(mitQboPaymentReference($entry)) . "'" . ($ids ? " OR payment_id IN (" . implode(',', $ids) . ")" : '') . ")
+        ORDER BY payment_id");
+    return mysqli_fetch_all($result, MYSQLI_ASSOC);
+}
+
+/** Is one of the sync's payments held by ITFlow's books - on a reconciliation, or in a bank deposit? Then the sync leaves it. */
+function mitQboPaymentHeld(array $payment) {
+    if (!empty($payment['payment_deposit_transfer_id'])) {
+        return true;
+    }
+    return function_exists('reconcileLock') ? (bool) reconcileLock('payment', intval($payment['payment_id'])) : !empty($payment['payment_reconciliation_id']);
 }
 
 /*

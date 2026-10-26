@@ -99,12 +99,28 @@ function mitReplyTimesFromPost(array $post, $time_worked) {
     if (!mitReplyTimesReady() || $seconds <= 0) {
         return $time_worked;
     }
+    // Counted now (no times, or times on a locked day): not when today is on an approved timesheet - its hours are stored, so the
+    // time would be on no timesheet at all
+    $now_approved = function () use ($session_user_id) {
+        if (!function_exists('mitTsApprovedDates') || !function_exists('mitTsLocalDate')) {
+            return false;
+        }
+        $today = mitTsLocalDate($session_user_id, date('Y-m-d H:i:s'));
+        if (!mitTsApprovedDates($session_user_id, $today, $today)) {
+            return false;
+        }
+        flashAlert('The time was not counted: today is on your approved timesheet - ask for it to be reopened, then add the time to the note.', 'warning');
+        return true;
+    };
     $range = mitReplyTimesParse($post['mit_work_date'] ?? '', $post['mit_work_start'] ?? '', $post['mit_work_end'] ?? '');
     if (!$range) {
-        return $time_worked;
+        return $now_approved() ? '00:00:00' : $time_worked;
     }
     $locked = mitReplyTimesLocked($session_user_id, substr($range[0], 0, 10));
     if ($locked) {
+        if ($now_approved()) {
+            return '00:00:00';
+        }
         flashAlert('The times were not kept: ' . date('M j', strtotime($range[0])) . ' ' . mitReplyTimesLockedText($locked) . ', so the time counts as worked now.', 'warning');
         return $time_worked;
     }

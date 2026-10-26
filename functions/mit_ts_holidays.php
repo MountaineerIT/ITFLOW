@@ -155,3 +155,33 @@ function mitTsHolidayLocked($user_id, $date, ?array $period = null) {
     $sheet = mitTsSheet($user_id, $period);
     return in_array($sheet['status'], ['submitted', 'approved'], true) || mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved']);
 }
+
+/**
+ * Holidays changed outside our Holidays tab (ITFlow's own Admin > SLA closure days have add / delete): the list as it was last
+ * seen is kept (mit_settings ts_holidays_seen), and each closure day since taken away, renamed or added is put right on open
+ * timesheets through mitTsHolidayChanged - what our tab does. From the hourly cron job. Lines for the log.
+ */
+function mitTsHolidaySweep() {
+    if (!mitModuleOn('timesheets') || !mitTsHolidayCodes()) {
+        return [];
+    }
+    $now = getBusinessHolidays(true);
+    $seen_text = (string) mitSetting('ts_holidays_seen', '');
+    mitSetSetting('ts_holidays_seen', json_encode($now));
+    $seen = json_decode($seen_text, true);
+    if (!is_array($seen)) {
+        return []; // first run: nothing to compare with
+    }
+    $log = [];
+    foreach ($seen as $date => $name) {
+        if (!isset($now[$date]) || (string) $now[$date] !== (string) $name) {
+            $log[] = "Closure day $date ($name) " . (isset($now[$date]) ? 'renamed' : 'taken away') . ' in Admin > SLA: ' . mitTsHolidayChanged($date, $name, isset($now[$date]) ? $date : '', (string) ($now[$date] ?? ''));
+        }
+    }
+    foreach ($now as $date => $name) {
+        if (!isset($seen[$date])) {
+            $log[] = "Closure day $date ($name) added in Admin > SLA: " . mitTsHolidayChanged('', '', $date, (string) $name);
+        }
+    }
+    return $log;
+}

@@ -60,6 +60,15 @@ if (isset($_POST['mit_proc_save_item'])) {
             $fields['project_id'] = 0;
             $project_dropped = true;
         }
+        // Ordered for an invoice line: not more than the line, less what else is on the list or ordered for it
+        if (in_array($item['source'], ['invoice', 'quote'], true) && intval($item['invoice_item_id'])) {
+            $line_qty = mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_quantity FROM invoice_items WHERE item_id = " . intval($item['invoice_item_id'])));
+            $others = (mitProcInvoiceQueued($item['invoice_id'])[intval($item['invoice_item_id'])] ?? 0) - (float) $item['quantity'];
+            if ($line_qty && $quantity > round((float) $line_qty[0] - $others, 2)) {
+                flashAlert('At most ' . mitQty(max(0, (float) $line_qty[0] - $others)) . ' - that is what is left of the invoice line.', 'error');
+                redirect();
+            }
+        }
         mysqli_query($mysqli, "UPDATE mit_procurement_items SET name = '" . escapeSql(mb_substr($name, 0, 255)) . "', quantity = $quantity,
             unit_cost = " . ($cost === null ? 'NULL' : $cost) . ", vendor_id = " . $fields['vendor_id'] . ", client_id = $client_id, project_id = " . $fields['project_id'] . ",
             note = " . (trim($fields['note']) === '' ? 'NULL' : "'" . escapeSql(mb_substr($fields['note'], 0, 255)) . "'") . " WHERE item_id = $item_id");
@@ -156,6 +165,9 @@ if (isset($_POST['mit_po_save_lines'])) {
             continue;
         }
         mysqli_query($mysqli, "UPDATE mit_po_lines SET quantity = $qty, unit_cost = $cost WHERE line_id = " . intval($line_id) . " AND po_id = " . intval($po['po_id']));
+        // Its item (what the invoice / ticket asked for) shows what is ordered
+        mysqli_query($mysqli, "UPDATE mit_procurement_items proc JOIN mit_po_lines l ON l.proc_item_id = proc.item_id AND proc.item_id > 0
+            SET proc.quantity = $qty WHERE l.line_id = " . intval($line_id) . " AND l.po_id = " . intval($po['po_id']));
         // A ticket's part follows the quantity ordered for it
         mysqli_query($mysqli, "UPDATE mit_ticket_parts parts JOIN mit_po_lines l ON l.proc_item_id = parts.proc_item_id AND parts.proc_item_id > 0
             SET parts.quantity = $qty WHERE l.line_id = " . intval($line_id) . " AND l.po_id = " . intval($po['po_id']) . " AND parts.invoice_id = 0");

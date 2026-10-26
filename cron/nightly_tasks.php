@@ -452,7 +452,7 @@ if ($reminder_rules['enabled']) {
 
     while ($row = mysqli_fetch_assoc($sql_reminders)) {
         $invoice_id = intval($row['invoice_id']);
-        if (function_exists('mitQboTakesPayments') && mitQboTakesPayments($invoice_id)) { continue; } // Mountaineer IT: QuickBooks Online sends its reminders and late fees
+        if (function_exists('mitQboSendsReminders') ? mitQboSendsReminders($invoice_id) : (function_exists('mitQboTakesPayments') && mitQboTakesPayments($invoice_id))) { continue; } // Mountaineer IT: QuickBooks Online sends its reminders and late fees
         $days = intval($row['days_late']);
         $invoice = billingRow('invoice', $invoice_id, false);
         if (!$invoice) {

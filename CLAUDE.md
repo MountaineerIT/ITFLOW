@@ -39,6 +39,9 @@ model: see DEPLOYMENT.md.
   restore into a stock checkout of the latest release (`git archive vYY.MM`; install schema first,
   then `scripts/restore_cli.php`) -> click through the main pages and save a client/ticket/reply.
   Keep DEPLOYMENT.md "Moving to stock ITFlow" (what stops working after a move) up to date.
+- Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
+  install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
+  before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.
 - Cross-checks (Oct 26, 26.10.144): `sh scripts/mit_verify.sh` runs everything - PHP syntax, `php scripts/mit_hook_check.php` (each of our
   names in ITFlow's files against the manifest `scripts/mit_hooks.txt`; a dropped hook fails - after a deliberate hook change run it with
   `--update` and commit the manifest; never update it to silence a merge without finding out why a hook went), `php scripts/mit_consistency_check.php`
@@ -1152,6 +1155,34 @@ model: see DEPLOYMENT.md.
   - Left for later: our settings pages are not on ITFlow's Settings overview (`settingsPages()`), our notification rows sit in their own
     table on the new page, roles / company say "unchanged" when only our fields change. ITFlow 26.11 also bills per user / device seats on
     recurring lines (close to our usage by tag) and has its own product margin (beside our quote profit box).
+- Deep dive (Oct 26, 26.10.150 - timesheets / payroll, projects / procurement, invoices / QuickBooks; 3 reviewers, findings verified):
+  Procurement: `mitProcQuoteConvertGroups` (one guarded line at the start of ITFlow's `quoteConvert` in `functions/billing.php`, after
+  quoteLineGroups) drops the product from one-time lines ticked "Send to procurement" (`$_POST['mit_proc_lines']`) when it tracks stock -
+  ITFlow's productStockShortfall refused the whole conversion; nothing is taken, so nothing goes back. `mitProcAfterReceive` puts back only
+  min(received, what ITFlow's product_stock still shows taken by that invoice line and by the invoice for that product) - a cancelled invoice
+  (productStockReturnInvoice) is not returned twice; qty to 2 decimals. `MIT_PART_BILLABLE_SQL` / `mitTicketPartBillable`: a "to order" part
+  whose item was cancelled is not billable; received parts can be removed. `mitProcTidy` cancels waiting items of cancelled / deleted invoices
+  or lines and clears deleted clients from PO lines still to come. `mitProcTicketClientMoved` clears other clients' project / asset ids.
+  Vendor bill through ITFlow's `expenseSave` (account required) + stock_expense_id on the PO's "Received on <PO>" stock moves.
+  Projects: `mitProjectTicketsShows` leaves Mine / Closed / All unfiltered. QuickBooks: unlink = stays sent + `mit_qbo_manual` row; the
+  adopt lookup (DocNumber + customer + marker) runs before every POST (refuses one left in QuickBooks on purpose); `mitQboApplyPaid` adds a
+  payment per increase, takes decreases off the newest of ours (`mitQboOwnPayments` - method 'QuickBooks Online' + reference "QuickBooks
+  invoice <doc>", or entry.payment_id), never a reconciled / deposited one (`mitQboPaymentHeld` -> entry warning), skips an entry no longer
+  sent; `mitQboRemoveEntry` also takes `qbo_sync`; `mitQboCardPaymentBooked` (one line each in `functions/billing_pay.php` billingStripeBook
+  and `guest/guest_pay_invoice_stripe.php`) warns; `client/pay.php` refuses batched invoices (one line); `mitQboSendsReminders` (batched or
+  manual) in `cron/nightly_tasks.php`; `mitQboGuardEmail($invoice_id)` also after Disconnect; the payload refuses another currency than the
+  company's and sends ApplyTaxAfterDiscount = taxSettings discount_before (US, with a discount); the sync keeps unpaid entries past a year.
+  Usage: refuses a line with ITFlow's item_seat_source. Timesheets: `mitReplyTimesFromPost` drops reply time (warning) when today is on the
+  author's approved sheet; `mitTsUsersWithActivity` adds reply authors / own-vehicle drivers / paid-personally (keeps-timesheet people only);
+  `mitTsEndDate` (archived date, or last activity when disabled) ends auto lost time; leavers in `mitReimbRecordEnded` / `mitLeaveAccrueEnded`;
+  a code's kind / paid locked once on approved sheets; pay period change refused while sheets are submitted (old sheets are still matched by
+  period_start only - change it at a period boundary); `mitReimbExpenseWhyLocked($existing, $in)` day locks for paid-personally expenses
+  (payroll mode; the `functions/expenses.php` expenseSave hook passes `$in` and runs for new expenses too); payroll close retried on failure;
+  `mitTsHolidaySweep` (cron, `mit_settings` ts_holidays_seen) follows Admin > SLA closure-day changes through `mitTsHolidayChanged`;
+  save_day under the `ts_sheet_` lock; `mitTsDeleteBlocked` (API client delete, one line); `mitTsReplyTimeGuard(..., $new_type)`;
+  `mitReimbItemFinish` hides other clients' ticket subjects; break_code_paid in the day total and 0 on California days; payroll detail
+  "Not clocked" row. Scenarios: `tests/scenarios/scenario-procurement-stock.php`, `-qbo-payments.php`, `-ts-holidays.php`.
+  Open (asked the user): automatic paid breaks are added on top of logged hours and count toward daily overtime (`mitTsDayWorked`).
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

@@ -62,6 +62,15 @@ function mitProcTicketClientMoved($ticket_id, $client_id) {
     mysqli_query($mysqli, "UPDATE mit_po_lines l JOIN mit_procurement_items i ON i.item_id = l.proc_item_id SET l.client_id = $client_id
         WHERE i.ticket_id = $ticket_id AND l.received_qty < l.quantity");
     mysqli_query($mysqli, "UPDATE mit_procurement_items SET client_id = $client_id WHERE ticket_id = $ticket_id AND status NOT IN ('received', 'cancelled')");
+    // ITFlow takes the ticket out of its project and unlinks its assets on a client change: the parts and orders follow
+    $not_theirs = "project_id > 0 AND project_id NOT IN (SELECT project_id FROM projects WHERE project_client_id = $client_id)";
+    mysqli_query($mysqli, "UPDATE mit_procurement_items SET project_id = 0 WHERE ticket_id = $ticket_id AND $not_theirs");
+    mysqli_query($mysqli, "UPDATE mit_po_lines l JOIN mit_procurement_items i ON i.item_id = l.proc_item_id SET l.project_id = 0
+        WHERE i.ticket_id = $ticket_id AND l.received_qty < l.quantity AND l.project_id > 0 AND l.project_id NOT IN (SELECT project_id FROM projects WHERE project_client_id = $client_id)");
+    if (mitTicketPartsReady()) {
+        mysqli_query($mysqli, "UPDATE mit_ticket_parts SET asset_id = 0 WHERE ticket_id = $ticket_id AND asset_id > 0
+            AND asset_id NOT IN (SELECT asset_id FROM assets WHERE asset_client_id = $client_id)");
+    }
 }
 
 /**
@@ -137,9 +146,9 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
 
     // Our stock: into the product's stock (not a ticket's part - that goes to the ticket, even one without a client)
     if (!empty($options['stock']) && !$client_id && $proc && $proc['source'] !== 'ticket' && intval($proc['product_id']) && mitProductTracksStock(intval($proc['product_id']))) {
-        mitStockMove(intval($proc['product_id']), intval(round($qty)), 'received', "Received on $po_reference", ['unit_cost' => $line['unit_cost'] ?? null]);
-        logAudit('Product', 'Edit', escapeSql(mitProcWho() . ' added ' . intval(round($qty)) . " to stock, received on $po_reference"), 0, intval($proc['product_id']));
-        $done['stock'] += intval(round($qty));
+        mitStockMove(intval($proc['product_id']), round($qty, 2), 'received', "Received on $po_reference", ['unit_cost' => $line['unit_cost'] ?? null]);
+        logAudit('Product', 'Edit', escapeSql(mitProcWho() . ' added ' . mitQty($qty) . " to stock, received on $po_reference"), 0, intval($proc['product_id']));
+        $done['stock'] += round($qty, 2);
     }
 
     /*
@@ -155,10 +164,20 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
     if ($proc && in_array($proc['source'], ['invoice', 'quote'], true) && intval($proc['invoice_item_id']) && mitProductTracksStock(intval($proc['product_id']))) {
         $invoice_item_id = intval($proc['invoice_item_id']);
         $product_id = intval($proc['product_id']);
+        $invoice_id = intval($proc['invoice_id']);
         $invoice_line = mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_product_id FROM invoice_items WHERE item_id = $invoice_item_id"));
-        if ($invoice_line && in_array(intval($invoice_line[0]), [0, $product_id], true)) {
-            mitStockMove($product_id, intval(round($qty)), 'returned', "Ordered on $po_reference for the invoice instead of taken from stock",
-                ['invoice_id' => intval($proc['invoice_id']), 'item_id' => $invoice_item_id]);
+        // Only what ITFlow's stock record shows is still taken: by this line, and by the invoice for this product (a cancelled
+        // invoice was given its stock back by ITFlow, and a line converted from a quote as "to order" never took any)
+        $taken = function_exists('productStockMove') ? min(
+            -(float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(stock_qty), 0) FROM product_stock WHERE stock_item_id = $invoice_item_id AND stock_invoice_id = $invoice_id AND stock_product_id = $product_id"))[0] ?? 0),
+            -(float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(stock_qty), 0) FROM product_stock WHERE stock_invoice_id = $invoice_id AND stock_product_id = $product_id"))[0] ?? 0)
+        ) : round($qty, 2);
+        $back = round(min(round($qty, 2), $taken), 2);
+        if ($invoice_line && in_array(intval($invoice_line[0]), [0, $product_id], true) && $back > 0) {
+            mitStockMove($product_id, $back, 'returned', "Ordered on $po_reference for the invoice instead of taken from stock",
+                ['invoice_id' => $invoice_id, 'item_id' => $invoice_item_id]);
+        }
+        if ($invoice_line && intval($invoice_line[0]) === $product_id) {
             mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = 0 WHERE item_id = $invoice_item_id");
         }
     }
@@ -215,10 +234,23 @@ function mitPoRecordBillNow(array $po, array $post) {
     // One client on the PO: the expense is theirs, as ITFlow's own expenses can be
     $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT DISTINCT client_id FROM mit_po_lines WHERE po_id = " . intval($po['po_id']) . " AND client_id > 0"), MYSQLI_ASSOC);
     $client_id = count($clients) === 1 ? intval($clients[0]['client_id']) : 0;
-    mysqli_query($mysqli, "INSERT INTO expenses SET expense_date = '$date', expense_amount = " . round((float) $amount, 2) . ", expense_currency_code = '" . escapeSql($session_company_currency) . "',
-        expense_account_id = " . ($account ?: 'NULL') . ", expense_vendor_id = " . intval($po['vendor_id']) . ", expense_client_id = $client_id, expense_category_id = $category,
-        expense_description = '" . escapeSql($description) . "', expense_reference = '" . escapeSql(mb_substr($reference !== '' ? $reference : mitPoReference($po), 0, 200)) . "'");
-    $expense_id = mysqli_insert_id($mysqli);
+    $reference = mb_substr($reference !== '' ? $reference : mitPoReference($po), 0, 200);
+    if (function_exists('expenseSave')) {
+        // Through ITFlow's own expense rules (account and category checked, the account's currency, who made it)
+        $expense_id = expenseSave(['date' => $date, 'amount' => $amount, 'vendor' => intval($po['vendor_id']), 'category' => $category, 'account' => $account,
+            'client_id' => $client_id, 'reference' => $reference, 'description' => $description], 0, $error);
+        if (!$expense_id) {
+            return [0, "Not recorded - $error."];
+        }
+        // The stock this PO put on the shelf was delivered on this bill, as ITFlow's own Receive stock form records it
+        mysqli_query($mysqli, "UPDATE product_stock SET stock_expense_id = $expense_id WHERE stock_type = 'received' AND stock_expense_id IS NULL
+            AND stock_note = '" . escapeSql('Received on ' . mitPoReference($po)) . "'");
+    } else {
+        mysqli_query($mysqli, "INSERT INTO expenses SET expense_date = '$date', expense_amount = " . round((float) $amount, 2) . ", expense_currency_code = '" . escapeSql($session_company_currency) . "',
+            expense_account_id = " . ($account ?: 'NULL') . ", expense_vendor_id = " . intval($po['vendor_id']) . ", expense_client_id = $client_id, expense_category_id = $category,
+            expense_description = '" . escapeSql($description) . "', expense_reference = '" . escapeSql($reference) . "'");
+        $expense_id = mysqli_insert_id($mysqli);
+    }
     mysqli_query($mysqli, "UPDATE mit_purchase_orders SET expense_id = $expense_id WHERE po_id = " . intval($po['po_id']));
     mitPoLog($po['po_id'], mitProcWho() . ' recorded the vendor bill - ' . mitMoney($amount) . ($reference !== '' ? " (their invoice $reference)" : '') . ' as an expense');
     logAudit('Expense', 'Create', escapeSql(mitProcWho() . ' recorded the vendor bill for ' . mitPoReference($po) . ' as an expense'), $client_id, $expense_id);
