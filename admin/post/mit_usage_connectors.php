@@ -40,7 +40,7 @@ if (isset($_POST['mit_usage_ninjaone_save'])) {
     validateCSRFToken();
 
     mitSetSetting('usage_ninjaone_on', empty($_POST['usage_ninjaone_on']) ? '0' : '1');
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the NinjaOne usage connector"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the NinjaOne usage connector"));
     flashAlert('Saved');
     redirect('mit_usage_connectors.php?tab=ninjaone');
 }
@@ -62,7 +62,7 @@ if (isset($_POST['mit_usage_bitwarden_link'])) {
     if ($why !== '') {
         flashAlert(escapeHtml($why), 'error');
     } else {
-        logAudit('Settings', 'Edit', escapeSql("$session_name linked a Bitwarden organization for usage billing"), intval($_POST['client_id'] ?? 0));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " linked a Bitwarden organization for usage billing"), intval($_POST['client_id'] ?? 0));
         flashAlert('Bitwarden organization linked - its key works.');
     }
     redirect('mit_usage_connectors.php?tab=bitwarden');
@@ -75,7 +75,7 @@ if (isset($_GET['mit_usage_unlink'])) {
     $link_id = intval($_GET['mit_usage_unlink']);
     $connector = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT connector FROM mit_usage_links WHERE link_id = $link_id"))[0] ?? 'bitwarden');
     mysqli_query($mysqli, "DELETE FROM mit_usage_links WHERE link_id = $link_id");
-    logAudit('Settings', 'Edit', escapeSql("$session_name unlinked a $connector usage connector"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " unlinked a $connector usage connector"));
     flashAlert('Unlinked - the counts already recorded stay.');
     redirect('mit_usage_connectors.php?tab=' . (isset(MIT_USAGE_CONNECTORS[$connector]) ? $connector : 'bitwarden'));
 }
@@ -113,7 +113,7 @@ if (isset($_POST['mit_usage_ingram_save']) || isset($_POST['mit_usage_ingram_cus
         mitSetSetting('usage_ingram_token', '');
         mitSetSetting('usage_ingram_token_expires', 0);
     }
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the Ingram Micro usage connector"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the Ingram Micro usage connector"));
     if (isset($_POST['mit_usage_ingram_customers'])) {
         try {
             $customers = mitUsageIngramCustomers(true);
@@ -155,7 +155,7 @@ if (isset($_POST['mit_usage_ingram_map'])) {
         $changed++;
     }
     if ($changed) {
-        logAudit('Settings', 'Edit', escapeSql("$session_name changed $changed Ingram Micro customer link" . ($changed === 1 ? '' : 's')));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed $changed Ingram Micro customer link" . ($changed === 1 ? '' : 's')));
     }
     flashAlert("$changed link" . ($changed === 1 ? '' : 's') . ' saved.');
     redirect('mit_usage_connectors.php?tab=ingram');

@@ -167,7 +167,7 @@ function mitBrandAppLogoSave($remove, $file) {
         @unlink($dir . $old);
     }
     global $session_name;
-    logAudit('Settings', 'Edit', escapeSql(($session_name ?? 'Someone') . ($new !== '' ? ' uploaded' : ' removed') . ' the logo for ITFlow\'s screens'));
+    logAudit('Settings', 'Edit', escapeSql((stripslashes($session_name ?? 'Someone')) . ($new !== '' ? ' uploaded' : ' removed') . ' the logo for ITFlow\'s screens'));
     return '';
 }
 

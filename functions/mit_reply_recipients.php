@@ -284,7 +284,8 @@ function mitInternalNoteNotify(array $ticket, $reply_id, array $post) {
     $url = '/agent/' . ticketUrl($ticket_id, $client_id);
     $link = 'https://' . $config_base_url . $url;
     $subject = "Internal note for you - [$reference] - " . $ticket['ticket_subject'];
-    $body = escapeHtml($session_name) . ' added an internal note on ticket <b>' . escapeHtml($reference) . '</b> - ' . escapeHtml($ticket['ticket_subject'])
+    $who = stripslashes((string) $session_name); // ITFlow keeps the name SQL-escaped
+    $body = escapeHtml($who) . ' added an internal note on ticket <b>' . escapeHtml($reference) . '</b> - ' . escapeHtml($ticket['ticket_subject'])
         . ' and asked for you.<br><br>--------------------------------<br>' . $note . '<br>--------------------------------<br><br>'
         . '<a href="' . escapeHtml($link) . '">Open the ticket</a><br><br><i style="color: #808080">Only our team can see this note. A reply to this email from your own address is added to the ticket as an internal note.</i>';
     $told = [];
@@ -294,7 +295,7 @@ function mitInternalNoteNotify(array $ticket, $reply_id, array $post) {
             continue;
         }
         $agent = $agents[$user_id];
-        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '" . escapeSql("$session_name asked for you in an internal note on ticket $reference - " . $ticket['ticket_subject']) . "',
+        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '" . escapeSql("$who asked for you in an internal note on ticket $reference - " . $ticket['ticket_subject']) . "',
             notification_action = '" . escapeSql($url) . "', notification_client_id = $client_id, notification_user_id = $user_id");
         if (!empty($config_smtp_provider) && filter_var($agent['user_email'], FILTER_VALIDATE_EMAIL)) {
             $mail[] = ['from' => escapeSql($config_ticket_from_email), 'from_name' => escapeSql($config_ticket_from_name), 'recipient' => escapeSql($agent['user_email']),
@@ -306,7 +307,7 @@ function mitInternalNoteNotify(array $ticket, $reply_id, array $post) {
         addToMailQueue($mail);
     }
     if ($told) {
-        logTicketHistory($ticket_id, escapeSql("$session_name notified " . implode(', ', $told) . " about an internal note"));
+        logTicketHistory($ticket_id, escapeSql("$who notified " . implode(', ', $told) . " about an internal note"));
     }
     return $told;
 }

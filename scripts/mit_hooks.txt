@@ -173,16 +173,19 @@ hook	agent/post/ticket.php	mitAgentCanSeeClient	1
 hook	agent/post/ticket.php	mitBoardAfterCreate	2
 hook	agent/post/ticket.php	mitBoardRoute	2
 hook	agent/post/ticket.php	mitInternalNoteNotify	2
+hook	agent/post/ticket.php	mitNotifyOn	6
 hook	agent/post/ticket.php	mitProjectTicketMoved	4
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
 hook	agent/post/ticket.php	mitReplyRecipientsMail	1
 hook	agent/post/ticket.php	mitReplyRecipientsReady	2
+hook	agent/post/ticket.php	mitReplyTimesFlash	2
 hook	agent/post/ticket.php	mitReplyTimesFromEdit	2
 hook	agent/post/ticket.php	mitReplyTimesFromPost	2
 hook	agent/post/ticket.php	mitReplyTimesSavePending	4
 hook	agent/post/ticket.php	mitScheduleLeadChanging	1
 hook	agent/post/ticket.php	mitScheduleNotifyFromPost	2
 hook	agent/post/ticket.php	mitTicketClientMoved	1
+hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
 hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
 hook	agent/post/ticket.php	mit_board	1
 hook	agent/post/ticket.php	mit_content	2
@@ -316,6 +319,7 @@ hook	functions/calendar.php	mitHolidayCalendarSources	2
 hook	functions/calendar.php	mitOutlookBusyItems	1
 hook	functions/calendar.php	mitOutlookCalendarSources	2
 hook	functions/calendar.php	mitProjectBookingItems	2
+hook	functions/calendar.php	mitScheduleOverlapSql	2
 hook	functions/calendar.php	mitTicketScheduleEnd	2
 hook	functions/calendar.php	mitTicketTechCalendarItems	1
 hook	functions/calendar.php	mitTicketTechFeedItems	1
@@ -459,6 +463,8 @@ ours	admin/database_updates/mountaineerit/M038.php
 ours	admin/database_updates/mountaineerit/M039.php
 ours	admin/database_updates/mountaineerit/M040.php
 ours	admin/database_updates/mountaineerit/M041.php
+ours	admin/database_updates/mountaineerit/M042.php
+ours	admin/database_updates/mountaineerit/M043.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php

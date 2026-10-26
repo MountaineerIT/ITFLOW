@@ -85,7 +85,7 @@ function mitTicketPickSet($field, $value, array $ticket_ids) {
     $rows = [];
     foreach ($ticket_ids as $ticket_id) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_id, ticket_prefix, ticket_number, ticket_client_id, ticket_sla_id, ticket_category,
-            ticket_assigned_to, ticket_resolved_at, ticket_closed_at FROM tickets WHERE ticket_id = " . intval($ticket_id)));
+            ticket_assigned_to, ticket_project_id, ticket_resolved_at, ticket_closed_at FROM tickets WHERE ticket_id = " . intval($ticket_id)));
         if (!$row || lookupUserPermission('module_support') < 2 || (intval($row['ticket_client_id']) && !hasClientAccess($row['ticket_client_id']))
             || !empty($row['ticket_closed_at']) || ($field === 'mit_board' && !empty($row['ticket_resolved_at']))) {
             return [403, ['error' => 'You cannot change that on these tickets.']];
@@ -112,6 +112,10 @@ function mitTicketPickSet($field, $value, array $ticket_ids) {
             $now = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_assigned_to FROM tickets WHERE ticket_id = $ticket_id"))[0] ?? 0);
             $reload = $reload || $now !== intval($row['ticket_assigned_to']);
         } elseif ($field === 'mit_sla') {
+            // A project ticket has no SLA (functions/mit_projects.php) - say so rather than "set" one that does not stick
+            if ($value && intval($row['ticket_project_id'] ?? 0) && function_exists('mitProjectTicketsApart') && mitProjectTicketsApart()) {
+                return [422, ['error' => 'This ticket is in a project - project tickets have no SLA. Take it out of the project first.']];
+            }
             $sla_name = 'None';
             if ($value) {
                 $sla = mysqli_fetch_row(mysqli_query($mysqli, "SELECT sla_name FROM slas WHERE sla_id = $value AND (sla_archived_at IS NULL OR sla_id = " . intval($row['ticket_sla_id']) . ")"));

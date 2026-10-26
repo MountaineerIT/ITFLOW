@@ -31,7 +31,7 @@ if (isset($_POST['mit_usage_save_lines'])) {
             $saved++;
         }
     }
-    logAudit('Recurring Invoice', 'Edit', escapeSql("$session_name changed the usage billing of recurring invoice $recurring_invoice_id"), $client_id);
+    logAudit('Recurring Invoice', 'Edit', escapeSql(stripslashes($session_name) . " changed the usage billing of recurring invoice $recurring_invoice_id"), $client_id);
     flashAlert($problems ? escapeHtml(implode(' ', $problems)) : 'Usage billing saved', $problems ? 'error' : 'success');
     redirect();
 }
@@ -49,7 +49,7 @@ if (isset($_POST['mit_usage_count'])) {
     if ($why !== '') {
         flashAlert(escapeHtml($why), 'error');
     } else {
-        logAudit('Client', 'Edit', escapeSql("$session_name entered a usage count (" . mitUsageCleanMetric($_POST['metric'] ?? '') . ")"), $client_id);
+        logAudit('Client', 'Edit', escapeSql(stripslashes($session_name) . " entered a usage count (" . mitUsageCleanMetric($_POST['metric'] ?? '') . ")"), $client_id);
         flashAlert('Count saved');
     }
     redirect();

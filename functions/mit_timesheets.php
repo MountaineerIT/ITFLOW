@@ -334,13 +334,18 @@ function mitTsZoneAt($user_id, $datetime) {
 
 /**
  * A date and time as ITFlow stores them (company time) -> the date it was where the person was then (the zone in force
- * at that moment). Never earlier than the day a later zone started counting, so a change can't move time back into a
- * period that was already submitted or approved.
+ * at that moment). Never moved back onto a day of a submitted or approved timesheet by a zone change - such time counts
+ * from the day the change started counting.
  */
 function mitTsLocalDate($user_id, $datetime) {
     [$zone, $from] = mitTsZoneAt($user_id, (string) $datetime);
     $date = $zone ? (new DateTime((string) $datetime))->setTimezone(new DateTimeZone($zone))->format('Y-m-d') : substr((string) $datetime, 0, 10);
-    return $from !== null && $date < $from ? $from : $date;
+    // Moved forward only when the day it would fall on is handed in (submitted / approved) - otherwise a change back to a zone
+    // behind the old one would push the rest of that day's time onto the next day, even into the next pay period
+    if ($from !== null && $date < $from && mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved'])) {
+        return $from;
+    }
+    return $date;
 }
 
 /** A zone for people to read, e.g. "America/Los Angeles (UTC-07)". */
@@ -923,8 +928,9 @@ function mitTsReplyTimeGuard($ticket_reply_id, $new_time, $new_type = null) {
     $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_type, ticket_reply_time_worked, TIME_TO_SEC(ticket_reply_time_worked) AS seconds, ticket_reply_created_at,
         ticket_reply_archived_at FROM ticket_replies WHERE ticket_reply_id = " . intval($ticket_reply_id)));
     // Counted on timesheets before and after (internal notes count only when Admin > Timesheets says so)
-    $counts = function ($type, $seconds) {
-        return $seconds > 0 && (mitTsSettings()['ticket_internal'] || $type !== 'Internal');
+    $was_public = mitReplyWasPublicReady() && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_reply_was_public WHERE reply_id = " . intval($ticket_reply_id)));
+    $counts = function ($type, $seconds) use ($was_public) {
+        return $seconds > 0 && (mitTsSettings()['ticket_internal'] || $type !== 'Internal' || $was_public);
     };
     $before = $reply ? $counts($reply['ticket_reply_type'], intval($reply['seconds'])) : false;
     $after = $reply ? $counts($new_type ?? $reply['ticket_reply_type'], mitReplyTimesSeconds($new_time)) : false;
@@ -974,7 +980,7 @@ function mitTsDeleteBlocked($ticket_id, $client_id = 0) {
     $result = mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_prefix, ticket_number, " . ($ready ? 'mrt.work_start' : 'NULL AS work_start') . "
         FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id " . ($ready ? 'LEFT JOIN mit_reply_times mrt ON mrt.reply_id = ticket_reply_id' : '') . "
         WHERE $which AND ticket_reply_archived_at IS NULL AND ticket_reply_time_worked > '00:00:00'
-        AND ticket_reply_by IN (" . implode(',', array_keys($submitted)) . ")" . (mitTsSettings()['ticket_internal'] ? '' : " AND ticket_reply_type <> 'Internal'"));
+        AND ticket_reply_by IN (" . implode(',', array_keys($submitted)) . ")" . (mitTsSettings()['ticket_internal'] ? '' : ' AND ' . mitTsPublicNotesSql()));
     while ($row = mysqli_fetch_assoc($result)) {
         $user_id = intval($row['ticket_reply_by']);
         $date = $row['work_start'] ? substr($row['work_start'], 0, 10) : mitTsLocalDate($user_id, $row['ticket_reply_created_at']);

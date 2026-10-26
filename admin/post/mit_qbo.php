@@ -33,7 +33,7 @@ if (isset($_POST['mit_qbo_save_settings'])) {
     mitSetSetting('qbo_payment_account', $account_id);
     mitSetSetting('qbo_email_default', empty($_POST['qbo_email_default']) ? '0' : '1');
     mitSetSetting('qbo_create_customers', empty($_POST['qbo_create_customers']) ? '0' : '1');
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the QuickBooks Online settings"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the QuickBooks Online settings"));
     flashAlert('QuickBooks Online settings saved');
     redirect('mit_qbo.php');
 }
@@ -59,7 +59,7 @@ if (isset($_POST['mit_qbo_disconnect'])) {
 
     $company = mitQboSettings()['company_name'];
     mitQboDisconnect();
-    logAudit('Settings', 'Edit', escapeSql("$session_name disconnected QuickBooks Online ($company)"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " disconnected QuickBooks Online ($company)"));
     flashAlert('QuickBooks Online disconnected. Mappings, batches and approvals are kept; ITFlow emails invoices again.');
     redirect('mit_qbo.php');
 }
@@ -150,7 +150,7 @@ if (isset($_POST['mit_qbo_save_map']) || isset($_POST['mit_qbo_create_customer']
             flashAlert("$changed mapping" . ($changed === 1 ? '' : 's') . ' saved.');
         }
         if ($changed) {
-            logAudit('Settings', 'Edit', escapeSql("$session_name changed $changed QuickBooks Online $kind mapping" . ($changed === 1 ? '' : 's')));
+            logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed $changed QuickBooks Online $kind mapping" . ($changed === 1 ? '' : 's')));
         }
     } catch (Throwable $e) {
         flashAlert(escapeHtml($e->getMessage()), 'error');

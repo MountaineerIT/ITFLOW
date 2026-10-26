@@ -790,6 +790,9 @@ function mitReimbTripWhyLocked($trip_id, array $new = []) {
         }
     }
     foreach ($checks as [$user_id, $date]) {
+        if ($user_id && calendarIsDate($date) && ($why = mitReimbClosedDay($user_id, $date)) !== '') {
+            return "Driving in their own vehicle on " . date('M j', strtotime($date)) . " - $why";
+        }
         if ($user_id && calendarIsDate($date) && ($held = mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved']))) {
             $name = (string) getFieldById('users', $user_id, 'user_name');
             return 'Driving in their own vehicle on ' . date('M j', strtotime($date)) . ' is on ' . ($name !== '' ? "$name's" : 'their') . ' timesheet, which is '
@@ -824,6 +827,9 @@ function mitReimbExpenseWhyLocked(array $expense, array $in = []) {
         $checks[] = [intval($in['paid_by'] ?? 0), trim((string) ($in['date'] ?? ''))];
     }
     foreach ($checks as [$user_id, $date]) {
+        if ($user_id && calendarIsDate($date) && ($why = mitReimbClosedDay($user_id, $date)) !== '') {
+            return 'Paid personally on ' . date('M j', strtotime($date)) . " - $why";
+        }
         if ($user_id && calendarIsDate($date) && ($held = mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved']))) {
             $name = (string) getFieldById('users', $user_id, 'user_name');
             return 'Paid personally on ' . date('M j', strtotime($date)) . ', which is on ' . ($name !== '' ? "$name's" : 'their') . ' timesheet - ' . $held[$date] . '. '
@@ -831,6 +837,21 @@ function mitReimbExpenseWhyLocked(array $expense, array $in = []) {
         }
     }
     return '';
+}
+
+/**
+ * With timesheet approval off, payroll pays a settled period's mileage and purchases once (mitReimbRecordEnded) - a trip or expense
+ * dated into a period already paid that way would never be paid. Returns why it can't go there, or ''.
+ */
+function mitReimbClosedDay($user_id, $date) {
+    if (!mitReimbReady() || !mitReimbViaPayroll() || mitTsSettings()['approval'] || !empty($GLOBALS['mit_reimb_undoing'])) {
+        return '';
+    }
+    $period = mitTsPeriodFor($date);
+    if (mitSetting('ts_payroll_closed_' . intval($user_id) . '_' . $period['start'], '') === '') {
+        return '';
+    }
+    return 'that pay period (' . $period['label'] . ') has already been paid through payroll. Date it in the current period instead.';
 }
 
 /** Why ITFlow may not undo this reimbursement (functions/expenses.php reimbursementDelete): a timesheet's payroll payment is undone by reopening it. */

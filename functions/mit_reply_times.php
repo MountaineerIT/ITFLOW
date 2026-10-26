@@ -86,6 +86,23 @@ function mitReplyTimesLockedText($why) {
     return $why === 'future' ? 'has not come yet' : mitTsDayLockText($why);
 }
 
+/** A warning about the note's time, kept until ITFlow has said "Reply added" (mitReplyTimesFlash adds it to that message). */
+function mitReplyTimesWarn($text) {
+    $GLOBALS['mit_reply_times_warning'] = $text;
+    flashAlert($text, 'warning'); // shown as it is if the note is not added after all
+}
+
+/**
+ * Hook after ITFlow's own "Reply added" message in add_ticket_reply (agent/post/ticket.php): flashAlert keeps one message, so ITFlow's
+ * would hide our warning about the time - both are shown, as a warning.
+ */
+function mitReplyTimesFlash() {
+    if (!empty($GLOBALS['mit_reply_times_warning'])) {
+        flashAlert(($_SESSION['alert_message'] ?? '') . '<br>' . escapeHtml($GLOBALS['mit_reply_times_warning']), 'warning');
+        unset($GLOBALS['mit_reply_times_warning']);
+    }
+}
+
 /**
  * Hook in add_ticket_reply, after ITFlow has made the time worked from Hrs / Mins / Secs: the note's times from the form.
  * Typed times decide the length (unless they agree with it to the minute, keeping the timer's seconds). Returns the time
@@ -109,7 +126,7 @@ function mitReplyTimesFromPost(array $post, $time_worked) {
         if (!mitTsApprovedDates($session_user_id, $today, $today)) {
             return false;
         }
-        flashAlert('The time was not counted: today is on your approved timesheet - ask for it to be reopened, then add the time to the note.', 'warning');
+        mitReplyTimesWarn('The time was not counted: today is on your approved timesheet - ask for it to be reopened, then add the time to the note.');
         return true;
     };
     $range = mitReplyTimesParse($post['mit_work_date'] ?? '', $post['mit_work_start'] ?? '', $post['mit_work_end'] ?? '');
@@ -121,7 +138,7 @@ function mitReplyTimesFromPost(array $post, $time_worked) {
         if ($now_approved()) {
             return '00:00:00';
         }
-        flashAlert('The times were not kept: ' . date('M j', strtotime($range[0])) . ' ' . mitReplyTimesLockedText($locked) . ', so the time counts as worked now.', 'warning');
+        mitReplyTimesWarn('The times were not kept: ' . date('M j', strtotime($range[0])) . ' ' . mitReplyTimesLockedText($locked) . ', so the time counts as worked now.');
         return $time_worked;
     }
     $length = strtotime($range[1]) - strtotime($range[0]);
@@ -329,13 +346,46 @@ function mitTsReplyWorkRows(array $user_ids, $from, $to) {
     });
 }
 
+/** Has database update M043 made mit_reply_was_public? */
+function mitReplyWasPublicReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE 'mit_reply_was_public'")) === 1;
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
+}
+
+/** SQL: a note counted as public ticket time - public, or made internal only because its ticket moved to another client (M043). */
+function mitTsPublicNotesSql() {
+    return mitReplyWasPublicReady()
+        ? "(ticket_reply_type <> 'Internal' OR ticket_reply_id IN (SELECT reply_id FROM mit_reply_was_public))"
+        : "ticket_reply_type <> 'Internal'";
+}
+
+/**
+ * Hook just before a ticket moves to another client turns its public notes internal (agent/post/ticket.php change_client_ticket,
+ * mitDispatchSaveDetails): remember which were public, so timesheets keep counting their time.
+ */
+function mitTsKeepPublicNotes($ticket_id) {
+    global $mysqli;
+    if (mitReplyWasPublicReady()) {
+        mysqli_query($mysqli, "INSERT IGNORE INTO mit_reply_was_public (reply_id) SELECT ticket_reply_id FROM ticket_replies
+            WHERE ticket_reply_ticket_id = " . intval($ticket_id) . " AND ticket_reply_type = 'Public' AND ticket_reply_time_worked > '00:00:00'");
+    }
+}
+
 /** mitTsReplyWorkRows() from the database. */
 function mitTsReplyWorkRowsRead(array $user_ids, $from, $to) {
     global $mysqli;
     $settings = mitTsSettings();
     $billable = mitTsBillableSql($settings['billable']);
     $where = "ticket_reply_archived_at IS NULL AND ticket_reply_time_worked > '00:00:00' AND ticket_reply_by IN (" . implode(',', $user_ids) . ")"
-        . ($settings['ticket_internal'] ? '' : " AND ticket_reply_type <> 'Internal'");
+        . ($settings['ticket_internal'] ? '' : ' AND ' . mitTsPublicNotesSql());
     // Posted two days either side (people in other time zones), or worked within the dates
     $wide_from = escapeSql(date('Y-m-d', strtotime("$from -2 days")) . ' 00:00:00');
     $wide_to = escapeSql(date('Y-m-d', strtotime("$to +3 days")) . ' 00:00:00');

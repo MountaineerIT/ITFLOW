@@ -256,6 +256,54 @@ function mitDispatchItems($from, $to, array $tech_ids) {
  * Assign (when it is someone new) and book a ticket. $minutes 15 - 1440; $tell_contact false keeps the contact
  * and watchers out of it (the tech is always told). Returns [ok, message, conflicts].
  */
+/**
+ * Would this booking be refused? Checked before the Schedule dialog's details are saved (agent/mit_dispatch_ajax.php book), so a
+ * refused booking leaves the ticket as it was - client included ($client_id: the client the dialog moves it to, 0 = its own).
+ * Returns '' or the reason.
+ */
+function mitDispatchBookProblem($ticket_id, $tech_id, $start, $client_id = 0) {
+    $row = ticketRow($ticket_id);
+    if (!$row || !empty($row['ticket_archived_at'])) {
+        return 'That ticket no longer exists.';
+    }
+    if (!ticketIsOpen($row)) {
+        return 'Ticket ' . ticketReference($row) . ' is resolved or closed - reopen it to schedule work.';
+    }
+    if (ticketScheduleValue($start) === '') {
+        return 'Pick the date and time.';
+    }
+    $tech_id = intval($tech_id);
+    if (!isset(mitDispatchTechs()[$tech_id])) {
+        return 'Pick an agent.';
+    }
+    $client_id = intval($client_id) ?: intval($row['ticket_client_id']);
+    if ($client_id && !mitAgentCanSeeClient($tech_id, $client_id)) {
+        return mitDispatchTechs()[$tech_id]['name'] . ' does not have access to this client.';
+    }
+    return '';
+}
+
+/**
+ * The Schedule dialog's "Schedule it" (agent/mit_dispatch_ajax.php book): checks the booking first (a refused one changes nothing - client,
+ * contact and replies included), then saves the dialog's details (so the booking emails go to the right contact), the booking's email
+ * ticks, and books. Returns [ok, message, conflicts].
+ */
+function mitDispatchBookFromDialog(array $post) {
+    $ticket_id = intval($post['ticket_id'] ?? 0);
+    $why = mitDispatchBookProblem($ticket_id, $post['tech_id'] ?? 0, (string) ($post['start'] ?? ''), intval($post['detail_client_id'] ?? 0));
+    if ($why !== '') {
+        return [false, $why, []];
+    }
+    [$ok, $details_message] = mitDispatchSaveDetails($ticket_id, $post);
+    if (!$ok) {
+        return [false, $details_message, []];
+    }
+    mitScheduleNotifyFromPost($post); // who is emailed for this booking
+    [$ok, $message, $conflicts] = mitDispatchBook($ticket_id, $post['tech_id'] ?? 0, (string) ($post['start'] ?? ''),
+        $post['minutes'] ?? CALENDAR_TICKET_MINUTES, !empty($post['onsite']), !empty($post['contact']));
+    return [$ok, $message . ($ok && $details_message !== '' ? ". $details_message" : ''), $conflicts];
+}
+
 function mitDispatchBook($ticket_id, $tech_id, $start, $minutes, $onsite, $tell_contact = true) {
     global $mit_schedule_skip_contact;
     $row = ticketRow($ticket_id);
@@ -487,6 +535,7 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
     if ($client_id && $client_id !== $old_client_id) {
         $vendor_id = ticketClientOwnedId('vendor', $row['ticket_vendor_id'], 0) ?: ticketClientOwnedId('vendor', $row['ticket_vendor_id'], $client_id);
         $project_id = ticketClientOwnedId('project', $row['ticket_project_id'], $client_id);
+        mitTsKeepPublicNotes($ticket_id); // their time stays on timesheets
         mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_type = 'Internal' WHERE ticket_reply_ticket_id = $ticket_id AND ticket_reply_type = 'Public'");
         mysqli_query($mysqli, "UPDATE tickets SET ticket_client_id = $client_id, ticket_contact_id = 0, ticket_asset_id = 0, ticket_location_id = 0,
             ticket_vendor_id = $vendor_id, ticket_project_id = $project_id WHERE ticket_id = $ticket_id LIMIT 1");

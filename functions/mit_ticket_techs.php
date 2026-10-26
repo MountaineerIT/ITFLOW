@@ -105,7 +105,8 @@ function mitTicketLeadInvite($ticket_id) {
     $subject = mysqli_real_escape_string($mysqli, 'Ticket Scheduled - [' . ticketReference($row) . '] - ' . $row['ticket_subject']);
     $email = mysqli_real_escape_string($mysqli, $row['user_email']);
     if (mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM email_queue WHERE email_recipient = '$email' AND email_subject = '$subject'
-        AND email_queued_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE) LIMIT 1"))) {
+        AND email_queued_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+        AND email_cal_str LIKE '%UID:" . mysqli_real_escape_string($mysqli, getTicketCalendarUid($ticket_id)) . "%' LIMIT 1"))) { // the ticket's own invite, not their helper one (-tech-<id>@)
         return;
     }
     $end = mitTicketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']);
@@ -543,7 +544,7 @@ function mitTicketTechCalendarItems($from, $to, $client_id, $user_id, $can_move)
         LEFT JOIN users lead ON lead.user_id = ticket_assigned_to
         LEFT JOIN clients ON client_id = ticket_client_id
         LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
-        WHERE $start BETWEEN '$from' AND '$to' AND ticket_archived_at IS NULL AND tt.user_id <> ticket_assigned_to
+        WHERE " . mitScheduleOverlapSql($from, $to, $start, MIT_HELPER_END_SQL) . " AND ticket_archived_at IS NULL AND tt.user_id <> ticket_assigned_to
         AND helper.user_archived_at IS NULL
         " . ($client_id ? "AND ticket_client_id = $client_id" : '') . "
         " . ($user_id ? "AND tt.user_id = $user_id" : '') . "
@@ -664,7 +665,7 @@ function mitTicketTechOutlookBookings($user_id, $past_days) {
         JOIN tickets ON tickets.ticket_id = tt.ticket_id
         LEFT JOIN clients ON client_id = ticket_client_id
         LEFT JOIN contacts ON contact_id = ticket_contact_id
-        LEFT JOIN locations ON location_id = ticket_location_id
+        LEFT JOIN locations ON location_id = IF(ticket_location_id > 0, ticket_location_id, contact_location_id)
         WHERE tt.user_id = $user_id AND tt.user_id <> ticket_assigned_to AND $s IS NOT NULL
         AND ticket_resolved_at IS NULL AND ticket_closed_at IS NULL AND ticket_archived_at IS NULL
         AND COALESCE($e, DATE_ADD($s, INTERVAL $default_minutes MINUTE)) >= DATE_SUB(NOW(), INTERVAL $past_days DAY)

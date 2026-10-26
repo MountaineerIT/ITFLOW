@@ -216,7 +216,7 @@ function mitOutlookBookings($user_id, $past_days = null) {
         FROM tickets
         LEFT JOIN clients ON client_id = ticket_client_id
         LEFT JOIN contacts ON contact_id = ticket_contact_id
-        LEFT JOIN locations ON location_id = ticket_location_id
+        LEFT JOIN locations ON location_id = IF(ticket_location_id > 0, ticket_location_id, contact_location_id)
         WHERE ticket_assigned_to = $user_id AND ticket_schedule IS NOT NULL
         AND ticket_resolved_at IS NULL AND ticket_closed_at IS NULL AND ticket_archived_at IS NULL
         AND COALESCE(ticket_schedule_end, DATE_ADD(ticket_schedule, INTERVAL $default_minutes MINUTE)) >= DATE_SUB(NOW(), INTERVAL $past_days DAY)

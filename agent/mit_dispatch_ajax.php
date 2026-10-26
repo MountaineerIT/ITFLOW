@@ -95,18 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['book'])) {
-        // The details first, so the booking emails go to the right contact
-        [$ok, $details_message] = mitDispatchSaveDetails($_POST['ticket_id'] ?? 0, $_POST);
-        if (!$ok) {
-            $mit_fail($details_message);
-        }
-        mitScheduleNotifyFromPost($_POST); // who is emailed for this booking
-        [$ok, $message, $conflicts] = mitDispatchBook($_POST['ticket_id'] ?? 0, $_POST['tech_id'] ?? 0, (string) ($_POST['start'] ?? ''),
-            $_POST['minutes'] ?? CALENDAR_TICKET_MINUTES, !empty($_POST['onsite']), !empty($_POST['contact']));
+        [$ok, $message, $conflicts] = mitDispatchBookFromDialog($_POST);
         if (!$ok) {
             $mit_fail($message);
         }
-        echo json_encode(['ok' => true, 'message' => $message . ($details_message !== '' ? ". $details_message" : ''), 'conflicts' => $conflicts]);
+        echo json_encode(['ok' => true, 'message' => $message, 'conflicts' => $conflicts]);
         exit;
     }
 

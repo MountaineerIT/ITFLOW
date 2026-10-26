@@ -647,7 +647,7 @@ function calendarSourceItems($key, $from, $to, array $opts = []) {
             LEFT JOIN clients ON client_id = ticket_client_id
             LEFT JOIN users ON user_id = ticket_assigned_to
             LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
-            WHERE ticket_schedule BETWEEN '$from' AND '$to' AND ticket_archived_at IS NULL
+            WHERE " . (function_exists('mitScheduleOverlapSql') ? mitScheduleOverlapSql($from, $to) : "ticket_schedule BETWEEN '$from' AND '$to'") . " AND ticket_archived_at IS NULL
             " . ($client_id ? "AND ticket_client_id = $client_id" : '') . "
             " . ($user_id ? "AND ticket_assigned_to = $user_id" : '') . "
             " . clientScopeSql('ticket_client_id'));

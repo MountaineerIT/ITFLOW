@@ -105,6 +105,17 @@ function mitSaveAgentColor($user_id, array $post) {
 }
 
 /** When booked work ends: its stored end, or ITFlow's default length after the start. */
+/**
+ * SQL: a booking ($start / $end SQL, default the ticket's own) overlaps $from - $to - not only starting in it, so a booking from 22:00
+ * to 03:00 also shows on the day it runs into (calendar tickets source, helper bookings). Bookings are at most a day long, so the
+ * start is still looked for from a day before $from (the ticket_schedule index stays in use).
+ */
+function mitScheduleOverlapSql($from, $to, $start = 'ticket_schedule', $end = 'ticket_schedule_end') {
+    $from = escapeSql($from);
+    $to = escapeSql($to);
+    return "($start BETWEEN DATE_SUB('$from', INTERVAL 1 DAY) AND '$to' AND COALESCE(IF($end > $start, $end, NULL), DATE_ADD($start, INTERVAL " . intval(CALENDAR_TICKET_MINUTES) . " MINUTE)) > '$from')";
+}
+
 function mitTicketScheduleEnd($start, $end = null) {
     if (empty($start)) {
         return null;

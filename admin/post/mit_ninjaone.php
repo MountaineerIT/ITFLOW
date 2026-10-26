@@ -34,7 +34,7 @@ if (isset($_POST['mit_ninja_save_settings']) || isset($_POST['mit_ninja_test']))
     mitSetSetting('ninja_sync_on', empty($_POST['ninja_sync_on']) ? '0' : '1');
     mitSetSetting('ninja_brake', max(1, min(5000, intval($_POST['ninja_brake'] ?? 100))));
     mitSetSetting('ninja_misplaced', ($_POST['ninja_misplaced'] ?? '') === 'create' ? 'create' : 'report');
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the NinjaOne settings"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the NinjaOne settings"));
 
     if (isset($_POST['mit_ninja_test'])) {
         [$ok, $message] = mitNinjaTest();
@@ -76,7 +76,7 @@ if (isset($_POST['mit_ninja_save_mapping'])) {
         }
     }
     if ($changed) {
-        logAudit('Settings', 'Edit', escapeSql("$session_name changed the NinjaOne mapping of $changed organization(s)"));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the NinjaOne mapping of $changed organization(s)"));
     }
     flashAlert($changed ? "Mapping saved - $changed organization" . ($changed === 1 ? '' : 's') . ' changed' : 'Nothing changed');
     redirect('mit_ninjaone.php?tab=mapping');
@@ -95,7 +95,7 @@ if (isset($_POST['mit_ninja_import'])) {
     if ($error !== '') {
         flashAlert(escapeHtml($error), 'error');
     } else {
-        logAudit('Settings', 'Edit', escapeSql("$session_name imported the NinjaOne mapping from the n8n workflow ($mapped mapped, $ignored not synced)"));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " imported the NinjaOne mapping from the n8n workflow ($mapped mapped, $ignored not synced)"));
         flashAlert("Imported: $mapped organization" . ($mapped === 1 ? '' : 's') . " mapped, $ignored not synced"
             . ($skipped ? '. Skipped ' . count($skipped) . ' that point at clients not here (#' . implode(', #', array_unique($skipped)) . ')' : ''), $skipped ? 'warning' : 'success');
     }

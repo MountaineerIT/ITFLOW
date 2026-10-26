@@ -54,7 +54,7 @@ function mitNoResponseFill($text, array $row) {
         '[Client]' => (string) ($row['client_name'] ?? ''),
         '[Ticket]' => ticketReference($row),
         '[Subject]' => (string) ($row['ticket_subject'] ?? ''),
-        '[Agent]' => (string) ($session_name ?? ''),
+        '[Agent]' => stripslashes((string) ($session_name ?? '')), // ITFlow keeps the name SQL-escaped
         '[Date]' => date('F j, Y'),
     ]);
 }
@@ -94,12 +94,15 @@ function mitNoResponseResolve(array $row, $message) {
     // ITFlow's "resolved" email (26.11's emailHtml look: reply line, company details, the conversation), its words ours
     $mailed = 0;
     $ticket = ticketRow($ticket_id);
-    if ($ticket && !empty($row['contact_email'])) {
+    // The contact when they have an address, and the watchers either way (as ITFlow's own resolved email)
+    $watchers = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM ticket_watchers WHERE watcher_ticket_id = $ticket_id"))[0] ?? 0);
+    if ($ticket && (!empty($row['contact_email']) || $watchers)) {
         $content = ticketEmailContent($ticket, 'resolved', ['message' => '', 'by' => stripslashes((string) ($GLOBALS['session_name'] ?? ''))]);
         $content['intro'] = mitTextParagraphs($message);
         unset($content['message']);
         $content['history'] = [];
-        $mailed = intval(ticketMailSend($ticket_id, "Ticket resolved - [" . ticketReference($ticket) . "] - " . $ticket['ticket_subject'], ticketEmailPreview($content)));
+        $mailed = intval(ticketMailSend($ticket_id, "Ticket resolved - [" . ticketReference($ticket) . "] - " . $ticket['ticket_subject'], ticketEmailPreview($content),
+            ['to_contact' => !empty($row['contact_email'])]));
     }
 
     ticketResolve($row, ' - no response from the client');

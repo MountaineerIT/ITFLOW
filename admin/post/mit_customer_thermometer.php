@@ -18,7 +18,7 @@ if (isset($_POST['mit_ct_connect'])) {
         $choices = ['thermometers' => mitCtChoices('thermometers', $key), 'lists' => mitCtChoices('lists', $key)];
         mitSetSetting('ct_api_key', mitEncryptSecret($key));
         mitSetSetting('ct_choices', json_encode($choices));
-        logAudit('Settings', 'Edit', escapeSql("$session_name connected Customer Thermometer"));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " connected Customer Thermometer"));
         flashAlert('Customer Thermometer connected: ' . count($choices['thermometers']) . ' thermometer(s), ' . count($choices['lists']) . ' recipient list(s).'
             . (!$choices['thermometers'] || !$choices['lists'] ? ' Make a thermometer and a recipient list in Customer Thermometer first, then connect again.' : ''),
             $choices['thermometers'] && $choices['lists'] ? 'success' : 'warning');
@@ -46,7 +46,7 @@ if (isset($_POST['mit_ct_save'])) {
     mitSetSetting('ct_boards', implode(',', $boards));
     mitSetSetting('ct_start', $start);
     mitSetSetting('ct_enabled', empty($_POST['ct_enabled']) ? '0' : '1');
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the Customer Thermometer settings"));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the Customer Thermometer settings"));
     $missing = mitCtMissing();
     flashAlert(empty($_POST['ct_enabled']) ? 'Customer Thermometer settings saved - surveys are switched off.'
         : ($missing === '' ? 'Customer Thermometer settings saved - surveys go out for tickets resolved from ' . escapeHtml($start) . '.'

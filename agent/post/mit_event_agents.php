@@ -17,7 +17,7 @@ if (isset($_POST['mit_event_assign'])) {
     $words = mitEventAgentsText($added, $removed);
 
     if ($words !== '') {
-        logAudit("Calendar Event", "Edit", escapeSql("$session_name $words: the event " . $event['event_title']), intval($event['event_client_id']), intval($event['event_id']));
+        logAudit("Calendar Event", "Edit", escapeSql(stripslashes($session_name) . " $words: the event " . $event['event_title']), intval($event['event_client_id']), intval($event['event_id']));
     }
 
     flashAlert("<strong>" . escapeHtml($event['event_title']) . "</strong> " . ($words !== '' ? escapeHtml($words) : 'unchanged') . calendarSentText($sent, ''));

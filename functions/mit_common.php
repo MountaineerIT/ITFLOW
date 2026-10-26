@@ -132,6 +132,9 @@ function mitModuleRequire($name, $modal = false) {
         exit(json_encode(['error' => $text]));
     }
     echo '<div class="alert alert-warning">' . escapeHtml($text) . '</div>';
+    // The footer (included here, in this function's scope) reads the page's titles, which a page stopped this early has not set
+    $tab_title = $GLOBALS['tab_title'] ?? ucfirst($name);
+    $page_title = $GLOBALS['page_title'] ?? ucfirst($name);
     require_once __DIR__ . '/../includes/footer.php';
     exit;
 }

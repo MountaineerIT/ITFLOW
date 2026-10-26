@@ -59,7 +59,7 @@ if (isset($_POST['mit_qbo_batch_add'])) {
         flashAlert('Nothing added: ' . escapeHtml(implode('; ', array_unique($refused))), 'error');
         redirect('mit_qbo_batches.php');
     }
-    logAudit('Invoice', 'Edit', escapeSql("$session_name added $added invoice" . ($added === 1 ? '' : 's') . " to QuickBooks batch $batch_id"));
+    logAudit('Invoice', 'Edit', escapeSql(stripslashes($session_name) . " added $added invoice" . ($added === 1 ? '' : 's') . " to QuickBooks batch $batch_id"));
     flashAlert("$added invoice" . ($added === 1 ? '' : 's') . ' added - they are locked until sent or taken out.'
         . ($refused ? ' Not added: ' . escapeHtml(implode('; ', array_unique($refused))) : ''), $refused ? 'warning' : 'success');
     redirect("mit_qbo_batch.php?batch_id=$batch_id");
@@ -98,7 +98,7 @@ if (isset($_POST['mit_qbo_entry_remove'])) {
     if ($why !== '') {
         flashAlert(escapeHtml($why), 'error');
     } else {
-        logAudit('Invoice', 'Edit', escapeSql("$session_name took an invoice out of QuickBooks batch $batch_id ($how)"));
+        logAudit('Invoice', 'Edit', escapeSql(stripslashes($session_name) . " took an invoice out of QuickBooks batch $batch_id ($how)"));
         flashAlert('Taken out of the batch - the invoice is unlocked.');
     }
     redirect($batch_id ? "mit_qbo_batch.php?batch_id=$batch_id" : 'mit_qbo_batches.php');
@@ -134,7 +134,7 @@ if (isset($_POST['mit_qbo_batch_delete'])) {
         flashAlert(escapeHtml($why), 'error');
         redirect("mit_qbo_batch.php?batch_id=$batch_id");
     }
-    logAudit('Invoice', 'Delete', escapeSql("$session_name deleted QuickBooks batch $batch_id"));
+    logAudit('Invoice', 'Delete', escapeSql(stripslashes($session_name) . " deleted QuickBooks batch $batch_id"));
     flashAlert('Batch deleted - its invoices are unlocked (and still approved).');
     redirect('mit_qbo_batches.php');
 }

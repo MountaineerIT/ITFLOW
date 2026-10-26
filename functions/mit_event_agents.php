@@ -258,6 +258,6 @@ function mitDispatchEventMove($event_id, $start, $end, $all_day, $from, $to) {
         $words = mitEventAgentsText($added, $removed);
     }
     $what = trim(($moved ? 'moved to ' . calendarWhenText($event) : '') . ($moved && $words ? ', ' : '') . $words);
-    logAudit('Calendar Event', 'Edit', escapeSql("$session_name (Dispatch) " . ($what ?: 'left') . ' the event ' . $event['event_title']), intval($event['event_client_id']), $event_id);
+    logAudit('Calendar Event', 'Edit', escapeSql(stripslashes($session_name) . " (Dispatch) " . ($what ?: 'left') . ' the event ' . $event['event_title']), intval($event['event_client_id']), $event_id);
     return [true, $event['event_title'] . ($what ? ' ' . $what : '') . ($sent ? " - emailed to $sent " . ($sent === 1 ? 'person' : 'people') : '')];
 }

@@ -159,7 +159,7 @@ if (isset($_POST['mit_ts_settings_save'])) {
         mitSetSetting('ts_mileage_rate', (string) $rate);
         if ($rate > 0 && function_exists('mitReimbItflowPaysBack') && mitReimbItflowPaysBack() && abs(mitReimbItflowRate() - $rate) > 0.00001) {
             mysqli_query($mysqli, "UPDATE settings SET config_mileage_rate = $rate WHERE company_id = 1");
-            logAudit('Settings', 'Edit', escapeSql("$session_name set the mileage rate (paid back a mile) to $rate in Admin > Timesheets"));
+            logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " set the mileage rate (paid back a mile) to $rate in Admin > Timesheets"));
         }
     }
     if (isset($_POST['reimb_payback'])) {
@@ -315,7 +315,7 @@ if (isset($_POST['mit_leave_adjust'])) {
         redirect();
     }
     mitLeavePost($user_id, $bank['bank_id'], $date, $minutes, ($_POST['kind'] ?? '') === 'start' ? 'start' : 'adjust', null, trim((string) ($_POST['note'] ?? '')));
-    logAudit('Settings', 'Edit', escapeSql("$session_name changed the {$bank['bank_name']} balance of user $user_id by " . mitTsHours($minutes, false, 'decimal') . ' h'));
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " changed the {$bank['bank_name']} balance of user $user_id by " . mitTsHours($minutes, false, 'decimal') . ' h'));
     flashAlert(escapeHtml($bank['bank_name']) . ' ' . ($minutes > 0 ? '+' : '') . mitTsHours($minutes, false, 'decimal') . ' h');
     redirect();
 }
@@ -338,7 +338,7 @@ if (isset($_POST['mit_ts_holiday_save'])) {
     $date = (string) ($_POST['holiday_date'] ?? '');
     [$ok, $message] = mitTsHolidaySave($_POST['holiday_id'] ?? 0, $date, $_POST['holiday_name'] ?? '');
     if ($ok) {
-        logAudit('Settings', intval($_POST['holiday_id'] ?? 0) ? 'Edit' : 'Create', escapeSql("$session_name saved holiday $date - " . trim((string) ($_POST['holiday_name'] ?? ''))));
+        logAudit('Settings', intval($_POST['holiday_id'] ?? 0) ? 'Edit' : 'Create', escapeSql(stripslashes($session_name) . " saved holiday $date - " . trim((string) ($_POST['holiday_name'] ?? ''))));
     }
     flashAlert(escapeHtml($message), $ok ? 'success' : 'error');
     redirect('mit_timesheets.php?tab=holidays&year=' . ($ok ? intval(substr($date, 0, 4)) : intval(date('Y'))));
@@ -351,7 +351,7 @@ if (isset($_GET['mit_ts_holiday_delete'])) {
     $old = mitTsHoliday($_GET['mit_ts_holiday_delete']);
     [$ok, $message] = mitTsHolidayDelete($_GET['mit_ts_holiday_delete']);
     if ($ok) {
-        logAudit('Settings', 'Delete', escapeSql("$session_name removed holiday {$old['holiday_date']} - {$old['holiday_name']}"));
+        logAudit('Settings', 'Delete', escapeSql(stripslashes($session_name) . " removed holiday {$old['holiday_date']} - {$old['holiday_name']}"));
     }
     flashAlert(escapeHtml($message), $ok ? 'success' : 'error');
     redirect('mit_timesheets.php?tab=holidays&year=' . ($old ? intval(substr($old['holiday_date'], 0, 4)) : intval(date('Y'))));
@@ -364,7 +364,7 @@ if (isset($_POST['mit_ts_holidays_us'])) {
     $year = intval($_POST['year'] ?? 0);
     [$ok, $message] = mitTsHolidaysAddUs($year);
     if ($ok) {
-        logAudit('Settings', 'Create', escapeSql("$session_name added the US holidays for $year"));
+        logAudit('Settings', 'Create', escapeSql(stripslashes($session_name) . " added the US holidays for $year"));
     }
     flashAlert(escapeHtml($message), $ok ? 'success' : 'error');
     redirect("mit_timesheets.php?tab=holidays&year=$year");

@@ -207,7 +207,7 @@ if (isset($_POST['add_ticket'])) {
 
     if ($assigned_to) {
         $row = ticketRow($ticket_id);
-        ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $row['ticket_subject'] . " has been assigned to you by $session_name");
+        if ((!function_exists('mitNotifyOn') || mitNotifyOn('assign_app'))) ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $row['ticket_subject'] . " has been assigned to you by $session_name");
         ticketMailAssigned($assigned_to, [$ticket_id], stripslashes($session_name));
     }
 
@@ -368,7 +368,7 @@ if (isset($_POST['edit_ticket'])) {
     if (intval($row['ticket_assigned_to']) !== $assigned_to) {
         if ($assigned_to) {
             logTicketHistory($ticket_id, "$session_name assigned the ticket to " . escapeSql(getFieldById('users', $assigned_to, 'user_name')));
-            ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $subject_input . " has been assigned to you by $session_name");
+            if ((!function_exists('mitNotifyOn') || mitNotifyOn('assign_app'))) ticketNotifyAgent($assigned_to, $row, "Ticket " . ticketReference($row) . " - Subject: " . $subject_input . " has been assigned to you by $session_name");
             ticketMailAssigned($assigned_to, [$ticket_id], stripslashes($session_name));
         } else {
             logTicketHistory($ticket_id, "$session_name unassigned the ticket");
@@ -728,7 +728,7 @@ if (isset($_POST['bulk_assign_ticket'])) {
 
     // One notification and one email for the lot
     if ($count && $assign_to && $assign_to != $session_user_id) {
-        mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '$count ticket" . ($count === 1 ? ' has' : 's have') . " been assigned to you by $session_name', notification_action = '/agent/tickets.php?assigned=$assign_to', notification_user_id = $assign_to");
+        if ((!function_exists('mitNotifyOn') || mitNotifyOn('assign_app'))) mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Ticket', notification = '$count ticket" . ($count === 1 ? ' has' : 's have') . " been assigned to you by $session_name', notification_action = '/agent/tickets.php?assigned=$assign_to', notification_user_id = $assign_to");
 
         ticketMailAssigned($assign_to, $assigned_ids, stripslashes($session_name));
     }
@@ -1189,6 +1189,7 @@ if (isset($_POST['add_ticket_reply'])) {
         triggerCustomAction($ticket_reply_type === 'Internal' ? 'ticket_reply_agent_internal' : 'reply_reply_agent_public', $ticket_id);
 
         flashAlert(($ticket_reply_type === 'Internal' ? 'Internal note added to' : 'Reply added to') . " ticket <strong>" . escapeHtml(ticketReference($row)) . "</strong>");
+        if (function_exists('mitReplyTimesFlash')) { mitReplyTimesFlash(); } // Mountaineer IT: a warning about the note's time stays visible
 
     } else {
         // A file uploaded without any accompanying text has no reply to hang off,
@@ -1387,6 +1388,7 @@ if (isset($_POST['change_client_ticket'])) {
     $project_id = ticketClientOwnedId('project', $row['ticket_project_id'], $client_id);
 
     // The old client's contact saw the public replies - nobody at the new one should
+    if (function_exists('mitTsKeepPublicNotes')) { mitTsKeepPublicNotes($ticket_id); } // Mountaineer IT: their time stays on timesheets
     mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_type = 'Internal' WHERE ticket_reply_ticket_id = $ticket_id AND ticket_reply_type = 'Public'");
 
     mysqli_query($mysqli, "UPDATE tickets SET ticket_client_id = $client_id, ticket_contact_id = $contact_id, ticket_asset_id = 0, ticket_location_id = 0,
@@ -1845,6 +1847,7 @@ if (isset($_POST['edit_ticket_schedule'])) {
         redirect();
     }
 
+    if (function_exists('mitScheduleNotifyFromPost')) { mitScheduleNotifyFromPost($_POST); } // Mountaineer IT: who is emailed for this booking
     // Mountaineer IT: the tech doing it (assigned to them if it is someone new) and how long it takes
     $schedule_tech = intval($_POST['schedule_tech'] ?? $row['ticket_assigned_to']);
     if ($schedule_tech && $schedule_tech !== intval($row['ticket_assigned_to'])) {
@@ -1863,7 +1866,6 @@ if (isset($_POST['edit_ticket_schedule'])) {
     $schedule_minutes = max(15, min(24 * 60, intval($_POST['schedule_minutes'] ?? CALENDAR_TICKET_MINUTES)));
     $schedule_end = date('Y-m-d H:i:s', strtotime($schedule) + $schedule_minutes * 60);
 
-    if (function_exists('mitScheduleNotifyFromPost')) { mitScheduleNotifyFromPost($_POST); } // Mountaineer IT: who is emailed for this booking
     $result = ticketSetSchedule($row, $schedule, intval($_POST['onsite'] ?? 0) ? 1 : 0, $schedule_end);
 
     flashAlert("Ticket scheduled for " . escapeHtml($result['when_text']) . (!empty($row['user_name']) ? ' with ' . escapeHtml($row['user_name']) : ''));

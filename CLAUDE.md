@@ -39,6 +39,13 @@ model: see DEPLOYMENT.md.
   restore into a stock checkout of the latest release (`git archive vYY.MM`; install schema first,
   then `scripts/restore_cli.php`) -> click through the main pages and save a client/ticket/reply.
   Keep DEPLOYMENT.md "Moving to stock ITFlow" (what stops working after a move) up to date.
+- **Functional pass after every upstream merge (the user's rule, Oct 26):** a code review, a page crawl and the smoke tests are not
+  enough - after a merge (and before "Promote to production") every feature set of ours is used end to end and its data checked
+  (stock ledger, payments, hours / pay, emails queued, ITFlow's own records), not just loaded. Do it on separate copies of the test
+  install so several areas can run at once: database `itflow_tN` + files `/var/www/itflow_tN` + vhost `zz-itflow-tN.conf`
+  (`itflow-tN.test`, config.php's `$database` / `$config_base_url` changed), a copy of tests/smoke with its own `.env` (ITFLOW_URL,
+  ITFLOW_PHP_LOG, ITFLOW_ROOT). What it finds becomes smoke tests / scenarios in the repo. Any new feature is checked the same way
+  before it is offered for a push.
 - Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
   install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
   before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.

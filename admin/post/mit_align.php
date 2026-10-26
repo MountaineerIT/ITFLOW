@@ -30,7 +30,7 @@ if (isset($_POST['mit_align_save'])) {
         mitSetSetting('align_replace_attention', empty($_POST['align_replace_attention']) ? '0' : '1');
         mitSetSetting('align_scopes', json_encode(array_values(array_map('strval', (array) ($me['scopes'] ?? [])))));
         mitSetSetting('align_key_name', mb_substr((string) ($me['name'] ?? 'API key'), 0, 120));
-        logAudit('Settings', 'Edit', escapeSql("$session_name connected MSP Align ($url)"));
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " connected MSP Align ($url)"));
         flashAlert('MSP Align connected - the first copy runs within the hour, or press Sync now.');
     } catch (Throwable $e) {
         flashAlert(escapeHtml($e->getMessage()), 'error');

@@ -130,14 +130,28 @@ function mitScheduleDefaults($onsite) {
     return $out;
 }
 
-/** Who to email for this ticket's booking: the choice made for this booking, else the defaults for its kind of visit. */
+/**
+ * Who to email for this ticket's booking: the choice made for this booking (kept in mit_ticket_schedule_notify, M042, so a later move
+ * or cancellation without ticks emails the same people), else the defaults for its kind of visit.
+ */
 function mitScheduleChoice($ticket_id) {
     global $mysqli;
+    $ticket_id = intval($ticket_id);
+    $kept = mitScheduleKeptReady();
     if (isset($GLOBALS['mit_schedule_notify']) && is_array($GLOBALS['mit_schedule_notify'])) {
         $choice = $GLOBALS['mit_schedule_notify'];
+        if ($kept && $ticket_id) {
+            $json = escapeSql(json_encode($choice));
+            mysqli_query($mysqli, "INSERT INTO mit_ticket_schedule_notify SET ticket_id = $ticket_id, choice = '$json' ON DUPLICATE KEY UPDATE choice = '$json'");
+        }
     } else {
-        $onsite = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_onsite FROM tickets WHERE ticket_id = " . intval($ticket_id)))[0] ?? 0);
-        $choice = mitScheduleDefaults($onsite);
+        $stored = $kept && $ticket_id ? json_decode((string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT choice FROM mit_ticket_schedule_notify WHERE ticket_id = $ticket_id"))[0] ?? ''), true) : null;
+        if (is_array($stored)) {
+            $choice = $stored;
+        } else {
+            $onsite = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_onsite FROM tickets WHERE ticket_id = $ticket_id"))[0] ?? 0);
+            $choice = mitScheduleDefaults($onsite);
+        }
     }
     // Admin > Mail previews show every email the booking can send, whatever is ticked
     if (function_exists('emailCapturing') && emailCapturing()) {
@@ -153,6 +167,20 @@ function mitScheduleChoice($ticket_id) {
         $choice['extra'] = [];
     }
     return $choice;
+}
+
+/** Has database update M042 made the table that keeps a booking's choice? */
+function mitScheduleKeptReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE 'mit_ticket_schedule_notify'")) === 1;
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
 }
 
 /** Is $who (tech | contact | watchers | site | primary) emailed for this ticket's booking? $row: a ticket row (ticket_id). */
