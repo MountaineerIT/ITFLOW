@@ -9,11 +9,13 @@
     }
     panel.dataset.ready = '1';
     document.body.appendChild(panel); // out of the navbar, so the offcanvas sits over the page
+    panel.hidden = false; // it starts hidden: inside the navbar Bootstrap would draw it as part of the bar
 
     const endpoint = panel.dataset.endpoint;
     const csrf = panel.dataset.csrf;
     const ticketId = panel.dataset.ticketId || '';
     const ticketLabel = panel.dataset.ticketLabel || '';
+    const name = panel.dataset.name || 'AI';
     const thread = panel.querySelector('[data-mit-ai-thread]');
     const list = panel.querySelector('[data-mit-ai-list]');
     const form = panel.querySelector('[data-mit-ai-form]');
@@ -137,7 +139,7 @@
         const waiting = document.createElement('div');
         waiting.className = 'mit-ai-msg mit-ai-answer text-muted';
         waiting.dataset.mitAiWaiting = '';
-        waiting.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>Looking through past tickets and documents...';
+        waiting.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>' + escape(name) + ' is looking through past tickets and documents...';
         thread.append(mine, waiting);
         thread.scrollTop = thread.scrollHeight;
         question.value = '';
@@ -152,7 +154,7 @@
                 const error = document.createElement('div');
                 error.className = 'alert alert-warning small';
                 error.dataset.mitAiError = '';
-                error.textContent = json.error || 'The AI helper could not answer.';
+                error.textContent = json.error || name + ' could not answer.';
                 thread.appendChild(error);
                 question.value = text;
                 return;
@@ -163,7 +165,7 @@
             }
             show(json.messages, false);
         }).catch(() => {
-            waiting.textContent = 'The AI helper could not be reached.';
+            waiting.textContent = name + ' could not be reached.';
             question.value = text;
         }).finally(() => {
             busy = false;

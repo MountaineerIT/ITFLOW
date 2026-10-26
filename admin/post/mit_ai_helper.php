@@ -22,6 +22,8 @@ if (isset($_POST['mit_ai_helper_save']) || isset($_POST['mit_ai_helper_embed_tes
     mitSetSetting('ai_helper_embed_provider', $provider);
     mitSetSetting('ai_helper_embed_model', $model);
     $tokens_before = mitAiTokenLimit();
+    $name_before = mitAiName();
+    mitSetSetting('ai_helper_name', mb_substr(trim((string) ($_POST['ai_helper_name'] ?? '')), 0, 30));
     mitSetSetting('ai_helper_monthly_tokens', max(0, intval($_POST['ai_helper_monthly_tokens'] ?? 0)));
     $after = mitAiHelperSettings();
 
@@ -36,6 +38,9 @@ if (isset($_POST['mit_ai_helper_save']) || isset($_POST['mit_ai_helper_embed_tes
     }
     if ($tokens_before !== mitAiTokenLimit()) {
         $changes[] = 'monthly token limit ' . (mitAiTokenLimit() ? number_format(mitAiTokenLimit()) : 'none');
+    }
+    if ($name_before !== mitAiName()) {
+        $changes[] = 'name ' . mitAiName();
     }
     if ($changes) {
         logAudit("Settings", "Edit", "$session_name changed the AI helper: " . escapeSql(implode(', ', $changes)));

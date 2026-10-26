@@ -1278,6 +1278,11 @@ model: see DEPLOYMENT.md.
   provider is saved with the full /v1/chat/completions address (as ITFlow's form saves it) and its model on the Tickets use case.
   Tests: scenario `scenario-ai-ask.php` (ticket + passages sent, no canary sent or stored, follow-up history, owner only, client-limited
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
+  The panel's markup is `hidden` until the script has moved it to <body> (26.10.158 - Bootstrap draws an `.offcanvas` inside an expanded navbar
+  as part of the bar, so it flashed in the top bar on every page load); smoke: first test of `33-ai-panel.spec.js`.
+  Name (26.10.158): `mit_settings` ai_helper_name -> `mitAiName()` (letters / digits / space / . - ' only, 30 max, "AI" when empty) - the
+  button and panel title "Ask <name>", `data-name` for the panel script and the write-up window, "Your name is <name>." at the start of
+  `mitAiSystemPrompt()`; field on the admin page (`[data-mit-ai-name]`, audit-logged). Smoke: "with a name" test in `33-ai-panel.spec.js`.
   Documents in answers (26.10.157): `mitAiSearch` takes a separate keyword pool of document passages and, by meaning, documents within
   `MIT_AI_DOCUMENT_NEAR` of the best match; matching documents get `MIT_AI_DOCUMENT_SLOTS` kept places and `MIT_AI_DOCUMENT_WEIGHT`
   (thousands of ticket passages pushed them out); the system prompt prefers documents. `mitAiIndexRun` removes sources of archived

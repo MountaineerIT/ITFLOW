@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.158 - 2026-10-26
+- Ask AI no longer flashes a dark panel across the top of the screen on every page. The panel now starts hidden and only appears when you press Ask AI.
+- Name your AI helper: Admin > Integrations > AI helper > **Name** (for example "Bob") makes the top bar's button and the panel say "Ask Bob", the panel says "Bob is looking through past tickets and documents...", write-ups say "Drafted by Bob", and the AI is told its name. Leave it empty for "Ask AI".
+
 ## 26.10.157 - 2026-10-26
 - AI helper: **your documents now reach the answers.** With thousands of ticket passages in the library, a matching document was often crowded out of the few passages the AI gets. Up to 3 places are now kept for documents that match the question (by words or by meaning), documents rank ahead of a ticket that matches as well, and the AI is told to prefer your written documentation over old tickets.
 - Admin > Integrations > AI helper shows documents as "N of M" - how many of ITFlow's documents are in the library.

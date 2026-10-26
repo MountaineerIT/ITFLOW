@@ -85,6 +85,12 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
                     passages and, on a ticket, that ticket - roughly 3,000-4,000 tokens.</div>
             </div>
             <div class="col-md-6">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" name="ai_helper_name" maxlength="30" value="<?= escapeHtml(mitSetting('ai_helper_name', '')) ?>" placeholder="AI" data-mit-ai-name>
+                <div class="form-text">What the top bar's button says - "Ask <?= escapeHtml(mitAiName()) ?>". The AI is told its name too. Empty = "Ask AI".</div>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
                 <label class="form-label">Monthly token limit</label>
                 <input type="number" min="0" step="10000" class="form-control" name="ai_helper_monthly_tokens" value="<?= intval(mitAiTokenLimit()) ?>" data-mit-ai-limit>
                 <div class="form-text">Answers and meaning search together; 0 = no limit. When reached, the helper says so until the 1st.</div>

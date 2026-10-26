@@ -33,7 +33,7 @@ test.beforeAll(async ({ request }) => {
         return;
     }
     made.saved = {};
-    for (const name of ['ai_helper_enabled', 'ai_helper_internal', 'ai_helper_documents', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_helper_monthly_tokens']) {
+    for (const name of ['ai_helper_enabled', 'ai_helper_internal', 'ai_helper_documents', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_helper_monthly_tokens', 'ai_helper_name']) {
         made.saved[name] = db.val(`SELECT setting_value FROM mit_settings WHERE setting_name = ${db.q(name)}`);
     }
     db.exec("DELETE FROM ai_providers WHERE ai_provider_name LIKE 'ZZ %stand-in%'");
@@ -46,6 +46,7 @@ test.beforeAll(async ({ request }) => {
     set('ai_helper_embed_provider', String(made.providerId));
     set('ai_helper_embed_model', 'mock-embed');
     set('ai_helper_monthly_tokens', '0');
+    set('ai_helper_name', '');
     made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD', client_net_terms = 30`);
     made.fixed = ticket(made.clientName + ' scanner will not send to email', '<p>The copier scanner stopped sending scans to email.</p>', true);
     db.exec(`INSERT INTO ticket_replies SET ticket_reply = '<p>Fixed: the SMTP relay connector needed the copier IP added. Scan to email works.</p>', ticket_reply_type = 'Internal', ticket_reply_by = 1, ticket_reply_ticket_id = ${made.fixed.id};
@@ -86,6 +87,22 @@ async function ask(page, text) {
     return panel.locator('[data-mit-ai-message=assistant]').last();
 }
 
+test('Ask AI panel does not show in the top bar while a page loads', async ({ page }) => {
+    test.skip(!made.saved, 'no AI stand-in on this test install');
+    // Held back, the script never moves the panel out of the navbar - the moment between page load and it running (Bootstrap draws an
+    // offcanvas inside an expanded navbar as part of the bar, so it flashed on every page)
+    await page.route(/mit_ai_helper\.js/, (route) => route.abort());
+    await page.goto('agent/dashboard.php');
+    await expect(page.locator('[data-mit-ai-open]')).toBeVisible();
+    await expect(page.locator('#mitAiPanel')).toBeHidden();
+    await expect(page.locator('#mitAiPanel [data-mit-ai-question]')).toBeHidden();
+    await page.unroute(/mit_ai_helper\.js/);
+    await page.goto('agent/dashboard.php');
+    await expect(page.locator('#mitAiPanel')).toBeHidden(); // moved out and still shut until Ask AI is pressed
+    await page.locator('[data-mit-ai-open]').click();
+    await expect(page.locator('#mitAiPanel [data-mit-ai-question]')).toBeVisible();
+});
+
 test('Ask AI: question, cited answer, thumbs up, earlier conversations', async ({ page }) => {
     test.skip(!made.saved, 'no AI stand-in on this test install');
     const errors = watch(page);
@@ -113,6 +130,31 @@ test('Ask AI: question, cited answer, thumbs up, earlier conversations', async (
     await page.locator('[data-mit-ai-history]').click();
     await row.click();
     await expect(page.locator('[data-mit-ai-thread] [data-mit-ai-message]')).toHaveCount(2);
+    await expectClean(page, errors);
+});
+
+test('Ask AI with a name: "Ask Bob" in the top bar and the panel, and the AI is told', async ({ page }) => {
+    test.skip(!made.saved, 'no AI stand-in on this test install');
+    const errors = watch(page);
+    await visit(page, 'admin/mit_ai_helper.php', errors);
+    await page.locator('[data-mit-ai-name]').fill('Bob');
+    await Promise.all([page.waitForNavigation(), page.locator('button[name=mit_ai_helper_save]').click()]);
+    expect(db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'ai_helper_name'")).toBe('Bob');
+    await visit(page, 'agent/dashboard.php', errors);
+    await expect(page.locator('[data-mit-ai-open]')).toHaveText(/Ask Bob$/);
+    await page.locator('[data-mit-ai-open]').click();
+    await expect(page.locator('#mitAiPanelTitle')).toHaveText('Ask Bob');
+    await page.request.get(MOCK + '/_clear');
+    await ask(page, 'Does the copier scan to email?');
+    const sent = await page.request.get(MOCK + '/_calls').then((r) => r.text());
+    expect(sent).toContain('Your name is Bob.');
+    db.exec(`UPDATE mit_settings SET setting_value = '<b onmouseover=x>Al</b>' WHERE setting_name = 'ai_helper_name'`);
+    await visit(page, 'agent/dashboard.php', errors);
+    await expect(page.locator('[data-mit-ai-open] b')).toHaveCount(0); // markup in the name is dropped, never drawn
+    await expect(page.locator('[data-mit-ai-open]')).toHaveText(/Ask b onmouseoverxAlb$/);
+    db.exec("UPDATE mit_settings SET setting_value = '' WHERE setting_name = 'ai_helper_name'");
+    await visit(page, 'agent/dashboard.php', errors);
+    await expect(page.locator('[data-mit-ai-open]')).toHaveText(/Ask AI$/);
     await expectClean(page, errors);
 });
 

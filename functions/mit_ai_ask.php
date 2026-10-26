@@ -47,6 +47,12 @@ function mitAiTokensThisMonth() {
         WHERE ai_usage_feature IN ($features) AND ai_usage_created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')"))[0] ?? 0);
 }
 
+/** What the helper is called - "Ask Bob" (mit_settings ai_helper_name; "AI" when not set). Letters, digits, spaces and . - ' only, 30 at most. */
+function mitAiName() {
+    $name = trim(preg_replace('/\s+/u', ' ', preg_replace("/[^\p{L}\p{N} .'-]/u", '', (string) mitSetting('ai_helper_name', ''))));
+    return $name === '' ? 'AI' : mb_substr($name, 0, 30);
+}
+
 /** The monthly token limit (0 = none). */
 function mitAiTokenLimit() {
     return max(0, intval(mitSetting('ai_helper_monthly_tokens', '0')));
@@ -164,7 +170,8 @@ function mitAiAnswerHtml($text, array $sources = []) {
 
 /** What the helper is told before every question. */
 function mitAiSystemPrompt() {
-    return "You are the technicians' helper inside ITFlow, the IT service company's ticketing system. Answer the technician's question with "
+    $name = mitAiName();
+    return ($name !== 'AI' ? "Your name is $name. " : '') . "You are the technicians' helper inside ITFlow, the IT service company's ticketing system. Answer the technician's question with "
         . "practical steps they can follow, using the passages from past tickets and documents you are given, and the current ticket when there is one.\n"
         . "- After each sentence that uses a passage, cite it as [1], [2] (its number). Never cite a number you were not given.\n"
         . "- Passages starting with Document are the company's written documentation; prefer them to past tickets when they cover the question.\n"
@@ -311,6 +318,7 @@ function mitAiPanelNav() {
     if (!mitAiAskCan()) {
         return '';
     }
+    $name = escapeHtml(mitAiName());
     $ticket = '';
     if (basename($_SERVER['PHP_SELF'] ?? '') === 'ticket.php' && strpos($_SERVER['PHP_SELF'] ?? '', '/agent/') !== false && !empty($_GET['ticket_id'])) {
         $row = mitAiAskTicket(intval($_GET['ticket_id']));
@@ -319,11 +327,12 @@ function mitAiPanelNav() {
         }
     }
     return '<li class="nav-item" id="mitAiNav">'
-        . '<a class="nav-link" href="#" role="button" data-bs-toggle="offcanvas" data-bs-target="#mitAiPanel" aria-controls="mitAiPanel" title="Ask AI" data-mit-ai-open>'
-        . '<i class="fas fa-robot" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Ask AI</span></a>'
-        . '<div class="offcanvas offcanvas-end mit-ai-panel" tabindex="-1" id="mitAiPanel" aria-labelledby="mitAiPanelTitle" data-endpoint="/agent/mit_ai_ajax.php"'
+        . '<a class="nav-link" href="#" role="button" data-bs-toggle="offcanvas" data-bs-target="#mitAiPanel" aria-controls="mitAiPanel" title="Ask ' . $name . '" data-mit-ai-open>'
+        . '<i class="fas fa-robot" aria-hidden="true"></i><span class="d-none d-xl-inline ms-1">Ask ' . $name . '</span></a>'
+        // hidden until the script moves it out of the top bar - Bootstrap shows an offcanvas inside an expanded navbar as part of the bar
+        . '<div class="offcanvas offcanvas-end mit-ai-panel" tabindex="-1" id="mitAiPanel" aria-labelledby="mitAiPanelTitle" data-endpoint="/agent/mit_ai_ajax.php" data-name="' . $name . '" hidden'
         . ' data-csrf="' . escapeHtml($_SESSION['csrf_token'] ?? '') . '"' . $ticket . '>'
-        . '<div class="offcanvas-header border-bottom py-2"><h5 class="offcanvas-title me-auto" id="mitAiPanelTitle"><i class="fas fa-robot me-2"></i>Ask AI</h5>'
+        . '<div class="offcanvas-header border-bottom py-2"><h5 class="offcanvas-title me-auto" id="mitAiPanelTitle"><i class="fas fa-robot me-2"></i>Ask ' . $name . '</h5>'
         . '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-new title="New conversation"><i class="fas fa-plus"></i></button>'
         . (lookupUserPermission('module_support') >= 2 ? '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-writeup title="Write this conversation up as a document" hidden>'
             . '<i class="fas fa-file-medical"></i></button>' : '')

@@ -24,6 +24,7 @@ if (!$client_id || !isset($clients[$client_id])) {
     exit;
 }
 $conversation_id = intval($conversation['id']);
+$mit_ai_name = mitAiName();
 $ticket_id = intval($conversation['ticket_id']);
 
 $document_form_mode = 'add';
@@ -39,7 +40,7 @@ ob_start();
     <h5 class="modal-title"><i class="fas fa-fw fa-file-medical me-2"></i>Write up as a document</h5>
     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
 </div>
-<form action="/agent/post.php" method="post" autocomplete="off" data-mit-ai-doc-form data-conversation-id="<?= $conversation_id ?>" data-client-id="<?= $client_id ?>">
+<form action="/agent/post.php" method="post" autocomplete="off" data-mit-ai-doc-form data-name="<?= escapeHtml($mit_ai_name) ?>" data-conversation-id="<?= $conversation_id ?>" data-client-id="<?= $client_id ?>">
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="client_id" value="<?= $client_id ?>">
     <?php if ($ticket_id) { ?><input type="hidden" name="from_ticket_id" value="<?= $ticket_id ?>"><?php } ?>
@@ -58,7 +59,7 @@ ob_start();
             </div>
         </div>
         <div class="alert alert-info py-2 small d-flex align-items-center gap-2" data-mit-ai-doc-status>
-            <i class="fas fa-spinner fa-spin"></i><span>AI is writing it up from the conversation and the tickets and documents it used...</span>
+            <i class="fas fa-spinner fa-spin"></i><span><?= escapeHtml($mit_ai_name) ?> is writing it up from the conversation and the tickets and documents it used...</span>
         </div>
         <?php require __DIR__ . '/../document/document_form.php'; ?>
     </div>
@@ -78,6 +79,7 @@ ob_start();
     var conversation = form.getAttribute('data-conversation-id');
     var client = form.getAttribute('data-client-id');
     var key = 'mitAiDraft:' + conversation;
+    var name = form.getAttribute('data-name') || 'AI';
     var status = form.querySelector('[data-mit-ai-doc-status]');
     var save = form.querySelector('[data-mit-ai-doc-save]');
     var redraft = form.querySelector('[data-mit-ai-doc-redraft]');
@@ -117,7 +119,7 @@ ob_start();
 
     function draft() {
         save.disabled = true;
-        say('info', 'fa-spinner fa-spin', 'AI is writing it up from the conversation and the tickets and documents it used...');
+        say('info', 'fa-spinner fa-spin', name + ' is writing it up from the conversation and the tickets and documents it used...');
         var body = new URLSearchParams({ draft: '1', conversation_id: conversation, client_id: client, csrf_token: form.querySelector('[name="csrf_token"]').value });
         fetch('/agent/mit_ai_ajax.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
             .then(function (response) { return response.json(); })
@@ -127,7 +129,7 @@ ob_start();
                 }
                 try { sessionStorage.setItem(key, JSON.stringify({ client: client, answer: answer })); } catch (e) { /* private window */ }
                 redraft.hidden = true;
-                fill(answer, 'Drafted by AI');
+                fill(answer, 'Drafted by ' + name);
             })
             .catch(function (error) {
                 say('warning', 'fa-exclamation-triangle', (error && error.message ? error.message : 'It couldn\'t be drafted.') + ' You can still write it here yourself.');
@@ -139,7 +141,7 @@ ob_start();
     try { cached = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (e) { cached = null; }
     if (cached && cached.answer) {
         redraft.hidden = String(cached.client) === String(client);
-        fill(cached.answer, String(cached.client) === String(client) ? 'Drafted by AI' : 'The draft written for the other client');
+        fill(cached.answer, String(cached.client) === String(client) ? 'Drafted by ' + name : 'The draft written for the other client');
     } else {
         draft();
     }
