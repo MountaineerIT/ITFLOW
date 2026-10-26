@@ -255,11 +255,26 @@ $company_week = mitTsCompanySchedule();
                     $accounts = mysqli_fetch_all(mysqli_query($mysqli, "SELECT account_id, account_name FROM accounts WHERE account_archived_at IS NULL OR account_id = " . intval($reimb['account_id']) . " ORDER BY account_name"), MYSQLI_ASSOC); ?>
                     <h6 class="text-muted text-uppercase small mb-3">Reimbursements</h6>
                     <div class="row g-3 mb-4">
-                        <?php $mit_itflow_pays = mitReimbItflowPaysBack(); ?>
+                        <?php $mit_itflow_pays = mitReimbItflowPaysBack(); $mit_payroll = mitReimbViaPayroll(); ?>
                         <?php if ($mit_itflow_pays) { ?>
-                            <div class="col-12"><div class="alert alert-info small mb-0" data-mit-reimb-itflow>People are paid back through ITFlow: mileage waits under
-                                Trips (driven in their own vehicle) at ITFlow's mileage rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Settings &gt; Invoices and billing; until then the rate here is used)' ?>,
-                                and approved purchases wait under Expenses &gt; Reimburse as paid personally - no account is needed for them.</div></div>
+                            <div class="col-md-4">
+                                <label class="form-label">Mileage and purchases are paid back</label>
+                                <select class="form-select" name="reimb_payback" data-mit-reimb-payback>
+                                    <option value="payroll" <?= $mit_payroll ? 'selected' : '' ?>>With payroll</option>
+                                    <option value="itflow" <?= $mit_payroll ? '' : 'selected' ?>>Through ITFlow (Trips / Expenses &gt; Reimburse)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8"><div class="alert alert-info small mb-0" data-mit-reimb-itflow>
+                                <?php if ($mit_payroll) { ?>
+                                    Drives logged with <strong>Log a trip</strong> (own vehicle) and purchases added on tickets show on each person's timesheet
+                                    and in the payroll report (Mileage, Purchases, Reimburse). Approving the timesheet marks them paid through payroll from the
+                                    account picked below, so they never wait in Trips or Expenses &gt; Reimburse. Reopening it puts them back.
+                                <?php } else { ?>
+                                    People are paid back through ITFlow: mileage waits under Trips (driven in their own vehicle) and approved purchases under
+                                    Expenses &gt; Reimburse as paid personally - no account is needed for them.
+                                <?php } ?>
+                                Mileage is at ITFlow's rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Settings &gt; Invoices and billing; until then the rate here is used)' ?>.
+                            </div></div>
                         <?php } ?>
                         <?php $mit_rate_itflow = $mit_itflow_pays && mitReimbItflowRate() > 0; // ITFlow's own rate wins - shown, changed there ?>
                         <div class="col-md-4">
@@ -282,7 +297,7 @@ $company_week = mitTsCompanySchedule();
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Paid from account<?= $mit_itflow_pays ? ' <span class="text-muted small">(not used - paid back in ITFlow)</span>' : '' ?></label>
+                            <label class="form-label"><?= $mit_payroll ? 'Payroll pays from account' : 'Paid from account' ?><?= $mit_itflow_pays && !$mit_payroll ? ' <span class="text-muted small">(not used - paid back in ITFlow)</span>' : '' ?></label>
                             <select class="form-select" name="reimb_account">
                                 <option value="0">- Pick an account -</option>
                                 <?php foreach ($accounts as $account) { ?>

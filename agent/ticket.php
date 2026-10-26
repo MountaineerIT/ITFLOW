@@ -615,6 +615,7 @@ if (isset($_GET['ticket_id'])) {
                                             <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/trip/trip_add.php?ticket_id=<?= $ticket_id ?>" data-modal-size="lg">
                                                 <i class="fas fa-fw fa-route me-2"></i>Log a trip
                                             </a>
+                                            <?= function_exists('mitReimbMenuItem') ? mitReimbMenuItem($ticket, $can_edit_ticket && !$ticket_is_closed) : '' // Mountaineer IT: a purchase paid for personally ?>
                                             <?php if ($can_edit_ticket) { ?>
                                                 <div class="dropdown-divider"></div>
                                             <?php } ?>

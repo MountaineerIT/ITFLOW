@@ -1066,6 +1066,15 @@ model: see DEPLOYMENT.md.
     in Trips / Expenses > Reimburse / Paid back <date>) on the timesheet and ticket lists; the ticket box drops "Log mileage" on tickets with a
     client (ITFlow's Trips box "Log a trip") and `mitReimbItflowTrips` counts own-vehicle trips logged in ITFlow (not ours) on the timesheet
     box, in `mitReimbTotals` and the payroll detail. Development mode also stops `cron/ai_triage.php` (one guarded line) - the user's choice.
+    26.10.141 (user's choice - mileage and purchases go on payroll; they type the dollar amounts into their payroll provider): `mit_settings`
+    ts_payback 'payroll' (default) | 'itflow' (Admin > Timesheets > Reimbursements, `mitReimbViaPayroll`). In payroll mode approving a
+    timesheet (`mitTsDecideNow`, after mitReimbRecordExpenses) runs `mitReimbPayrollClose`: the period's own-vehicle trips claimed with
+    ITFlow's `tripClaim` (at `mitReimbSettings()` rate, dated the period end), then every paid-personally expense of theirs in the period
+    reimbursed with ITFlow's `expenseReimburse` from ts_reimb_account, reference "Payroll - timesheet <id> (<period>)"
+    (`mitReimbPayrollReference`; sheet 0 when approval is off - `mitReimbRecordEnded`). `mitTsReopenNow` -> `mitReimbPayrollUndo`
+    (reimbursementDelete, the mileage expenses deleted and their trips waiting again). States "Goes to payroll" / "Paid through payroll <date>";
+    payroll report labels Reimburse / Payroll. Ticket ⋮ menu "Add a purchase" (`mitReimbMenuItem`, one line in `agent/ticket.php` after
+    ITFlow's Log a trip). Admin save fix: category / account saved even while the rate field is read-only.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
     with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.

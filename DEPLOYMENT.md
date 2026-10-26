@@ -313,6 +313,8 @@ break stock ITFlow, and lists what stops working after a move.
   `uploads/mit_receipts/`. Export the payroll report first. The ITFlow trips (mileage, marked as driven in
   their own vehicle) and expenses (approved purchases, paid personally) they made are ordinary ITFlow records
   and stay - stock ITFlow 26.11 pays them back the same way (Trips > To pay back, Expenses > Reimburse).
+  Those already paid with payroll (approved timesheets) are ITFlow reimbursements with a "Payroll - timesheet ..."
+  reference; after a move nothing marks new ones paid on approval - pay them back in ITFlow instead.
 - **Ticket parts** – the Parts box is ours (`mit_ticket_parts`); parts already billed are ordinary
   invoice lines and stay. A product's vendor and cost are ITFlow's own fields (26.11) and stay.
 - **Additional agents on tickets** – stock ITFlow keeps only the assigned agent. The others, their

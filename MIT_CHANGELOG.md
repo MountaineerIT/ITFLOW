@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.141 - 2026-10-25
+- Mileage and purchases a tech paid for themselves now go on payroll (Admin > Timesheets > Reimbursements, "Mileage and purchases are paid back: With payroll" - the default; "Through ITFlow" keeps the old way). The payroll report has the dollar amounts (Mileage, Purchases, Reimburse) to type into your payroll.
+- Approving a timesheet marks that period's mileage (own-vehicle trips) and purchases paid through payroll, so they no longer wait in Trips > To pay back or Expenses > Reimburse; reopening the timesheet puts them back. Each entry says "Goes to payroll" or "Paid through payroll <date>".
+- New: "Add a purchase" in the ticket's ⋮ menu, beside ITFlow's "Log a trip".
+- Fix: Admin > Timesheets didn't save the reimbursement category and account while ITFlow's mileage rate was set.
+
 ## 26.10.140 - 2026-10-25
 - Full check after the ITFlow 26.11 merge: every addition reviewed against the new code, and every page and window opened as nine different users (admin, technician, accountant, view-only, client-limited and more) plus the client portal on a computer and a phone - about 3,900 pages with no errors. Fixes:
 - Fix: ITFlow's new "View portal as them" on a contact signed you out of ITFlow.

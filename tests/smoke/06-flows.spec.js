@@ -166,10 +166,17 @@ test('mileage on the ticket shows in its Reimbursements box', async ({ page }) =
     expect(rate, `rate per mile in "${text}"`).toBeGreaterThan(0);
     expect(text).toContain('$' + (Math.round(12.5 * rate * 100) / 100).toFixed(2));
     await expect(card.locator('.card-title .badge')).toHaveText('1');
-    // Paid back through ITFlow: the entry says where it waits, and new driving goes in ITFlow's own Trips box (Log a trip)
-    await expect(card.locator('[data-mit-reimb-state]')).toHaveText('Waiting in Trips');
+    // Paid with payroll (the default): the entry says so, and new driving goes in ITFlow's own Trips box (Log a trip)
+    await expect(card.locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
     await expect(card.locator('[title="Log mileage"]'), 'ITFlow\'s Log a trip instead').toHaveCount(0);
     await expect(card.locator('[title="Add a purchase"]')).toHaveCount(1);
+    // The ticket's ⋮ menu has Add a purchase beside ITFlow's Log a trip, and it opens the purchase form
+    const menuItem = page.locator('[data-mit-reimb-menu]');
+    await expect(menuItem, 'Add a purchase in the ⋮ menu').toHaveCount(1);
+    await expect(menuItem).toHaveAttribute('data-modal-url', new RegExp(`ticket_id=${made.ticketId}&kind=purchase`));
+    await openModal(page, await menuItem.getAttribute('data-modal-url'));
+    await expect(page.locator('.modal.show input[name="amount"]'), 'the purchase form').toHaveCount(1);
+    await page.keyboard.press('Escape');
 
     // ITFlow 26.11 pays it back: the trip is one driven in their own vehicle, waiting under Trips > To pay back
     await visit(page, 'agent/trips.php?show=to_pay');

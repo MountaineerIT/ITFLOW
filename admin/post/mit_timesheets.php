@@ -137,9 +137,15 @@ if (isset($_POST['mit_ts_settings_save'])) {
     foreach ($values as $key => $value) {
         mitSetSetting("ts_$key", $value);
     }
+    // The rate field is read-only (not posted) while ITFlow's own rate is set - the rest of the section still saves
     if (isset($_POST['mileage_rate'])) {
         $rate = trim(str_replace([',', '$'], '', (string) $_POST['mileage_rate']));
         mitSetSetting('ts_mileage_rate', is_numeric($rate) && (float) $rate >= 0 && (float) $rate < 100 ? (string) round((float) $rate, 4) : '0');
+    }
+    if (isset($_POST['reimb_payback'])) {
+        mitSetSetting('ts_payback', $_POST['reimb_payback'] === 'itflow' ? 'itflow' : 'payroll');
+    }
+    if (isset($_POST['reimb_category'])) {
         $category_id = intval($_POST['reimb_category'] ?? 0);
         $category_ok = $category_id && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM categories WHERE category_id = $category_id AND category_type = 'Expense'"));
         mitSetSetting('ts_reimb_category', $category_ok ? $category_id : 0);
