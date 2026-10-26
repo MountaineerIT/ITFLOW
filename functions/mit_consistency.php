@@ -36,7 +36,7 @@ function mitConsistencyChecks() {
         $findings[] = ['area' => $area, 'level' => $level, 'text' => $text, 'items' => array_slice($items, 0, 10), 'count' => count($items)];
     };
     foreach (['mitConsistencyDatabase', 'mitConsistencyPayroll', 'mitConsistencyQbo', 'mitConsistencyParts', 'mitConsistencyUsage',
-                 'mitConsistencyBoards', 'mitConsistencyOutlook', 'mitConsistencySettings', 'mitConsistencyOrphans'] as $check) {
+                 'mitConsistencyBoards', 'mitConsistencyOutlook', 'mitConsistencySettings', 'mitConsistencyOrphans', 'mitConsistencyAiHelper'] as $check) {
         try {
             $check($add);
         } catch (Throwable $e) {
@@ -211,6 +211,25 @@ function mitConsistencyOutlook(callable $add) {
         $add('Outlook', 'warn', 'Outlook calendar links of archived or deleted users (the sync removes them - still here = it is not running).', array_map(function ($r) {
             return "user {$r['user_id']} ({$r['account_email']})";
         }, $rows));
+    }
+}
+
+/**
+ * The AI helper's library against ITFlow's tickets and documents: only resolved / closed, unarchived tickets and unarchived documents
+ * belong in it, under their client now. Left over for more than an hour = the AI Helper Library cron job is behind or not running,
+ * and agents could be shown a passage from a ticket that moved to a client they can't open.
+ */
+function mitConsistencyAiHelper(callable $add) {
+    if (!function_exists('mitAiHelperReady') || !mitAiHelperReady()) {
+        return;
+    }
+    $rows = mitConsistencyRows("SELECT s.title FROM mit_ai_sources s LEFT JOIN tickets t ON t.ticket_id = s.ticket_id LEFT JOIN documents d ON d.document_id = s.document_id
+        WHERE s.indexed_at < DATE_SUB(NOW(), INTERVAL 1 HOUR) AND (
+            (s.ticket_id IS NOT NULL AND (t.ticket_archived_at IS NOT NULL OR (t.ticket_resolved_at IS NULL AND t.ticket_closed_at IS NULL) OR t.ticket_client_id <> s.client_id))
+            OR (s.document_id IS NOT NULL AND (d.document_archived_at IS NOT NULL OR d.document_client_id <> s.client_id)))");
+    if ($rows) {
+        $add('AI helper', 'fail', 'Library passages for tickets reopened, archived or moved to another client (or documents archived or moved) over an hour ago - the AI Helper Library cron job is not keeping up.',
+            array_column($rows, 'title'));
     }
 }
 

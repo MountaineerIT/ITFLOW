@@ -182,6 +182,15 @@ function cronJobRegistry(): array
             'interval_minutes' => 60,
         ],
         [
+            // Mountaineer IT (functions/mit_ai_helper.php)
+            'name' => 'mit_ai_index',
+            'label' => 'AI Helper Library',
+            'script' => 'mit_ai_index.php',
+            'description' => 'Keeps the AI helper\'s library of resolved tickets and documents up to date, with passwords and keys taken out before anything is kept. Never reads the password vault. Does nothing while the AI helper is off (Admin > Integrations > AI helper).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 5,
+        ],
+        [
             // Mountaineer IT (functions/mit_qbo_billing.php)
             'name' => 'mit_qbo_sync',
             'label' => 'QuickBooks Online Payments',

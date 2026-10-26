@@ -1,9 +1,17 @@
 <?php
 /*
  * Mountaineer IT - our integrations in the admin side menu's INTEGRATIONS, required from admin/includes/side_nav.php
- * after AI Providers: NinjaOne, QuickBooks Online, Usage connectors, Customer Thermometer, MSP Align.
+ * after AI Providers: AI helper, NinjaOne, QuickBooks Online, Usage connectors, Customer Thermometer, MSP Align.
  */
 ?>
+<?php if (function_exists('mitAiHelperReady')) { ?>
+    <li class="nav-item">
+        <a href="/admin/mit_ai_helper.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'mit_ai_helper.php' ? 'active' : '' ?>">
+            <i class="nav-icon fas fa-robot"></i>
+            <p>AI helper</p>
+        </a>
+    </li>
+<?php } ?>
 <li class="nav-item">
     <a href="/admin/mit_ninjaone.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'mit_ninjaone.php' ? 'active' : '' ?>">
         <i class="nav-icon fas fa-satellite-dish"></i>

@@ -294,6 +294,9 @@ break stock ITFlow, and lists what stops working after a move.
   responses stay in `mit_ct_surveys` (and in Customer Thermometer itself). The ticket history lines it wrote stay.
 - **MSP Align (read only)** – the MSP Align section on client overviews and the dashboard (ITFlow's own "Needs attention" comes back in its place), the header link, the asset badges / button and the license
   renewal lines go; MSP Align itself is unaffected (it reads ITFlow's API). The copies stay unused in `mit_align_*`.
+- **AI helper** – the library of resolved tickets and documents and Admin > Integrations > AI helper go; ITFlow's own AI features
+  (Draft, Summary, Triage, document drafts) keep working. The library stays unused in `mit_ai_*` (it holds passages already cleaned
+  of passwords - nothing from the password vault).
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
   email goes back to ITFlow's own wording.

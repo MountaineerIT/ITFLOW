@@ -46,6 +46,15 @@ model: see DEPLOYMENT.md.
   (`itflow-tN.test`, config.php's `$database` / `$config_base_url` changed), a copy of tests/smoke with its own `.env` (ITFLOW_URL,
   ITFLOW_PHP_LOG, ITFLOW_ROOT). What it finds becomes smoke tests / scenarios in the repo. Any new feature is checked the same way
   before it is offered for a push.
+- **AI helper password wall (the user's hard rule, Oct 26):** the AI helper (every file named `mit_ai*`) must never reach a password or
+  any other secret. It reads only ticket subjects / details, ticket replies and document text (`MIT_AI_READS` in
+  `functions/mit_ai_helper.php`) - never the password vault (ITFlow's Credentials and anything hanging off them), logins' passwords /
+  tokens / 2FA, API keys, integration secrets or config.php. It never gets tools or database access - the model only sees passages we
+  hand it. Text is cleaned before it is kept or sent (`mitAiScrub`: ITFlow's aiRedact with values dropped, never restored; sentences
+  about a secret; password-like strings), questions too. `scripts/mit_ai_wall_check.php` (in mit_verify.sh) fails when a helper file
+  names the vault or another secret store, uses `SELECT *`, or touches a table not on its list - a new table is a deliberate, reviewed
+  change there. `tests/scenarios/scenario-ai-wall.php` plants canary secrets (vault row, ticket notes, a document) and proves none reach
+  the library, a search or the AI provider. Never weaken any of this to make a feature work; ask the user instead.
 - Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
   install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
   before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.
@@ -72,6 +81,7 @@ model: see DEPLOYMENT.md.
 - Default/release branch is `MountaineerIT` instead of `master`: `functions/app.php`
   (`getRepoBranch`), `admin/update.php` (release-branch badge), `setup/index.php` and
   `scripts/setup_cli.php` (default `$repo_branch`).
+- `scripts/mit_ai_wall_check.php` (the AI helper's password wall - see Rules) - ours.
 - `scripts/mit_hook_check.php` + `scripts/mit_hooks.txt`, `scripts/mit_consistency_check.php` + `functions/mit_consistency.php` +
   `cron/mit_consistency.php` (one entry in `includes/cron_jobs.php`), `scripts/mit_verify.sh` - ours (see Rules, Cross-checks).
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
@@ -1217,6 +1227,28 @@ model: see DEPLOYMENT.md.
   (`mitTicketPartStockTaken`: our "Used on ticket <ref>" / "Returned from ticket <ref>[ (part changed)]" moves). Tests from it: smoke
   40, 42-48 (`db.js`), 50-53 (`t2db.js`), 60-64 (`mitdb.js`), 70-75; scenarios scenario-boards / -helpers / -no-response / -parser-boards /
   -picks-project / -sched-* / -ts-* / -cron-watch / -dev-mode-mail / -procurement-flow / -qbo-flow / -quote-* / -usage (+ fixture-hourly.php).
+- AI helper, round 1 - the library (Oct 26, 26.10.153): `functions/mit_ai_helper.php` (ours, required from `functions.php`). Tables M044
+  `mit_ai_sources` (one per resolved / closed, unarchived ticket - FK tickets CASCADE - or unarchived document - FK documents CASCADE;
+  client, title, signature of what was read, `scrubbed` = how many things were taken out) and `mit_ai_chunks` (passages of about 1,500
+  characters, each starting with what it is from; client, FULLTEXT, optional `embedding` = packed float32 unit vector + `embed_model`).
+  Cron job `mit_ai_index` every 5 min (`cron/mit_ai_index.php`, entry in `includes/cron_jobs.php`; `mitAiIndexRun`): a pass looks at
+  tickets whose row or replies changed and documents changed since the last pass started (`mit_settings` ai_helper_since /
+  _pass_started / _cursor_ticket / _cursor_document, 300 a run), puts each in (`mitAiIndexSource`, skipped when its signature is the
+  same) or takes it out (reopened, archived, documents off); then `mitAiEmbedPending`. Internal notes / documents switches change
+  `mitAiIndexVersion`, which rebuilds. Search `mitAiSearch($query, ['client_id', 'limit', 'per_source'])`: `mitAiHelperCan` (on, M044,
+  ITFlow's Use AI = `aiCan`, Support view), `clientScopeSql` on every query, keyword (MATCH) + meaning (cosine in PHP over the agent's
+  passages with the current model) merged by reciprocal rank, at most 2 passages a source. Embeddings: one of ITFlow's AI providers
+  (`aiProviderRow`, its address with /chat/completions -> /embeddings, `aiProviderHeaders`) + our model name (`mit_settings`
+  ai_helper_embed_provider / _model), recorded in AI Usage as feature `mit_ai_embed`. Settings `mit_settings` ai_helper_enabled
+  (default off) / _internal / _documents. Admin > Integrations > AI helper `admin/mit_ai_helper.php` (handlers `admin/post/mit_ai_helper.php`;
+  first entry of `admin/includes/mit_integrations_nav.php`): switches, embeddings model + Test, library numbers + Rebuild, a test search
+  (`[data-mit-ai-hit]`), "Passwords taken out" (`mitAiScrubbedSources` - to move into the vault). The scrub keeps harmless talk about
+  passwords (`MIT_AI_SAFE_PHRASES`: "forgot their password", "password expired", "credential manager") unless the sentence also holds a
+  value-like word or "password is / to / :". Consistency check `mitConsistencyAiHelper` (library left behind > 1 h); portability line.
+  The test install has an AI stand-in `ai-mock/index.php` (not in the repo: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
+  echoing the question, `/_calls` / `/_clear`). Tests: scenarios `scenario-ai-wall.php` (canaries), `scenario-ai-library.php` (lifecycle,
+  switches, client limits, roles); smoke `32-ai-helper.spec.js`. Round 2 (next): the Ask AI panel (top bar + ticket), answers citing
+  sources, conversations; round 3: documentation drafting.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

@@ -276,6 +276,7 @@ hook	cron/ticket_email_parser.php	mitM365GraphMailbox	2
 hook	cron/ticket_email_parser.php	mitM365GraphMailboxReady	2
 hook	cron/ticket_email_parser.php	mitTicketTechsCopyReply	2
 hook	cron/ticket_email_parser.php	mit_board_addresses	2
+hook	functions.php	mit_ai_helper	1
 hook	functions.php	mit_align	1
 hook	functions.php	mit_boards	1
 hook	functions.php	mit_calendar	1
@@ -380,6 +381,8 @@ hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
 hook	includes/billing_paper.php	mitPaperAddFields	2
 hook	includes/billing_paper.php	mitPaperLineExtras	2
 hook	includes/billing_paper.php	mitPaperLineImage	2
+hook	includes/cron_jobs.php	mit_ai_helper	1
+hook	includes/cron_jobs.php	mit_ai_index	2
 hook	includes/cron_jobs.php	mit_align	1
 hook	includes/cron_jobs.php	mit_align_sync	2
 hook	includes/cron_jobs.php	mit_boards	3
@@ -465,6 +468,7 @@ ours	admin/database_updates/mountaineerit/M040.php
 ours	admin/database_updates/mountaineerit/M041.php
 ours	admin/database_updates/mountaineerit/M042.php
 ours	admin/database_updates/mountaineerit/M043.php
+ours	admin/database_updates/mountaineerit/M044.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
@@ -479,6 +483,7 @@ ours	admin/includes/mit_project_card.php
 ours	admin/includes/mit_quote_card.php
 ours	admin/includes/mit_restore_card.php
 ours	admin/includes/mit_usage_card.php
+ours	admin/mit_ai_helper.php
 ours	admin/mit_align.php
 ours	admin/mit_boards.php
 ours	admin/mit_customer_thermometer.php
@@ -495,6 +500,7 @@ ours	admin/modals/mit_timesheets/holiday.php
 ours	admin/modals/mit_timesheets/leave_bank.php
 ours	admin/modals/mit_timesheets/person.php
 ours	admin/modals/mit_timesheets/person_leave.php
+ours	admin/post/mit_ai_helper.php
 ours	admin/post/mit_align.php
 ours	admin/post/mit_backup_restore.php
 ours	admin/post/mit_boards.php
@@ -569,6 +575,7 @@ ours	agent/user/mit_outlook_callback.php
 ours	agent/user/post/mit_outlook.php
 ours	api/v1/mit_usage/create.php
 ours	api/v1/mit_usage/read.php
+ours	cron/mit_ai_index.php
 ours	cron/mit_align_sync.php
 ours	cron/mit_boards.php
 ours	cron/mit_consistency.php
@@ -584,6 +591,7 @@ ours	cron/mit_usage.php
 ours	css/mit_login.css
 ours	css/mit_login_plain.css
 ours	css/mit_theme.css
+ours	functions/mit_ai_helper.php
 ours	functions/mit_align.php
 ours	functions/mit_backup_restore.php
 ours	functions/mit_board_roles.php
@@ -639,6 +647,7 @@ ours	js/mit_theme.js
 ours	js/mit_time_inputs.js
 ours	js/mit_timers.js
 ours	mit_health.php
+ours	scripts/mit_ai_wall_check.php
 ours	scripts/mit_consistency_check.php
 ours	scripts/mit_hook_check.php
 ours	scripts/mit_portability_check.php

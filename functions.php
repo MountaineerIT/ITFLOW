@@ -122,3 +122,4 @@ require_once __DIR__ . '/functions/mit_ct.php';
 require_once __DIR__ . '/functions/mit_no_response.php';
 require_once __DIR__ . '/functions/mit_notifications.php';
 require_once __DIR__ . '/functions/mit_align.php';
+require_once __DIR__ . '/functions/mit_ai_helper.php';
