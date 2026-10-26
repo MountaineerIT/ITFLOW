@@ -173,6 +173,7 @@ if (reportExporting('detail')) {
     $entries = mitTsEntries(array_keys($people), $from, $to);
     $reimb_items = mitReimbOn() ? mitReimbItems(array_keys($people), $from, $to) : [];
     $all_ca_days = mitTsCaDays(array_keys($people), $from, $to);
+    $all_answers = mitTsCaReady() ? mitTsCaAnswers(array_keys($people), $from, $to) : [];
     foreach ($people as $user_id => $person) {
         $days = [];
         // California non-exempt: the day's start, meal and end times, and the answers about its breaks
@@ -191,6 +192,12 @@ if (reportExporting('detail')) {
             // Hours left empty: the record of the day, not more hours - the rows below (less "Not clocked") add up to the time worked
             $days[] = ['date' => $date, 'code' => 'Work times', 'kind' => 'Time record', 'paid' => '', 'hours' => null,
                 'note' => mitTsHours($c['clocked'], false, 'decimal') . ' h worked: ' . implode('; ', $notes)];
+        }
+        // Not on California rules: a day they said they could not take a rest break (a record - no premium)
+        foreach ($all_answers[$user_id] ?? [] as $date => $a) {
+            if ($a['rest_missed'] && !isset($ca_days[$date]) && $date >= $from && $date <= $to) {
+                $days[] = ['date' => $date, 'code' => 'Rest break', 'kind' => 'Time record', 'paid' => '', 'hours' => null, 'note' => 'Could not take a rest break'];
+            }
         }
         foreach ($all_days[$user_id] ?? [] as $date => $d) {
             foreach ($d['filled'] ?? [] as $code_id => $m) {

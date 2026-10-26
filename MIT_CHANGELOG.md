@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.151 - 2026-10-26
+- Timesheets: short paid rest breaks are now part of the hours people log - nothing is added on top, and they no longer make 8 logged hours count as overtime. Days already approved keep what they were approved with. The "Paid breaks" minutes setting in Admin > Timesheets (and per person) is gone.
+- Timesheets: every day now asks "I could not take a rest break this day", not only California days. On California rules it still owes an hour of rest premium; otherwise it is a record, shown on the day ("Rest break missed") and in the payroll detail export.
+
 ## 26.10.150 - 2026-10-26
 - Deep dive of timesheets / payroll, projects / procurement and invoices / QuickBooks against ITFlow 26.11.
 - Procurement: a quote line ticked "Send to procurement" for a stock-tracked product now converts even with none on the shelf, and takes no stock (ITFlow refused the whole quote before). Receiving puts back only stock the invoice still holds, so a cancelled invoice is no longer counted back twice. Partly received lines keep their product; quantities keep decimals.

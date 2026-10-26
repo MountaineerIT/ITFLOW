@@ -101,8 +101,8 @@ function mitTsReportEntry() {
  *   rounding 0 | 6 | 15 | 30 (ticket time per day); ticket_time 1/0; ticket_internal 1/0 (internal
  *   notes' time counts); billable all | flag | client (what timesheets count as billable); schedule '' (from Admin > SLA) or minutes Mon..Sun;
  *   ot_day / ot_week minutes (0 = off); auto_lost 1/0; auto_lost_paid 1/0 (unaccounted time is
- *   unpaid unless this is on); break_minutes / break_per - paid breaks, break_minutes for every break_per
- *   minutes worked (0 = off; a person can have their own - mitTsBreakRule); unallocated_code - the charge code that
+ *   unpaid unless this is on); break_minutes / break_per - no longer used (26.10.151: short paid rest breaks are inside the hours
+ *   people log - nothing is added; approved days keep what they were approved with); unallocated_code - the charge code that
  *   time worked but not on a code goes on (California days, mitTsUnallocatedCode; 0 = left as "Not on a code").
  */
 function mitTsSettings() {
@@ -231,21 +231,6 @@ function mitTsSavePayType($user_id, array $post) {
     }
     $pay_type = $post['mit_pay_type'];
     mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $user_id, pay_type = '$pay_type' ON DUPLICATE KEY UPDATE pay_type = '$pay_type'");
-}
-
-/** A person's paid-break rule: [minutes, for every so many minutes worked] - their own, else the company's. [0, x] = none. */
-function mitTsBreakRule($user_id) {
-    $person = mitTsPerson($user_id);
-    $settings = mitTsSettings();
-    $minutes = $person['break_minutes'] ?? $settings['break_minutes'];
-    $per = $person['break_per'] ?? $settings['break_per'];
-    return [max(0, intval($minutes)), max(30, intval($per))];
-}
-
-/** Paid break minutes earned by a day's worked minutes under a rule, e.g. 15 for every 240 -> 30 for 8 hours. */
-function mitTsBreakFor($worked, array $rule) {
-    [$minutes, $per] = $rule;
-    return $minutes > 0 && $worked > 0 ? intdiv(intval($worked), $per) * $minutes : 0;
 }
 
 /*
@@ -1242,7 +1227,6 @@ function mitTsDaysRead(array $user_ids, $from, $to) {
         $started = mitTsStartDate($user_id);
         $ended = mitTsEndDate($user_id);
         $today = mitTsToday($user_id);
-        $break_rule = mitTsBreakRule($user_id);
         foreach (mitTsDateRange($from, $to) as $date) {
             $d = $blank;
             $d['billable'] = $tickets[$user_id][$date]['billable'] ?? 0;
@@ -1265,12 +1249,10 @@ function mitTsDaysRead(array $user_ids, $from, $to) {
                     }
                 }
             }
-            // Paid breaks for the hours worked that day (as stored, on an approved period)
-            if (isset($tickets[$user_id][$date]['break_paid'])) {
-                $d['break_paid'] = $tickets[$user_id][$date]['break_paid'];
-            } else {
-                $d['break_paid'] = mitTsBreakFor($d['billable'] + $d['other'] + $d['work'] + $d['lost'] - $d['unpaid_work'], $break_rule);
-            }
+            // Short paid rest breaks are part of the hours people log (26.10.151, the user's choice) - nothing is added on top. Days
+            // approved before keep the automatic breaks they were approved with (stored as source break_paid). Someone who could
+            // not take one says so on the day (mit_ts_days rest_missed).
+            $d['break_paid'] = intval($tickets[$user_id][$date]['break_paid'] ?? 0);
             if (isset($tickets[$user_id][$date]['auto_lost'])) {
                 $d['auto_lost'] = $tickets[$user_id][$date]['auto_lost'];
             } elseif ($auto && $date < $today && $date >= $started && ($ended === '' || $date <= $ended)) {

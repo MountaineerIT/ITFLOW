@@ -223,15 +223,9 @@ $company_week = mitTsCompanySchedule();
 
                 <h6 class="text-muted text-uppercase small mb-3">Lunch and breaks</h6>
                 <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label">Paid breaks</label>
-                        <div class="input-group">
-                            <input type="number" min="0" max="120" class="form-control" name="break_minutes" value="<?= intval($settings['break_minutes']) ?>" aria-label="Break minutes">
-                            <span class="input-group-text">minutes for every</span>
-                            <input type="text" inputmode="decimal" class="form-control" name="break_per" value="<?= $hours($settings['break_per']) ?>" aria-label="Hours worked">
-                            <span class="input-group-text">h worked</span>
-                        </div>
-                        <div class="form-text">Nothing to log: added to each day from the hours worked, paid, and counted toward overtime. 0 = off. A person can have their own on the People tab.</div>
+                    <div class="col-md-6" data-mit-rest-breaks>
+                        <label class="form-label">Rest breaks</label>
+                        <div class="form-text mt-0">Short paid rest breaks are part of the hours people log - nothing is added on top, and they don't count toward overtime. Anyone who could not take one ticks <em>I could not take a rest break this day</em> on that day (on California rules that owes an hour of rest premium).</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Lunch</label>

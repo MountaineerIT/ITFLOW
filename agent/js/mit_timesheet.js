@@ -142,6 +142,8 @@
                 }
             });
             if (d.ca.answers.rest_missed) flags.push(chip('', 'Rest premium', null, 'danger'));
+        } else if (d.rest_missed) {
+            flags.push(chip('', 'Rest break missed', null, 'warning'));
         }
         // All time logged on tickets as one - the billable part is in the summary at the top
         if (d.tickets.billable + d.tickets.other) parts.push(chip('#198754', 'Ticket time', d.tickets.billable + d.tickets.other));
@@ -256,6 +258,11 @@
             html += '<select class="form-select form-select-sm mt-2" data-add aria-label="Add time to a code"></select>';
         }
         if (d.break_paid) html += '<div class="small text-body-secondary mt-2"><i class="fas fa-coffee me-1"></i>Paid breaks added for you: ' + hours(d.break_paid) + ' h</div>';
+        // Short rest breaks are part of the hours logged - the person says when they could not take one (California days ask above)
+        if (!d.ca && !d.future) {
+            html += '<div class="form-check mt-3" data-mit-rest-any><input class="form-check-input" type="checkbox" data-answer="rest_missed" id="mitTsRestAny"' + (d.rest_missed ? ' checked' : '') + (readOnly || !D.own ? ' disabled' : '') + '>'
+                + '<label class="form-check-label small" for="mitTsRestAny">I could not take a rest break this day</label></div>';
+        }
         html += '</section>';
         body.innerHTML = html;
         fillAdd();
@@ -464,6 +471,9 @@
             });
             const reason = body.querySelector('[data-reason]');
             if (reason) form.append('reason', reason.value);
+        } else {
+            const rest = body.querySelector('[data-mit-rest-any] [data-answer]');
+            if (rest && !rest.disabled) form.append('answers[rest_missed]', rest.checked ? '1' : '');
         }
         body.querySelectorAll('[data-code]').forEach(function (row) {
             form.append('cells[' + row.dataset.code + ']', row.querySelector('[data-hours]').value);

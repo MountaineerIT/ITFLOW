@@ -93,19 +93,7 @@ ob_start();
                     <div class="form-text">On: they type start, meal and end times each day, answer for missed meal periods, sign their timesheet, and get California overtime, double time and premium pay. Contractors are never under these rules.</div>
                 </div>
             <?php } ?>
-            <?php if (mitTsBreakColumns()) {
-                $company = mitTsSettings(); ?>
-                <div class="col-12">
-                    <label class="form-label">Paid breaks <span class="text-muted small">(empty = the company's: <?= intval($company['break_minutes']) ?> min for every <?= mitTsHours($company['break_per'], false, 'decimal') ?> h)</span></label>
-                    <div class="input-group">
-                        <input type="number" min="0" max="120" class="form-control" name="break_minutes" value="<?= $details['break_minutes'] === null ? '' : intval($details['break_minutes']) ?>" placeholder="<?= intval($company['break_minutes']) ?>" aria-label="Break minutes">
-                        <span class="input-group-text">minutes for every</span>
-                        <input type="text" inputmode="decimal" class="form-control" name="break_per" value="<?= $details['break_per'] === null ? '' : mitTsHours($details['break_per'], false, 'decimal') ?>" placeholder="<?= mitTsHours($company['break_per'], false, 'decimal') ?>" aria-label="Hours worked">
-                        <span class="input-group-text">h worked</span>
-                    </div>
-                    <div class="form-text">0 for no paid breaks (e.g. part-time).</div>
-                </div>
-            <?php } ?>
+
         </div>
     </div>
     <div class="modal-footer">

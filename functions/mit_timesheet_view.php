@@ -37,6 +37,8 @@ function mitTsViewDays($user_id, array $period, array $only = []) {
     $days = mitTsDays([$user_id], $period['start'], $period['end'])[$user_id] ?? [];
     $entries = mitTsEntries([$user_id], $period['start'], $period['end'])[$user_id] ?? [];
     $ca_days = mitTsCaDays([$user_id], $period['start'], $period['end'])[$user_id] ?? [];
+    // "I could not take a rest break" - asked on every day (short paid rest breaks are inside the hours logged)
+    $answers = mitTsCaReady() ? (mitTsCaAnswers([$user_id], $period['start'], $period['end'])[$user_id] ?? []) : [];
     $today = mitTsToday($user_id);
     // Each note with time, on the day it was worked (functions/mit_reply_times.php)
     $notes = [];
@@ -101,6 +103,7 @@ function mitTsViewDays($user_id, array $period, array $only = []) {
             'total' => $total,
             'under' => !$d['ca'] && $expected > 0 && $date <= $today && $total < $expected,
             'ca' => $ca,
+            'rest_missed' => intval($answers[$date]['rest_missed'] ?? 0),
             'entries' => $day_entries,
         ];
     }

@@ -734,3 +734,24 @@ function mitTsCaApproverNote($user_id, array $period, array $sheet) {
     }
     return $html . '</div>';
 }
+
+/**
+ * "I could not take a rest break this day" on a day not under California rules (26.10.151): a record for the person's own day in
+ * mit_ts_days (the same row California days use), shown on the timesheet and in the payroll detail - no premium. Only the person
+ * answers it, as on California days.
+ */
+function mitTsRestMissedSave($user_id, $date, $missed) {
+    global $mysqli, $session_user_id;
+    $user_id = intval($user_id);
+    if (!mitTsCaReady() || $user_id !== intval($session_user_id) || !calendarIsDate($date) || $date > mitTsToday($user_id)) {
+        return;
+    }
+    $rest = $missed ? 1 : 0;
+    $had = mitTsCaAnswers([$user_id], $date, $date)[$user_id][$date]['rest_missed'] ?? 0;
+    if (intval($had) === $rest) {
+        return;
+    }
+    $set = "rest_missed = $rest, updated_by = " . intval($session_user_id);
+    mysqli_query($mysqli, "INSERT INTO mit_ts_days SET user_id = $user_id, work_date = '" . escapeSql($date) . "', $set ON DUPLICATE KEY UPDATE $set");
+    mitTsForget();
+}

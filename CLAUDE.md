@@ -415,9 +415,8 @@ model: see DEPLOYMENT.md.
   (`save_day` - `mitTsCaSave` + `mitTsSaveCells` for that date, returns the day, summary, leave box, sign problems); a fixed bar
   holds the save state and Submit / Approve. The old form handler (`mit_ts_save`) is kept for submitting and signing.
   Lunch and breaks (M016): charge-code kind `break` (Lunch seeded, unpaid) - logged by people, accounted for (not
-  lost) but not worked; paid short breaks are automatic, `mitTsBreakFor` from ts_break_minutes / ts_break_per (or a
-  person's `mit_timesheet_people.break_minutes` / `break_per`), counted in paid hours, the total and overtime, not in
-  worked / billable %; stored on approval as source `break_paid` (approved periods without them = none).
+  lost) but not worked; automatic paid short breaks were added on top until 26.10.151 (now inside the logged hours - see Deep dive);
+  days approved with them keep them (source `break_paid`).
   Reimbursements (M017): `functions/mit_reimbursements.php` (ours, required from mit_timesheets.php) - mileage
   (makes an ITFlow trip, rate `ts_mileage_rate` kept on the entry) and purchases (receipt in `uploads/mit_receipts/`,
   served by `agent/mit_receipt.php`; optional ticket part via `mitTicketPartSave`, which now also returns the part id)
@@ -1182,7 +1181,12 @@ model: see DEPLOYMENT.md.
   save_day under the `ts_sheet_` lock; `mitTsDeleteBlocked` (API client delete, one line); `mitTsReplyTimeGuard(..., $new_type)`;
   `mitReimbItemFinish` hides other clients' ticket subjects; break_code_paid in the day total and 0 on California days; payroll detail
   "Not clocked" row. Scenarios: `tests/scenarios/scenario-procurement-stock.php`, `-qbo-payments.php`, `-ts-holidays.php`.
-  Open (asked the user): automatic paid breaks are added on top of logged hours and count toward daily overtime (`mitTsDayWorked`).
+  Rest breaks (26.10.151, the user's choice - "breaks are assumed in their logged hours, as long as they can say they couldn't take one"):
+  `mitTsDaysRead` no longer adds automatic paid breaks (break_paid = the stored value of approved days only; `mitTsBreakRule` /
+  `mitTsBreakFor` removed; the settings / person fields gone - `[data-mit-rest-breaks]` note on Admin > Timesheets, saves keep the old
+  numbers). Every day asks "I could not take a rest break this day": California days as before (rest premium); other days via
+  `mitTsRestMissedSave` (functions/mit_ts_california.php, mit_ts_days rest_missed, own day only, from `mit_timesheet_ajax.php` save_day)
+  - a record: `rest_missed` in `mitTsViewDays`, chip "Rest break missed", payroll detail row "Rest break". Smoke `31-rest-breaks.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

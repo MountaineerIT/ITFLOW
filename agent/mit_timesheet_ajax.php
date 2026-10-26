@@ -79,6 +79,10 @@ if (isset($_POST['save_day']) || isset($_POST['save_entry'])) {
             $reply(false, $message);
         }
     }
+    // Not on California rules: their own "could not take a rest break" answer for the day (a record - no premium)
+    if (!mitTsCaOn($user_id, $period['end']) && isset($_POST['answers']['rest_missed']) && function_exists('mitTsRestMissedSave')) {
+        mitTsRestMissedSave($user_id, $date, !empty($_POST['answers']['rest_missed']));
+    }
     [$ok, $message] = mitTsSaveCells(mitTsSheet($user_id, $period), $period, [$date => (array) ($_POST['cells'] ?? [])], [$date => (array) ($_POST['notes'] ?? [])]);
     $reply($ok, $ok ? 'Saved' : $message);
 }

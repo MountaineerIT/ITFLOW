@@ -106,8 +106,9 @@ if (isset($_POST['mit_ts_settings_save'])) {
     if ($ot_week !== null && $ot_week > 168 * 60) {
         $ot_week = null;
     }
-    $break_minutes = max(0, min(120, intval($_POST['break_minutes'] ?? 0)));
-    $break_per = mitTsParseHoursAny($_POST['break_per'] ?? '') ?: 240;
+    // Paid rest breaks are inside the logged hours now (26.10.151) - the old numbers are kept as they were
+    $break_minutes = max(0, min(120, intval($_POST['break_minutes'] ?? mitTsSettings()['break_minutes'])));
+    $break_per = mitTsParseHoursAny($_POST['break_per'] ?? '') ?: mitTsSettings()['break_per'];
     $break_per = max(30, min(1440, $break_per));
     if (!isset(MIT_TS_PERIODS[$type]) || ($type === 'biweekly' && !calendarIsDate($anchor)) || $schedule === null || $ot_day === null || $ot_week === null) {
         flashAlert('Not saved - check the pay period (and its first day for every two weeks), the normal week and the overtime hours.', 'error');
@@ -204,8 +205,8 @@ if (isset($_POST['mit_ts_person_save'])) {
     if (mitTsKeepsColumn()) {
         $set .= ", keeps_timesheet = " . (empty($_POST['keeps_timesheet']) ? 0 : 1);
     }
-    if (mitTsBreakColumns()) {
-        // Their own paid-break rule, or the company's when the minutes are left empty
+    if (mitTsBreakColumns() && isset($_POST['break_minutes'])) {
+        // Their own paid-break rule, or the company's when the minutes are left empty (no longer asked - 26.10.151)
         $own_break = trim((string) ($_POST['break_minutes'] ?? '')) !== '';
         $own_per = $own_break ? (mitTsParseHoursAny($_POST['break_per'] ?? '') ?: 240) : null;
         $set .= ", break_minutes = " . ($own_break ? max(0, min(120, intval($_POST['break_minutes']))) : 'NULL')
