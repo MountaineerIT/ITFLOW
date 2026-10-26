@@ -170,7 +170,9 @@ model: see DEPLOYMENT.md.
   picker (Everyone = everyone's) and the client; drag a row onto the calendar to book it again (calendar.js's own `drop` /
   `booked()` - rows carry the To schedule data attributes; the move keeps the booking's length), click for the quick look. Their
   old bookings get class `mit-left-behind` (dashed red) and "Left behind" in the detail (`mitLeftBehindMark`). Hooks: one line in
-  `agent/calendar.php` after the To schedule card (`mitLeftBehindCard`), `agent/ajax.php?mit_left_behind`, and
+  `agent/calendar.php` under the calendar's card in the main column (`mitLeftBehindCard` - 26.10.147: moved from the left column; rows
+  in a grid at most 10.5rem high, the calendar `calc(100vh - 25rem)` from 992 px while there are rows so both fit for dragging, one
+  header line when empty - `.mit-empty`, set by the script), `agent/ajax.php?mit_left_behind`, and
   `functions/calendar.php`'s tickets-source hook now calls `mitCalendarTicketItems` (left behind, then `mitProjectCalendarItems`).
   Dispatch has it as a third queue tab, "Left behind" (`mitDispatchQueue` tab `left_behind` = `mitLeftBehindSql()`, oldest booking
   first, the card shows the booked day; every agent's, following the board / client / priority filters).

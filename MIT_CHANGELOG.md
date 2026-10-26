@@ -6,6 +6,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 
 ## 26.10.147 - 2026-10-26
 - Calendar: new "7 days" view beside Week - seven days in a row starting on any day, and the arrows move it one day at a time. Step it so Sunday and Monday sit side by side and a booking can be dragged across the weekend without changing weeks. It is remembered like the other views.
+- Calendar: the Left behind list now sits under the calendar, as wide as it, with its tickets side by side - the calendar gets a little shorter while there are any, so you can drag one up onto a day without scrolling. With nothing left behind it is a single line.
 
 ## 26.10.146 - 2026-10-26
 - Our cron jobs now wait quietly (shown as Stopped) in the minutes after an install or a restore, before our database updates have run, instead of failing with "Table 'mit_settings' doesn't exist". The daily Consistency Check fails if our updates still haven't run.

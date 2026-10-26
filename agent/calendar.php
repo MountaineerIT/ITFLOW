@@ -164,7 +164,6 @@ foreach ($sources as $key => $source) {
                 </div>
             </div>
         <?php } ?>
-        <?= function_exists('mitLeftBehindCard') ? mitLeftBehindCard() : '' // Mountaineer IT: tickets whose booked day has gone ?>
 
         <div class="card">
             <div class="card-body">
@@ -191,6 +190,7 @@ foreach ($sources as $key => $source) {
                 <div id="calendar"></div>
             </div>
         </div>
+        <?= function_exists('mitLeftBehindCard') ? mitLeftBehindCard() : '' // Mountaineer IT: tickets whose booked day has gone - under the calendar ?>
     </div>
 
 </div>

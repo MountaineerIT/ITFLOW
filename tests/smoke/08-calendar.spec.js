@@ -238,3 +238,20 @@ test('calendar: the 7 days view moves a day at a time, so a weekend can be cross
     await page.locator('button', { hasText: new RegExp(`^${was}$`) }).first().click();
     await page.waitForTimeout(600);
 });
+
+test('calendar: Left behind sits under the calendar, as wide as it, both on the screen', async ({ page }) => {
+    const errors = watch(page);
+    await visit(page, 'agent/calendar.php', errors);
+    const card = page.locator('#mitLeftBehindCard');
+    await expect(card, 'the Left behind card').toHaveCount(1);
+    await page.waitForTimeout(800); // its list loads
+    const cal = await page.locator('#calendar').boundingBox();
+    const box = await card.boundingBox();
+    expect(box.y, 'under the calendar').toBeGreaterThan(cal.y + cal.height - 1);
+    expect(Math.abs(box.width - cal.width), 'as wide as the calendar (its card)').toBeLessThan(60);
+    expect(await page.locator('.itflow-cal-side #mitLeftBehindCard').count(), 'not in the left column').toBe(0);
+    // With rows to drag, the top of the list is on the screen with the calendar
+    if (await page.locator('#mitLeftBehind > *').count()) {
+        expect(box.y + 60, 'its first rows on the screen').toBeLessThan(page.viewportSize().height);
+    }
+});

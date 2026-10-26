@@ -21,9 +21,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return agentSelect ? Number(agentSelect.value) || 0 : 0;
     }
 
+    const card = document.getElementById('mitLeftBehindCard');
+
     function recount() {
         const n = list.children.length;
-        count.textContent = n ? String(n) : '';
+        count.textContent = n ? String(n) : 'None';
+        count.className = 'badge rounded-pill ms-auto ' + (n ? 'text-bg-danger' : 'bg-body-secondary text-body-secondary');
+        // Nothing left behind: just the header line (functions/mit_left_behind.php gives the calendar its full height back)
+        if (card) {
+            card.classList.toggle('mit-empty', n === 0);
+            window.dispatchEvent(new Event('resize'));
+        }
         hint.textContent = n
             ? 'Open tickets booked on a day that has gone - drag one onto the calendar to book it again.'
             : 'Nothing left behind - every open ticket booked before today has been moved on.';

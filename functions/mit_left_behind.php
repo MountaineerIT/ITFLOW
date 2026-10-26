@@ -69,12 +69,19 @@ function mitLeftBehindCard() {
     if (!calendarCanScheduleTickets()) {
         return '';
     }
+    // Under the calendar, its width (agent/calendar.php): the rows as a grid, a few lines high, and the calendar a little shorter
+    // while there are any, so both fit on the screen for dragging; nothing left behind = one line
     return '<style>
         .mit-left-behind-item .mit-left-behind-days { flex-shrink: 0; }
-        #mitLeftBehind { max-height: 22rem; overflow-y: auto; }
+        #mitLeftBehind { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .5rem; max-height: 10.5rem; overflow-y: auto; }
+        #mitLeftBehind > .itflow-cal-unscheduled { margin: 0 !important; }
+        #mitLeftBehindCard.mit-empty .card-body { display: none; }
+        @media (min-width: 992px) {
+            #itflowCalendar:has(#mitLeftBehindCard:not(.mit-empty)) #calendar { height: calc(100vh - 25rem) !important; min-height: 26rem; }
+        }
         #itflowCalendar .mit-left-behind { outline: 2px dashed var(--bs-danger); outline-offset: -2px; }
     </style>
-    <div class="card mb-3" id="mitLeftBehindCard">
+    <div class="card mt-3 mit-empty" id="mitLeftBehindCard">
         <div class="card-header py-2 d-flex align-items-center">
             <span class="fw-semibold text-nowrap"><i class="fas fa-fw fa-history text-danger me-1"></i>Left behind</span>
             <span class="badge rounded-pill text-bg-danger ms-auto" id="mitLeftBehindCount"></span>
