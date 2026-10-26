@@ -82,7 +82,9 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
                                 <?= $mit_ai_local['model'] ? escapeHtml(MIT_AI_LOCAL_MODEL) . ' is downloaded.' : escapeHtml(MIT_AI_LOCAL_MODEL) . ' is downloaded when you switch it on (about 270 MB).' ?>
                                 Nothing leaves the server, no tokens are paid for.
                                 <?php if ($mit_ai_local['on'] && ($stats['chunks'] ?? 0)) { ?>
-                                    <span data-mit-ai-local-progress><?= number_format($stats['embedded_current'] ?? 0) ?> of <?= number_format($stats['chunks']) ?> passages done with it.</span>
+                                    <span data-mit-ai-local-progress><?= number_format($stats['embedded_current'] ?? 0) ?> of <?= number_format($stats['chunks']) ?> passages done with it<?php
+                                        $mit_ai_left = $stats['chunks'] - ($stats['embedded_current'] ?? 0);
+                                        echo $mit_ai_left > 0 ? ' - the rest are done in the background, roughly ' . escapeHtml(mitAiLocalTimeLeft($mit_ai_left)) . ' at about a passage a second' : ''; ?>.</span>
                                 <?php } ?>
                             <?php } ?>
                         </div>
@@ -163,6 +165,11 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
                 Waiting for the first run of the AI Helper Library cron job.
             <?php } else { ?>
                 Last updated <?= escapeHtml($stats['last_run']) ?><?= $stats['catching_up'] ? ' - still catching up with older tickets' : '' ?>.
+            <?php } ?>
+            <?php $mit_ai_embed_error = $settings['embed_provider'] ? (string) mitSetting('ai_helper_embed_error', '') : ''; ?>
+            <?php if ($mit_ai_embed_error !== '') { ?>
+                <div class="alert alert-warning py-2 mt-2 mb-0" data-mit-ai-embed-error><i class="fas fa-fw fa-exclamation-triangle me-1"></i>Meaning search
+                    is not catching up - the last try: <?= escapeHtml($mit_ai_embed_error) ?>. Keyword search still works. It tries again every 5 minutes.</div>
             <?php } ?>
         </div>
     </div>

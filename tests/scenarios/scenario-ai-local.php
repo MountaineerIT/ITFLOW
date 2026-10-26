@@ -12,7 +12,7 @@ if (!function_exists('mitAiLocalTurnOn') || !defined('MIT_OLLAMA_BASE')) {
 }
 $mock = MIT_OLLAMA_BASE;
 $stamp = date('His');
-$names = ['ai_helper_enabled', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_local_on', 'ai_local_provider', 'ai_local_prev_provider', 'ai_local_prev_model', 'ai_helper_index_version'];
+$names = ['ai_helper_enabled', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_local_on', 'ai_local_provider', 'ai_local_prev_provider', 'ai_local_prev_model', 'ai_helper_index_version', 'ai_helper_embed_error'];
 $saved = [];
 foreach ($names as $name) {
     $saved[$name] = mitSetting($name);
@@ -84,6 +84,27 @@ try {
     for ($i = 0; $i < 10 && mitAiEmbedPending(30) !== ''; $i++) {
     }
     scenarioCheck('... and are re-done', mitAiIndexStats()['embedded_current'], mitAiIndexStats()['chunks']);
+
+    echo "in the background, a few at a time\n";
+    mysqli_query($mysqli, "UPDATE mit_ai_chunks SET embed_model = 'older'");
+    @file_get_contents("$mock/_clear");
+    $log = implode(' ', mitAiIndexRun(50));
+    scenarioCheck('the library job hands the passages to the background worker', strpos($log, 'in the background') !== false, true);
+    for ($i = 0; $i < 60 && mitAiIndexStats()['embedded_current'] < mitAiIndexStats()['chunks']; $i++) {
+        usleep(250000);
+    }
+    scenarioCheck('... which does them all', mitAiIndexStats()['embedded_current'], mitAiIndexStats()['chunks']);
+    $sizes = array_map(fn($c) => count((array) ($c['body']['input'] ?? [])), array_filter($calls(), fn($c) => str_ends_with($c['path'], '/v1/embeddings')));
+    scenarioCheck('at most ' . MIT_AI_EMBED_BATCH_LOCAL . ' passages a request to a local model', $sizes && max($sizes) <= MIT_AI_EMBED_BATCH_LOCAL, true);
+
+    echo "a failing model shows\n";
+    mysqli_query($mysqli, "UPDATE mit_ai_chunks SET embed_model = 'older'");
+    @file_get_contents("$mock/_state?running=0");
+    $line = mitAiEmbedPending(5);
+    scenarioCheck('a failure is reported', [str_starts_with($line, 'Embeddings failed'), mitSetting('ai_helper_embed_error', '') !== ''], [true, true]);
+    @file_get_contents("$mock/_state?running=1");
+    mitAiEmbedPending(30);
+    scenarioCheck('... and cleared once it works again', mitSetting('ai_helper_embed_error', ''), '');
 
     echo "on again\n";
     [$ok] = mitAiLocalTurnOn();

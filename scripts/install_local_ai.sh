@@ -105,7 +105,8 @@ fi
 # ---------------------------------------------------------------------------- settings
 
 info "Settings"
-# Only this server can reach it; one model in memory at a time; kept loaded 30 minutes after a request (loading takes a second)
+# Only this server can reach it; one model in memory at a time; kept loaded 30 minutes after a request (loading takes a second);
+# a lower CPU priority than Apache and MariaDB, so ITFlow stays quick while the library's passages are embedded
 install -d /etc/systemd/system/ollama.service.d
 cat > /etc/systemd/system/ollama.service.d/mountaineerit.conf <<'EOF'
 # Written by ITFlow's scripts/install_local_ai.sh (Mountaineer IT)
@@ -114,6 +115,7 @@ Environment="OLLAMA_HOST=127.0.0.1:11434"
 Environment="OLLAMA_MAX_LOADED_MODELS=1"
 Environment="OLLAMA_NUM_PARALLEL=1"
 Environment="OLLAMA_KEEP_ALIVE=30m"
+Nice=10
 EOF
 systemctl daemon-reload
 systemctl enable ollama >/dev/null 2>&1 || true

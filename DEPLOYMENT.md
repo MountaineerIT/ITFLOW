@@ -471,8 +471,10 @@ nothing leaves the server, no tokens paid for). Once, from a root shell on the s
 (or `--local-ai` on a fresh `install.sh`). It checks memory (3 GB+) and disk, installs Ollama with Ollama's own installer
 (`--version X.Y.Z` pins a release, `--upgrade` installs over one already there), makes it listen on 127.0.0.1 only with one model
 loaded at a time (`/etc/systemd/system/ollama.service.d/mountaineerit.conf`), downloads the model and checks it answers. Then
-Admin > Integrations > AI helper > **Use this server**; the library re-does its passages with the new model over the next runs
-(keyword search works meanwhile). **Switch off** goes back to what was set before. Status: `systemctl status ollama`, logs:
+Admin > Integrations > AI helper > **Use this server**; the library re-does its passages with the new model in a background worker
+(keyword search works meanwhile). On a CPU-only server that is about one passage a second - a library of 9,000 passages takes about
+three hours the first time; the page shows roughly how long is left. Ollama runs at a lower CPU priority (`Nice=10`) than Apache and
+MariaDB; re-run the script on a server installed before 26.10.162 to get that. **Switch off** goes back to what was set before. Status: `systemctl status ollama`, logs:
 `journalctl -u ollama`. Remove: `systemctl disable --now ollama`, then delete `/usr/local/bin/ollama`, `/usr/share/ollama` and
 `/etc/systemd/system/ollama.service*`.
 

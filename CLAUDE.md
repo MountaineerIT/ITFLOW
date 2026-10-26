@@ -1299,6 +1299,13 @@ model: see DEPLOYMENT.md.
   real run (beta, Ollama 0.40.11) worked. Labels (26.10.161): `mitAiEmbedPrefixes($model)` - nomic-embed-text gets "search_document: " /
   "search_query: " (`mitAiEmbed($texts, $config, $purpose)`, 'query' from `mitAiSearch`), and its passages are stored as
   `mitAiEmbedTag()` = "<model> [labelled]" in embed_model, so ones done without the labels are re-done; other models unchanged.
+  Slow local models (26.10.162 - beta's 4-core CPU did about a passage a second, so every 64-passage request hit the 60 s timeout and
+  nothing was ever stored): `mitAiEmbedConfig` 'local' (kind ollama or a 127.0.0.1 / localhost address) -> `MIT_AI_EMBED_BATCH_LOCAL` 4 a
+  request, 180 s timeout (questions 10 s local / 20 s cloud, then keyword only); ITFlow's cron runs jobs one after another, so for a local
+  model `mitAiIndexRun` calls `mitAiEmbedInBackground` - `nohup nice php scripts/mit_ai_embed_worker.php &` (ours; MIT_AI_EMBED_WORKER_SECONDS
+  270), one at a time through the 'ai_embed' lock that `mitAiEmbedPending` takes; no exec / not CLI -> in the job as before. The last
+  failure is kept in `mit_settings` ai_helper_embed_error (cleared on success) and shown on the admin page (`[data-mit-ai-embed-error]`);
+  the Local box shows the time left (`mitAiLocalTimeLeft`). install_local_ai.sh's drop-in has `Nice=10`.
   Documents in answers (26.10.157): `mitAiSearch` takes a separate keyword pool of document passages and, by meaning, documents within
   `MIT_AI_DOCUMENT_NEAR` of the best match; matching documents get `MIT_AI_DOCUMENT_SLOTS` kept places and `MIT_AI_DOCUMENT_WEIGHT`
   (thousands of ticket passages pushed them out); the system prompt prefers documents. `mitAiIndexRun` removes sources of archived

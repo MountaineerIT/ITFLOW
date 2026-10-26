@@ -36,6 +36,12 @@ function mitAiLocalCall($method, $path, $body = null, $timeout = 5) {
     return [$status, is_string($response) ? json_decode($response, true) : null];
 }
 
+/** Rough time for $passages on a CPU-only server (about one a second, the background worker busy 270 s of every 300). */
+function mitAiLocalTimeLeft($passages) {
+    $minutes = (int) ceil($passages / 0.9 / 60);
+    return $minutes < 90 ? max(1, $minutes) . ' minute' . ($minutes === 1 ? '' : 's') : round($minutes / 60, 1) . ' hours';
+}
+
 /** Where it stands: running (and its version), model there, switched on, and the provider it uses. */
 function mitAiLocalStatus() {
     [$status, $version] = mitAiLocalCall('GET', '/api/version');

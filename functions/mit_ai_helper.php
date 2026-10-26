@@ -58,6 +58,8 @@ require_once __DIR__ . '/mit_ai_local.php'; // embeddings on this server (Ollama
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run
 const MIT_AI_EMBED_BATCH = 64;        // passages per embeddings request
+const MIT_AI_EMBED_BATCH_LOCAL = 4;   // ... to a model on this server: a CPU does about one passage a second
+const MIT_AI_EMBED_WORKER_SECONDS = 270; // how long one background run embeds for (local models; the cron job starts one every 5 minutes)
 const MIT_AI_SEARCH_POOL = 40;        // candidates from each search before merging
 const MIT_AI_DOCUMENT_SLOTS = 3;      // places in an answer's passages kept for documents that match (tickets outnumber them)
 const MIT_AI_DOCUMENT_WEIGHT = 1.5;   // documents are written to be followed - they rank ahead of a ticket that matches as well
@@ -540,7 +542,10 @@ function mitAiIndexRun($budget_seconds = 50) {
             mysqli_query($mysqli, "ALTER TABLE mit_ai_chunks FORCE");
             $log[] = 'Keyword index was not finding passages - rebuilt' . (mitAiKeywordIndexOk() ? '' : ', still missing some');
         }
-        $embedded = mitAiEmbedPending(max(5, $budget_seconds - (microtime(true) - $started)));
+        $embedded = mitAiEmbedInBackground();
+        if ($embedded === null) {
+            $embedded = mitAiEmbedPending(max(5, $budget_seconds - (microtime(true) - $started)));
+        }
         if ($embedded !== '') {
             $log[] = $embedded;
         }
@@ -652,7 +657,9 @@ function mitAiEmbedConfig() {
     if ($url === $chat) {
         return null; // not an OpenAI-style address - no embeddings there
     }
-    return ['provider' => $provider, 'kind' => $kind, 'url' => $url, 'model' => $settings['embed_model']];
+    $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+    $local = $kind === 'ollama' || in_array($host, ['127.0.0.1', 'localhost', '::1', '[::1]'], true);
+    return ['provider' => $provider, 'kind' => $kind, 'url' => $url, 'model' => $settings['embed_model'], 'local' => $local];
 }
 
 /**
@@ -690,7 +697,9 @@ function mitAiEmbed(array $texts, $config = null, $purpose = 'document') {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode(['model' => $config['model'], 'input' => array_values($texts)]),
-        CURLOPT_TIMEOUT => 60,
+        // A question gives up soon (keyword search answers meanwhile) - a local model may be busy with the library's passages
+        CURLOPT_TIMEOUT => $purpose === 'query' ? (!empty($config['local']) ? 10 : 20) : (!empty($config['local']) ? 180 : 60),
+        CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_HTTPHEADER => aiProviderHeaders($config['kind'], $config['provider']['ai_provider_api_key']),
     ]);
     $response = curl_exec($ch);
@@ -726,26 +735,77 @@ function mitAiEmbedPending($seconds = 30) {
     if (!$config) {
         return '';
     }
-    $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
-    $started = microtime(true);
-    $done = 0;
-    while (microtime(true) - $started < $seconds) {
-        $rows = mysqli_fetch_all(mysqli_query($mysqli, "SELECT chunk_id, chunk_text FROM mit_ai_chunks WHERE embedding IS NULL OR embed_model <> '$model'
-            ORDER BY chunk_id LIMIT " . MIT_AI_EMBED_BATCH), MYSQLI_ASSOC);
-        if (!$rows) {
-            break;
-        }
-        [$ok, $vectors] = mitAiEmbed(array_column($rows, 'chunk_text'), $config);
-        if (!$ok || count($vectors) !== count($rows)) {
-            return 'Embeddings failed: ' . ($ok ? 'the provider answered for ' . count($vectors) . ' of ' . count($rows) : $vectors);
-        }
-        foreach ($rows as $i => $row) {
-            $blob = mysqli_real_escape_string($mysqli, pack('g*', ...$vectors[$i]));
-            mysqli_query($mysqli, "UPDATE mit_ai_chunks SET embedding = '$blob', embed_model = '$model' WHERE chunk_id = " . intval($row['chunk_id']));
-        }
-        $done += count($rows);
+    if (!mitLock('ai_embed', 0)) {
+        return ''; // another run (the background worker) is embedding
     }
-    return $done ? "Embedded $done passage(s)" : '';
+    try {
+        $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
+        $batch = !empty($config['local']) ? MIT_AI_EMBED_BATCH_LOCAL : MIT_AI_EMBED_BATCH;
+        $started = microtime(true);
+        $done = 0;
+        while (microtime(true) - $started < $seconds) {
+            $rows = mysqli_fetch_all(mysqli_query($mysqli, "SELECT chunk_id, chunk_text FROM mit_ai_chunks WHERE embedding IS NULL OR embed_model <> '$model'
+                ORDER BY chunk_id LIMIT " . intval($batch)), MYSQLI_ASSOC);
+            if (!$rows) {
+                break;
+            }
+            [$ok, $vectors] = mitAiEmbed(array_column($rows, 'chunk_text'), $config);
+            if (!$ok || count($vectors) !== count($rows)) {
+                $error = 'Embeddings failed: ' . ($ok ? 'the provider answered for ' . count($vectors) . ' of ' . count($rows) : $vectors);
+                mitSetSetting('ai_helper_embed_error', date('Y-m-d H:i') . ' - ' . mb_substr($error, 0, 400));
+                return $error . ($done ? " (after $done passage(s))" : '');
+            }
+            foreach ($rows as $i => $row) {
+                $blob = mysqli_real_escape_string($mysqli, pack('g*', ...$vectors[$i]));
+                mysqli_query($mysqli, "UPDATE mit_ai_chunks SET embedding = '$blob', embed_model = '$model' WHERE chunk_id = " . intval($row['chunk_id']));
+            }
+            $done += count($rows);
+            if (mitSetting('ai_helper_embed_error', '') !== '') {
+                mitSetSetting('ai_helper_embed_error', '');
+            }
+        }
+        return $done ? "Embedded $done passage(s)" : '';
+    } finally {
+        mitUnlock('ai_embed');
+    }
+}
+
+/** Passages left to embed with the current model (0 without one). */
+function mitAiEmbedBacklog() {
+    global $mysqli;
+    $config = mitAiEmbedConfig();
+    if (!$config) {
+        return 0;
+    }
+    $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
+    return intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NULL OR embed_model <> '$model'"))[0] ?? 0);
+}
+
+/**
+ * A model on this server is slow (about a passage a second on a CPU), and ITFlow's cron runs its jobs one after another - so for a
+ * local model the library job starts scripts/mit_ai_embed_worker.php in the background (MIT_AI_EMBED_WORKER_SECONDS, one at a time -
+ * the 'ai_embed' lock) instead of embedding itself. Returns a log line, '' (nothing to do) or null (not local, or exec not allowed:
+ * embed in the job as before).
+ */
+function mitAiEmbedInBackground() {
+    $config = mitAiEmbedConfig();
+    $disabled = array_map('trim', explode(',', (string) ini_get('disable_functions')));
+    if (!$config || empty($config['local']) || !function_exists('exec') || in_array('exec', $disabled, true) || php_sapi_name() !== 'cli') {
+        return null; // embed here as before
+    }
+    if (!mitAiEmbedBacklog()) {
+        return '';
+    }
+    if (!mitLock('ai_embed', 0)) {
+        return 'Embedding in the background (still running)';
+    }
+    mitUnlock('ai_embed');
+    $script = realpath(__DIR__ . '/../scripts/mit_ai_embed_worker.php');
+    if ($script === false) {
+        return null;
+    }
+    exec('nohup nice -n 10 ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' > /dev/null 2>&1 &');
+    return 'Embedding in the background started';
 }
 
 /*

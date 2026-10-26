@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.162 - 2026-10-26
+- AI helper, local embeddings: fixed meaning search never catching up on a CPU-only server. It sent 64 passages at a time and gave up after a minute - a CPU does about one a second, so every try failed and the count stayed at 0. A model on the server now gets 4 at a time with up to 3 minutes each, in a background worker (so ITFlow's other scheduled jobs, like sending mail, aren't held up). The first full pass takes a few hours; the AI helper page shows roughly how long is left.
+- A question waits at most 10 seconds for meaning search while the server is busy, then answers from keyword search.
+- The AI helper page now shows the last error when meaning search isn't catching up, instead of the count just staying put.
+- `install_local_ai.sh` runs Ollama at a lower priority than the web server and database, so ITFlow stays quick while it works - run it again once to pick that up.
+
 ## 26.10.161 - 2026-10-26
 - AI helper with local embeddings: nomic-embed-text now gets the labels it was trained with ("search_document:" before your tickets and documents, "search_query:" before a question), so meaning search finds closer matches. The library re-does its passages once by itself over the next runs - free, on your server. Other embeddings models (OpenAI's) are not changed.
 - `install_local_ai.sh` shows just Ollama's version number (while the service was still starting it printed Ollama's start-up notice there instead).

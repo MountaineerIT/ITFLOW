@@ -8,7 +8,7 @@ const { watch, visit, flash, expectClean } = require('./helpers');
 const db = require('./mitdb');
 
 const MOCK = 'http://127.0.0.1/ollama-mock/index.php';
-const NAMES = ['ai_helper_enabled', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_local_on', 'ai_local_provider', 'ai_local_prev_provider', 'ai_local_prev_model'];
+const NAMES = ['ai_helper_enabled', 'ai_helper_embed_provider', 'ai_helper_embed_model', 'ai_local_on', 'ai_local_provider', 'ai_local_prev_provider', 'ai_local_prev_model', 'ai_helper_embed_error'];
 const made = { saved: null };
 
 test.afterAll(async ({ request }) => {
@@ -58,6 +58,14 @@ test('AI helper: local embeddings on this server - install hint, switch on, swit
     await expect(page.locator('select[name=ai_helper_embed_provider] option:checked')).toHaveText('This server (Ollama)');
     await expect(page.locator('input[name=ai_helper_embed_model]')).toHaveValue('nomic-embed-text');
     expect(db.val("SELECT ai_provider_kind FROM ai_providers WHERE ai_provider_name = 'This server (Ollama)'")).toBe('ollama');
+
+    // A failing model shows on the page (the library job records the last error)
+    set('ai_helper_embed_error', '2026-10-26 12:00 - Embeddings failed: Could not reach the provider');
+    await visit(page, 'admin/mit_ai_helper.php', errors);
+    await expect(page.locator('[data-mit-ai-embed-error]')).toContainText('Could not reach the provider');
+    set('ai_helper_embed_error', '');
+    await visit(page, 'admin/mit_ai_helper.php', errors);
+    await expect(page.locator('[data-mit-ai-embed-error]')).toHaveCount(0);
 
     // Switch off: back to keyword search (what was set before)
     await Promise.all([page.waitForNavigation(), card.locator('[data-mit-ai-local-off]').click()]);
