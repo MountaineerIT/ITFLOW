@@ -115,9 +115,11 @@ function mitTsViewSummary($user_id, array $period) {
     $stats = [
         [$t['ca'] ? 'Hours worked' : 'Total hours', mitTsHours($t['ca'] ? $t['worked'] : $t['total'], false),
             $t['ca'] ? ($t['leave'] ? '+ ' . mitTsHours($t['leave']) . ' h leave' : 'From your times') : ($t['break_paid'] ? 'incl. ' . mitTsHours($t['break_paid']) . ' h paid breaks' : 'Worked and leave')],
+        // ... and ticket / code time outside those times is not in them
+        ...($t['not_clocked'] ? [['Not clocked', mitTsHours($t['not_clocked'], false), 'Ticket or code time outside your start / end times', 'warning']] : []),
         // All ticket time against lost time; the billable part of it underneath
         ['Ticket time', mitTsHours($t['billable'] + $t['other'], false),
-            ($t['worked'] ? round(($t['billable'] + $t['other']) / $t['worked'] * 100) . '% of hours worked · ' : '')
+            ($t['accounted'] ? round(($t['billable'] + $t['other']) / $t['accounted'] * 100) . '% of hours worked · ' : '')
             . (mitTsSettings()['billable'] === 'all' && !$t['other'] ? 'all billable' : mitTsHours($t['billable'], false) . ' h billable (' . mitTsBillableShare($t) . ')')],
     ];
     if ($t['ca'] || $settings['ot_day'] || $settings['ot_week']) {

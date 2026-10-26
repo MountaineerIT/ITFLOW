@@ -1289,6 +1289,8 @@ function mitTsDayWorked(array $d) {
  * 'leave_paid', 'unpaid', 'worked', 'leave', 'break' (lunch etc. logged), 'break_paid' (paid breaks, automatic and on paid break
  * codes), 'paid', 'total', 'overtime', 'regular'] - all minutes. Leave is paid and unpaid. Worked (and the billable share) leaves
  * breaks out; paid hours and the total count paid breaks.
+ * California days: worked is the typed times ('clocked'); 'unallocated' is typed time on no code, 'not_clocked' ticket / code time
+ * outside the typed times, so worked = billable + other + work + lost + unallocated - not_clocked; 'accounted' = worked + not_clocked.
  * Overtime (hourly people, when set): over the daily limit on each day, plus, going through each week day by day,
  * the hours past the weekly limit - so a week that crosses into the next pay period splits its overtime by date.
  * Approved days keep the overtime, double time and premiums they were approved with (mitTsStoredRules).
@@ -1301,7 +1303,7 @@ function mitTsTotals(array $user_ids, $from, $to) {
     foreach ($user_ids as $user_id) {
         $user_id = intval($user_id);
         $t = ['billable' => 0, 'other' => 0, 'codes' => [], 'work' => 0, 'lost' => 0, 'auto_lost' => 0, 'leave_paid' => 0, 'unpaid' => 0, 'overtime' => 0,
-            'break' => 0, 'break_paid' => 0, 'double' => 0, 'clocked' => 0, 'unallocated' => 0, 'meal_premium' => 0, 'rest_premium' => 0, 'ca' => false];
+            'break' => 0, 'break_paid' => 0, 'double' => 0, 'clocked' => 0, 'unallocated' => 0, 'not_clocked' => 0, 'meal_premium' => 0, 'rest_premium' => 0, 'ca' => false];
         $ca_adjust = 0;  // California days: their hours worked are the typed times, not what is on codes
         $leave_unpaid = 0;
         $unpaid_work = 0;
@@ -1321,12 +1323,17 @@ function mitTsTotals(array $user_ids, $from, $to) {
             $t['break_paid'] += $d['break_paid'] + $d['break_code_paid'];
             if ($d['ca']) {
                 $ca_adjust += $d['clocked'] - ($d['billable'] + $d['other'] + $d['work'] + $d['lost']);
+                // Ticket time and hours on codes past the typed times (or on a day with none typed) - not hours worked
+                $t['not_clocked'] += max(0, $d['billable'] + $d['other'] + $d['work'] + $d['lost'] - $d['clocked']);
                 // On California rules (now, or on days approved that way)
                 $t['ca'] = true;
             }
         }
         $t['unpaid'] = $leave_unpaid + $unpaid_work;
         $t['worked'] = $t['billable'] + $t['other'] + $t['work'] + $t['lost'] + $ca_adjust;
+        // Every hour on the sheet - worked plus California ticket / code time outside the typed times: the share of it on
+        // billable tickets never goes over 100%. worked = accounted - not_clocked.
+        $t['accounted'] = $t['worked'] + $t['not_clocked'];
         $t['leave'] = $t['leave_paid'] + $leave_unpaid;
         $t['paid'] = $t['worked'] - $unpaid_work + $t['leave_paid'] + $t['break_paid'];
         $t['total'] = $t['worked'] + $t['leave'] + $t['break_paid'];
@@ -1382,9 +1389,10 @@ function mitTsBillableSql($rule) {
     return $rule === 'flag' ? 'ticket_billable = 1' : ($rule === 'client' ? 'ticket_client_id > 0' : '1 = 1');
 }
 
-/** "62%" of worked hours on billable tickets, or '-'. */
+/** "62%" of the hours on the sheet on billable tickets (worked, plus California ticket time outside the typed times), or '-'. */
 function mitTsBillableShare(array $t) {
-    return $t['worked'] > 0 ? round($t['billable'] / $t['worked'] * 100) . '%' : '-';
+    $of = $t['accounted'] ?? $t['worked'];
+    return $of > 0 ? round($t['billable'] / $of * 100) . '%' : '-';
 }
 
 /** A day's tickets with time on them (worked that day): ticket rows with 'minutes' and 'ticket_billable'. */

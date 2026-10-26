@@ -70,7 +70,7 @@ $code_columns = array_intersect_key($codes, $used);
 
 $rows = [];
 $sum = ['billable' => 0, 'other' => 0, 'work' => 0, 'lost' => 0, 'auto_lost' => 0, 'break_paid' => 0, 'leave' => 0, 'leave_paid' => 0, 'unpaid' => 0, 'worked' => 0, 'paid' => 0, 'total' => 0, 'overtime' => 0, 'regular' => 0,
-    'double' => 0, 'meal_premium' => 0, 'rest_premium' => 0];
+    'double' => 0, 'meal_premium' => 0, 'rest_premium' => 0, 'accounted' => 0, 'unallocated' => 0, 'not_clocked' => 0];
 // California non-exempt people (functions/mit_ts_california.php): double time, premium hours, and whether each period was signed
 $any_ca = count(array_filter($totals, function ($t) {
     return !empty($t['ca']);
@@ -78,7 +78,7 @@ $any_ca = count(array_filter($totals, function ($t) {
 foreach ($people as $user_id => $person) {
     $t = $totals[$user_id];
     $r = $reimb[$user_id] ?? ['miles' => 0, 'mileage' => 0, 'purchases' => 0, 'total' => 0, 'count' => 0, 'elsewhere' => 0];
-    if (!$t['total'] && !$r['count'] && !$r['elsewhere'] && !$agent_id) {
+    if (!$t['total'] && !$t['not_clocked'] && !$r['count'] && !$r['elsewhere'] && !$agent_id) {
         continue;
     }
     $details = mitTsPerson($user_id);
@@ -88,7 +88,8 @@ foreach ($people as $user_id => $person) {
         'miles' => $r['miles'], 'mileage' => $r['mileage'], 'purchases' => $r['purchases'], 'reimburse' => $r['total'], 'elsewhere' => $r['elsewhere'],
         'billable' => $t['billable'] * 60, 'other' => $t['other'] * 60, 'work' => $t['work'] * 60, 'worked' => $t['worked'] * 60, 'leave' => $t['leave'] * 60,
         'unpaid' => $t['unpaid'] * 60, 'paid' => $t['paid'] * 60, 'total' => $t['total'] * 60, 'lost' => $t['lost'] * 60,
-        'share' => $t['worked'] ? round($t['billable'] / $t['worked'] * 100, 1) : null,
+        'share' => $t['accounted'] ? round($t['billable'] / $t['accounted'] * 100, 1) : null,
+        'unallocated' => $t['unallocated'] * 60, 'not_clocked' => $t['not_clocked'] * 60,
         'approved' => ($approved[$user_id] ?? 0) . ' of ' . count($periods),
         'double' => $t['double'] * 60, 'meal_premium' => $t['meal_premium'] / 60, 'rest_premium' => $t['rest_premium'] / 60, 'ca' => $t['ca'] ? 'Yes' : 'No'];
     foreach ($code_columns as $code_id => $code) {
@@ -120,6 +121,10 @@ $columns += [
         'title' => 'Normal hours nothing accounted for - counted as lost time' . ($settings['auto_lost_paid'] ? ', and paid' : ', not paid')],
     'break_paid' => ['label' => 'Paid breaks', 'type' => 'hours', 'decimals' => 2, 'screen' => $sum['break_paid'] > 0,
         'title' => 'Short breaks, paid - worked out from the hours worked (Admin > Timesheets)'],
+    'unallocated' => ['label' => 'Not on a code', 'type' => 'hours', 'decimals' => 2, 'screen' => $sum['unallocated'] > 0, 'csv' => $any_ca ? null : false,
+        'title' => 'California rules: clocked time (the typed start / end times) not on a ticket or a code - worked and paid'],
+    'not_clocked' => ['label' => 'Not clocked', 'type' => 'hours', 'decimals' => 2, 'screen' => $sum['not_clocked'] > 0, 'csv' => $any_ca ? null : false, 'class' => 'text-warning-emphasis',
+        'title' => 'California rules: ticket time and hours on codes outside the typed start / end times (or on a day with none typed) - not in Worked or paid until the times are put right'],
     'worked' => ['label' => 'Worked', 'type' => 'hours', 'decimals' => 2, 'title' => 'Ticket time, admin and other work, and lost time - breaks and lunch not included'],
     'leave' => ['label' => 'Leave', 'type' => 'hours', 'decimals' => 2],
     'unpaid' => ['label' => 'Unpaid', 'type' => 'hours', 'decimals' => 2],
@@ -159,7 +164,7 @@ foreach ($columns as $key => $column) {
         $table_totals[$key] = array_sum(array_column($rows, $key));
     }
 }
-$table_totals['share'] = $sum['worked'] ? round($sum['billable'] / $sum['worked'] * 100, 1) : null;
+$table_totals['share'] = $sum['accounted'] ? round($sum['billable'] / $sum['accounted'] * 100, 1) : null;
 
 if (reportExporting('detail')) {
     $detail = [];
@@ -278,8 +283,8 @@ $with_hours = array_values(array_filter($rows, function ($r) {
 
     <?= reportStats([
         ['label' => 'Paid hours', 'value' => reportHours($sum['paid'] * 60, 2) . ' h', 'sub' => '<span class="text-body-tertiary">' . count($rows) . ' ' . (count($rows) === 1 ? 'person' : 'people') . '</span>'],
-        ['label' => 'Billable', 'value' => reportPercent($table_totals['share'] === null ? null : round($table_totals['share'])), 'sub' => escapeHtml(reportHours($sum['billable'] * 60, 2)) . ' h <span class="text-body-tertiary">of ' . escapeHtml(reportHours($sum['worked'] * 60, 2)) . ' h worked</span>'],
-        ['label' => 'Lost time', 'value' => reportHours($sum['lost'] * 60, 2) . ' h', 'tone' => $sum['lost'] ? 'danger' : '', 'sub' => '<span class="text-body-tertiary">' . ($sum['worked'] ? round($sum['lost'] / $sum['worked'] * 100) : 0) . '% of hours worked</span>'],
+        ['label' => 'Billable', 'value' => reportPercent($table_totals['share'] === null ? null : round($table_totals['share'])), 'sub' => escapeHtml(reportHours($sum['billable'] * 60, 2)) . ' h <span class="text-body-tertiary">of ' . escapeHtml(reportHours($sum['accounted'] * 60, 2)) . ' h worked</span>'],
+        ['label' => 'Lost time', 'value' => reportHours($sum['lost'] * 60, 2) . ' h', 'tone' => $sum['lost'] ? 'danger' : '', 'sub' => '<span class="text-body-tertiary">' . ($sum['accounted'] ? round($sum['lost'] / $sum['accounted'] * 100) : 0) . '% of hours worked</span>'],
         ['label' => 'Leave', 'value' => reportHours($sum['leave'] * 60, 2) . ' h', 'sub' => $sum['leave'] > $sum['leave_paid'] ? escapeHtml(reportHours(($sum['leave'] - $sum['leave_paid']) * 60, 2)) . ' h <span class="text-body-tertiary">unpaid</span>' : '<span class="text-body-tertiary">All paid</span>'],
     ] + ($overtime ? [5 => ['label' => 'Overtime', 'value' => reportHours($sum['overtime'] * 60, 2) . ' h', 'tone' => $sum['overtime'] ? 'warning' : '',
             'sub' => '<span class="text-body-tertiary">' . escapeHtml(reportHours($sum['regular'] * 60, 2)) . ' h regular</span>']] : [])

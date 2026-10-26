@@ -29,12 +29,16 @@ $sheets = mitTsSheets(array_keys($people), $period);
 $totals = mitTsTotals(array_keys($people), $period['start'], $period['end']);
 $prev = mitTsPeriodShift($period, -1);
 $next = mitTsPeriodShift($period, 1);
-$sum = ['billable' => 0, 'other' => 0, 'work' => 0, 'lost' => 0, 'leave_paid' => 0, 'unpaid' => 0, 'worked' => 0, 'leave' => 0, 'total' => 0, 'overtime' => 0];
+$sum = ['billable' => 0, 'other' => 0, 'work' => 0, 'lost' => 0, 'leave_paid' => 0, 'unpaid' => 0, 'worked' => 0, 'leave' => 0, 'total' => 0, 'overtime' => 0,
+    'accounted' => 0, 'not_clocked' => 0, 'unallocated' => 0, 'break_paid' => 0];
 foreach ($totals as $t) {
     foreach ($sum as $key => $value) {
         $sum[$key] += $t[$key];
     }
 }
+// The columns add up to Total: Admin & work also holds paid breaks and typed time on no code (California), and ticket / code
+// time outside a California day's typed times is taken off as "Not clocked" (shown when anyone has some)
+$not_clocked = $sum['not_clocked'] > 0;
 $waiting = $approval ? count(array_filter($sheets, function ($sheet) {
     return $sheet['status'] === 'submitted';
 })) : 0;
@@ -89,7 +93,7 @@ $period_ended = $period['end'] < date('Y-m-d');
                 </form>
             </div>
         <?php } ?>
-        <p class="text-muted"><?= count($people) ?> people · <?= mitTsHours($sum['total'], false) ?> hours · <?= mitTsBillableShare($sum) ?> of hours worked billable · <?= mitTsHours($sum['lost'], false) ?> lost<?= $waiting ? " · <strong>$waiting waiting for approval</strong>" : '' ?></p>
+        <p class="text-muted"><?= count($people) ?> people · <?= mitTsHours($sum['total'], false) ?> hours · <?= mitTsBillableShare($sum) ?> of hours worked billable · <?= mitTsHours($sum['lost'], false) ?> lost<?= $not_clocked ? ' · <span class="text-warning-emphasis">' . mitTsHours($sum['not_clocked'], false) . ' ticket hours outside clocked times</span>' : '' ?><?= $waiting ? " · <strong>$waiting waiting for approval</strong>" : '' ?></p>
         <form action="post.php" method="post">
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="start" value="<?= $period['start'] ?>">
@@ -101,10 +105,11 @@ $period_ended = $period['end'] < date('Y-m-d');
                             <th>Person</th>
                             <th class="text-end">Billable</th>
                             <th class="text-end">Other tickets</th>
-                            <th class="text-end">Admin &amp; work</th>
-                            <th class="text-end">Lost</th>
+                            <th class="text-end" title="Hours on work codes, paid breaks, and clocked time not on a code">Admin &amp; work</th>
+                            <th class="text-end" title="Lost time codes and unaccounted time">Lost</th>
                             <th class="text-end">Leave</th>
-                            <th class="text-end">Total</th>
+                            <?php if ($not_clocked) { ?><th class="text-end" title="California rules: ticket time and hours on codes outside the start / end times typed for the day (or on a day with none typed) - not paid until the times are put right" data-mit-ts-not-clocked-head>Not clocked</th><?php } ?>
+                            <th class="text-end" title="Billable + Other tickets + Admin &amp; work + Lost + Leave, less Not clocked">Total</th>
                             <?php if ($overtime) { ?><th class="text-end">Overtime</th><?php } ?>
                             <th class="text-end">Billable %</th>
                             <?php if ($approval) { ?><th>Status</th><th></th><?php } ?>
@@ -120,14 +125,15 @@ $period_ended = $period['end'] < date('Y-m-d');
                                 <?php } ?>
                                 <td><a href="mit_timesheet.php?user_id=<?= intval($user_id) ?>&start=<?= $period['start'] ?>"><?= escapeHtml($person['user_name']) ?></a>
                                     <?php if (intval($person['user_status']) !== 1) { ?><span class="badge text-bg-secondary ms-1">Inactive</span><?php } ?></td>
-                                <td class="text-end"><?= mitTsHours($t['billable'], false) ?></td>
-                                <td class="text-end"><?= mitTsHours($t['other'], false) ?></td>
-                                <td class="text-end"><?= mitTsHours($t['work'], false) ?></td>
-                                <td class="text-end <?= $t['lost'] ? 'text-danger' : '' ?>"><?= mitTsHours($t['lost'], false) ?></td>
-                                <td class="text-end"><?= mitTsHours($t['leave'], false) ?></td>
-                                <td class="text-end fw-semibold"><?= mitTsHours($t['total'], false) ?></td>
+                                <td class="text-end" data-mit-ts-col="billable"><?= mitTsHours($t['billable'], false) ?></td>
+                                <td class="text-end" data-mit-ts-col="other"><?= mitTsHours($t['other'], false) ?></td>
+                                <td class="text-end" data-mit-ts-col="work"><?= mitTsHours($t['work'] + $t['unallocated'] + $t['break_paid'], false) ?></td>
+                                <td class="text-end <?= $t['lost'] ? 'text-danger' : '' ?>" data-mit-ts-col="lost"><?= mitTsHours($t['lost'], false) ?></td>
+                                <td class="text-end" data-mit-ts-col="leave"><?= mitTsHours($t['leave'], false) ?></td>
+                                <?php if ($not_clocked) { ?><td class="text-end <?= $t['not_clocked'] ? 'text-warning-emphasis fw-semibold' : '' ?>" data-mit-ts-col="not_clocked"><?= $t['not_clocked'] ? '&minus;' . mitTsHours($t['not_clocked'], false) : mitTsHours(0, false) ?></td><?php } ?>
+                                <td class="text-end fw-semibold" data-mit-ts-col="total"><?= mitTsHours($t['total'], false) ?></td>
                                 <?php if ($overtime) { ?><td class="text-end"><?= mitTsHours($t['overtime'], false) ?></td><?php } ?>
-                                <td class="text-end"><?= mitTsBillableShare($t) ?></td>
+                                <td class="text-end" data-mit-ts-col="share"><?= mitTsBillableShare($t) ?></td>
                                 <?php if ($approval) { ?>
                                     <td class="text-nowrap"><?= mitTsBadge($status) ?><?= $period_ended && in_array($status, ['open', 'returned'], true) && isset($behind[$user_id]) ? ' <span class="badge text-bg-danger">Late</span>' : '' ?></td>
                                     <td class="text-end text-nowrap">

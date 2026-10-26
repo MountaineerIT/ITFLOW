@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.149 - 2026-10-26
+- Timesheets team list: the columns now add up to Total. For people on California rules, Total is the start / end times they typed, so ticket time and code hours outside those times (or on a day with no times typed) now show in a "Not clocked" column and are taken off. Before, they were left in Billable / Lost but not in Total, so the row didn't add up and Billable % could go over 100%.
+- Admin & work also counts paid breaks and clocked time that is on no code, which were in Total without a column.
+- Billable % is now out of every hour on the sheet, so it never goes over 100%. The same applies to the summary line, the person's timesheet and the payroll report.
+- Payroll report: "Not on a code" and "Not clocked" columns for California people. Someone with ticket time but no clocked times is no longer left out.
+
 ## 26.10.148 - 2026-10-26
 - Calendar: bookings in the "7 days" view show their full detail again (time, who, ticket, client), as in Week - they were cut to one line.
 - Calendar: the calendar is taller - it fills the screen down to the Left behind list, which shows one row of tickets (scroll it for more) with its hint in the header line.

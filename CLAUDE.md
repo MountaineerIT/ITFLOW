@@ -445,6 +445,10 @@ model: see DEPLOYMENT.md.
   their own in Account > Preferences (Timesheet section, admins only - `mitTsPreferenceFields` / `mitTsSavePreferences`, audit-logged;
   smoke `19-own-employment.spec.js`, the technician side in 04). The People list shows a California badge (`mitTsCaOn`). The day panel lists auto lost time as a row with the codes
   (`[data-auto-lost]`, goes down live as codes are typed; "Lost time (auto)" chip on the day row).
+  Team list totals (26.10.149): `mitTsTotals` also gives `not_clocked` (California days: ticket / code time past the typed times or on a
+  day with none) and `accounted` (= worked + not_clocked, the Billable % base - `mitTsBillableShare`); `agent/mit_timesheets.php` columns
+  add up to Total (Admin & work = work + unallocated + paid breaks, a "Not clocked" column taken off when anyone has some); payroll report
+  "Not on a code" / "Not clocked" columns. Smoke: last test in `05-california.spec.js`.
   Times on ticket notes (M028, `functions/mit_reply_times.php` + `agent/js/mit_reply_times.js`, required from mit_timesheets.php):
   `mit_reply_times` (reply_id FK ticket_replies CASCADE, work_start / work_end as the person's clock read them). The reply box
   (`mitReplyTimesField`, one line in `agent/ticket.php` after the send buttons) asks for Date worked / Start / End whenever time is
