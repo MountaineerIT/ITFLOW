@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.163 - 2026-10-26
+- The one-line installer now asks whether to install local AI for the AI helper's search (Ollama on the server; default no, shows the server's memory). `--local-ai` / `--no-local-ai` answer it ahead for unattended installs. Existing servers: `bash /var/www/itflow/scripts/install_local_ai.sh` as before.
+
 ## 26.10.162 - 2026-10-26
 - AI helper, local embeddings: fixed meaning search never catching up on a CPU-only server. It sent 64 passages at a time and gave up after a minute - a CPU does about one a second, so every try failed and the count stayed at 0. A model on the server now gets 4 at a time with up to 3 minutes each, in a background worker (so ITFlow's other scheduled jobs, like sending mail, aren't held up). The first full pass takes a few hours; the AI helper page shows roughly how long is left.
 - A question waits at most 10 seconds for meaning search while the server is busy, then answers from keyword search.

@@ -38,7 +38,7 @@ ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 AUTO_UPDATE=""
 ASSUME_YES=0
-LOCAL_AI=0
+LOCAL_AI=""
 
 usage() {
     cat <<'EOF'
@@ -64,7 +64,8 @@ Options:
   --auto-update          Update nightly from the branch (default on for non-production branches)
   --no-auto-update       Don't schedule nightly updates
   --local-ai             Also install Ollama for the AI helper's local embeddings (scripts/install_local_ai.sh;
-                         at least 3 GB of memory)
+                         at least 3 GB of memory). Asked when neither this nor --no-local-ai is given.
+  --no-local-ai          Don't install it (nor ask)
   -y, -u, --yes, --unattended
                          Don't ask for confirmation before installing
   -h, --help             Show this help
@@ -140,6 +141,7 @@ while [[ $# -gt 0 ]]; do
         --auto-update)     AUTO_UPDATE=1; shift ;;
         --no-auto-update)  AUTO_UPDATE=0; shift ;;
         --local-ai)        LOCAL_AI=1; shift ;;
+        --no-local-ai)     LOCAL_AI=0; shift ;;
         -y|-u|--yes|--unattended) ASSUME_YES=1; shift ;;
         -h|--help)         usage; exit 0 ;;
         *) die "unknown option: $1 (see --help)" ;;
@@ -192,6 +194,16 @@ ask_secret ADMIN_PASSWORD "Admin password (min 8 chars)"
 [[ ${#ADMIN_PASSWORD} -ge 8 ]] || die "admin password must be at least 8 characters"
 
 
+if [[ -z "$LOCAL_AI" ]]; then
+    LOCAL_AI=0
+    if [[ $HAVE_TTY -eq 1 ]]; then
+        MEM_GB=$(( $(awk '/^MemTotal:/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
+        LOCAL_AI_ANSWER=""
+        ask LOCAL_AI_ANSWER "Install local AI for the AI helper's search (Ollama, free, on this server; needs 3 GB+ memory - this one has ${MEM_GB} GB)? y/n" "n"
+        [[ "$LOCAL_AI_ANSWER" =~ ^[Yy] ]] && LOCAL_AI=1
+    fi
+fi
+
 if [[ -z "$AUTO_UPDATE" ]]; then
     if [[ "$BRANCH" == "MountaineerIT" ]]; then AUTO_UPDATE=0; else AUTO_UPDATE=1; fi
 fi
@@ -206,6 +218,7 @@ cat <<EOF
       Company      $COMPANY_NAME
       Admin        $ADMIN_NAME <$ADMIN_EMAIL>
       Auto-update  $( [[ $AUTO_UPDATE -eq 1 ]] && echo "nightly at 03:15" || echo "off (update from Admin > Update)" )
+      Local AI     $( [[ $LOCAL_AI -eq 1 ]] && echo "yes - Ollama for the AI helper's search" || echo "no (scripts/install_local_ai.sh adds it later)" )
 
 EOF
 if [[ $ASSUME_YES -eq 0 ]]; then

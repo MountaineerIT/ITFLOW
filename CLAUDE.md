@@ -1284,7 +1284,8 @@ model: see DEPLOYMENT.md.
   button and panel title "Ask <name>", `data-name` for the panel script and the write-up window, "Your name is <name>." at the start of
   `mitAiSystemPrompt()`; field on the admin page (`[data-mit-ai-name]`, audit-logged). Smoke: "with a name" test in `33-ai-panel.spec.js`.
   Local embeddings (26.10.159): `functions/mit_ai_local.php` (ours, required from mit_ai_helper.php; no tables) - Ollama on the ITFlow
-  server, installed once as root by `scripts/install_local_ai.sh` (ours; also `install.sh --local-ai`: Ollama's own installer with
+  server, installed once as root by `scripts/install_local_ai.sh` (ours; also from `install.sh`, which asks - default no, `--local-ai` /
+  `--no-local-ai`, not asked without a terminal - 26.10.163; never from cron or the web page, which run as www-data: Ollama's own installer with
   `--version` / `--upgrade`, a systemd drop-in `ollama.service.d/mountaineerit.conf` - 127.0.0.1 only, one model, keep-alive 30m -, `ollama
   pull nomic-embed-text`, an embeddings check; its `OLLAMA_PIN` must not be called VERSION - /etc/os-release, sourced, sets that). The web
   server never installs anything. Card "Local embeddings (this server)" on the admin page (`[data-mit-ai-local]` data-running / -model /

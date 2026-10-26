@@ -468,7 +468,7 @@ nothing leaves the server, no tokens paid for). Once, from a root shell on the s
 
     sudo bash /var/www/itflow/scripts/install_local_ai.sh
 
-(or `--local-ai` on a fresh `install.sh`). It checks memory (3 GB+) and disk, installs Ollama with Ollama's own installer
+(a fresh `install.sh` asks - `--local-ai` / `--no-local-ai` answer it ahead). It checks memory (3 GB+) and disk, installs Ollama with Ollama's own installer
 (`--version X.Y.Z` pins a release, `--upgrade` installs over one already there), makes it listen on 127.0.0.1 only with one model
 loaded at a time (`/etc/systemd/system/ollama.service.d/mountaineerit.conf`), downloads the model and checks it answers. Then
 Admin > Integrations > AI helper > **Use this server**; the library re-does its passages with the new model in a background worker
