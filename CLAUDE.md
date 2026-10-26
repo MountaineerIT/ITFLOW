@@ -39,6 +39,15 @@ model: see DEPLOYMENT.md.
   restore into a stock checkout of the latest release (`git archive vYY.MM`; install schema first,
   then `scripts/restore_cli.php`) -> click through the main pages and save a client/ticket/reply.
   Keep DEPLOYMENT.md "Moving to stock ITFlow" (what stops working after a move) up to date.
+- Cross-checks (Oct 26, 26.10.144): `sh scripts/mit_verify.sh` runs everything - PHP syntax, `php scripts/mit_hook_check.php` (each of our
+  names in ITFlow's files against the manifest `scripts/mit_hooks.txt`; a dropped hook fails - after a deliberate hook change run it with
+  `--update` and commit the manifest; never update it to silence a merge without finding out why a hook went), `php scripts/mit_consistency_check.php`
+  (read only, safe on production: our data against ITFlow's - payroll payments vs their timesheets and expenses, QuickBooks batches vs
+  ITFlow payments, billed parts, usage-billed lines, archived boards, Outlook links, our and ITFlow's database updates, collations, our
+  rows pointing at deleted ITFlow records; checks in `functions/mit_consistency.php`, daily cron job `mit_consistency` fails on a FAIL so
+  Cron Watch emails), the portability check and the smoke tests (`MIT_VERIFY_SKIP_SMOKE=1` for the read-only part). Run it after every
+  upstream merge and before every "Promote to production", and report the result. A new seam between our data and ITFlow's gets a check
+  in mit_consistency.php; a new hook in an ITFlow file means `--update`.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
@@ -50,6 +59,8 @@ model: see DEPLOYMENT.md.
 - Default/release branch is `MountaineerIT` instead of `master`: `functions/app.php`
   (`getRepoBranch`), `admin/update.php` (release-branch badge), `setup/index.php` and
   `scripts/setup_cli.php` (default `$repo_branch`).
+- `scripts/mit_hook_check.php` + `scripts/mit_hooks.txt`, `scripts/mit_consistency_check.php` + `functions/mit_consistency.php` +
+  `cron/mit_consistency.php` (one entry in `includes/cron_jobs.php`), `scripts/mit_verify.sh` - ours (see Rules, Cross-checks).
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
   tests, see its README) – ours.
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
@@ -1150,10 +1161,10 @@ model: see DEPLOYMENT.md.
    `api/v1/products/read.php` and recheck the API against our features (our cost never in it).
 3. Summarise for the user: version, notable features/fixes, new files in
    `admin/database_updates/` (DB version change), anything touching our deviations above.
-4. On `develop`, `git merge <tag>`, resolve conflicts keeping our deviations, `php -l`
-   changed PHP files, run `scripts/mit_portability_check.php` and the smoke tests (`tests/smoke`)
-   on the test install after the database update, then ask the user before pushing to `develop`.
+4. On `develop`, `git merge <tag>`, resolve conflicts keeping our deviations, run `php scripts/mit_hook_check.php` (put back any
+   hook it reports gone), update the test install's database, then `sh scripts/mit_verify.sh` (syntax, hooks, consistency,
+   portability, smoke tests), then ask the user before pushing to `develop`.
 
 ## "Promote to production"
 Open a PR `develop` → `MountaineerIT` listing what's included and any DB updates, plus the
-result of the stock-ITFlow portability test (see Rules) and of the smoke tests. Ask the user before merging.
+result of the stock-ITFlow portability test (see Rules), of `sh scripts/mit_verify.sh` and of the smoke tests. Ask the user before merging.

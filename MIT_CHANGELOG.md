@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.144 - 2026-10-26
+- New daily Consistency Check (Admin > Maintenance > Cron): checks that our data still agrees with ITFlow's own records - payroll payments against their timesheets and expenses, QuickBooks batches against ITFlow payments, billed ticket parts, usage-billed invoice lines, boards, Outlook links, database updates. When something disagrees the job fails, so Cron Watch emails the admins with what it found. Read only - it changes nothing.
+- For updates: a hook check that fails when an ITFlow update drops one of our hooks into its files, and one command (scripts/mit_verify.sh) that runs every check - syntax, hooks, consistency, stock-ITFlow portability and the smoke tests - before anything is promoted.
+
 ## 26.10.143 - 2026-10-26
 - Mileage and purchases, checked end to end against ITFlow's own trips, expenses and pay-back screens. The timesheet, the payroll report and approval now all work from one list, so what the report says is owed is exactly what approval marks paid.
 - Fix: something already paid back in ITFlow (Trips > Pay Mileage, Expenses > To reimburse) was still counted in the payroll total and could be paid twice. It now shows as "Paid back in ITFlow" (struck through on the timesheet, in its own "Paid in ITFlow" column on the report) and is left out of Reimburse.

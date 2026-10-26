@@ -209,6 +209,15 @@ function cronJobRegistry(): array
             'interval_minutes' => 1,
         ],
         [
+            // Mountaineer IT (functions/mit_consistency.php)
+            'name' => 'mit_consistency',
+            'label' => 'Consistency Check',
+            'script' => 'mit_consistency.php',
+            'description' => 'Checks that our data still agrees with ITFlow\'s (payroll payments, QuickBooks batches, parts, usage billing, boards) - fails when it does not, so Cron Watch emails the admins.',
+            'schedule' => 'Daily',
+            'daily_at' => '05:20',
+        ],
+        [
             // Mountaineer IT (functions/mit_cron_health.php)
             'name' => 'mit_cron_watch',
             'label' => 'Cron Watch',
