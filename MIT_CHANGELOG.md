@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.156 - 2026-10-26
+- AI helper, part 3: **Write up** in the Ask AI panel turns a conversation into a document. It opens ITFlow's own New Document form filled in by AI - a title, a one-line summary and Symptoms / Cause / Resolution steps - written from the conversation and the full tickets and documents its answers used. Check it, change what you like, then Create document; nothing is kept until you do.
+- It goes with the ticket's client by default (and the ticket's history notes it was written up); pick another client, or your own company for a general how-to without client names. Changing the client keeps the draft, with "Redraft for this client" if you want it rewritten.
+- The same password wall: only what you can open is used, passwords are taken out of everything sent, and anything password-like the AI writes is taken out of the draft too.
+
 ## 26.10.155 - 2026-10-26
 - AI helper, part 2: **Ask AI** in the top bar. Ask about a problem and get an answer drawn from your team's past tickets and documents, with numbered sources that link to each ticket or document it used. Follow-up questions keep the conversation; earlier conversations are listed (and can be deleted), and each answer has a thumbs up / down.
 - On a ticket page, "About this ticket" sends that ticket along with the question, so you can ask "what should I try next?".

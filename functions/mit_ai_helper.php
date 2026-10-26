@@ -52,6 +52,7 @@ const MIT_AI_PLAIN_VALUES = ['wrong', 'incorrect', 'correct', 'right', 'expired'
     'also', 'probably', 'likely', 'usually', 'always', 'never', 'just', 'only', 'what', 'unchanged', 'sent', 'emailed', 'texted', 'given', 'provided'];
 
 require_once __DIR__ . '/mit_ai_ask.php'; // round 2: the Ask AI panel
+require_once __DIR__ . '/mit_ai_docs.php'; // round 3: documents from a conversation
 
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run

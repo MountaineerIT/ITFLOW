@@ -20,9 +20,18 @@
     const question = panel.querySelector('[data-mit-ai-question]');
     const send = panel.querySelector('[data-mit-ai-send]');
     const about = panel.querySelector('[data-mit-ai-about]');
+    const writeup = panel.querySelector('[data-mit-ai-writeup]');
     const empty = thread.innerHTML;
     let conversationId = 0;
     let busy = false;
+
+    // "Write up" only once there is a conversation to write up
+    function current(id) {
+        conversationId = id;
+        if (writeup) {
+            writeup.hidden = !conversationId;
+        }
+    }
 
     const style = document.createElement('style');
     style.textContent = `
@@ -92,7 +101,7 @@
     }
 
     function reset() {
-        conversationId = 0;
+        current(0);
         thread.innerHTML = empty;
         if (about) {
             about.closest('.form-check').hidden = false;
@@ -106,7 +115,7 @@
             if (!ok) {
                 return;
             }
-            conversationId = json.id;
+            current(json.id);
             list.hidden = true;
             if (about) {
                 about.closest('.form-check').hidden = true; // a conversation keeps the ticket it started with
@@ -148,7 +157,7 @@
                 question.value = text;
                 return;
             }
-            conversationId = json.conversation_id;
+            current(json.conversation_id);
             if (about) {
                 about.closest('.form-check').hidden = true;
             }
@@ -191,6 +200,21 @@
     });
 
     panel.querySelector('[data-mit-ai-new]').addEventListener('click', reset);
+
+    // Write up: ITFlow's New Document form, filled in by AI (agent/modals/mit_ai/document.php) - the panel steps aside for it
+    writeup?.addEventListener('click', () => {
+        if (!conversationId) {
+            return;
+        }
+        window.bootstrap?.Offcanvas.getOrCreateInstance(panel).hide();
+        const link = document.createElement('a');
+        link.className = 'ajax-modal d-none';
+        link.dataset.modalUrl = '/agent/modals/mit_ai/document.php?conversation_id=' + encodeURIComponent(conversationId);
+        link.dataset.modalSize = 'xl';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    });
 
     panel.querySelector('[data-mit-ai-history]').addEventListener('click', () => {
         if (!list.hidden) {

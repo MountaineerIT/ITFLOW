@@ -295,7 +295,7 @@ break stock ITFlow, and lists what stops working after a move.
 - **MSP Align (read only)** – the MSP Align section on client overviews and the dashboard (ITFlow's own "Needs attention" comes back in its place), the header link, the asset badges / button and the license
   renewal lines go; MSP Align itself is unaffected (it reads ITFlow's API). The copies stay unused in `mit_align_*`.
 - **AI helper** – the library of resolved tickets and documents, Admin > Integrations > AI helper and Ask AI go; ITFlow's own AI features
-  (Draft, Summary, Triage, document drafts) keep working, and the top bar's Ask AI button and its conversations go. The library and
+  (Draft, Summary, Triage, document drafts) keep working, and the top bar's Ask AI button, its conversations and Write up go (documents already written stay - they are ITFlow's). The library and
   conversations stay unused in `mit_ai_*` (passages and questions already cleaned of passwords - nothing from the password vault).
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"

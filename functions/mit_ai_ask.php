@@ -18,7 +18,7 @@
 const MIT_AI_HISTORY_TURNS = 6;          // earlier messages sent with a question
 const MIT_AI_TICKET_CHARS = 8000;        // the current ticket, at most (its start and latest)
 const MIT_AI_QUESTION_CHARS = 2000;
-const MIT_AI_FEATURES = ['mit_ai_helper', 'mit_ai_embed'];
+const MIT_AI_FEATURES = ['mit_ai_helper', 'mit_ai_embed', 'mit_ai_document'];
 
 /** Has M045 run? */
 function mitAiAskReady() {
@@ -108,7 +108,7 @@ function mitAiMessageOut(array $row) {
         'html' => $row['role'] === 'assistant' ? mitAiAnswerHtml($row['content'], $sources) : nl2br(escapeHtml($row['content'])),
         // cited = the answer names it as [n]; the rest were looked at
         'sources' => array_map(fn($s) => ['n' => intval($s['n']), 'title' => (string) $s['title'], 'url' => (string) $s['url'], 'kind' => (string) $s['kind'],
-            'client' => (string) ($s['client_name'] ?? ''), 'cited' => $row['role'] === 'assistant' && strpos((string) $row['content'], '[' . intval($s['n']) . ']') !== false], $sources),
+            'client' => (string) ($s['client_name'] ?? ''), 'client_id' => intval($s['client_id'] ?? 0), 'cited' => $row['role'] === 'assistant' && strpos((string) $row['content'], '[' . intval($s['n']) . ']') !== false], $sources),
         'feedback' => $row['feedback'] === null ? 0 : intval($row['feedback']),
     ];
 }
@@ -324,6 +324,8 @@ function mitAiPanelNav() {
         . ' data-csrf="' . escapeHtml($_SESSION['csrf_token'] ?? '') . '"' . $ticket . '>'
         . '<div class="offcanvas-header border-bottom py-2"><h5 class="offcanvas-title me-auto" id="mitAiPanelTitle"><i class="fas fa-robot me-2"></i>Ask AI</h5>'
         . '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-new title="New conversation"><i class="fas fa-plus"></i></button>'
+        . (lookupUserPermission('module_support') >= 2 ? '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-writeup title="Write this conversation up as a document" hidden>'
+            . '<i class="fas fa-file-medical"></i></button>' : '')
         . '<button type="button" class="btn btn-sm btn-light me-2" data-mit-ai-history title="Earlier conversations"><i class="fas fa-history"></i></button>'
         . '<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>'
         . '<div class="offcanvas-body d-flex flex-column p-0">'

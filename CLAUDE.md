@@ -1257,8 +1257,7 @@ model: see DEPLOYMENT.md.
   `tests/scenarios/scenario-ai-scrub.php` holds both lists - leaks that must go, ordinary notes that must stay word for word.
   The test install has an AI stand-in `ai-mock/index.php` (not in the repo: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
   echoing the question, `/_calls` / `/_clear`). Tests: scenarios `scenario-ai-wall.php` (canaries), `scenario-ai-library.php` (lifecycle,
-  switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`. Round 3 (next):
-  documentation drafting.
+  switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`.
   Round 2 - the Ask AI panel (26.10.155): `functions/mit_ai_ask.php` (ours, required from mit_ai_helper.php). Tables M045
   `mit_ai_conversations` (user FK users CASCADE, ticket FK tickets SET NULL, title) / `mit_ai_messages` (conversation FK CASCADE, role,
   content - stored cleaned -, `sources` JSON of the passages sent, feedback 1 / -1). `mitAiPanelNav()` - the top bar's Ask AI button and a
@@ -1279,6 +1278,20 @@ model: see DEPLOYMENT.md.
   provider is saved with the full /v1/chat/completions address (as ITFlow's form saves it) and its model on the Tickets use case.
   Tests: scenario `scenario-ai-ask.php` (ticket + passages sent, no canary sent or stored, follow-up history, owner only, client-limited
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
+  Round 3 - Write up (26.10.156): `functions/mit_ai_docs.php` (ours, required from mit_ai_helper.php; no tables). "Write up" in the panel
+  header (`[data-mit-ai-writeup]`, Support edit, shown once there is a conversation) opens `agent/modals/mit_ai/document.php` through
+  ITFlow's ajax-modal (xl) - ITFlow's `modals/document/document_form.php` inside our form (posts to `/agent/post.php` add_document, ITFlow's
+  own handler; `from_ticket_id` when the conversation is about a ticket, so its history says it was written up), a "Keep it with" client
+  picker (`mitAiDocumentClients` - the agent's clients, the company's own first; default `mitAiDocumentDefaultClient`: the ticket's, else
+  the most-cited client, else `config_internal_client_id`; changing it reopens the window for that client's folders and keeps the draft -
+  sessionStorage `mitAiDraft:<conversation>` - with "Redraft for this client"). The draft comes from agent/mit_ai_ajax.php POST draft ->
+  `mitAiDocumentDraft($conversation_id, $client_id)`: the agent's own conversation, Support edit, the client in scope, the monthly limit;
+  the conversation as kept plus the full text of the conversation's ticket (open too) and of every source its answers cited (`[n]` in the
+  answer, read again now, `clientScopeSql`), each through `mitAiScrub`, cut to MIT_AI_DOC_SOURCE_CHARS / MIT_AI_DOC_TOTAL_CHARS; ITFlow's
+  `getAiModel('Documentation')` with redact forced, feature `mit_ai_document` (counted in the monthly limit), secrets removed; the HTML
+  back gets a newline after each block, `mitAiScrub`, ITFlow's `aiCleanHtml` (purifier) and `aiDocumentSplit` (title / summary). The
+  company's own client = a general article without client names. The test install's stand-in answers a "knowledge base articles" request
+  with HTML holding a <script> and a password on purpose. Tests: scenario `scenario-ai-document.php`, smoke `34-ai-document.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
