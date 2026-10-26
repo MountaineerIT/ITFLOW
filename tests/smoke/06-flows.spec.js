@@ -1,5 +1,5 @@
 // Our features end to end through their real forms: procurement (item to order ->
-// PO -> approve -> order -> receive), a ticket's parts, mileage and helper agents,
+// PO -> approve -> order -> receive), a ticket's parts, mileage and a purchase (one Trips & purchases box) and helper agents,
 // quote pricing from our cost (and that the customer never sees the cost), and a
 // recurring ticket on "the third Wednesday", and a ticket put in a project and taken out. Works on the first client in the list,
 // on a "Smoke test" ticket / quote / recurring ticket it makes and deletes again.
@@ -148,39 +148,44 @@ test('ticket part shows in the Parts box and on Unbilled Parts', async ({ page }
     await expect(row).toContainText(made.ticketName);
 });
 
-test('mileage on the ticket shows in its Reimbursements box', async ({ page }) => {
+test('mileage and a purchase on the ticket: one Trips & purchases box, paid with payroll', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     await visit(page, ticketUrl());
-    test.skip(await box(page, 'fa-receipt').count() === 0, 'Reimbursements box not shown (Timesheets off?)');
-    const modal = await openModal(page, `/agent/modals/mit_reimburse/reimburse.php?ticket_id=${made.ticketId}&kind=mileage`);
+    const menuItem = page.locator('[data-mit-reimb-menu]');
+    test.skip(await menuItem.count() === 0, 'Reimbursements off (Timesheets off?)');
+    // Nothing logged yet: no Reimbursements box of its own - purchases are added from the ⋮ menu, beside ITFlow's Log a trip
+    await expect(box(page, 'fa-receipt'), 'no empty Reimbursements box').toHaveCount(0);
+    await expect(menuItem).toHaveAttribute('data-modal-url', new RegExp(`ticket_id=${made.ticketId}&kind=purchase`));
+
+    // Mileage: an ITFlow trip in their own vehicle on this ticket (ITFlow's Trips box), waiting for payroll
+    let modal = await openModal(page, `/agent/modals/mit_reimburse/reimburse.php?ticket_id=${made.ticketId}&kind=mileage`);
     await fillForm(modal, { miles: '12.5', source: 'Smoke office', destination: 'Smoke client', round_trip: false });
     await submit(modal, 'mit_reimb_save');
     expect(await flash(page)).not.toMatch(/error|enter|pick|no rate|locked/i);
-
     await page.waitForTimeout(500);
-    const card = box(page, 'fa-receipt');
-    await expect(card).toContainText('12.5 mi, Smoke office - Smoke client');
-    // The amount is the miles at the rate kept on the entry
-    const text = (await card.innerText()).replace(/\s+/g, ' ');
-    const rate = Number(/\$([\d.]+)\/mi/.exec(text)?.[1]);
-    expect(rate, `rate per mile in "${text}"`).toBeGreaterThan(0);
-    expect(text).toContain('$' + (Math.round(12.5 * rate * 100) / 100).toFixed(2));
-    await expect(card.locator('.card-title .badge')).toHaveText('1');
-    // Paid with payroll (the default): the entry says so, and new driving goes in ITFlow's own Trips box (Log a trip)
-    await expect(card.locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
-    await expect(card.locator('[title="Log mileage"]'), 'ITFlow\'s Log a trip instead').toHaveCount(0);
-    await expect(card.locator('[title="Add a purchase"]')).toHaveCount(1);
-    // The ticket's ⋮ menu has Add a purchase beside ITFlow's Log a trip, and it opens the purchase form
-    const menuItem = page.locator('[data-mit-reimb-menu]');
-    await expect(menuItem, 'Add a purchase in the ⋮ menu').toHaveCount(1);
-    await expect(menuItem).toHaveAttribute('data-modal-url', new RegExp(`ticket_id=${made.ticketId}&kind=purchase`));
-    await openModal(page, await menuItem.getAttribute('data-modal-url'));
-    await expect(page.locator('.modal.show input[name="amount"]'), 'the purchase form').toHaveCount(1);
-    await page.keyboard.press('Escape');
+    const trips = box(page, 'fa-route');
+    await expect(trips, 'ITFlow\'s Trips box').toHaveCount(1);
+    await expect(trips).toContainText('12.5');
+    await expect(trips.locator('[title="Add a purchase"]'), 'Add a purchase beside Log a trip').toHaveCount(1);
+    await expect(box(page, 'fa-receipt'), 'no box of our own').toHaveCount(0);
 
-    // ITFlow 26.11 pays it back: the trip is one driven in their own vehicle, waiting under Trips > To pay back
+    // A purchase from the ⋮ menu: listed inside the Trips box (not twice), "Goes to payroll"
+    modal = await openModal(page, await menuItem.getAttribute('data-modal-url'));
+    await fillForm(modal, { amount: '23.45', description: 'Smoke test cable', vendor: 'Smoke store' });
+    await submit(modal, 'mit_reimb_save');
+    expect(await flash(page)).not.toMatch(/error|enter|pick|locked/i);
+    await page.waitForTimeout(500);
+    await expect(box(page, 'fa-receipt'), 'still no box of our own').toHaveCount(0);
+    await expect(trips.locator('.card-title')).toContainText('Trips & purchases');
+    const inTrips = trips.locator('[data-mit-reimb-in-trips]');
+    await expect(inTrips).toContainText('Smoke test cable');
+    await expect(inTrips).toContainText('$23.45');
+    await expect(inTrips, 'mileage only in ITFlow\'s list').not.toContainText('12.5 mi');
+    await expect(inTrips.locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
+
+    // The trip waits under Trips > To pay back until the timesheet is approved
     await visit(page, 'agent/trips.php?show=to_pay');
-    await expect(page.locator('body'), 'the mileage waits to be paid back in ITFlow').toContainText('Smoke client');
+    await expect(page.locator('body')).toContainText('Smoke client');
 });
 
 test('an additional agent on the ticket, then taken off', async ({ page, browser }) => {
@@ -380,6 +385,13 @@ test.afterAll(async ({ browser }) => {
             const id = new URL(url, page.url()).searchParams.get('id');
             await action(page, `mit_reimb_delete=${id}`, ticketUrl());
         }
+        // Mileage is listed by ITFlow's Trips box, not ours - its entry is removed from the timesheet's list
+        await page.goto('agent/mit_timesheet.php');
+        for (const url of await page.locator('.list-group-item', { hasText: made.ticketName }).locator('[data-modal-url*="mit_reimburse/reimburse.php?id="]').evaluateAll((els) => els.map((e) => e.dataset.modalUrl))) {
+            const id = new URL(url, page.url()).searchParams.get('id');
+            await action(page, `mit_reimb_delete=${id}`, 'agent/mit_timesheet.php');
+        }
+        await page.goto(ticketUrl());
         // Deleting the ticket takes its parts (and helpers) with it
         await action(page, `delete_ticket=${made.ticketId}`, ticketUrl());
     }

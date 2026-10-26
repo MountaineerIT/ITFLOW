@@ -1075,6 +1075,11 @@ model: see DEPLOYMENT.md.
     (reimbursementDelete, the mileage expenses deleted and their trips waiting again). States "Goes to payroll" / "Paid through payroll <date>";
     payroll report labels Reimburse / Payroll. Ticket ⋮ menu "Add a purchase" (`mitReimbMenuItem`, one line in `agent/ticket.php` after
     ITFlow's Log a trip). Admin save fix: category / account saved even while the rate field is read-only.
+    26.10.142: one box for driving and purchases - `mitReimbTicketCard` marks its card `[data-mit-reimb-card]` and its list
+    `[data-mit-reimb-body]`; `agent/js/mit_ticket_layout.js` (before naming boxes) moves the list into ITFlow's `.itflow-ticket-trips`
+    above its footer (`[data-mit-reimb-in-trips]`, title "Trips & purchases") and the Add a purchase button (`[data-mit-reimb-add]`)
+    beside Log a trip, then removes our card; without a Trips box our card stays (layout 'reimburse'). Nothing logged on a client ticket
+    = no card, only a hidden carrier for the button. Our mileage entries whose trip ITFlow lists on the ticket are left out of our list.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
     with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.

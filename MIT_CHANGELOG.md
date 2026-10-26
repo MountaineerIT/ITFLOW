@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.142 - 2026-10-25
+- Tickets: trips and purchases share one box, "Trips & purchases" (ITFlow's Trips box) - with "Add a purchase" beside "Log a trip". The separate Reimbursements box is gone when nothing has been bought, and shows on its own only on a ticket without a Trips box.
+
 ## 26.10.141 - 2026-10-25
 - Mileage and purchases a tech paid for themselves now go on payroll (Admin > Timesheets > Reimbursements, "Mileage and purchases are paid back: With payroll" - the default; "Through ITFlow" keeps the old way). The payroll report has the dollar amounts (Mileage, Purchases, Reimburse) to type into your payroll.
 - Approving a timesheet marks that period's mileage (own-vehicle trips) and purchases paid through payroll, so they no longer wait in Trips > To pay back or Expenses > Reimburse; reopening the timesheet puts them back. Each entry says "Goes to payroll" or "Paid through payroll <date>".

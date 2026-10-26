@@ -78,6 +78,34 @@
     const root = document.querySelector('.ticket-layout');
     const main = root && root.querySelector(':scope > .ticket-layout-main');
     const side = root && root.querySelector(':scope > .ticket-layout-side');
+
+    // Our purchases (functions/mit_reimbursements.php, [data-mit-reimb-card]) join ITFlow's Trips box when the ticket has one:
+    // one box for what was spent getting the work done. The list goes above Trips' footer, "Add a purchase" beside "Log a trip",
+    // and our box goes. Without a Trips box ours stays on its own (the layout's 'reimburse').
+    (function () {
+        const ours = document.querySelector('[data-mit-reimb-card]');
+        const trips = document.querySelector('.itflow-ticket-trips');
+        if (!ours || !trips) {
+            return;
+        }
+        const body = ours.querySelector('[data-mit-reimb-body]');
+        const add = ours.querySelector('[data-mit-reimb-add]');
+        const tools = trips.querySelector('.card-header .card-tools');
+        if (add && tools) {
+            tools.insertBefore(add, tools.firstChild);
+        }
+        if (body && body.querySelector('.list-group')) {
+            body.classList.add('border-top');
+            body.dataset.mitReimbInTrips = '';
+            trips.insertBefore(body, trips.querySelector(':scope > .card-footer'));
+            const title = trips.querySelector('.card-header .card-title');
+            const label = title && title.firstChild && title.firstChild.nextSibling; // <i> icon, then ITFlow's "Trips"
+            if (label && label.nodeType === 3) {
+                label.textContent = 'Trips & purchases';
+            }
+        }
+        ours.remove();
+    })();
     if (!main || !side) {
         return;
     }

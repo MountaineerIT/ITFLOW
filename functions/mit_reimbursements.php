@@ -683,32 +683,49 @@ function mitReimbListHtml(array $rows, $show, $can_change = null) {
     return $html . '</div>';
 }
 
-/** The ticket's Reimbursements box (agent/ticket.php, side column under Parts). */
+/**
+ * The ticket's Reimbursements box (agent/ticket.php, side column under Parts). When mileage is ITFlow's (Log a trip) and the
+ * ticket has ITFlow's Trips box, agent/js/mit_ticket_layout.js moves the purchases into that box ([data-mit-reimb-card] ->
+ * .itflow-ticket-trips) - one box for the ticket's driving and purchases. With nothing logged there is no box: purchases are
+ * added from the ticket's ⋮ menu (mitReimbMenuItem).
+ */
 function mitReimbTicketCard(array $ticket, $can_edit) {
     if (!mitReimbOn()) {
         return '';
     }
     $ticket_id = intval($ticket['ticket_id']);
     $rows = mitReimbForTicket($ticket_id);
+    // Paid back through ITFlow: mileage is logged with ITFlow's own "Log a trip" (its Trips box); the timesheet counts those drives
+    $itflow_trips = mitReimbItflowPaysBack() && intval($ticket['ticket_client_id'] ?? 0) > 0;
+    // Mileage entered here before is an ITFlow trip on this ticket too - listed in ITFlow's Trips box (accounting on), not twice
+    $trip_ids = array_filter(array_map('intval', array_column($rows, 'trip_id')));
+    if ($itflow_trips && $trip_ids && !empty($GLOBALS['config_module_enable_accounting'])) {
+        $listed = array_map('intval', array_column(mysqli_fetch_all(mysqli_query($GLOBALS['mysqli'], "SELECT trip_id FROM trips WHERE trip_ticket_id = $ticket_id
+            AND trip_archived_at IS NULL AND trip_id IN (" . implode(',', $trip_ids) . ")")), 0));
+        $rows = array_values(array_filter($rows, function ($row) use ($listed) {
+            return !($row['kind'] === 'mileage' && in_array(intval($row['trip_id'] ?? 0), $listed, true));
+        }));
+    }
     if (!$rows && !$can_edit) {
         return '';
     }
-    $html = '<div class="card mb-3"><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Reimbursements'
-        . ($rows ? ' <span class="badge text-bg-light border ms-1">' . count($rows) . '</span>' : '') . '</h5><div class="card-tools">';
-    // Paid back through ITFlow: mileage is logged with ITFlow's own "Log a trip" (its Trips box); the timesheet counts those drives
-    $itflow_trips = mitReimbItflowPaysBack() && intval($ticket['ticket_client_id'] ?? 0) > 0;
-    if ($can_edit) {
-        $html .= ($itflow_trips ? '' : '<button type="button" class="btn btn-tool ajax-modal" title="Log mileage" data-modal-url="/agent/modals/mit_reimburse/reimburse.php?ticket_id=' . $ticket_id . '&kind=mileage"><i class="fas fa-car"></i></button>')
-            . '<button type="button" class="btn btn-tool ajax-modal" title="Add a purchase" data-modal-url="/agent/modals/mit_reimburse/reimburse.php?ticket_id=' . $ticket_id . '&kind=purchase"><i class="fas fa-shopping-bag"></i></button>';
+    $add = $can_edit ? '<button type="button" class="btn btn-tool ajax-modal" title="Add a purchase" data-mit-reimb-add data-modal-url="/agent/modals/mit_reimburse/reimburse.php?ticket_id=' . $ticket_id . '&kind=purchase"><i class="fas fa-shopping-bag"></i></button>' : '';
+    if (!$rows && $itflow_trips) {
+        // Nothing yet: no box of its own - only the button, which the layout script puts in ITFlow's Trips box (if shown)
+        return '<div hidden data-mit-reimb-card>' . $add . '</div>';
     }
-    $html .= '</div></div><div class="card-body p-0">';
+    $html = '<div class="card mb-3" data-mit-reimb-card><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Reimbursements'
+        . ($rows ? ' <span class="badge text-bg-light border ms-1">' . count($rows) . '</span>' : '') . '</h5><div class="card-tools">';
+    if ($can_edit && !$itflow_trips) {
+        $html .= '<button type="button" class="btn btn-tool ajax-modal" title="Log mileage" data-modal-url="/agent/modals/mit_reimburse/reimburse.php?ticket_id=' . $ticket_id . '&kind=mileage"><i class="fas fa-car"></i></button>';
+    }
+    $html .= $add . '</div></div><div class="card-body p-0" data-mit-reimb-body>';
     if (!$rows) {
-        return $html . '<div class="px-3 py-3 small text-muted">' . ($itflow_trips ? 'Paid for something for this ticket? Add the purchase to be paid back. Driving goes in Trips (Log a trip, own vehicle).'
-            : 'Drove to the client, or paid for something? Log mileage or a purchase to be paid back.') . '</div></div></div>';
+        return $html . '<div class="px-3 py-3 small text-muted">Drove to the client, or paid for something? Log mileage or a purchase to be paid back.</div></div></div>';
     }
     $html .= mitReimbListHtml($rows, 'agent');
     $total = array_sum(array_column($rows, 'amount'));
-    return $html . '<div class="px-3 py-2 border-top small text-muted d-flex"><span>Total</span><span class="ms-auto fw-semibold">' . mitMoney($total) . '</span></div></div></div>';
+    return $html . '<div class="px-3 py-2 border-top small text-muted d-flex"><span>' . ($itflow_trips && !in_array('mileage', array_column($rows, 'kind'), true) ? 'Purchases' : 'Total') . '</span><span class="ms-auto fw-semibold">' . mitMoney($total) . '</span></div></div></div>';
 }
 
 /** The person's reimbursements on their timesheet (agent/mit_timesheet.php), with the period's total. */
