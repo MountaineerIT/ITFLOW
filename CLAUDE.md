@@ -177,6 +177,10 @@ model: see DEPLOYMENT.md.
   To schedule on Everyone lists every agent's unscheduled tickets with the agent named (`agent/ajax.php` calendar_unscheduled:
   user_id 0 = all assigned, `user_name`; `agent/js/calendar.js` loadUnscheduled sends `agentId()`), and `agent/calendar.php` loads
   calendar.js through `mitAsset` so browsers fetch our changes.
+  "7 days" view (26.10.147): `mitTimeGrid7` in `agent/js/calendar.js` (views: timeGrid, duration 7 days, dateIncrement 1 day; label
+  in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week) - seven days
+  from any day, the arrows move one day, so a booking can be dragged across a weekend; allowed in the saved state's view list
+  (`functions/mit_calendar.php`). Smoke: last test in `08-calendar.spec.js`.
   Entries assigned to agents (26.10.115): `functions/mit_event_agents.php` (ours, required from mit_calendar.php) - ITFlow's own
   attendee agents (`calendar_event_attendees.attendee_user_id`) are the assignment; no tables. New Event from an agent's calendar
   starts with them (`mitEventDefaultAgents` - one line in `agent/modals/calendar/calendar_event_add.php`, `agent_id` sent by

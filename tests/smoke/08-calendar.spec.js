@@ -214,3 +214,27 @@ test.afterAll(async ({ browser }) => {
     }
     await context.close();
 });
+
+test('calendar: the 7 days view moves a day at a time, so a weekend can be crossed without changing weeks', async ({ page }) => {
+    const errors = watch(page);
+    await visit(page, 'agent/calendar.php', errors);
+    const seven = page.locator('button', { hasText: /^7 days$/ });
+    await expect(seven, 'the 7 days button beside Week').toHaveCount(1);
+    const days = async () => (await page.locator('[role="columnheader"]').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    // The view the agent had, to put back: Month (day names only), Week (7 dated), Day (1) or List (none)
+    const before = await days();
+    const was = before.length === 0 ? 'List' : (before.length === 1 ? 'Day' : (/\d/.test(before[0]) ? 'Week' : 'Month'));
+    await seven.click();
+    await expect.poll(async () => (await days()).length, 'seven day columns').toBe(7);
+    const first = await days();
+    await page.locator('button[title*="next" i], button[aria-label*="next" i]').first().click();
+    await expect.poll(async () => (await days())[0], 'next moves one day').toBe(first[1]);
+    expect((await days())[6], 'a new day at the end').not.toBe(first[6]);
+    // Remembered like the other views: back on 7 dated days (from today)
+    await page.reload();
+    await expect.poll(async () => (await days()).length, 'still 7 days after a reload').toBe(7);
+    expect((await days())[0], 'dated days, not month names').toMatch(/\d/);
+    // Put the agent's own view back
+    await page.locator('button', { hasText: new RegExp(`^${was}$`) }).first().click();
+    await page.waitForTimeout(600);
+});

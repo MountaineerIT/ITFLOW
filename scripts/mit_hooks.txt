@@ -117,6 +117,7 @@ hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
 hook	agent/js/calendar.js	mitStriped	3
+hook	agent/js/calendar.js	mitTimeGrid7	3
 hook	agent/js/calendar.js	mit_calendar	2
 hook	agent/js/calendar.js	mit_calendar_state	2
 hook	agent/js/calendar.js	mit_event_agents	2

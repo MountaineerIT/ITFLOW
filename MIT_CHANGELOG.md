@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.147 - 2026-10-26
+- Calendar: new "7 days" view beside Week - seven days in a row starting on any day, and the arrows move it one day at a time. Step it so Sunday and Monday sit side by side and a booking can be dragged across the weekend without changing weeks. It is remembered like the other views.
+
 ## 26.10.146 - 2026-10-26
 - Our cron jobs now wait quietly (shown as Stopped) in the minutes after an install or a restore, before our database updates have run, instead of failing with "Table 'mit_settings' doesn't exist". The daily Consistency Check fails if our updates still haven't run.
 
