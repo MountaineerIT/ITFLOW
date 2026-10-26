@@ -70,6 +70,14 @@ test('AI helper: library, test search, passwords taken out, rebuild', async ({ p
     await expect(page.locator('body')).not.toContainText(SECRET);
     await expect(page.locator('[data-mit-ai-scrubbed] a', { hasText: made.clientName })).toBeVisible();
 
+    // "What?" shows the admin what was taken out and why (the fix stays, the plain talk stays)
+    await page.locator('[data-mit-ai-scrubbed] tr', { hasText: made.clientName }).locator('[data-mit-ai-explain-link]').click();
+    await page.waitForLoadState('load');
+    const explain = page.locator('[data-mit-ai-explain]');
+    await expect(explain).toContainText(SECRET);
+    await expect(explain.locator('[data-mit-ai-rule]')).toHaveCount(1); // one thing, and nothing from the fix
+    await expect(explain).not.toContainText('Zebra Setup Utility');
+
     // Rebuild empties it (the cron job fills it again)
     page.once('dialog', (dialog) => dialog.accept());
     await page.locator('button[name=mit_ai_helper_rebuild]').click();

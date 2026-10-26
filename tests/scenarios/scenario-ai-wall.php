@@ -104,6 +104,24 @@ try {
         scenarioCheck('... and never the question\'s canary either', strpos($sent, 'CANARY-NOTE-1a') === false, true);
     }
 
+    if ($mock) {
+        echo "a new filter reads the library again without paying twice\n";
+        @file_get_contents('http://127.0.0.1/ai-mock/index.php/_clear');
+        $before = scenarioValue("SELECT COUNT(*) FROM mit_ai_chunks WHERE source_id = " . intval($ticket_source) . " AND embedding IS NOT NULL");
+        mitSetSetting('ai_helper_index_version', 'an older filter');
+        for ($i = 0; $i < 20; $i++) {
+            mitAiIndexRun(50);
+            if (mitSetting('ai_helper_pass_started', '') === '' && mitSetting('ai_helper_since', '') !== '') {
+                break;
+            }
+        }
+        scenarioCheck('the ticket was read again', scenarioValue("SELECT indexed_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE) FROM mit_ai_sources WHERE source_id = " . intval($ticket_source)), '1');
+        scenarioCheck('its passages kept their embeddings', scenarioValue("SELECT COUNT(*) FROM mit_ai_chunks WHERE source_id = " . intval($ticket_source) . " AND embedding IS NOT NULL"), $before);
+        $calls = json_decode((string) @file_get_contents('http://127.0.0.1/ai-mock/index.php/_calls'), true) ?: [];
+        $sent = implode("\n", array_map(fn($c) => json_encode($c['body']['input'] ?? ''), array_filter($calls, fn($c) => str_ends_with($c['path'], '/embeddings'))));
+        scenarioCheck('none of its passages was sent to be embedded again', strpos($sent, 'Print Spooler') === false, true);
+    }
+
     echo "the vault row itself\n";
     scenarioCheck('the vault row is in the database (the test planted it)', scenarioValue("SELECT credential_username FROM credentials WHERE credential_id = $credential_id"), 'canary-vault-user');
     scenarioCheck('but the library never has it', $leaks(implode("\n", scenarioColumn("SELECT chunk_text FROM mit_ai_chunks"))), []);

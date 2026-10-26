@@ -26,16 +26,30 @@ const MIT_AI_READS = [
 
 // Words that mark a sentence as being about a secret (mitAiSecretSentence)
 const MIT_AI_SECRET_WORDS = 'pass(?:word|wd|phrase|code)s?|pwd|pw|pins?|cred(?:ential)?s?|secrets?|api[ _-]?keys?|access[ _-]?keys?|secret[ _-]?keys?|private[ _-]?keys?'
-    . '|recovery[ _-]?codes?|backup[ _-]?codes?|wi-?fi[ _-]?keys?|psk|pre-?shared[ _-]?keys?|license[ _-]?keys?|product[ _-]?keys?|serial[ _-]?keys?|keys? (?:is|was)';
+    . '|recovery[ _-]?codes?|backup[ _-]?codes?|wi-?fi[ _-]?keys?|psk|pre-?shared[ _-]?keys?|license[ _-]?keys?|product[ _-]?keys?|serial[ _-]?keys?';
 
-// Ways of talking about passwords that hold none ("forgot their password", "password expired") - a sentence whose only secret words
-// are in one of these stays, unless it also holds something value-like or "password is / to / :"
-const MIT_AI_SAFE_PHRASES = '(?:reset(?:s|ting)?|forg(?:o|e)t(?:ten)?|chang(?:e|ed|ing)|expired?|updat(?:e|ed|ing)|sync(?:ed|ing)?|(?:re-?)?enter(?:ed|ing)?|wrong|incorrect|'
-    . 'lost|new|old|temporary|self-?service|unlock(?:ed)?) (?:the |their |his |her |a |an |my |your |our |user\'?s? |account )?(?:pass(?:word|code)|pin)s?'
-    . '|(?:pass(?:word|code)|pin)s? (?:reset|resets|expir(?:ed|y|ation|es)|polic(?:y|ies)|changes?|changed|managers?|prompts?|complexity|requirements?|'
-    . 'portal|lock-?outs?|locked|history|age|length|sync|writeback|spray(?:ing)?|protection)'
-    . '|(?:prompt(?:s|ed|ing)?|ask(?:s|ed|ing)?) (?:for )?(?:a |the |their |his |her |your )?(?:pass(?:word|code)|pin)s?'
-    . '|cred(?:ential)?s? (?:manager|prompts?|pop-?ups?|dialog)|(?:windows|web) cred(?:ential)?s?';
+// Words that follow a secret word in plain talk about one ("the password didn't work", "password manager") - anything else right
+// after it is read as the value being given ("the NAS password purplemonkey")
+const MIT_AI_PLAIN_FOLLOWERS = ['reset', 'resets', 'resetting', 'expired', 'expires', 'expiry', 'expiration', 'policy', 'policies', 'manager', 'managers',
+    'prompt', 'prompts', 'prompted', 'prompting', 'change', 'changes', 'changed', 'field', 'fields', 'box', 'screen', 'page', 'window', 'dialog', 'popup',
+    'pop-up', 'request', 'requests', 'requested', 'issue', 'issues', 'problem', 'problems', 'error', 'errors', 'again', 'anymore', 'still', 'too', 'also',
+    'now', 'yet', 'and', 'or', 'but', 'for', 'of', 'on', 'in', 'at', 'to', 'from', 'with', 'without', 'after', 'before', 'when', 'if', 'until', 'since',
+    'then', 'that', 'which', 'who', 'so', 'because', 'did', 'didn\'t', 'does', 'doesn\'t', 'do', 'don\'t', 'won\'t', 'wasn\'t', 'isn\'t', 'aren\'t',
+    'can\'t', 'cannot', 'couldn\'t', 'wouldn\'t', 'not', 'never', 'is', 'was', 'were', 'are', 'be', 'been', 'being', 'has', 'had', 'have', 'need', 'needs',
+    'needed', 'required', 'work', 'works', 'worked', 'working', 'locked', 'lockout', 'lockouts', 'history', 'complexity', 'requirement', 'requirements',
+    'protected', 'protection', 'sync', 'syncing', 'synced', 'writeback', 'spray', 'spraying', 'hint', 'hints', 'length', 'age', 'reuse', 'rotation',
+    'vault', 'management', 'recovery', 'self-service', 'sspr', 'it', 'them', 'this', 'these', 'those', 'the', 'a', 'an', 'their', 'his', 'her', 'your',
+    'our', 'my', 'will', 'would', 'should', 'could', 'can', 'may', 'might', 'must', 'by', 'via', 'as', 'used', 'using', 'entry', 'entries', 'login',
+    'logins', 'sign-in', 'update', 'updated', 'updates', 'missing', 'wrong', 'incorrect', 'correct', 'blank', 'empty', 'stored', 'saved', 'cached',
+    'removed', 'cleared', 'all', 'only', 'set', 'setting', 'settings', 'option', 'options', 'feature', 'type', 'types', 'number', 'numbers', 'code',
+    'codes', 'there', 'here', 'please', 'once', 'every', 'each', 'whenever'];
+
+// Values that are no value: "the password is wrong", "PIN was reset"
+const MIT_AI_PLAIN_VALUES = ['wrong', 'incorrect', 'correct', 'right', 'expired', 'expiring', 'invalid', 'valid', 'required', 'needed', 'missing', 'blank',
+    'empty', 'not', 'still', 'set', 'reset', 'changed', 'locked', 'too', 'being', 'now', 'fine', 'working', 'ok', 'okay', 'case-sensitive', 'the', 'a',
+    'an', 'their', 'his', 'her', 'your', 'our', 'my', 'in', 'on', 'stored', 'saved', 'kept', 'unknown', 'forgotten', 'lost', 'different', 'same', 'weak',
+    'strong', 'long', 'short', 'complex', 'simple', 'temporary', 'updated', 'accepted', 'rejected', 'denied', 'disabled', 'enabled', 'no', 'none',
+    'also', 'probably', 'likely', 'usually', 'always', 'never', 'just', 'only', 'what', 'unchanged', 'sent', 'emailed', 'texted', 'given', 'provided'];
 
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run
@@ -86,13 +100,21 @@ function mitAiHelperCan() {
  *   3. password-like strings anywhere: 8+ characters with three of upper / lower / digit / symbol and a symbol, or 10+ with three
  *      kinds (addresses, paths, e-mail addresses and file names are left alone).
  */
-function mitAiScrub($text) {
+function mitAiScrub($text, ?array &$log = null) {
     $text = (string) $text;
     $taken = 0;
+    $note = function ($rule, $what) use (&$log) {
+        if (is_array($log)) {
+            $log[] = ['rule' => $rule, 'text' => (string) $what];
+        }
+    };
 
     if (function_exists('aiRedact')) {
         [$text, $secrets] = aiRedact($text);
         $taken += count($secrets);
+        foreach ($secrets as $value) {
+            $note('labelled', $value);
+        }
         $text = preg_replace('/\[secret-\d+\]/', '[removed]', $text);
     }
 
@@ -101,7 +123,8 @@ function mitAiScrub($text) {
         $sentences = preg_split('/(?<=[.!?])\s+(?=\S)/u', $line);
         foreach ($sentences as $j => $sentence) {
             if (mitAiSecretSentence($sentence)) {
-                $sentences[$j] = '[removed - it mentioned a password or key]';
+                $note('sentence', $sentence);
+                $sentences[$j] = '[removed - it gave a password or key]';
                 $taken++;
             }
         }
@@ -109,19 +132,19 @@ function mitAiScrub($text) {
     }
     $text = implode("\n", $lines);
 
-    $text = preg_replace_callback('/(?<=^|[\s(\[{"\'])([^\s()\[\]{}"\'<>]{8,128})(?=$|[\s)\]}"\'.,;:])/u', function ($m) use (&$taken) {
+    $text = preg_replace_callback('/(?<=^|[\s(\[{"\'])([^\s()\[\]{}"\'<>]{8,128})(?=$|[\s)\]}"\'.,;:])/u', function ($m) use (&$taken, $note) {
         $token = rtrim($m[1], '.,;:');
-        if (preg_match('#(://|@|/|\\\\|^www\.)#', $token) || preg_match('/^\[removed/', $token)) {
+        if (preg_match('/^\[removed/', $token) || mitAiTechWord($token)) {
             return $m[0];
         }
         $upper = preg_match('/\p{Lu}/u', $token);
         $lower = preg_match('/\p{Ll}/u', $token);
         $digit = preg_match('/\d/', $token);
-        $symbol = preg_match('/[!#$%^&*+=?~|`]/', $token);
+        $symbol = preg_match('/[!@#$%^&*+=?~|`]/', $token);
         $kinds = $upper + $lower + $digit + $symbol;
-        $length = mb_strlen($token);
-        if (($symbol && $kinds >= 3) || ($length >= 10 && $kinds >= 3 && !preg_match('/^[\p{L}\d]+-[\p{L}\d-]+$/u', $token))) {
+        if (($symbol && $kinds >= 3) || (mb_strlen($token) >= 10 && $upper && $lower && $digit)) {
             $taken++;
+            $note('word', $token);
             return '[removed]' . substr($m[1], strlen($token));
         }
         return $m[0];
@@ -131,22 +154,105 @@ function mitAiScrub($text) {
 }
 
 /**
- * Is this sentence about a secret? Yes when it has a password-type word (MIT_AI_SECRET_WORDS) outside the harmless phrases
- * (MIT_AI_SAFE_PHRASES), or a secret word followed by is / was / to / as / : / = (a value is being given), or a secret word anywhere
- * with a value-like word in the sentence (digits, symbols or mixed case: Welcome1, P@ss, hunTer2). "Bob forgot his password, reset
- * it in ADUC" stays; "reset password to Welcome1", "the NAS password purplemonkey", "pw: x" go.
+ * Is this word something techs write all the time that only looks like a password - an address, a path, an e-mail, a file or host
+ * name, a version, an error or KB number, a model name, a size? (A real password has none of these shapes, or is caught by the
+ * sentence rule around it.)
  */
-function mitAiSecretSentence($sentence) {
-    $words = '/\b(?:' . MIT_AI_SECRET_WORDS . ')\b/iu';
-    if (!preg_match($words, $sentence)) {
-        return false;
-    }
-    if (preg_match('/\b(?:' . MIT_AI_SECRET_WORDS . ')\b\W{0,3}(?:\w+\W+){0,2}?(?:is|was|were|are|to|as|=|:|->|=>)(?:\W|$)/iu', $sentence)
-        || preg_match('/(?:^|\s)(?![A-Z]+\d+\b|\d+[A-Z]+\b)(?=\S*\d)(?=\S*\p{L})\S{4,}|[!@#$%^&*+=?~|`]\S|\p{Ll}\p{Lu}|["\'\x{201C}][^"\'\x{201D}]{3,}["\'\x{201D}]/u', $sentence)) {
+/* $strict: true = only addresses, e-mail, paths and files count (the word right after a password word); 'near' = all but hyphenated names. */
+function mitAiTechWord($token, $strict = false) {
+    $token = trim((string) $token, '.,;:!?()[]{}"\'');
+    if ($token === '' || preg_match('#://|/|\\\\|^www\.#i', $token)                     // address, path
+        || preg_match('/^[^@\s]+@[\w-]+(?:\.[\w-]+)+$/u', $token)                           // e-mail
+        || preg_match('/^[\w-]+\.(?:exe|msi|iso|zip|pdf|docx?|xlsx?|csv|txt|log|ps1|bat|cmd|cfg|conf|ini|json|xml|pst|ost)$/i', $token)) { // a file
         return true;
     }
-    $rest = preg_replace('/\b' . MIT_AI_SAFE_PHRASES . '\b/iu', ' ', $sentence);
-    return (bool) preg_match($words, $rest);
+    if ($strict === true) {
+        return false; // right after a password word, anything else may be the value
+    }
+    if ($strict !== 'near' && preg_match('/^[\p{L}\d]+(?:-[\p{L}\d]+)+$/u', $token)) {
+        return true; // hyphenated names: ThinkPad-T14s, ACME-DC01 - but near a password word they may be one (Xq7-ruby-falcon)
+    }
+    return preg_match('/[._]/', $token)                                                    // file, host or domain name, version
+        || preg_match('/^(?:0x)?[0-9A-F]{4,}$/i', $token)                                  // hex codes, error numbers
+        || preg_match('/^[A-Z]{1,8}\d+[A-Za-z]{0,3}$/', $token)                            // KB5034441, AADSTS50126, M365, W10, E5
+        || preg_match('/^\d+(?:[A-Za-z]{1,4}\d*)+$/', $token)                              // 16GB, 23H2, 5GHz
+        || preg_match('/^(?:Windows|Win|Server|Office|iPhone|iPad|iOS|macOS|Android|Galaxy|Surface|ThinkPad|ThinkCentre|OptiPlex|Latitude|PowerEdge|'
+            . 'ProLiant|Precision|Inspiron|Vostro|EliteBook|ProBook|EliteDesk|ProDesk|MacBook|iMac|LaserJet|OfficeJet|PageWide|Exchange|SharePoint|'
+            . 'OneDrive|QuickBooks|Sage|Ubuntu|Debian|CentOS|RHEL|SQL|Veeam|Hyper|vSphere|ESXi|FortiGate|SonicWall|Meraki|UniFi)\w*$/i', $token);
+}
+
+/**
+ * Does this sentence give a password, key or the like? Talk about one stays ("the user needs a password for the copier", "Bob forgot
+ * his password, reset it in ADUC", "the password policy needs 14 characters"); it goes when, next to a password-type word (MIT_AI_SECRET_WORDS):
+ *   - a value is given: "password is X", "PIN: 1234", "pwd=X", "set the password to X", "X is the new password" (X not a plain word
+ *     like "wrong" or "expired" - MIT_AI_PLAIN_VALUES);
+ *   - the word right after it is not plain talk (MIT_AI_PLAIN_FOLLOWERS): "the NAS password purplemonkey";
+ *   - a password-like word comes within six words after it: digits with letters or a symbol, or quoted text ("reset it, new one
+ *     Welcome1") - not addresses, versions, KB / error numbers or model names (mitAiTechWord).
+ */
+function mitAiSecretSentence($sentence) {
+    $sentence = (string) $sentence;
+    $word = '\b(?:' . MIT_AI_SECRET_WORDS . ')\b';
+    if (!preg_match("/$word/iu", $sentence)) {
+        return false;
+    }
+    $plain_value = function ($value) {
+        $value = mb_strtolower(trim((string) $value, '.,;:!?()[]{}"\'"'));
+        return $value === '' || in_array($value, MIT_AI_PLAIN_VALUES, true);
+    };
+    $value_like = function ($token) {
+        $token = trim((string) $token, '.,;:!?()[]{}');
+        if (preg_match('/^["\'\x{201C}].{3,}["\'\x{201D}]$/u', $token)) {
+            return true;
+        }
+        if (mb_strlen($token) < 4 || mitAiTechWord($token, 'near')) {
+            return false;
+        }
+        return (preg_match('/\d/', $token) && preg_match('/\p{L}/u', $token)) || preg_match('/[!@#$%^&*+=?~|`]/', $token);
+    };
+
+    // "password: X", "pwd=X", "password for the NAS is X", "PIN was 1234"
+    if (preg_match_all("/$word(?:\s+(?:for|of|on)\s+(?:the\s+|their\s+|his\s+|her\s+|our\s+)?[\w.@-]+(?:\s+[\w.@-]+)?)?\s*(?:(:|=|->|=>)\s*|\s+(?:is|was|=)\s+)(\S+)/iu", $sentence, $found, PREG_SET_ORDER)) {
+        foreach ($found as $m) {
+            if (strpos($m[2], '[removed') === 0) {
+                continue; // already taken out by aiRedact
+            }
+            if ($m[1] !== '' || !$plain_value($m[2])) {
+                return true;
+            }
+        }
+    }
+    // "set the password to X", "changed her PIN to 1234"
+    if (preg_match_all("/\b(?:set|sets|setting|chang(?:e|ed|es|ing)|reset(?:s|ting)?|updat(?:e|ed|ing))\s+(?:the\s+|their\s+|his\s+|her\s+|our\s+|a\s+|an\s+)?(?:new\s+|temp(?:orary)?\s+)?(?:\w+\s+)?$word\s+(?:to|as)\s+(\S+)/iu", $sentence, $found, PREG_SET_ORDER)) {
+        foreach ($found as $m) {
+            if (!$plain_value($m[1])) {
+                return true;
+            }
+        }
+    }
+    // "X is the new password", "Summer2024! was their PIN"
+    if (preg_match_all("/(\S+)\s+(?:is|was)\s+(?:the|their|his|her|our|my|your|a)\s+(?:new\s+|temp(?:orary)?\s+|current\s+|old\s+)?(?:\w+\s+)?$word/iu", $sentence, $found, PREG_SET_ORDER)) {
+        foreach ($found as $m) {
+            if ($value_like($m[1])) {
+                return true;
+            }
+        }
+    }
+    // The word right after it, and the next six words
+    preg_match_all("/$word/iu", $sentence, $hits, PREG_OFFSET_CAPTURE);
+    foreach ($hits[0] as $hit) {
+        $after = mb_substr(substr($sentence, $hit[1] + strlen($hit[0])), 0, 200);
+        if (preg_match('/^\s+([^\s,;.!?()]+)/u', $after, $next) && !in_array(mb_strtolower($next[1]), MIT_AI_PLAIN_FOLLOWERS, true)
+            && !preg_match("/^$word$/iu", $next[1]) && !mitAiTechWord($next[1], true) && !preg_match('/^\d{1,2}$/', $next[1])) {
+            return true;
+        }
+        foreach (array_slice(preg_split('/\s+/u', trim($after)), 0, 6) as $token) {
+            if ($value_like($token)) {
+                return true;
+            }
+        }
+    }
+    return (bool) preg_match('/' . $word . '[^"\'\x{201C}]{0,40}["\'\x{201C}][^"\'\x{201D}]{3,}["\'\x{201D}]/iu', $sentence);
 }
 
 /** HTML (or text) to plain text the way ITFlow's AI features read it. */
@@ -267,6 +373,7 @@ function mitAiIndexSource($kind, $id) {
         }
         return 'skipped';
     }
+    $source['signature'] = hash('sha256', $source['signature'] . '|' . mitAiIndexVersion()); // a new filter or switch reads it again
     if ($existing && $existing['signature'] === $source['signature']) {
         return 'unchanged';
     }
@@ -282,8 +389,13 @@ function mitAiIndexSource($kind, $id) {
 
     mysqli_begin_transaction($mysqli);
     try {
+        $keep = []; // embeddings of passages whose words are the same - read again for nothing, not paid for twice
         if ($existing) {
             $source_id = intval($existing['source_id']);
+            $result = mysqli_query($mysqli, "SELECT chunk_text, embedding, embed_model FROM mit_ai_chunks WHERE source_id = $source_id AND embedding IS NOT NULL");
+            while ($row = mysqli_fetch_assoc($result)) {
+                $keep[hash('sha256', $row['chunk_text'])] = $row;
+            }
             mysqli_query($mysqli, "DELETE FROM mit_ai_chunks WHERE source_id = $source_id");
             mysqli_query($mysqli, "UPDATE mit_ai_sources SET client_id = $client_id, title = " . $esc($title) . ", signature = " . $esc($source['signature']) . ",
                 scrubbed = " . intval($taken) . ", indexed_at = NOW() WHERE source_id = $source_id");
@@ -293,7 +405,9 @@ function mitAiIndexSource($kind, $id) {
             $source_id = intval(mysqli_insert_id($mysqli));
         }
         foreach ($chunks as $no => $chunk) {
-            mysqli_query($mysqli, "INSERT INTO mit_ai_chunks SET source_id = $source_id, client_id = $client_id, chunk_no = " . intval($no) . ", chunk_text = " . $esc($chunk));
+            $old = $keep[hash('sha256', $chunk)] ?? null;
+            mysqli_query($mysqli, "INSERT INTO mit_ai_chunks SET source_id = $source_id, client_id = $client_id, chunk_no = " . intval($no) . ", chunk_text = " . $esc($chunk)
+                . ($old ? ", embedding = " . $esc($old['embedding']) . ", embed_model = " . $esc($old['embed_model']) : ''));
         }
         mysqli_commit($mysqli);
     } catch (Throwable $e) {
@@ -303,10 +417,13 @@ function mitAiIndexSource($kind, $id) {
     return 'indexed';
 }
 
-/** What the index is built with - a change (internal notes, documents) rebuilds it. */
+/**
+ * What the library is built with - the filter's version and the switches. A change reads every source again on the next runs
+ * (passages that come out the same keep their embeddings). v2 (26.10.154): the sentence rule only takes sentences that give a value.
+ */
 function mitAiIndexVersion() {
     $settings = mitAiHelperSettings();
-    return 'v1|' . ($settings['internal'] ? 'i' : '') . ($settings['documents'] ? 'd' : '');
+    return 'v2|' . ($settings['internal'] ? 'i' : '') . ($settings['documents'] ? 'd' : '');
 }
 
 /** Start the library again from nothing at the next run (Admin > Settings > AI helper "Rebuild", or a settings change). */
@@ -338,9 +455,12 @@ function mitAiIndexRun($budget_seconds = 50) {
     }
     try {
         if (mitSetting('ai_helper_index_version', '') !== mitAiIndexVersion()) {
-            mitAiIndexReset();
+            // Read everything again (each source's signature carries the version); passages that come out the same keep their embeddings
+            foreach (['ai_helper_since', 'ai_helper_pass_started', 'ai_helper_cursor_ticket', 'ai_helper_cursor_document'] as $name) {
+                mitSetSetting($name, '');
+            }
             mitSetSetting('ai_helper_index_version', mitAiIndexVersion());
-            $log[] = 'Library started again (new settings)';
+            $log[] = 'Library being read again (new settings or filter)';
         }
         $started = microtime(true);
         $since = mitSetting('ai_helper_since', '') ?: '1970-01-01 00:00:00';
@@ -437,6 +557,28 @@ function mitAiScrubbedSources($limit = 50) {
         $rows[] = $row + ['url' => mitAiSourceUrl($row)];
     }
     return $rows;
+}
+
+/**
+ * What the filter takes out of one source, read again now - for the admin page, so an admin (who can open the ticket anyway) can see
+ * whether it was a real password. [title, [['rule', 'text'], ...]] or null. Never sent anywhere.
+ */
+function mitAiExplainSource($source_id) {
+    global $mysqli;
+    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT source_id, ticket_id, document_id, client_id, title FROM mit_ai_sources WHERE source_id = " . intval($source_id)
+        . clientScopeSql('client_id')));
+    if (!$row) {
+        return null;
+    }
+    $source = $row['ticket_id'] ? mitAiTicketSource($row['ticket_id']) : mitAiDocumentSource($row['document_id']);
+    if (!$source) {
+        return null;
+    }
+    $log = [];
+    foreach (['title', 'head', 'text'] as $part) {
+        mitAiScrub($source[$part], $log);
+    }
+    return [$row['title'], $log, mitAiSourceUrl($row)];
 }
 
 /** Where a source opens. */

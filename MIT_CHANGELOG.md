@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.154 - 2026-10-26
+- AI helper: the password filter no longer throws away ordinary notes that only talk about passwords ("the user needs a password for the copier", "password reset for Bob", "Outlook keeps prompting for a password"). A sentence is taken out only when it gives one - "password is ...", "PIN: ...", "set the password to ...", "the NAS password purplemonkey" - or has a password-like word next to the password. Product names, versions, error and KB numbers, file names and e-mail addresses are no longer mistaken for passwords.
+- "Passwords taken out" has a "What?" link on each ticket: it shows an admin exactly what was taken out and why, to check it was a real password (shown only there, never sent to the AI).
+- The library reads every ticket again with the new filter over the next runs - passages that come out the same keep their meaning-search data, so this costs next to nothing.
+
 ## 26.10.153 - 2026-10-26
 - AI helper, part 1: a library of your resolved tickets and documents for the coming AI helper to answer from (Admin > Integrations > AI helper - off until switched on). It keeps itself up to date every 5 minutes: resolved and closed tickets go in with their replies (internal notes too, unless switched off), reopened, archived or deleted ones come out, and a ticket moved to another client follows. Searches only ever return clients the agent can open, and need the role's Use AI and Support permissions.
 - Search by keyword, and by meaning too once an embeddings model is set (OpenAI, Gemini, Mistral or a local Ollama through ITFlow's AI Providers) - "documents won't come out of the printer" finds the ticket that said "Print Spooler stuck". The admin page has a test search with links to each ticket or document found.

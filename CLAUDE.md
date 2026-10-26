@@ -1245,9 +1245,19 @@ model: see DEPLOYMENT.md.
   (`[data-mit-ai-hit]`), "Passwords taken out" (`mitAiScrubbedSources` - to move into the vault). The scrub keeps harmless talk about
   passwords (`MIT_AI_SAFE_PHRASES`: "forgot their password", "password expired", "credential manager") unless the sentence also holds a
   value-like word or "password is / to / :". Consistency check `mitConsistencyAiHelper` (library left behind > 1 h); portability line.
+  26.10.154 (beta: 539 of 1,789 tickets lost text, the user checked 5 - no passwords): `mitAiSecretSentence` only takes a sentence that
+  gives a value - "password is / was / : / =" (value not in `MIT_AI_PLAIN_VALUES`), "set / change / reset ... password to X", "X is the
+  new password", the word right after a secret word not in `MIT_AI_PLAIN_FOLLOWERS` ("NAS password purplemonkey"), or a value-like word
+  (digits + letters, a symbol, quoted text) within six words after it; talk ("the user needs a password") stays. `mitAiTechWord($token,
+  $strict)` = shapes that only look like passwords (addresses, e-mail, paths, files, versions, KB / error / hex numbers, sizes, model
+  names; hyphenated names except near a secret word; only address / e-mail / path / file right after one). `mitAiScrub($text, &$log)`
+  logs each removal (rule labelled / sentence / word) - "What?" on the admin page (`mitAiExplainSource`, `[data-mit-ai-explain]`) shows
+  an admin what was taken and why (never sent anywhere). `mitAiIndexVersion` v2: each source's signature carries the version, so a filter
+  change re-reads every source on the next runs, and passages whose text comes out the same keep their embeddings (not paid twice).
+  `tests/scenarios/scenario-ai-scrub.php` holds both lists - leaks that must go, ordinary notes that must stay word for word.
   The test install has an AI stand-in `ai-mock/index.php` (not in the repo: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
   echoing the question, `/_calls` / `/_clear`). Tests: scenarios `scenario-ai-wall.php` (canaries), `scenario-ai-library.php` (lifecycle,
-  switches, client limits, roles); smoke `32-ai-helper.spec.js`. Round 2 (next): the Ask AI panel (top bar + ticket), answers citing
+  switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`. Round 2 (next): the Ask AI panel (top bar + ticket), answers citing
   sources, conversations; round 3: documentation drafting.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check

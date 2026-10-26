@@ -22,6 +22,8 @@ $ai_ready = function_exists('aiReady') && aiReady('Tickets');
 $test_query = trim((string) ($_GET['q'] ?? ''));
 $test_results = $test_query !== '' && $settings['enabled'] ? mitAiSearch($test_query, ['limit' => 10]) : [];
 $scrubbed = mitAiScrubbedSources(50);
+$explain = isset($_GET['explain']) ? mitAiExplainSource(intval($_GET['explain'])) : null;
+$rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A sentence giving a password', 'word' => 'A password-like word'];
 
 ?>
 
@@ -152,19 +154,33 @@ $scrubbed = mitAiScrubbedSources(50);
         <h3 class="card-title mt-2"><i class="fas fa-fw fa-user-secret me-2"></i>Passwords taken out</h3>
     </div>
     <div class="card-body">
-        <p class="text-muted small" style="max-width: 52rem">These tickets and documents had passwords, keys or sentences about them in their text. The AI helper never
+        <p class="text-muted small" style="max-width: 52rem">These tickets and documents had passwords, keys or sentences giving them in their text ("What?" shows what was taken and why). The AI helper never
             sees those parts. They are still in ITFlow as written, though - worth moving each into the client's password vault and taking it out of the note.</p>
+        <?php if ($explain) { ?>
+            <div class="alert alert-light border small" id="explain" data-mit-ai-explain>
+                <div class="fw-semibold mb-2">Taken out of <a href="<?= escapeHtml($explain[2]) ?>"><?= escapeHtml($explain[0]) ?></a>
+                    <span class="text-muted fw-normal">- shown only here, to check it was a real password; never sent to the AI</span></div>
+                <?php if (!$explain[1]) { ?>
+                    <div class="text-muted">Nothing now - the filter has changed since; the next library run updates the count.</div>
+                <?php } ?>
+                <?php foreach ($explain[1] as $item) { ?>
+                    <div class="d-flex gap-2 mb-1"><span class="badge text-bg-secondary flex-shrink-0" data-mit-ai-rule="<?= escapeHtml($item['rule']) ?>"><?= escapeHtml($rule_names[$item['rule']] ?? $item['rule']) ?></span>
+                        <code class="text-break"><?= escapeHtml(mb_strimwidth($item['text'], 0, 300, '...')) ?></code></div>
+                <?php } ?>
+            </div>
+        <?php } ?>
         <?php if (!$scrubbed) { ?>
             <p class="text-muted mb-0" data-mit-ai-scrubbed="0">None so far.</p>
         <?php } else { ?>
             <table class="table table-sm mb-0" data-mit-ai-scrubbed="<?= count($scrubbed) ?>">
-                <thead><tr><th>Where</th><th>Client</th><th class="text-end">Taken out</th></tr></thead>
+                <thead><tr><th>Where</th><th>Client</th><th class="text-end">Taken out</th><th></th></tr></thead>
                 <tbody>
                 <?php foreach ($scrubbed as $source) { ?>
                     <tr>
                         <td><i class="fas fa-fw <?= $source['ticket_id'] ? 'fa-life-ring' : 'fa-file-alt' ?> text-muted me-1"></i><a href="<?= escapeHtml($source['url']) ?>"><?= escapeHtml($source['title']) ?></a></td>
                         <td><?= escapeHtml((string) $source['client_name']) ?></td>
                         <td class="text-end"><?= intval($source['scrubbed']) ?></td>
+                        <td class="text-end"><a href="?explain=<?= intval($source['source_id']) ?>#explain" class="small" data-mit-ai-explain-link>What?</a></td>
                     </tr>
                 <?php } ?>
                 </tbody>
