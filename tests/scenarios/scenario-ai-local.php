@@ -71,6 +71,20 @@ try {
     scenarioCheck('search finds it', count(array_filter($titles, fn($title) => strpos($title, "ZZ local embeddings $stamp") !== false)), 1);
     scenarioCheck('the embeddings came from the local stand-in', count(array_filter($calls(), fn($c) => str_ends_with($c['path'], '/v1/embeddings'))) > 0, true);
 
+    echo "nomic's labels\n";
+    $embeds = array_values(array_filter($calls(), fn($c) => str_ends_with($c['path'], '/v1/embeddings')));
+    $inputs = array_merge(...array_map(fn($c) => (array) ($c['body']['input'] ?? []), $embeds));
+    $passages = array_filter($inputs, fn($t) => strpos($t, 'Ticket ') !== false || strpos($t, 'Scanner') !== false);
+    scenarioCheck('passages are sent as search_document:', $passages && !array_filter($passages, fn($t) => !str_starts_with($t, 'search_document: ')), true);
+    scenarioCheck('the question as search_query:', count(array_filter($inputs, fn($t) => $t === 'search_query: scanner will not send to email')), 1);
+    scenarioCheck('stored as done with the labels', scenarioValue("SELECT DISTINCT embed_model FROM mit_ai_chunks WHERE embedding IS NOT NULL"), MIT_AI_LOCAL_MODEL . ' [labelled]');
+    scenarioCheck('other models get no labels', [mitAiEmbedPrefixes('text-embedding-3-small'), mitAiEmbedPrefixes('mock-embed'), mitAiEmbedPrefixes('nomic-embed-text:latest') !== null], [null, null, true]);
+    mysqli_query($mysqli, "UPDATE mit_ai_chunks SET embed_model = '" . MIT_AI_LOCAL_MODEL . "'"); // as done before the labels
+    scenarioCheck('passages done without the labels count as not done', mitAiIndexStats()['embedded_current'], 0);
+    for ($i = 0; $i < 10 && mitAiEmbedPending(30) !== ''; $i++) {
+    }
+    scenarioCheck('... and are re-done', mitAiIndexStats()['embedded_current'], mitAiIndexStats()['chunks']);
+
     echo "on again\n";
     [$ok] = mitAiLocalTurnOn();
     scenarioCheck('still on, same provider, before-settings untouched', [$ok, intval(mitSetting('ai_local_provider')), intval(mitSetting('ai_local_prev_provider'))], [true, $local, $cloud]);

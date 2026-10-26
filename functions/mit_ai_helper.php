@@ -581,7 +581,7 @@ function mitAiIndexStats() {
         (SELECT COUNT(*) FROM mit_ai_sources WHERE document_id IS NOT NULL) AS documents,
         (SELECT COUNT(*) FROM mit_ai_chunks) AS chunks,
         (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL) AS embedded,
-        (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL AND embed_model = '" . mysqli_real_escape_string($mysqli, mitAiHelperSettings()['embed_model']) . "') AS embedded_current,
+        (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL AND embed_model = '" . mysqli_real_escape_string($mysqli, mitAiEmbedTag(mitAiHelperSettings()['embed_model'])) . "') AS embedded_current,
         (SELECT COUNT(*) FROM mit_ai_sources WHERE scrubbed > 0) AS scrubbed_sources,
         (SELECT COUNT(*) FROM documents WHERE document_archived_at IS NULL) AS documents_in_itflow"));
     return array_map('intval', $row) + [
@@ -655,11 +655,34 @@ function mitAiEmbedConfig() {
     return ['provider' => $provider, 'kind' => $kind, 'url' => $url, 'model' => $settings['embed_model']];
 }
 
-/** Vectors for some texts - [ok, vectors (unit length) | error]. Recorded in ITFlow's AI Usage as "AI helper - search library". */
-function mitAiEmbed(array $texts, $config = null) {
+/**
+ * The labels a model wants in front of what it embeds - nomic-embed-text is trained with "search_query: " before questions and
+ * "search_document: " before the text searched - or null (OpenAI's and most others take the text as it is).
+ */
+function mitAiEmbedPrefixes($model) {
+    return preg_match('/^nomic-embed-text\b/i', trim((string) $model)) ? ['query' => 'search_query: ', 'document' => 'search_document: '] : null;
+}
+
+/** What passages are marked with in mit_ai_chunks.embed_model: the model, plus " [labelled]" when it gets labels - so passages embedded
+ * without them before are seen as not done and re-done. */
+function mitAiEmbedTag($model) {
+    $model = trim((string) $model);
+    return $model . (mitAiEmbedPrefixes($model) ? ' [labelled]' : '');
+}
+
+/**
+ * Vectors for some texts - [ok, vectors (unit length) | error]. $purpose: 'document' (passages kept in the library) or 'query' (a question
+ * searched with). Recorded in ITFlow's AI Usage as "AI helper - search library".
+ */
+function mitAiEmbed(array $texts, $config = null, $purpose = 'document') {
     $config = $config ?: mitAiEmbedConfig();
     if (!$config) {
         return [false, 'No embeddings model is set'];
+    }
+    $prefixes = mitAiEmbedPrefixes($config['model']);
+    if ($prefixes) {
+        $label = $prefixes[$purpose === 'query' ? 'query' : 'document'];
+        $texts = array_map(fn($text) => $label . $text, $texts);
     }
     $started = microtime(true);
     $ch = curl_init($config['url']);
@@ -703,7 +726,7 @@ function mitAiEmbedPending($seconds = 30) {
     if (!$config) {
         return '';
     }
-    $model = mysqli_real_escape_string($mysqli, $config['model']);
+    $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
     $started = microtime(true);
     $done = 0;
     while (microtime(true) - $started < $seconds) {
@@ -775,10 +798,10 @@ function mitAiSearch($query, array $opts = []) {
     // Meaning: cosine against every passage the agent may see, embedded with the current model
     $config = mitAiEmbedConfig();
     if ($config) {
-        [$ok, $vectors] = mitAiEmbed([$query], $config);
+        [$ok, $vectors] = mitAiEmbed([$query], $config, 'query');
         if ($ok && !empty($vectors[0])) {
             $q = $vectors[0];
-            $model = mysqli_real_escape_string($mysqli, $config['model']);
+            $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
             $scores = [];
             $is_document = [];
             $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.embedding, s.document_id IS NOT NULL FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id

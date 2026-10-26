@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.161 - 2026-10-26
+- AI helper with local embeddings: nomic-embed-text now gets the labels it was trained with ("search_document:" before your tickets and documents, "search_query:" before a question), so meaning search finds closer matches. The library re-does its passages once by itself over the next runs - free, on your server. Other embeddings models (OpenAI's) are not changed.
+- `install_local_ai.sh` shows just Ollama's version number (while the service was still starting it printed Ollama's start-up notice there instead).
+
 ## 26.10.160 - 2026-10-26
 - `scripts/install_local_ai.sh` can be run directly (it was missing its "executable" mark - `bash scripts/install_local_ai.sh` worked before too).
 

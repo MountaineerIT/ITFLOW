@@ -1295,7 +1295,10 @@ model: see DEPLOYMENT.md.
   127.0.0.1:11434, or `MIT_OLLAMA_BASE` in a test install's config.php (its stand-in `ollama-mock/index.php`, not in the repo:
   /api/version, /api/tags, /api/pull, /v1/embeddings, `/_state?running=&model=&reset=1`, `/_calls`). Not gated by development mode
   (it stays on the server). Admin stats `embedded_current` (passages done with the current model). Tests: scenario
-  `scenario-ai-local.php`, smoke `35-ai-local.spec.js`; the install script was only dry-run with stand-in `ollama` / `systemctl`.
+  `scenario-ai-local.php`, smoke `35-ai-local.spec.js`; the install script was only dry-run with stand-in `ollama` / `systemctl` - its first
+  real run (beta, Ollama 0.40.11) worked. Labels (26.10.161): `mitAiEmbedPrefixes($model)` - nomic-embed-text gets "search_document: " /
+  "search_query: " (`mitAiEmbed($texts, $config, $purpose)`, 'query' from `mitAiSearch`), and its passages are stored as
+  `mitAiEmbedTag()` = "<model> [labelled]" in embed_model, so ones done without the labels are re-done; other models unchanged.
   Documents in answers (26.10.157): `mitAiSearch` takes a separate keyword pool of document passages and, by meaning, documents within
   `MIT_AI_DOCUMENT_NEAR` of the best match; matching documents get `MIT_AI_DOCUMENT_SLOTS` kept places and `MIT_AI_DOCUMENT_WEIGHT`
   (thousands of ticket passages pushed them out); the system prompt prefers documents. `mitAiIndexRun` removes sources of archived

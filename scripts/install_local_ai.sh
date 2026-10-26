@@ -28,6 +28,9 @@ ok()    { printf '    \033[32m✓\033[0m %s\n' "$*"; }
 warn()  { printf '    \033[33m!\033[0m %s\n' "$*" >&2; }
 die()   { printf '\n\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# The version number only - 'ollama --version' also prints a warning while the service is still starting
+ollama_version() { ollama --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -1 || true; }
+
 usage() {
     cat <<'EOF'
 Local embeddings for ITFlow's AI helper (Ollama + nomic-embed-text), for Debian 12 / 13
@@ -77,7 +80,7 @@ ok "${DISK_MB} MB free disk"
 HAVE=0
 command -v ollama >/dev/null && HAVE=1
 if [[ $HAVE -eq 1 ]]; then
-    ok "Ollama is already installed ($(ollama --version 2>/dev/null | tail -1))"
+    ok "Ollama $(ollama_version) is already installed"
 fi
 
 if [[ $ASSUME_YES -eq 0 && ( $HAVE -eq 0 || $UPGRADE -eq 1 ) ]]; then
@@ -96,7 +99,7 @@ if [[ $HAVE -eq 0 || $UPGRADE -eq 1 ]]; then
     trap 'rm -rf "$TMP"' EXIT
     curl -fsSL --retry 3 "$INSTALLER_URL" -o "$TMP/install.sh" || die "could not download $INSTALLER_URL"
     OLLAMA_VERSION="$OLLAMA_PIN" sh "$TMP/install.sh" || die "Ollama's installer failed (see above)."
-    ok "Ollama $(ollama --version 2>/dev/null | tail -1)"
+    ok "Ollama $(ollama_version) installed"
 fi
 
 # ---------------------------------------------------------------------------- settings
