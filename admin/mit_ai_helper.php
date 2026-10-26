@@ -118,7 +118,7 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
     <div class="card-body" data-mit-ai-stats>
         <div class="row g-3 text-center mb-2">
             <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="tickets"><?= number_format($stats['tickets'] ?? 0) ?></div><div class="small text-muted">Tickets</div></div>
-            <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="documents"><?= number_format($stats['documents'] ?? 0) ?></div><div class="small text-muted">Documents</div></div>
+            <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="documents"><?= number_format($stats['documents'] ?? 0) ?></div><div class="small text-muted">Documents<?= $settings['documents'] ? ' <span data-mit-ai-stat="documents_in_itflow">of ' . number_format($stats['documents_in_itflow'] ?? 0) . '</span>' : ' (off)' ?></div></div>
             <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="chunks"><?= number_format($stats['chunks'] ?? 0) ?></div><div class="small text-muted">Passages</div></div>
             <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="embedded"><?= number_format($stats['embedded'] ?? 0) ?></div><div class="small text-muted">With meaning search</div></div>
             <div class="col-6 col-md"><div class="h4 mb-0" data-mit-ai-stat="scrubbed"><?= number_format($stats['scrubbed_sources'] ?? 0) ?></div><div class="small text-muted">Had passwords taken out</div></div>

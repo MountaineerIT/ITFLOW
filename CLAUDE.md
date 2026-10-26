@@ -1278,6 +1278,12 @@ model: see DEPLOYMENT.md.
   provider is saved with the full /v1/chat/completions address (as ITFlow's form saves it) and its model on the Tickets use case.
   Tests: scenario `scenario-ai-ask.php` (ticket + passages sent, no canary sent or stored, follow-up history, owner only, client-limited
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
+  Documents in answers (26.10.157): `mitAiSearch` takes a separate keyword pool of document passages and, by meaning, documents within
+  `MIT_AI_DOCUMENT_NEAR` of the best match; matching documents get `MIT_AI_DOCUMENT_SLOTS` kept places and `MIT_AI_DOCUMENT_WEIGHT`
+  (thousands of ticket passages pushed them out); the system prompt prefers documents. `mitAiIndexRun` removes sources of archived
+  documents / tickets every run (ITFlow archives with `updated_at = updated_at`, so the pass never saw it) and once an hour
+  `mitAiKeywordIndexOk` (5 random passages found by their own longest word) - `ALTER TABLE mit_ai_chunks FORCE` when not (the test install's
+  FULLTEXT index came back empty after the database stopped uncleanly). Admin page "Documents N of M". Scenario `scenario-ai-documents.php`.
   Round 3 - Write up (26.10.156): `functions/mit_ai_docs.php` (ours, required from mit_ai_helper.php; no tables). "Write up" in the panel
   header (`[data-mit-ai-writeup]`, Support edit, shown once there is a conversation) opens `agent/modals/mit_ai/document.php` through
   ITFlow's ajax-modal (xl) - ITFlow's `modals/document/document_form.php` inside our form (posts to `/agent/post.php` add_document, ITFlow's

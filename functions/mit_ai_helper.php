@@ -58,6 +58,9 @@ const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run
 const MIT_AI_EMBED_BATCH = 64;        // passages per embeddings request
 const MIT_AI_SEARCH_POOL = 40;        // candidates from each search before merging
+const MIT_AI_DOCUMENT_SLOTS = 3;      // places in an answer's passages kept for documents that match (tickets outnumber them)
+const MIT_AI_DOCUMENT_WEIGHT = 1.5;   // documents are written to be followed - they rank ahead of a ticket that matches as well
+const MIT_AI_DOCUMENT_NEAR = 0.85;    // a document found only by meaning gets a kept place when this close to the best match
 
 /** Has M044 run? (One query a request.) */
 function mitAiHelperReady() {
@@ -520,12 +523,23 @@ function mitAiIndexRun($budget_seconds = 50) {
         if (!mitAiHelperSettings()['documents']) {
             mysqli_query($mysqli, "DELETE FROM mit_ai_sources WHERE document_id IS NOT NULL");
         }
+        // Archived since they were read (ITFlow archives without touching the updated time, so the pass above doesn't see it)
+        mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN documents d ON d.document_id = s.document_id WHERE d.document_archived_at IS NOT NULL");
+        mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN tickets t ON t.ticket_id = s.ticket_id WHERE t.ticket_archived_at IS NOT NULL");
         if ($done) {
             mitSetSetting('ai_helper_since', $pass);
             mitSetSetting('ai_helper_pass_started', '');
         }
         if ($counts['indexed'] || $counts['removed']) {
             $log[] = "Library: {$counts['indexed']} added or updated, {$counts['removed']} taken out" . ($done ? '' : ' (more next run)');
+        }
+        // Keyword search still finding what is there? (InnoDB's word index can come back short after an unclean stop - rebuilt then)
+        if (mitSetting('ai_helper_keyword_checked', '') < date('Y-m-d H:i:s', time() - 3600)) {
+            mitSetSetting('ai_helper_keyword_checked', date('Y-m-d H:i:s'));
+            if (!mitAiKeywordIndexOk()) {
+                mysqli_query($mysqli, "ALTER TABLE mit_ai_chunks FORCE");
+                $log[] = 'Keyword index was missing passages - rebuilt' . (mitAiKeywordIndexOk() ? '' : ', still missing some');
+            }
         }
         $embedded = mitAiEmbedPending(max(5, $budget_seconds - (microtime(true) - $started)));
         if ($embedded !== '') {
@@ -536,6 +550,25 @@ function mitAiIndexRun($budget_seconds = 50) {
         mitUnlock('ai_index');
     }
     return $log;
+}
+
+/** Does the keyword index find a few passages by a word of their own? (Up to 5 picked at random; true when the library is empty.) */
+function mitAiKeywordIndexOk() {
+    global $mysqli;
+    $max = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT MAX(chunk_id) FROM mit_ai_chunks"))[0] ?? 0);
+    for ($i = 0, $tried = 0; $max && $i < 10 && $tried < 5; $i++) {
+        $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT chunk_id, chunk_text FROM mit_ai_chunks WHERE chunk_id >= " . random_int(1, $max) . " ORDER BY chunk_id LIMIT 1"));
+        if (!$row || !preg_match_all('/\b[a-z]{6,20}\b/i', $row[1], $words)) {
+            continue;
+        }
+        usort($words[0], fn($a, $b) => strlen($b) <=> strlen($a)); // the longest: least likely a stopword
+        $word = mysqli_real_escape_string($mysqli, $words[0][0]);
+        $tried++;
+        if (!mysqli_fetch_row(mysqli_query($mysqli, "SELECT 1 FROM mit_ai_chunks WHERE chunk_id = " . intval($row[0]) . " AND MATCH(chunk_text) AGAINST('+$word' IN BOOLEAN MODE)"))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 /** Numbers for the admin page. */
@@ -549,7 +582,8 @@ function mitAiIndexStats() {
         (SELECT COUNT(*) FROM mit_ai_sources WHERE document_id IS NOT NULL) AS documents,
         (SELECT COUNT(*) FROM mit_ai_chunks) AS chunks,
         (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL) AS embedded,
-        (SELECT COUNT(*) FROM mit_ai_sources WHERE scrubbed > 0) AS scrubbed_sources"));
+        (SELECT COUNT(*) FROM mit_ai_sources WHERE scrubbed > 0) AS scrubbed_sources,
+        (SELECT COUNT(*) FROM documents WHERE document_archived_at IS NULL) AS documents_in_itflow"));
     return array_map('intval', $row) + [
         'last_run' => (string) mitSetting('ai_helper_last_run', ''),
         'catching_up' => mitSetting('ai_helper_pass_started', '') !== '' && mitSetting('ai_helper_since', '') === '',
@@ -728,6 +762,16 @@ function mitAiSearch($query, array $opts = []) {
         $ranks[intval($row['chunk_id'])] = 1 / (60 + ++$rank);
         $how[intval($row['chunk_id'])] = 'keyword';
     }
+    // ... and the documents' own best, which thousands of ticket passages would otherwise push out of the pool
+    $documents = []; // chunk_id => true: a document passage that matched
+    $result = mysqli_query($mysqli, "SELECT k.chunk_id, MATCH(k.chunk_text) AGAINST('$words') AS relevance FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id
+        WHERE s.document_id IS NOT NULL AND MATCH(k.chunk_text) AGAINST('$words')$scope ORDER BY relevance DESC LIMIT " . MIT_AI_SEARCH_POOL);
+    $rank = 0;
+    while ($row = mysqli_fetch_assoc($result)) {
+        $documents[intval($row['chunk_id'])] = true;
+        $ranks[intval($row['chunk_id'])] = max($ranks[intval($row['chunk_id'])] ?? 0, 1 / (60 + ++$rank));
+        $how[intval($row['chunk_id'])] = 'keyword';
+    }
     // Meaning: cosine against every passage the agent may see, embedded with the current model
     $config = mitAiEmbedConfig();
     if ($config) {
@@ -736,8 +780,13 @@ function mitAiSearch($query, array $opts = []) {
             $q = $vectors[0];
             $model = mysqli_real_escape_string($mysqli, $config['model']);
             $scores = [];
-            $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.embedding FROM mit_ai_chunks k WHERE k.embed_model = '$model'$scope");
+            $is_document = [];
+            $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.embedding, s.document_id IS NOT NULL FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id
+                WHERE k.embed_model = '$model'$scope");
             while ($row = mysqli_fetch_row($result)) {
+                if ($row[2]) {
+                    $is_document[intval($row[0])] = true;
+                }
                 $v = unpack('g*', $row[1]);
                 if (count($v) !== count($q)) {
                     continue;
@@ -755,13 +804,35 @@ function mitAiSearch($query, array $opts = []) {
                 $ranks[$chunk_id] = ($ranks[$chunk_id] ?? 0) + 1 / (60 + ++$rank);
                 $how[$chunk_id] = isset($how[$chunk_id]) ? 'both' : 'meaning';
             }
+            // Documents close in meaning to the best match, wherever they ranked among the tickets
+            $best = $scores ? reset($scores) : 0;
+            $rank = 0;
+            foreach ($scores as $chunk_id => $score) {
+                if (empty($is_document[$chunk_id])) {
+                    continue;
+                }
+                if ($best <= 0 || $score < $best * MIT_AI_DOCUMENT_NEAR || ++$rank > MIT_AI_SEARCH_POOL) {
+                    break;
+                }
+                $documents[$chunk_id] = true;
+                if (!isset($how[$chunk_id]) || $how[$chunk_id] === 'keyword') {
+                    $ranks[$chunk_id] = ($ranks[$chunk_id] ?? 0) + 1 / (60 + $rank);
+                    $how[$chunk_id] = isset($how[$chunk_id]) ? 'both' : 'meaning';
+                }
+            }
         }
     }
     if (!$ranks) {
         return [];
     }
+    foreach ($documents as $chunk_id => $yes) {
+        $ranks[$chunk_id] *= MIT_AI_DOCUMENT_WEIGHT;
+    }
     arsort($ranks);
-    $ids = implode(',', array_map('intval', array_slice(array_keys($ranks), 0, MIT_AI_SEARCH_POOL)));
+    // The pool: the best overall, plus the matching documents' best, so they can take their kept places below
+    $pool = array_slice(array_keys($ranks), 0, MIT_AI_SEARCH_POOL);
+    $pool = array_unique(array_merge($pool, array_slice(array_keys(array_intersect_key($ranks, $documents)), 0, MIT_AI_SEARCH_POOL)));
+    $ids = implode(',', array_map('intval', $pool));
     $rows = [];
     $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.chunk_text, k.client_id, s.source_id, s.ticket_id, s.document_id, s.title, c.client_name
         FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id LEFT JOIN clients c ON c.client_id = k.client_id
@@ -769,9 +840,24 @@ function mitAiSearch($query, array $opts = []) {
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[intval($row['chunk_id'])] = $row;
     }
+    // Kept places first: up to MIT_AI_DOCUMENT_SLOTS matching document passages, then the rest by rank (and back in rank order)
+    $order = [];
+    $kept = 0;
+    $seen = [];
+    foreach ($ranks as $chunk_id => $score) {
+        $row = $rows[$chunk_id] ?? null;
+        if ($row && !empty($documents[$chunk_id]) && $kept < min(MIT_AI_DOCUMENT_SLOTS, $limit) && ($seen[$row['source_id']] ?? 0) < $per_source) {
+            $seen[$row['source_id']] = ($seen[$row['source_id']] ?? 0) + 1;
+            $order[$chunk_id] = $score;
+            $kept++;
+        }
+    }
+    foreach ($ranks as $chunk_id => $score) {
+        $order += [$chunk_id => $score];
+    }
     $out = [];
     $taken = [];
-    foreach ($ranks as $chunk_id => $score) {
+    foreach ($order as $chunk_id => $score) {
         $row = $rows[$chunk_id] ?? null;
         if (!$row || ($taken[$row['source_id']] ?? 0) >= $per_source) {
             continue;
@@ -793,5 +879,6 @@ function mitAiSearch($query, array $opts = []) {
             break;
         }
     }
+    usort($out, fn($a, $b) => $b['score'] <=> $a['score']);
     return $out;
 }

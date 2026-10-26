@@ -63,6 +63,7 @@ test('AI helper: library, test search, passwords taken out, rebuild', async ({ p
 
     await visit(page, 'admin/mit_ai_helper.php?q=' + encodeURIComponent('label printer recalibrating'), errors);
     expect(Number(await page.locator('[data-mit-ai-stat=tickets]').innerText())).toBeGreaterThan(0);
+    await expect(page.locator('[data-mit-ai-stat=documents_in_itflow]')).toHaveText(/^of [\d,]+$/); // documents in the library out of ITFlow's
     const hit = page.locator('[data-mit-ai-hit=ticket]', { hasText: made.clientName });
     await expect(hit).toBeVisible();
     await expect(hit).toContainText('Zebra Setup Utility');

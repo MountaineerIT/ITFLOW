@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.157 - 2026-10-26
+- AI helper: **your documents now reach the answers.** With thousands of ticket passages in the library, a matching document was often crowded out of the few passages the AI gets. Up to 3 places are now kept for documents that match the question (by words or by meaning), documents rank ahead of a ticket that matches as well, and the AI is told to prefer your written documentation over old tickets.
+- Admin > Integrations > AI helper shows documents as "N of M" - how many of ITFlow's documents are in the library.
+- An archived document (or ticket) leaves the library on the next run - archiving didn't change its updated time, so it stayed in before.
+- The library checks its keyword index once an hour and rebuilds it if it has stopped finding passages (seen on the test server after the database stopped uncleanly - searches then only worked by meaning).
+
 ## 26.10.156 - 2026-10-26
 - AI helper, part 3: **Write up** in the Ask AI panel turns a conversation into a document. It opens ITFlow's own New Document form filled in by AI - a title, a one-line summary and Symptoms / Cause / Resolution steps - written from the conversation and the full tickets and documents its answers used. Check it, change what you like, then Create document; nothing is kept until you do.
 - It goes with the ticket's client by default (and the ticket's history notes it was written up); pick another client, or your own company for a general how-to without client names. Changing the client keeps the draft, with "Redraft for this client" if you want it rewritten.
