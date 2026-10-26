@@ -296,7 +296,8 @@ break stock ITFlow, and lists what stops working after a move.
   renewal lines go; MSP Align itself is unaffected (it reads ITFlow's API). The copies stay unused in `mit_align_*`.
 - **AI helper** – the library of resolved tickets and documents, Admin > Integrations > AI helper and Ask AI go; ITFlow's own AI features
   (Draft, Summary, Triage, document drafts) keep working, and the top bar's Ask AI button, its conversations and Write up go (documents already written stay - they are ITFlow's). The library and
-  conversations stay unused in `mit_ai_*` (passages and questions already cleaned of passwords - nothing from the password vault).
+  conversations stay unused in `mit_ai_*` (passages and questions already cleaned of passwords - nothing from the password vault). The "This server (Ollama)"
+  provider of local embeddings stays in AI Providers (an ordinary ITFlow provider), and Ollama keeps running until removed.
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
   email goes back to ITFlow's own wording.
@@ -459,6 +460,21 @@ NinjaOne address (for the buttons) on the Settings tab. Then on Mapping either *
 file - takes over its organization -> client list) or pick a client per organization, and **Run sync now**. Read the run's
 report; when it looks right, switch the hourly sync on and **turn the n8n workflow off** (both would edit the same
 assets). It finds assets n8n made by the NinjaOne device ID in their notes, so the switch makes no duplicates.
+
+## AI helper - local embeddings (optional)
+
+The AI helper's meaning search can run on the ITFlow server itself (Ollama with nomic-embed-text - about 1 GB of memory, no GPU,
+nothing leaves the server, no tokens paid for). Once, from a root shell on the server:
+
+    sudo bash /var/www/itflow/scripts/install_local_ai.sh
+
+(or `--local-ai` on a fresh `install.sh`). It checks memory (3 GB+) and disk, installs Ollama with Ollama's own installer
+(`--version X.Y.Z` pins a release, `--upgrade` installs over one already there), makes it listen on 127.0.0.1 only with one model
+loaded at a time (`/etc/systemd/system/ollama.service.d/mountaineerit.conf`), downloads the model and checks it answers. Then
+Admin > Integrations > AI helper > **Use this server**; the library re-does its passages with the new model over the next runs
+(keyword search works meanwhile). **Switch off** goes back to what was set before. Status: `systemctl status ollama`, logs:
+`journalctl -u ollama`. Remove: `systemctl disable --now ollama`, then delete `/usr/local/bin/ollama`, `/usr/share/ollama` and
+`/etc/systemd/system/ollama.service*`.
 
 ## Project tickets
 

@@ -1283,12 +1283,25 @@ model: see DEPLOYMENT.md.
   Name (26.10.158): `mit_settings` ai_helper_name -> `mitAiName()` (letters / digits / space / . - ' only, 30 max, "AI" when empty) - the
   button and panel title "Ask <name>", `data-name` for the panel script and the write-up window, "Your name is <name>." at the start of
   `mitAiSystemPrompt()`; field on the admin page (`[data-mit-ai-name]`, audit-logged). Smoke: "with a name" test in `33-ai-panel.spec.js`.
+  Local embeddings (26.10.159): `functions/mit_ai_local.php` (ours, required from mit_ai_helper.php; no tables) - Ollama on the ITFlow
+  server, installed once as root by `scripts/install_local_ai.sh` (ours; also `install.sh --local-ai`: Ollama's own installer with
+  `--version` / `--upgrade`, a systemd drop-in `ollama.service.d/mountaineerit.conf` - 127.0.0.1 only, one model, keep-alive 30m -, `ollama
+  pull nomic-embed-text`, an embeddings check; its `OLLAMA_PIN` must not be called VERSION - /etc/os-release, sourced, sets that). The web
+  server never installs anything. Card "Local embeddings (this server)" on the admin page (`[data-mit-ai-local]` data-running / -model /
+  -on, buttons `mit_ai_local_on` / `_off` in `admin/post/mit_ai_helper.php`, session closed while it runs): `mitAiLocalStatus` (GET
+  /api/version, /api/tags), `mitAiLocalTurnOn` (POST /api/pull when missing, provider "This server (Ollama)" kind ollama -
+  `mit_settings` ai_local_provider -, an embeddings test, then the helper's embed provider / model; the ones before kept in
+  ai_local_prev_provider / _model), `mitAiLocalTurnOff` (back to those, or keyword only). Address fixed: `mitAiLocalBase()` =
+  127.0.0.1:11434, or `MIT_OLLAMA_BASE` in a test install's config.php (its stand-in `ollama-mock/index.php`, not in the repo:
+  /api/version, /api/tags, /api/pull, /v1/embeddings, `/_state?running=&model=&reset=1`, `/_calls`). Not gated by development mode
+  (it stays on the server). Admin stats `embedded_current` (passages done with the current model). Tests: scenario
+  `scenario-ai-local.php`, smoke `35-ai-local.spec.js`; the install script was only dry-run with stand-in `ollama` / `systemctl`.
   Documents in answers (26.10.157): `mitAiSearch` takes a separate keyword pool of document passages and, by meaning, documents within
   `MIT_AI_DOCUMENT_NEAR` of the best match; matching documents get `MIT_AI_DOCUMENT_SLOTS` kept places and `MIT_AI_DOCUMENT_WEIGHT`
   (thousands of ticket passages pushed them out); the system prompt prefers documents. `mitAiIndexRun` removes sources of archived
-  documents / tickets every run (ITFlow archives with `updated_at = updated_at`, so the pass never saw it) and once an hour
-  `mitAiKeywordIndexOk` (5 random passages found by their own longest word) - `ALTER TABLE mit_ai_chunks FORCE` when not (the test install's
-  FULLTEXT index came back empty after the database stopped uncleanly). Admin page "Documents N of M". Scenario `scenario-ai-documents.php`.
+  documents / tickets every run (ITFlow archives with `updated_at = updated_at`, so the pass never saw it) and, every run (26.10.159 - hourly
+  before), `mitAiKeywordIndexOk` (5 random passages found by their own longest word) - `ALTER TABLE mit_ai_chunks FORCE` when not: after
+  MariaDB stops uncleanly the FULLTEXT index finds nothing, new rows included, until rebuilt (seen twice on the test install; rebuild fixes it). Admin page "Documents N of M". Scenario `scenario-ai-documents.php`.
   Round 3 - Write up (26.10.156): `functions/mit_ai_docs.php` (ours, required from mit_ai_helper.php; no tables). "Write up" in the panel
   header (`[data-mit-ai-writeup]`, Support edit, shown once there is a conversation) opens `agent/modals/mit_ai/document.php` through
   ITFlow's ajax-modal (xl) - ITFlow's `modals/document/document_form.php` inside our form (posts to `/agent/post.php` add_document, ITFlow's

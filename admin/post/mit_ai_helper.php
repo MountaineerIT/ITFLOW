@@ -61,6 +61,23 @@ if (isset($_POST['mit_ai_helper_save']) || isset($_POST['mit_ai_helper_embed_tes
 
 }
 
+if (isset($_POST['mit_ai_local_on']) || isset($_POST['mit_ai_local_off'])) {
+
+    validateCSRFToken();
+
+    // Downloading the model can take a few minutes the first time - don't hold the session meanwhile
+    session_write_close();
+    ignore_user_abort(true);
+    set_time_limit(960);
+    [$ok, $message] = isset($_POST['mit_ai_local_on']) ? mitAiLocalTurnOn() : mitAiLocalTurnOff();
+    session_start();
+    if ($ok) {
+        logAudit("Settings", "Edit", "$session_name " . escapeSql(isset($_POST['mit_ai_local_on']) ? "switched the AI helper's meaning search to this server (Ollama)" : "switched the AI helper's local embeddings off"));
+    }
+    flashAlert(escapeHtml($message), $ok ? 'success' : 'error');
+    redirect();
+}
+
 if (isset($_POST['mit_ai_helper_rebuild'])) {
 
     validateCSRFToken();

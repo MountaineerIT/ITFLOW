@@ -67,6 +67,33 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
                     embeddings model - OpenAI (text-embedding-3-small), Gemini (text-embedding-004), Mistral (mistral-embed) or a local Ollama (nomic-embed-text).
                     Anthropic has none. Without it, keyword search is used.</div>
             </div>
+            <?php $mit_ai_local = mitAiLocalStatus(); ?>
+            <div class="col-12" data-mit-ai-local data-running="<?= $mit_ai_local['running'] ? 1 : 0 ?>" data-model="<?= $mit_ai_local['model'] ? 1 : 0 ?>" data-on="<?= $mit_ai_local['on'] ? 1 : 0 ?>">
+                <div class="border rounded p-3 d-flex flex-wrap align-items-center gap-3">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold"><i class="fas fa-fw fa-server me-1"></i>Local embeddings (this server)
+                            <?php if ($mit_ai_local['on']) { ?><span class="badge text-bg-success ms-1">On</span><?php } ?></div>
+                        <div class="small text-muted">
+                            <?php if (!$mit_ai_local['running']) { ?>
+                                Ollama is not installed or not running here. Install it once from a root shell on this server:
+                                <code class="user-select-all"><?= escapeHtml(MIT_AI_LOCAL_INSTALL) ?></code> - then come back and switch it on.
+                            <?php } else { ?>
+                                Ollama <?= escapeHtml($mit_ai_local['version']) ?> is running here.
+                                <?= $mit_ai_local['model'] ? escapeHtml(MIT_AI_LOCAL_MODEL) . ' is downloaded.' : escapeHtml(MIT_AI_LOCAL_MODEL) . ' is downloaded when you switch it on (about 270 MB).' ?>
+                                Nothing leaves the server, no tokens are paid for.
+                                <?php if ($mit_ai_local['on'] && ($stats['chunks'] ?? 0)) { ?>
+                                    <span data-mit-ai-local-progress><?= number_format($stats['embedded_current'] ?? 0) ?> of <?= number_format($stats['chunks']) ?> passages done with it.</span>
+                                <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                    <?php if ($mit_ai_local['on']) { ?>
+                        <button type="submit" name="mit_ai_local_off" class="btn btn-outline-secondary" data-mit-ai-local-off><i class="fas fa-power-off me-2"></i>Switch off</button>
+                    <?php } elseif ($mit_ai_local['running']) { ?>
+                        <button type="submit" name="mit_ai_local_on" class="btn btn-success" data-mit-ai-local-on><i class="fas fa-power-off me-2"></i>Use this server</button>
+                    <?php } ?>
+                </div>
+            </div>
             <div class="col-md-6">
                 <label class="form-label">Provider</label>
                 <select class="form-select" name="ai_helper_embed_provider">

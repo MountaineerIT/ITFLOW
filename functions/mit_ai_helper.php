@@ -53,6 +53,7 @@ const MIT_AI_PLAIN_VALUES = ['wrong', 'incorrect', 'correct', 'right', 'expired'
 
 require_once __DIR__ . '/mit_ai_ask.php'; // round 2: the Ask AI panel
 require_once __DIR__ . '/mit_ai_docs.php'; // round 3: documents from a conversation
+require_once __DIR__ . '/mit_ai_local.php'; // embeddings on this server (Ollama)
 
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run
@@ -533,13 +534,11 @@ function mitAiIndexRun($budget_seconds = 50) {
         if ($counts['indexed'] || $counts['removed']) {
             $log[] = "Library: {$counts['indexed']} added or updated, {$counts['removed']} taken out" . ($done ? '' : ' (more next run)');
         }
-        // Keyword search still finding what is there? (InnoDB's word index can come back short after an unclean stop - rebuilt then)
-        if (mitSetting('ai_helper_keyword_checked', '') < date('Y-m-d H:i:s', time() - 3600)) {
-            mitSetSetting('ai_helper_keyword_checked', date('Y-m-d H:i:s'));
-            if (!mitAiKeywordIndexOk()) {
-                mysqli_query($mysqli, "ALTER TABLE mit_ai_chunks FORCE");
-                $log[] = 'Keyword index was missing passages - rebuilt' . (mitAiKeywordIndexOk() ? '' : ', still missing some');
-            }
+        // Keyword search still finding what is there? After MariaDB stops uncleanly (a crash, power loss) InnoDB's word index can stop
+        // finding anything - new rows too - until it is rebuilt. A few small queries, so every run.
+        if (!mitAiKeywordIndexOk()) {
+            mysqli_query($mysqli, "ALTER TABLE mit_ai_chunks FORCE");
+            $log[] = 'Keyword index was not finding passages - rebuilt' . (mitAiKeywordIndexOk() ? '' : ', still missing some');
         }
         $embedded = mitAiEmbedPending(max(5, $budget_seconds - (microtime(true) - $started)));
         if ($embedded !== '') {
@@ -582,6 +581,7 @@ function mitAiIndexStats() {
         (SELECT COUNT(*) FROM mit_ai_sources WHERE document_id IS NOT NULL) AS documents,
         (SELECT COUNT(*) FROM mit_ai_chunks) AS chunks,
         (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL) AS embedded,
+        (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL AND embed_model = '" . mysqli_real_escape_string($mysqli, mitAiHelperSettings()['embed_model']) . "') AS embedded_current,
         (SELECT COUNT(*) FROM mit_ai_sources WHERE scrubbed > 0) AS scrubbed_sources,
         (SELECT COUNT(*) FROM documents WHERE document_archived_at IS NULL) AS documents_in_itflow"));
     return array_map('intval', $row) + [

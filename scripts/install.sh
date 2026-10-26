@@ -38,6 +38,7 @@ ADMIN_EMAIL=""
 ADMIN_PASSWORD=""
 AUTO_UPDATE=""
 ASSUME_YES=0
+LOCAL_AI=0
 
 usage() {
     cat <<'EOF'
@@ -62,6 +63,8 @@ Options:
   --admin-password PASS  First admin's password (min 8 chars; asked for if not given)
   --auto-update          Update nightly from the branch (default on for non-production branches)
   --no-auto-update       Don't schedule nightly updates
+  --local-ai             Also install Ollama for the AI helper's local embeddings (scripts/install_local_ai.sh;
+                         at least 3 GB of memory)
   -y, -u, --yes, --unattended
                          Don't ask for confirmation before installing
   -h, --help             Show this help
@@ -136,6 +139,7 @@ while [[ $# -gt 0 ]]; do
         --admin-password)  ADMIN_PASSWORD="${2:?}"; shift 2 ;;
         --auto-update)     AUTO_UPDATE=1; shift ;;
         --no-auto-update)  AUTO_UPDATE=0; shift ;;
+        --local-ai)        LOCAL_AI=1; shift ;;
         -y|-u|--yes|--unattended) ASSUME_YES=1; shift ;;
         -h|--help)         usage; exit 0 ;;
         *) die "unknown option: $1 (see --help)" ;;
@@ -438,6 +442,12 @@ INSERT INTO cron_jobs SET cron_job_name = 'domain_refresher', cron_job_enabled =
     ON DUPLICATE KEY UPDATE cron_job_schedule = 'Interval', cron_job_interval_minutes = 30;
 EOF
 ok "cron installed and switched on$( [[ $AUTO_UPDATE -eq 1 ]] && echo ", nightly update queued at 03:15" )"
+
+# ---------------------------------------------------------------------------- local AI (optional)
+
+if [[ $LOCAL_AI -eq 1 ]]; then
+    bash "$INSTALL_DIR/scripts/install_local_ai.sh" --yes || warn "local embeddings were not set up - run $INSTALL_DIR/scripts/install_local_ai.sh again later"
+fi
 
 # ---------------------------------------------------------------------------- done
 
