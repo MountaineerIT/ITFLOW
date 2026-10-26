@@ -197,14 +197,17 @@ function mitProcAfterQuoteConvert($quote_id, $invoice_id, $client_id, array $pos
     }
     $invoice_items = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_name, item_quantity FROM invoice_items WHERE item_invoice_id = " . intval($invoice_id) . " ORDER BY item_id"), MYSQLI_ASSOC);
     $used = [];
+    // Every one-time line takes its invoice line in order, ticked or not - so two lines with the same name and quantity each get their own
     foreach (billingItems('quote', $quote_id) as $line) {
-        if (empty($post['mit_proc_lines'][intval($line['item_id'])]['send'])) {
-            continue;
+        if ((string) ($line['item_frequency'] ?? '') !== '') {
+            continue; // billed each month / quarter / year: on a recurring invoice (its first period comes after the one-time lines)
         }
         foreach ($invoice_items as $k => $invoice_item) {
             if (!isset($used[$k]) && $invoice_item['item_name'] === $line['item_name'] && (float) $invoice_item['item_quantity'] === (float) $line['item_quantity']) {
                 $used[$k] = true;
-                mitProcFromQuoteLine(intval($line['item_id']), intval($invoice_item['item_id']), intval($invoice_id), intval($client_id), $post);
+                if (!empty($post['mit_proc_lines'][intval($line['item_id'])]['send'])) {
+                    mitProcFromQuoteLine(intval($line['item_id']), intval($invoice_item['item_id']), intval($invoice_id), intval($client_id), $post);
+                }
                 break;
             }
         }
@@ -476,6 +479,28 @@ function mitProductStockTake($product_id, $qty, $note) {
     mitStockMove($product_id, 0 - (float) $qty, (float) $qty > 0 ? 'sold' : 'returned', $note);
 }
 
+/**
+ * How many of a product the ledger shows taken for a ticket's parts and not yet put back (our "Used on ticket <ref>" /
+ * "Returned from ticket <ref>" moves). A part added while the product kept no stock count took nothing, so nothing goes back.
+ */
+function mitTicketPartStockTaken($reference, $product_id) {
+    global $mysqli;
+    $notes = array_map(function ($note) {
+        return "'" . escapeSql($note) . "'";
+    }, ["Used on ticket $reference", "Returned from ticket $reference", "Returned from ticket $reference (part changed)"]);
+    $net = 0 - (float) mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(stock_qty), 0) FROM product_stock
+        WHERE stock_product_id = " . intval($product_id) . " AND stock_note IN (" . implode(',', $notes) . ")"))[0];
+    return max(0, round($net, 2));
+}
+
+/** Put back what a part took from stock - at most what the ledger shows taken for the ticket. */
+function mitTicketPartStockReturn($reference, $product_id, $qty, $note) {
+    $back = min((float) $qty, mitTicketPartStockTaken($reference, $product_id));
+    if ($back > 0) {
+        mitProductStockTake($product_id, -$back, $note);
+    }
+}
+
 /** May the signed-in agent see what we pay (costs on ticket parts)? Procurement or Sales access. */
 function mitPartsSeeCost() {
     return mitProcLevel() >= 1 || lookupUserPermission('module_sales') >= 1;
@@ -553,7 +578,7 @@ function mitTicketPartSave(array $ticket, array $post, $part_id = 0) {
         // only the difference in quantity moves, so a price change writes nothing to the stock record)
         $same_stock = $old['source'] === 'stock' && $source === 'stock' && intval($old['product_id']) === $product_id;
         if ($old['source'] === 'stock' && !$same_stock) {
-            mitProductStockTake($old['product_id'], -$old['quantity'], "Returned from ticket $reference (part changed)");
+            mitTicketPartStockReturn($reference, $old['product_id'], $old['quantity'], "Returned from ticket $reference (part changed)");
         }
         if ($old['source'] === 'order' && $old['proc_status'] === 'waiting' && $source !== 'order') {
             mysqli_query($mysqli, "UPDATE mit_procurement_items SET status = 'cancelled' WHERE item_id = " . intval($old['proc_item_id']));
@@ -606,7 +631,7 @@ function mitTicketPartRemove(array $ticket, $part_id) {
         return [false, 'That part is on a purchase order - take it off the PO first.'];
     }
     if ($part['source'] === 'stock') {
-        mitProductStockTake($part['product_id'], -$part['quantity'], 'Returned from ticket ' . ticketReference($ticket));
+        mitTicketPartStockReturn(ticketReference($ticket), $part['product_id'], $part['quantity'], 'Returned from ticket ' . ticketReference($ticket));
     }
     if ($part['source'] === 'order' && $part['proc_status'] === 'waiting') {
         mysqli_query($mysqli, "UPDATE mit_procurement_items SET status = 'cancelled' WHERE item_id = " . intval($part['proc_item_id']));
@@ -728,10 +753,16 @@ function mitTicketPartsDeleting($ticket_id) {
     if (!$ticket_id || !mitTicketPartsReady()) {
         return;
     }
+    $ticket = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_prefix, ticket_number FROM tickets WHERE ticket_id = $ticket_id"));
+    if (!$ticket) {
+        return;
+    }
+    $reference = ticketReference($ticket);
     $result = mysqli_query($mysqli, "SELECT product_id, quantity FROM mit_ticket_parts
         WHERE ticket_id = $ticket_id AND source = 'stock' AND invoice_id = 0 AND product_id > 0");
     while ($part = mysqli_fetch_assoc($result)) {
-        mitProductStockTake($part['product_id'], -$part['quantity'], "Returned - ticket $ticket_id was deleted");
+        // Notes say "Returned from ticket <ref>" so the ledger still nets out per ticket
+        mitTicketPartStockReturn($reference, $part['product_id'], $part['quantity'], "Returned from ticket $reference (ticket deleted)");
     }
 }
 

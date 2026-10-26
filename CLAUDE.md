@@ -1194,6 +1194,29 @@ model: see DEPLOYMENT.md.
   numbers). Every day asks "I could not take a rest break this day": California days as before (rest premium); other days via
   `mitTsRestMissedSave` (functions/mit_ts_california.php, mit_ts_days rest_missed, own day only, from `mit_timesheet_ajax.php` save_day)
   - a record: `rest_missed` in `mitTsViewDays`, chip "Rest break missed", payroll detail row "Rest break". Smoke `31-rest-breaks.spec.js`.
+- Full functional test (Oct 26, 26.10.152 - 4 testers, one area each on its own copy of the test install, data checked). Hooks added in
+  ITFlow files: `agent/post/ticket.php` - `mitReplyTimesFlash()` after add_ticket_reply's "Reply added" flash (flashAlert keeps one message,
+  so `mitReplyTimesWarn` keeps the time warning in `$GLOBALS['mit_reply_times_warning']` and adds it back), `mitNotifyOn('assign_app')` guards
+  on add_ticket / edit_ticket ticketNotifyAgent and bulk_assign's notification INSERT, `mitTsKeepPublicNotes($ticket_id)` before
+  change_client_ticket turns public replies Internal (M043 `mit_reply_was_public`: reply_id PK FK ticket_replies CASCADE - such notes still
+  count as public for timesheets: `mitTsPublicNotesSql()` in mitTsReplyWorkRowsRead / mitTsDeleteBlocked, `mitTsReplyTimeGuard`; also called
+  by mitDispatchSaveDetails), `mitScheduleNotifyFromPost` moved before the lead change in edit_ticket_schedule; `functions/calendar.php`
+  tickets source WHERE = `mitScheduleOverlapSql($from, $to)` (functions/mit_calendar.php - a booking from the day before the range that
+  runs into it; also helper bookings with MIT_HELPER_END_SQL). Ours: a booking's email ticks kept per ticket (M042
+  `mit_ticket_schedule_notify`: ticket_id PK FK tickets CASCADE, choice JSON - `mitScheduleChoice` stores the posted choice and reads it
+  back for later moves / cancels, `mitScheduleKeptReady`); Dispatch's book = `mitDispatchBookFromDialog` (`mitDispatchBookProblem` before
+  `mitDispatchSaveDetails`, so a refused booking changes nothing); lead-invite duplicate check matches the ticket's own UID; booking
+  addresses fall back to the contact's location (mit_ticket_techs, mit_outlook); `stripslashes($session_name)` wherever ours writes the
+  name into text that is escaped again (no-response [Agent], internal-note notices, admin handlers' logs); no-response mails watchers
+  without a contact address (`to_contact`); Customer Thermometer skips merged tickets (ticket_history "merged this ticket into");
+  the SLA picker refuses project tickets; `mitTsLocalDate` moves a reply forward to the zone's start only onto a submitted / approved day;
+  `mitReimbClosedDay` (approval off, payroll mode: a trip / paid-personally expense can't be dated into a period already closed);
+  `mitModuleRequire` sets the footer's titles; `mitProcAfterQuoteConvert` lets every one-time quote line take its invoice line in order
+  (only ticked ones go to procurement); ticket-part stock returns (`mitTicketPartRemove`, a part changed off a product,
+  `mitTicketPartsDeleting`) go through `mitTicketPartStockReturn` - at most what the ledger shows taken for the ticket
+  (`mitTicketPartStockTaken`: our "Used on ticket <ref>" / "Returned from ticket <ref>[ (part changed)]" moves). Tests from it: smoke
+  40, 42-48 (`db.js`), 50-53 (`t2db.js`), 60-64 (`mitdb.js`), 70-75; scenarios scenario-boards / -helpers / -no-response / -parser-boards /
+  -picks-project / -sched-* / -ts-* / -cron-watch / -dev-mode-mail / -procurement-flow / -qbo-flow / -quote-* / -usage (+ fixture-hourly.php).
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
