@@ -46,6 +46,24 @@ function mitRoleModuleInfo() {
     ];
 }
 
+/**
+ * Have our database updates run (mit_settings and mit_database_updates exist)? Not yet for a short while after an install or a
+ * restore - our cron jobs then wait (cronJobStop, recorded as Stopped, not Failed); the consistency check reports it if it lasts.
+ */
+function mitDbReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME IN ('mit_settings', 'mit_database_updates')"))[0]) === 2;
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
+}
+
 /** Does an ITFlow table have this column (a newer ITFlow added it)? Once per request. */
 function mitColumnReady($table, $column) {
     global $mysqli;

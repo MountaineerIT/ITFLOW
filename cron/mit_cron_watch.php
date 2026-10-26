@@ -26,6 +26,11 @@ if (intval($row['config_enable_cron']) === 0) {
     cronJobStop("Cron: is not enabled -- Quitting..");
 }
 
+// Mountaineer IT: our tables are not there yet (just installed or restored, database updates still to run) - wait, don't fail
+if (!mitDbReady()) {
+    cronJobStop('Waiting for the Mountaineer IT database updates (after an install or a restore)');
+}
+
 // Secrets still under the old derived key move to config.php's key (mitUpgradeSecrets) - this job always runs, the
 // Outlook one only with Microsoft 365 set up; once a day is plenty
 try {

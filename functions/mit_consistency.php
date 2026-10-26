@@ -56,6 +56,9 @@ function mitConsistencyDatabase(callable $add) {
     if (defined('LATEST_DATABASE_VERSION') && defined('CURRENT_DATABASE_VERSION') && version_compare(CURRENT_DATABASE_VERSION, LATEST_DATABASE_VERSION, '<')) {
         $add('Database', 'fail', 'ITFlow\'s database is ' . CURRENT_DATABASE_VERSION . ' but the code expects ' . LATEST_DATABASE_VERSION . ' - run php scripts/update_cli.php --update_db.');
     }
+    if (!mitConsistencyTable('mit_settings')) {
+        $add('Database', 'fail', 'Our settings table (mit_settings) is missing - our database updates have not run (our cron jobs wait for them). Run php scripts/update_cli.php --update_db.');
+    }
     if (mitConsistencyTable('mit_database_updates')) {
         $done = array_flip(array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT mit_update_name FROM mit_database_updates")), 0));
         $missing = [];

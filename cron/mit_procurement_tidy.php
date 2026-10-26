@@ -25,6 +25,11 @@ if (intval($row['config_enable_cron']) === 0) {
     cronJobStop("Cron: is not enabled -- Quitting..");
 }
 
+// Mountaineer IT: our tables are not there yet (just installed or restored, database updates still to run) - wait, don't fail
+if (!mitDbReady()) {
+    cronJobStop('Waiting for the Mountaineer IT database updates (after an install or a restore)');
+}
+
 foreach (mitProcTidy() as $mit_tidy_line) {
     echo "$mit_tidy_line\n";
 }

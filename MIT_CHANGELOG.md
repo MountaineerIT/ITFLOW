@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.146 - 2026-10-26
+- Our cron jobs now wait quietly (shown as Stopped) in the minutes after an install or a restore, before our database updates have run, instead of failing with "Table 'mit_settings' doesn't exist". The daily Consistency Check fails if our updates still haven't run.
+
 ## 26.10.145 - 2026-10-26
 - The stock-ITFlow portability check now tells our own columns apart from ones neither ITFlow nor our updates made (added by hand or by another tool) - such a required column is reported as "Unknown column" and also breaks ITFlow's own forms today.
 

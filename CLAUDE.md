@@ -48,6 +48,9 @@ model: see DEPLOYMENT.md.
   Cron Watch emails), the portability check and the smoke tests (`MIT_VERIFY_SKIP_SMOKE=1` for the read-only part). Run it after every
   upstream merge and before every "Promote to production", and report the result. A new seam between our data and ITFlow's gets a check
   in mit_consistency.php; a new hook in an ITFlow file means `--update`.
+  Our cron jobs (`cron/mit_*.php`, all but mit_consistency) stop quietly while `mitDbReady()` (mit_common: mit_settings and
+  mit_database_updates exist) is false - the minutes after an install or a restore before our updates run - instead of failing
+  ("Table mit_settings doesn't exist"); the consistency check FAILs if that lasts. A new cron job of ours gets the same guard.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
