@@ -1079,7 +1079,28 @@ model: see DEPLOYMENT.md.
     `[data-mit-reimb-body]`; `agent/js/mit_ticket_layout.js` (before naming boxes) moves the list into ITFlow's `.itflow-ticket-trips`
     above its footer (`[data-mit-reimb-in-trips]`, title "Trips & purchases") and the Add a purchase button (`[data-mit-reimb-add]`)
     beside Log a trip, then removes our card; without a Trips box our card stays (layout 'reimburse'). Nothing logged on a client ticket
-    = no card, only a hidden carrier for the button. Our mileage entries whose trip ITFlow lists on the ticket are left out of our list.
+    = no card, only a hidden carrier for the button. Our mileage lines carry `data-mit-reimb-trip`; the script removes ITFlow's line for
+    the same trip (ours has Change) and sets the title badge to every line in the box.
+    26.10.143 (deep dive - one list for everything, user's choice: expenses entered in ITFlow as paid personally go on payroll too):
+    `mitReimbItems($user_ids, $from, $to)` is the single list behind the timesheet box (`mitReimbItemHtml`), `mitReimbTotals`, the payroll
+    report (columns + detail export), `mitReimbState` and approval - own-vehicle trips (claimed = their share of the mileage expense, else
+    miles x `mitReimbSettings()` rate), paid-personally expenses with a vendor (ours via expense_id, or entered in Expenses), our purchases
+    not recorded yet, and pre-26.11 mileage entries (no own-vehicle trip - paid with payroll as before). States via `mitReimbItemFinish`;
+    anything paid back in ITFlow outside payroll is `owed` false (not in Reimburse; report column "Paid in ITFlow", struck through on the
+    timesheet). Approval: `mitReimbPayrollProblem` (one guarded line at the start of `mitTsDecideNow` approve - no account / no rate =
+    refused before anything is written), then `mitReimbPayrollClose` pays exactly the list under `mitReimbAsAdmin` (the approver's client /
+    Financial scope lifted; cron has no session) and remembers the mileage expenses it made (`mit_settings` ts_payroll_made_<reimbursement>);
+    reopen: `mitReimbPayrollUndoProblem` (reconciled = refused, guarded line in `mitTsReopenNow`), `mitReimbPayrollUndo` removes every
+    payroll reimbursement of the sheet and only the mileage expenses it made (`expenseDelete`). Approval off: `mitReimbRecordEnded` closes each
+    settled period once (`ts_payroll_closed_<user>_<start>`, problems logged once a day). Guards, one guarded line each in ITFlow's files:
+    `functions/expenses.php` expenseSave / expenseDelete (`mitReimbExpenseWhyLocked` - paid through payroll) and reimbursementDelete
+    (`mitReimbReimbursementWhyLocked`; `$GLOBALS['mit_reimb_undoing']` lets our reopen through); `agent/post/trip.php` add_trip / edit_trip /
+    delete_trip / bulk edit (driver, vehicle) / bulk delete (`mitReimbTripWhyLocked` - an own-vehicle trip paid through payroll, or on a
+    submitted / approved day of the driver's timesheet). Purchases always become expenses while ITFlow pays back (category optional -
+    "- None -"; Accounting switch not needed), described "Paid by <name>: ...", reference "Ticket purchase <id>". One mileage rate: Admin >
+    Timesheets saves ours and ITFlow's `config_mileage_rate` (ITFlow's Log a trip offers "In their own vehicle" only while that is set;
+    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). Labels follow ITFlow: "Trips > To pay back", "Expenses >
+    To reimburse"; boxes "Mileage and purchases" (timesheet), "Mileage & purchases" (ticket, standalone). Smoke `29-payroll-payback.spec.js`.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
     with Save. ITFlow's statuses colour through `--itflow-status-bg` (js/mit_theme.js tints those too). The portal has almost no tables now.

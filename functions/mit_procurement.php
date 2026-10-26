@@ -110,6 +110,10 @@ function mitProcNumber($value) {
 /** Money in the company currency. */
 function mitMoney($amount) {
     global $currency_format, $session_company_currency;
+    // Outside a page (cron, scripts) there is no formatter - ITFlow's own billingMoney then
+    if (!$currency_format instanceof NumberFormatter) {
+        return billingMoney((float) $amount, $session_company_currency ?: '');
+    }
     return numfmt_format_currency($currency_format, (float) $amount, $session_company_currency);
 }
 

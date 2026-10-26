@@ -308,13 +308,13 @@ break stock ITFlow, and lists what stops working after a move.
   Admin > Roles keeps an unused "Dispatch" permission (`module_dispatch` row, M035) – harmless; delete the row if wanted.
 - **Module switches** for Procurement, Timesheets and Dispatch (Settings > Modules) – stored in
   `mit_settings` (`module_*`), unused by stock ITFlow.
-- **Reimbursements** (mileage and purchases logged on tickets) – the ticket's Reimbursements box, the
-  timesheet list and the payroll columns go; the entries stay in `mit_reimbursements` and receipts in
-  `uploads/mit_receipts/`. Export the payroll report first. The ITFlow trips (mileage, marked as driven in
-  their own vehicle) and expenses (approved purchases, paid personally) they made are ordinary ITFlow records
-  and stay - stock ITFlow 26.11 pays them back the same way (Trips > To pay back, Expenses > Reimburse).
-  Those already paid with payroll (approved timesheets) are ITFlow reimbursements with a "Payroll - timesheet ..."
-  reference; after a move nothing marks new ones paid on approval - pay them back in ITFlow instead.
+- **Mileage and purchases** (logged on tickets, paid with payroll) – the ticket's purchase lines, the timesheet's
+  "Mileage and purchases" list and the payroll columns go; the entries stay in `mit_reimbursements` and receipts in
+  `uploads/mit_receipts/`. Export the payroll report first. The ITFlow trips (driven in their own vehicle) and
+  expenses (purchases, paid personally) are ordinary ITFlow records and stay - stock ITFlow 26.11 pays them back
+  itself (Trips > To pay back, Expenses > To reimburse). Those already paid with payroll are ITFlow reimbursements
+  with a "Payroll - timesheet ..." reference; after a move nothing marks new ones paid on approval - pay them back
+  in ITFlow instead, and our guards go (ITFlow can then change or undo a payroll-paid trip, expense or reimbursement).
 - **Ticket parts** – the Parts box is ours (`mit_ticket_parts`); parts already billed are ordinary
   invoice lines and stay. A product's vendor and cost are ITFlow's own fields (26.11) and stay.
 - **Additional agents on tickets** – stock ITFlow keeps only the assigned agent. The others, their

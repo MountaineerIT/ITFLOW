@@ -180,8 +180,11 @@ test('mileage and a purchase on the ticket: one Trips & purchases box, paid with
     const inTrips = trips.locator('[data-mit-reimb-in-trips]');
     await expect(inTrips).toContainText('Smoke test cable');
     await expect(inTrips).toContainText('$23.45');
-    await expect(inTrips, 'mileage only in ITFlow\'s list').not.toContainText('12.5 mi');
-    await expect(inTrips.locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
+    // Our mileage line (with Change) stays; ITFlow's own line for the same trip is taken out - listed once
+    const ours = inTrips.locator('[data-mit-reimb-trip]');
+    await expect(ours, 'our mileage line').toContainText('12.5 mi');
+    await expect(trips.locator(`a[data-modal-url$="trip.php?id=${await ours.first().getAttribute('data-mit-reimb-trip')}"]`), 'not twice').toHaveCount(0);
+    await expect(inTrips.locator('.list-group-item', { hasText: 'Smoke test cable' }).locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
 
     // The trip waits under Trips > To pay back until the timesheet is approved
     await visit(page, 'agent/trips.php?show=to_pay');
@@ -385,7 +388,7 @@ test.afterAll(async ({ browser }) => {
             const id = new URL(url, page.url()).searchParams.get('id');
             await action(page, `mit_reimb_delete=${id}`, ticketUrl());
         }
-        // Mileage is listed by ITFlow's Trips box, not ours - its entry is removed from the timesheet's list
+        // Entries are also on the timesheet's list - whatever the ticket page left
         await page.goto('agent/mit_timesheet.php');
         for (const url of await page.locator('.list-group-item', { hasText: made.ticketName }).locator('[data-modal-url*="mit_reimburse/reimburse.php?id="]').evaluateAll((els) => els.map((e) => e.dataset.modalUrl))) {
             const id = new URL(url, page.url()).searchParams.get('id');

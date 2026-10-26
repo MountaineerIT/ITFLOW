@@ -1811,6 +1811,10 @@ function mitTsDecideNow(array $sheet, array $period, $decision, $note = '') {
         if ($waiting) {
             return [false, 'Another of their timesheets (from before the pay period change) holds ' . date('M j', strtotime(array_key_first($waiting))) . ' and is waiting for approval - approve it or send it back first.'];
         }
+        // Payroll pays what they paid personally: it must be able to (an account, a rate) before anything is written
+        if (function_exists('mitReimbPayrollProblem') && ($why = mitReimbPayrollProblem($sheet['user_id'], $period)) !== '') {
+            return [false, $why];
+        }
         mitTsFillClosures($sheet['user_id'], $period);
         $sheet = mitTsSheetSaved($sheet['user_id'], $period);
         mitTsSnapshotTickets($sheet['user_id'], $period);
@@ -1857,6 +1861,10 @@ function mitTsReopenNow(array $sheet, array $period) {
     global $mysqli;
     if ($sheet['status'] !== 'approved') {
         return [false, 'Only an approved timesheet can be reopened.'];
+    }
+    // Its payroll payment must be undone with it - not when that payment is on a reconciled statement
+    if (function_exists('mitReimbPayrollUndoProblem') && ($why = mitReimbPayrollUndoProblem($sheet['user_id'], $period, $sheet['sheet_id'])) !== '') {
+        return [false, $why];
     }
     // The copies go (live again) - except on days another approved timesheet holds (from before a pay period change)
     $others = mitTsLockedDates($sheet['user_id'], $period['start'], $period['end'], ['approved'], $period['start']);

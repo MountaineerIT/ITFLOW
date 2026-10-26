@@ -307,6 +307,9 @@ function expenseSave(array $in, $expense_id = 0, &$error = '') {
         $error = 'That is money paid back to ' . $existing['reimbursed_to_name'] . ' - undo the reimbursement to change it';
         return 0;
     }
+    if ($existing && function_exists('mitReimbExpenseWhyLocked') && ($error = mitReimbExpenseWhyLocked($existing)) !== '') { // Mountaineer IT: paid through payroll
+        return 0;
+    }
 
     $date = trim((string) ($in['date'] ?? ''));
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !checkdate(intval(substr($date, 5, 2)), intval(substr($date, 8, 2)), intval(substr($date, 0, 4)))) {
@@ -444,6 +447,9 @@ function expenseDelete($expense_id, &$error = '') {
     }
     if ($row['reimbursement_out_id']) {
         $error = 'That is money paid back to ' . $row['reimbursed_to_name'] . ' - undo the reimbursement instead';
+        return null;
+    }
+    if (function_exists('mitReimbExpenseWhyLocked') && ($error = mitReimbExpenseWhyLocked($row)) !== '') { // Mountaineer IT: paid through payroll
         return null;
     }
     $expense_id = intval($row['expense_id']);
@@ -1617,6 +1623,9 @@ function reimbursementDelete($reimbursement_id, &$error = '') {
         return null;
     }
     if (!reconcileCheckDelete('expense', $row['reimbursement_expense_id'], $error)) {
+        return null;
+    }
+    if (function_exists('mitReimbReimbursementWhyLocked') && ($error = mitReimbReimbursementWhyLocked($row)) !== '') { // Mountaineer IT: a timesheet's payroll payment
         return null;
     }
     $id = intval($row['reimbursement_id']);

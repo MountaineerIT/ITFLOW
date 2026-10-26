@@ -4,6 +4,18 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.143 - 2026-10-26
+- Mileage and purchases, checked end to end against ITFlow's own trips, expenses and pay-back screens. The timesheet, the payroll report and approval now all work from one list, so what the report says is owed is exactly what approval marks paid.
+- Fix: something already paid back in ITFlow (Trips > Pay Mileage, Expenses > To reimburse) was still counted in the payroll total and could be paid twice. It now shows as "Paid back in ITFlow" (struck through on the timesheet, in its own "Paid in ITFlow" column on the report) and is left out of Reimburse.
+- Expenses an accountant enters in Expenses as paid personally by a tech now go on that tech's timesheet and payroll too (before, approval marked them paid without them ever being in the report).
+- Fix: an approver who can't see every client (or the hourly job, with approval off) paid only part of a period. Approval now pays all of it.
+- Approving is refused, with a clear message, when there is something to pay but no "Payroll pays from account" or mileage rate - instead of half-paying it. Reopening is refused when the payroll payment is on a reconciled statement, and now removes only what approval made (a mileage expense an accountant made stays).
+- ITFlow now refuses to change, delete or undo a trip, expense or reimbursement that payroll paid (reopen the timesheet instead), and to add, move or change own-vehicle trips on a day of a submitted or approved timesheet.
+- One mileage rate: saving it in Admin > Timesheets also sets ITFlow's "Paid back a mile" - without it, Log a trip has no "In their own vehicle" switch, so trips were never paid. The page warns while it or the payroll account is missing.
+- With approval off, each ended period is paid through payroll once (it re-ran every hour).
+- Labels match ITFlow's: "Trips > To pay back", "Expenses > To reimburse"; the timesheet box is "Mileage and purchases"; a purchase's expense reads "Paid by <name>" (not "Reimbursed to") until it is paid; the Trips & purchases box counts every line; mileage logged on a ticket is listed once there and can be changed from it.
+- Purchases always become ITFlow expenses when the timesheet is approved (the category is optional now - "Don't record them" left them unpaid).
+
 ## 26.10.142 - 2026-10-25
 - Tickets: trips and purchases share one box, "Trips & purchases" (ITFlow's Trips box) - with "Add a purchase" beside "Log a trip". The separate Reimbursements box is gone when nothing has been bought, and shows on its own only on a ticket without a Trips box.
 

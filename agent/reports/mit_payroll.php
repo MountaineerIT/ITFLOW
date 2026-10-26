@@ -77,15 +77,15 @@ $any_ca = count(array_filter($totals, function ($t) {
 })) > 0;
 foreach ($people as $user_id => $person) {
     $t = $totals[$user_id];
-    $r = $reimb[$user_id] ?? ['miles' => 0, 'mileage' => 0, 'purchases' => 0, 'total' => 0, 'count' => 0];
-    if (!$t['total'] && !$r['count'] && !$agent_id) {
+    $r = $reimb[$user_id] ?? ['miles' => 0, 'mileage' => 0, 'purchases' => 0, 'total' => 0, 'count' => 0, 'elsewhere' => 0];
+    if (!$t['total'] && !$r['count'] && !$r['elsewhere'] && !$agent_id) {
         continue;
     }
     $details = mitTsPerson($user_id);
     $row = ['user_id' => $user_id, 'person' => $person['user_name'], 'email' => $person['user_email'], 'avatar' => $person['user_avatar'] ?? '',
         'employee_id' => $details['employee_id'], 'pay_type' => MIT_TS_PAY_TYPE_SHORT[$details['pay_type']] ?? 'Hourly',
         'regular' => $t['regular'] * 60, 'overtime' => $t['overtime'] * 60, 'auto_lost' => $t['auto_lost'] * 60, 'break_paid' => $t['break_paid'] * 60,
-        'miles' => $r['miles'], 'mileage' => $r['mileage'], 'purchases' => $r['purchases'], 'reimburse' => $r['total'],
+        'miles' => $r['miles'], 'mileage' => $r['mileage'], 'purchases' => $r['purchases'], 'reimburse' => $r['total'], 'elsewhere' => $r['elsewhere'],
         'billable' => $t['billable'] * 60, 'other' => $t['other'] * 60, 'work' => $t['work'] * 60, 'worked' => $t['worked'] * 60, 'leave' => $t['leave'] * 60,
         'unpaid' => $t['unpaid'] * 60, 'paid' => $t['paid'] * 60, 'total' => $t['total'] * 60, 'lost' => $t['lost'] * 60,
         'share' => $t['worked'] ? round($t['billable'] / $t['worked'] * 100, 1) : null,
@@ -131,15 +131,18 @@ $columns += [
     'rest_premium' => ['label' => 'Rest premium', 'type' => 'decimal', 'decimals' => 0, 'screen' => $any_ca, 'csv' => $any_ca ? null : false, 'title' => 'Hours of premium pay owed for days a rest break could not be taken (at the regular rate)'],
     'share' => ['label' => 'Billable %', 'type' => 'percent'],
 ];
-// Reimbursements logged on tickets (functions/mit_reimbursements.php) - shown when there are any
-$any_reimb = array_sum(array_column($reimb, 'count')) > 0;
+// Mileage and purchases people paid for themselves (functions/mit_reimbursements.php, mitReimbItems) - shown when there are any
+$any_reimb = array_sum(array_column($reimb, 'count')) > 0 || array_sum(array_column($reimb, 'elsewhere')) > 0;
+$reimb_itflow = mitReimbItflowPaysBack() && !mitReimbViaPayroll(); // paid back in ITFlow, not with payroll: shown for reference
 $columns += [
-    'miles' => ['label' => 'Miles', 'type' => 'decimal', 'decimals' => 1, 'screen' => $any_reimb, 'title' => 'Miles logged on tickets'],
-    'mileage' => ['label' => 'Mileage', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Miles at the rate each was logged at'],
-    'purchases' => ['label' => 'Purchases', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Things bought for tickets and paid for by the person'],
-    'reimburse' => mitReimbItflowPaysBack() && !mitReimbViaPayroll()
-        ? ['label' => 'Paid back in ITFlow', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Mileage plus purchases - paid back through ITFlow (Trips, Expenses > Reimburse), not with this payroll']
-        : ['label' => 'Reimburse', 'type' => 'money', 'screen' => $any_reimb, 'class' => 'fw-semibold', 'title' => 'Mileage plus purchases - paid back with this payroll'],
+    'miles' => ['label' => 'Miles', 'type' => 'decimal', 'decimals' => 1, 'screen' => $any_reimb, 'title' => 'Miles driven in their own vehicle (trips, and mileage logged on tickets)'],
+    'mileage' => ['label' => 'Mileage', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'The miles at the mileage rate - or what was paid, once paid'],
+    'purchases' => ['label' => 'Purchases', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'What they paid for themselves - purchases on tickets and expenses paid personally'],
+    'reimburse' => $reimb_itflow
+        ? ['label' => 'To pay back in ITFlow', 'type' => 'money', 'screen' => $any_reimb, 'title' => 'Mileage plus purchases - paid back in ITFlow (Trips > To pay back, Expenses > To reimburse), not with this payroll']
+        : ['label' => 'Reimburse', 'type' => 'money', 'screen' => $any_reimb, 'class' => 'fw-semibold', 'title' => 'Mileage plus purchases - to pay with this payroll (anything already paid back in ITFlow is left out)'],
+    'elsewhere' => ['label' => 'Paid in ITFlow', 'type' => 'money', 'screen' => !$reimb_itflow && array_sum(array_column($reimb, 'elsewhere')) > 0,
+        'title' => 'Already paid back in ITFlow (Trips or Expenses) before payroll - not in Reimburse, not to pay again'],
 ];
 foreach ($banks as $bank_id => $bank) {
     $columns["bank_$bank_id"] = ['label' => $bank['bank_name'] . ' left', 'type' => 'hours', 'decimals' => 2, 'title' => $bank['bank_name'] . ' balance at the end of these dates'];
@@ -163,8 +166,7 @@ if (reportExporting('detail')) {
     // The days carry ticket and unaccounted time; the entries are read again only for their notes
     $all_days = mitTsDays(array_keys($people), $from, $to);
     $entries = mitTsEntries(array_keys($people), $from, $to);
-    $reimb_rows = mitReimbOn() ? mitReimbForUsers(array_keys($people), $from, $to) : [];
-    $reimb_trips = mitReimbOn() ? mitReimbItflowTrips(array_keys($people), $from, $to) : [];
+    $reimb_items = mitReimbOn() ? mitReimbItems(array_keys($people), $from, $to) : [];
     $all_ca_days = mitTsCaDays(array_keys($people), $from, $to);
     foreach ($people as $user_id => $person) {
         $days = [];
@@ -216,13 +218,10 @@ if (reportExporting('detail')) {
                     'paid' => intval($code['code_paid']) ? 'Yes' : 'No', 'hours' => $entry['minutes'] * 60, 'note' => (string) $entry['note']];
             }
         }
-        foreach ($reimb_rows[$user_id] ?? [] as $entry) {
-            $days[] = ['date' => $entry['entry_date'], 'code' => ($entry['kind'] === 'mileage' ? 'Mileage' : 'Purchase') . ' - ' . mitReimbTicketText($entry),
-                'kind' => 'Reimbursement', 'paid' => mitReimbItflowPaysBack() && !mitReimbViaPayroll() ? 'In ITFlow' : 'Payroll', 'hours' => null, 'amount' => (float) $entry['amount'], 'note' => mitReimbWhat($entry)];
-        }
-        foreach ($reimb_trips[$user_id] ?? [] as $trip) {
-            $days[] = ['date' => $trip['trip_date'], 'code' => 'Mileage - Trips', 'kind' => 'Reimbursement', 'paid' => mitReimbViaPayroll() ? 'Payroll' : 'In ITFlow', 'hours' => null,
-                'amount' => (float) $trip['value'], 'note' => rtrim(rtrim(number_format((float) $trip['trip_miles'], 1), '0'), '.') . ' mi ' . trim((string) $trip['trip_purpose'])];
+        foreach ($reimb_items[$user_id] ?? [] as $item) {
+            $days[] = ['date' => $item['date'], 'code' => ($item['kind'] === 'mileage' ? 'Mileage' : 'Purchase') . ' - ' . $item['where'], 'kind' => 'Reimbursement',
+                'paid' => !$item['owed'] ? 'Paid in ITFlow' : ($reimb_itflow && $item['source'] !== 'entry' ? 'In ITFlow' : 'Payroll'), 'hours' => null,
+                'amount' => $item['owed'] ? $item['amount'] : 0.0, 'note' => $item['what'] . ' - ' . $item['state'][0]];
         }
         usort($days, function ($a, $b) {
             return [$a['date'], $a['code']] <=> [$b['date'], $b['code']];
@@ -286,7 +285,7 @@ $with_hours = array_values(array_filter($rows, function ($r) {
             'sub' => '<span class="text-body-tertiary">' . escapeHtml(reportHours($sum['regular'] * 60, 2)) . ' h regular</span>']] : [])
         + ($approval ? [6 => ['label' => 'Not approved', 'value' => reportCount($not_approved), 'tone' => $not_approved ? 'warning' : 'success',
             'sub' => '<span class="text-body-tertiary">' . ($not_approved ? 'people with a period still open' : 'Every timesheet approved') . '</span>', 'url' => '/agent/mit_timesheets.php?start=' . $from]] : [])
-        + ($any_reimb ? [7 => ['label' => mitReimbItflowPaysBack() && !mitReimbViaPayroll() ? 'Paid back in ITFlow' : 'Reimburse', 'value' => reportMoney(array_sum(array_column($rows, 'reimburse'))),
+        + ($any_reimb ? [7 => ['label' => $reimb_itflow ? 'To pay back in ITFlow' : 'Reimburse', 'value' => reportMoney(array_sum(array_column($rows, 'reimburse'))),
             'sub' => escapeHtml(rtrim(rtrim(number_format(array_sum(array_column($rows, 'miles')), 1), '0'), '.')) . ' <span class="text-body-tertiary">miles, plus purchases</span>']] : [])) ?>
 
     <?php if ($with_hours) { ?>

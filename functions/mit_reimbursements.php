@@ -21,7 +21,7 @@
  *
  * Who: anyone who can edit the ticket logs their own; the person, or someone who may correct their timesheet,
  * changes or removes one while the period is open (mitTsWhyLocked). Follows the Timesheets switch.
- * Pages: the Reimbursements box on the ticket (mitReimbTicketCard, layout box "reimburse", icon fa-receipt),
+ * Pages: the Mileage & purchases box on the ticket (mitReimbTicketCard, layout box "reimburse", icon fa-receipt - joined into ITFlow's Trips box),
  * modal agent/modals/mit_reimburse/reimburse.php, handlers agent/post/mit_reimbursements.php, receipts served
  * by agent/mit_receipt.php from uploads/mit_receipts/.
  */
@@ -66,7 +66,7 @@ function mitReimbItflowPaysBack() {
 /**
  * Paid back with payroll (mit_settings ts_payback 'payroll', the default) rather than through ITFlow's own pay-back screens ('itflow').
  * Either way the entries are ITFlow trips / paid-personally expenses; with payroll, approving the period closes them off as paid
- * through payroll (mitReimbPayrollClose) so they never wait in Trips > To pay back or Expenses > Reimburse.
+ * through payroll (mitReimbPayrollClose) so they never wait in Trips > To pay back or Expenses > To reimburse.
  */
 function mitReimbViaPayroll() {
     return mitReimbItflowPaysBack() && (string) mitSetting('ts_payback', 'payroll') !== 'itflow';
@@ -78,77 +78,171 @@ function mitReimbPayrollReference($sheet_id, array $period) {
 }
 
 /**
- * Approving a period (or, with approval off, once it has settled): the person's own-vehicle trips and paid-personally expenses in
- * it are paid through payroll - the trips claimed as mileage expenses at the rate (ITFlow's tripClaim), then everything reimbursed
- * in one go from the payroll account (ITFlow's expenseReimburse, reference mitReimbPayrollReference). Returns a line for the
- * message ('' when there was nothing).
+ * Run $fn with the client and Financial limits of the signed-in agent lifted: paying a period back must cover everything in it
+ * (ITFlow's tripClaim / expenseReimburse read through the agent's trip and client scope - an approver who can't see every
+ * client, or cron with no session, would quietly pay part of it).
+ */
+function mitReimbAsAdmin(callable $fn) {
+    global $session_is_admin;
+    $was = $session_is_admin ?? null;
+    $session_is_admin = true;
+    try {
+        return $fn();
+    } finally {
+        $session_is_admin = $was;
+    }
+}
+
+/**
+ * Why approving this period can't mark its mileage and purchases paid through payroll - '' when it can (or there is nothing,
+ * or payroll doesn't pay them). Asked before anything is written, so a period is never left half paid.
+ */
+function mitReimbPayrollProblem($user_id, array $period) {
+    if (!mitReimbViaPayroll()) {
+        return '';
+    }
+    $items = mitReimbItems([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [];
+    // What approval will pay: owed and not paid, in ITFlow's paying back (trips, expenses, purchases about to be recorded)
+    $unpaid = array_filter($items, function ($item) {
+        return $item['owed'] && $item['paid'] === '' && ($item['source'] !== 'entry' || $item['kind'] === 'purchase');
+    });
+    if (!$unpaid) {
+        return '';
+    }
+    $settings = mitReimbSettings();
+    if (!$settings['account_id'] || !isset(mitReimbAsAdmin('paymentAccounts')[$settings['account_id']])) {
+        return 'This timesheet has mileage or purchases to pay with payroll - pick the account payroll pays from first (Admin > Timesheets > Settings, Reimbursements).';
+    }
+    foreach ($unpaid as $item) {
+        if ($item['source'] === 'trip' && !$item['claimed'] && $settings['rate'] <= 0) {
+            return 'This timesheet has trips to pay with payroll - set the mileage rate first (Admin > Timesheets > Settings, Reimbursements).';
+        }
+    }
+    return '';
+}
+
+/**
+ * Approving a period (or, with approval off, once it has settled): what the person paid personally in it is paid through payroll -
+ * exactly the list on their timesheet and the payroll report (mitReimbItems): their own-vehicle trips claimed as mileage expenses
+ * at the rate (ITFlow's tripClaim), then those and their paid-personally expenses reimbursed in one go from the payroll account
+ * (ITFlow's expenseReimburse, reference mitReimbPayrollReference). The mileage expenses made here are remembered (mit_settings
+ * ts_payroll_made_<reimbursement>) so reopening removes only those. Returns a line for the message ('' when there was nothing).
  */
 function mitReimbPayrollClose($user_id, array $period, $sheet_id) {
-    global $mysqli;
     $user_id = intval($user_id);
     if (!mitReimbViaPayroll() || !function_exists('tripClaim') || !function_exists('expenseReimburse')) {
         return '';
     }
-    $settings = mitReimbSettings();
-    $from = escapeSql($period['start']);
-    $to = escapeSql($period['end']);
-    $by = mitTsWho();
-    $note = [];
-    // Mileage: the period's own-vehicle trips not paid yet become one mileage expense per client
-    $trip_ids = array_map('intval', array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT trip_id FROM trips WHERE " . tripClaimSql() . "
-        AND trips.trip_user_id = $user_id AND trips.trip_date BETWEEN '$from' AND '$to'")), 0));
-    if ($trip_ids) {
-        if ($settings['rate'] <= 0) {
-            $note[] = 'mileage not paid - no mileage rate set';
-        } else {
-            $error = '';
-            if (!tripClaim($user_id, $trip_ids, ['rate' => $settings['rate'], 'date' => $period['end'], 'by' => $by], $error)) {
-                $note[] = "mileage not paid - $error";
+    return mitReimbAsAdmin(function () use ($user_id, $period, $sheet_id) {
+        $settings = mitReimbSettings();
+        $by = mitTsWho();
+        $items = mitReimbItems([$user_id], $period['start'], $period['end'])[$user_id] ?? [];
+        $note = [];
+        $made = [];
+        // Mileage: the period's own-vehicle trips not paid yet become one mileage expense per client, dated the period's end
+        $trip_ids = [];
+        foreach ($items as $item) {
+            if ($item['source'] === 'trip' && !$item['claimed']) {
+                $trip_ids[] = $item['trip_id'];
             }
         }
-    }
-    // Everything they paid for themselves in the period (mileage just claimed included), reimbursed through payroll
-    $expense_ids = array_map('intval', array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT expense_id FROM expenses WHERE " . expenseToReimburseSql() . "
-        AND expense_paid_by = $user_id AND expense_date BETWEEN '$from' AND '$to'")), 0));
-    if (!$expense_ids) {
-        return $note ? 'Reimbursements: ' . implode('; ', $note) : '';
-    }
-    if (!$settings['account_id']) {
-        return 'Reimbursements not marked paid - pick the account payroll pays from (Admin > Timesheets > Reimbursements).';
-    }
-    $error = '';
-    $done = expenseReimburse($user_id, $expense_ids, ['account_id' => $settings['account_id'], 'date' => date('Y-m-d'),
-        'reference' => mitReimbPayrollReference($sheet_id, $period), 'by' => $by], $error);
-    if (!$done) {
-        return "Reimbursements not marked paid - $error";
-    }
-    return 'Reimbursements ' . billingMoney($done['amount'], $done['currency']) . ' paid through payroll' . ($note ? ' (' . implode('; ', $note) . ')' : '');
+        if ($trip_ids) {
+            $error = '';
+            $claim = $settings['rate'] > 0 ? tripClaim($user_id, $trip_ids, ['rate' => $settings['rate'], 'date' => $period['end'], 'by' => $by], $error) : null;
+            if ($claim) {
+                $made = array_map('intval', $claim['expense_ids']);
+            } else {
+                $note[] = 'mileage not paid - ' . ($settings['rate'] > 0 ? $error : 'no mileage rate set');
+            }
+        }
+        // Everything they paid personally in the period and not paid back yet (the mileage just claimed included)
+        $expense_ids = [];
+        foreach (mitReimbItems([$user_id], $period['start'], $period['end'])[$user_id] ?? [] as $item) {
+            if ($item['owed'] && $item['paid'] === '' && $item['expense_id']) {
+                $expense_ids[] = $item['expense_id'];
+            }
+        }
+        $expense_ids = array_values(array_unique($expense_ids));
+        if (!$expense_ids) {
+            return $note ? 'Reimbursements: ' . implode('; ', $note) : '';
+        }
+        $error = '';
+        $done = expenseReimburse($user_id, $expense_ids, ['account_id' => $settings['account_id'], 'date' => date('Y-m-d'),
+            'reference' => mitReimbPayrollReference($sheet_id, $period), 'by' => $by], $error);
+        if (!$done) {
+            return "Reimbursements not marked paid - $error";
+        }
+        if ($made) {
+            mitSetSetting('ts_payroll_made_' . intval($done['reimbursement_id']), json_encode($made));
+        }
+        return 'Reimbursements ' . billingMoney($done['amount'], $done['currency']) . ' paid through payroll' . ($note ? ' (' . implode('; ', $note) . ')' : '');
+    });
 }
 
-/** Reopening a period: its payroll close-off undone - the reimbursement removed, the mileage expenses gone and their trips waiting again. */
+/** The payroll reimbursements of a period (newest first) - reimbursement rows. */
+function mitReimbPayrollRows($user_id, array $period, $sheet_id) {
+    global $mysqli;
+    return mysqli_fetch_all(mysqli_query($mysqli, "SELECT reimbursement_id, reimbursement_expense_id FROM reimbursements WHERE reimbursement_user_id = " . intval($user_id) . "
+        AND reimbursement_reference = '" . escapeSql(mitReimbPayrollReference($sheet_id, $period)) . "' ORDER BY reimbursement_id DESC"), MYSQLI_ASSOC);
+}
+
+/** Why reopening can't undo the period's payroll payment - '' when it can (its money out is on a reconciled statement). */
+function mitReimbPayrollUndoProblem($user_id, array $period, $sheet_id) {
+    if (!mitReimbItflowPaysBack() || !function_exists('reconcileCheckDelete')) {
+        return '';
+    }
+    foreach (mitReimbPayrollRows($user_id, $period, $sheet_id) as $row) {
+        $error = '';
+        if (!reconcileCheckDelete('expense', $row['reimbursement_expense_id'], $error)) {
+            return 'Its mileage and purchases were paid through payroll and that payment is on a reconciled statement - it can\'t be reopened. (' . $error . ')';
+        }
+    }
+    return '';
+}
+
+/**
+ * Reopening a period: its payroll payment undone - the reimbursement removed (ITFlow's reimbursementDelete), the mileage expenses
+ * that approval made deleted (their trips wait again); expenses made otherwise (an accountant's Pay Mileage) stay, unpaid.
+ */
 function mitReimbPayrollUndo($user_id, array $period, $sheet_id) {
     global $mysqli;
     if (!mitReimbItflowPaysBack() || !function_exists('reimbursementDelete')) {
         return '';
     }
-    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT reimbursement_id FROM reimbursements WHERE reimbursement_user_id = " . intval($user_id) . "
-        AND reimbursement_reference = '" . escapeSql(mitReimbPayrollReference($sheet_id, $period)) . "' ORDER BY reimbursement_id DESC LIMIT 1"));
-    if (!$row) {
+    $rows = mitReimbPayrollRows($user_id, $period, $sheet_id);
+    if (!$rows) {
         return '';
     }
-    $expense_ids = array_map('intval', array_column(reimbursementExpenses($row[0]), 'expense_id'));
-    $error = '';
-    if (!reimbursementDelete($row[0], $error)) {
-        return "Its payroll reimbursement stays - $error";
+    $GLOBALS['mit_reimb_undoing'] = true;
+    try {
+        return mitReimbAsAdmin(function () use ($rows, $mysqli) {
+            foreach ($rows as $row) {
+                $id = intval($row['reimbursement_id']);
+                $expense_ids = array_map('intval', array_column(reimbursementExpenses($id), 'expense_id'));
+                $made = json_decode((string) mitSetting("ts_payroll_made_$id", ''), true);
+                $error = '';
+                if (!reimbursementDelete($id, $error)) {
+                    return "Its payroll reimbursement stays - $error";
+                }
+                mitSetSetting("ts_payroll_made_$id", '');
+                // Paid before 26.10.143, when the made ones were not remembered: the mileage expenses with trips on them, as then
+                if (!is_array($made)) {
+                    $made = array_values(array_filter($expense_ids, function ($expense_id) use ($mysqli) {
+                        return mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM trips WHERE trip_expense_id = $expense_id")) > 0;
+                    }));
+                }
+                foreach (array_intersect(array_map('intval', $made), $expense_ids) as $expense_id) {
+                    $deleted = expenseDelete($expense_id, $error);
+                    if ($deleted) {
+                        logAudit('Expense', 'Delete', escapeSql(mitTsWho() . ' reopened a timesheet - its mileage expense ' . expenseLabel($deleted) . ' was removed and the trips wait again'), intval($deleted['expense_client_id']));
+                    }
+                }
+            }
+            return 'its mileage and purchases are waiting for payroll again';
+        });
+    } finally {
+        unset($GLOBALS['mit_reimb_undoing']);
     }
-    // The mileage expenses the close-off made go, and their trips wait to be paid again
-    foreach ($expense_ids as $expense_id) {
-        if (mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM trips WHERE trip_expense_id = $expense_id"))) {
-            mysqli_query($mysqli, "UPDATE trips SET trip_expense_id = 0 WHERE trip_expense_id = $expense_id");
-            mysqli_query($mysqli, "DELETE FROM expenses WHERE expense_id = $expense_id AND expense_reimbursement_id IS NULL");
-        }
-    }
-    return 'its reimbursements are waiting for payroll again';
 }
 
 /** The ticket's ⋮ menu (agent/ticket.php, after ITFlow's Log a trip): Add a purchase paid for personally. */
@@ -234,33 +328,174 @@ function mitReimbForUsers(array $user_ids, $from, $to) {
     return $out;
 }
 
-/** Totals for people in dates: user_id => [miles, mileage, purchases, total, count] (money in the company currency). */
+/**
+ * Everything people paid personally in dates and are paid back for - one list for the timesheet, the payroll report, the ticket
+ * badges and approval (mitReimbPayrollClose pays exactly what is owed here): user_id => [items, by date]. Each item:
+ *   source  'trip' - an own-vehicle trip in ITFlow (logged there with Log a trip, or by our mileage form); valued at the amount its
+ *                    mileage expense paid once claimed, else miles x the rate (mitReimbSettings);
+ *           'expense' - an ITFlow expense paid personally by them (expense_paid_by, with a vendor - what ITFlow can pay back): our
+ *                    purchases once recorded, or one an accountant entered;
+ *           'entry' - one of our entries not in ITFlow's paying back: a purchase not recorded as an expense yet (before approval),
+ *                    or mileage from before 26.11 (no own-vehicle trip) - paid with payroll as it always was.
+ *   kind 'mileage' | 'purchase', date, what, where, miles, amount, trip_id, expense_id, claimed, entry (our row or null),
+ *   paid (date, or ''), via ('payroll' | 'itflow' | ''), owed (counts in the totals - false when ITFlow paid it back outside
+ *   payroll, in payroll mode), state [label, tone].
+ */
+function mitReimbItems(array $user_ids, $from, $to) {
+    global $mysqli;
+    $user_ids = array_values(array_filter(array_map('intval', $user_ids)));
+    $out = [];
+    if (!$user_ids || !mitReimbReady()) {
+        return $out;
+    }
+    $in = implode(',', $user_ids);
+    $range = "BETWEEN '" . escapeSql($from) . "' AND '" . escapeSql($to) . "'";
+    $itflow = mitReimbItflowPaysBack();
+    $rate = mitReimbSettings()['rate'];
+    $entries = mitReimbForUsers($user_ids, $from, $to);
+    $by_trip = [];
+    $by_expense = [];
+    // Our entries whose trip or expense falls in other dates still belong to that trip / expense
+    $linked = mysqli_query($mysqli, "SELECT " . MIT_REIMB_COLUMNS . ", ticket_prefix, ticket_number, ticket_subject FROM mit_reimbursements r
+        LEFT JOIN tickets ON tickets.ticket_id = r.ticket_id WHERE r.user_id IN ($in) AND (r.trip_id IS NOT NULL OR r.expense_id IS NOT NULL)");
+    while ($row = mysqli_fetch_assoc($linked)) {
+        if (intval($row['trip_id'])) {
+            $by_trip[intval($row['trip_id'])] = $row;
+        }
+        if (intval($row['expense_id'])) {
+            $by_expense[intval($row['expense_id'])] = $row;
+        }
+    }
+    $seen_trips = [];
+    $seen_expenses = [];
+    if ($itflow) {
+        $trips = mysqli_query($mysqli, "SELECT t.trip_id, t.trip_date, t.trip_purpose, t.trip_source, t.trip_destination, t.trip_miles, t.round_trip, t.trip_user_id,
+                t.trip_expense_id, tk.ticket_id, tk.ticket_prefix, tk.ticket_number, tk.ticket_subject, claim.expense_id AS claim_id, claim.expense_amount AS claim_amount,
+                (SELECT SUM(t2.trip_miles) FROM trips t2 WHERE t2.trip_expense_id = t.trip_expense_id AND t.trip_expense_id > 0) AS claim_miles,
+                r.reimbursement_date, r.reimbursement_reference
+            FROM trips t LEFT JOIN tickets tk ON tk.ticket_id = t.trip_ticket_id
+            LEFT JOIN expenses claim ON t.trip_expense_id > 0 AND claim.expense_id = t.trip_expense_id
+            LEFT JOIN reimbursements r ON r.reimbursement_id = claim.expense_reimbursement_id
+            WHERE t.trip_own_vehicle = 1 AND t.trip_archived_at IS NULL AND t.trip_miles > 0 AND t.trip_user_id IN ($in) AND t.trip_date $range");
+        while ($t = mysqli_fetch_assoc($trips)) {
+            $claimed = $t['claim_id'] !== null;
+            $miles = (float) $t['trip_miles'];
+            $amount = $claimed && (float) $t['claim_miles'] > 0 ? round((float) $t['claim_amount'] * $miles / (float) $t['claim_miles'], 2) : round($miles * $rate, 2);
+            $entry = $by_trip[intval($t['trip_id'])] ?? null;
+            $seen_trips[intval($t['trip_id'])] = true;
+            $out[intval($t['trip_user_id'])][] = mitReimbItemFinish([
+                'source' => 'trip', 'kind' => 'mileage', 'date' => $t['trip_date'], 'user_id' => intval($t['trip_user_id']),
+                'what' => rtrim(rtrim(number_format($miles, 1), '0'), '.') . ' mi' . (intval($t['round_trip']) ? ' round trip' : '')
+                    . (trim($t['trip_source'] . $t['trip_destination']) !== '' ? ', ' . trim($t['trip_source'] . ' - ' . $t['trip_destination'], ' -') : ''),
+                'where' => $t['ticket_number'] !== null ? ticketReference($t) . ' · ' . $t['ticket_subject'] : (trim((string) $t['trip_purpose']) ?: 'Trips'),
+                'ticket_id' => intval($t['ticket_id']), 'miles' => $miles, 'amount' => $amount, 'trip_id' => intval($t['trip_id']),
+                'expense_id' => $claimed ? intval($t['claim_id']) : 0, 'claimed' => $claimed, 'entry' => $entry,
+                'paid' => (string) $t['reimbursement_date'], 'reference' => (string) $t['reimbursement_reference'],
+            ]);
+        }
+        $expenses = mysqli_query($mysqli, "SELECT e.expense_id, e.expense_date, e.expense_amount, e.expense_description, e.expense_paid_by, e.expense_client_id,
+                v.vendor_name, r.reimbursement_date, r.reimbursement_reference
+            FROM expenses e LEFT JOIN vendors v ON v.vendor_id = e.expense_vendor_id LEFT JOIN reimbursements r ON r.reimbursement_id = e.expense_reimbursement_id
+            WHERE e.expense_paid_by IN ($in) AND e.expense_vendor_id > 0 AND e.expense_archived_at IS NULL AND e.expense_date $range
+                AND NOT EXISTS (SELECT 1 FROM trips WHERE trips.trip_expense_id = e.expense_id)");
+        while ($e = mysqli_fetch_assoc($expenses)) {
+            $entry = $by_expense[intval($e['expense_id'])] ?? null;
+            $seen_expenses[intval($e['expense_id'])] = true;
+            $out[intval($e['expense_paid_by'])][] = mitReimbItemFinish([
+                'source' => 'expense', 'kind' => 'purchase', 'date' => $e['expense_date'], 'user_id' => intval($e['expense_paid_by']),
+                'what' => $entry ? mitReimbWhat($entry) : trim(strtok((string) $e['expense_description'], "\n")) . ($e['vendor_name'] ? ' (' . $e['vendor_name'] . ')' : ''),
+                'where' => $entry ? mitReimbTicketText($entry) . (($entry['ticket_subject'] ?? '') !== '' ? ' · ' . $entry['ticket_subject'] : '') : 'Entered in Expenses',
+                'ticket_id' => $entry ? intval($entry['ticket_id']) : 0, 'miles' => 0.0, 'amount' => round((float) $e['expense_amount'], 2), 'trip_id' => 0,
+                'expense_id' => intval($e['expense_id']), 'claimed' => true, 'entry' => $entry,
+                'paid' => (string) $e['reimbursement_date'], 'reference' => (string) $e['reimbursement_reference'],
+            ]);
+        }
+    }
+    // Our entries not in ITFlow's paying back: purchases not recorded yet, mileage with no own-vehicle trip (from before 26.11)
+    foreach ($entries as $user_id => $rows) {
+        foreach ($rows as $row) {
+            if (($row['kind'] === 'mileage' && isset($seen_trips[intval($row['trip_id'])])) || ($row['kind'] === 'purchase' && isset($seen_expenses[intval($row['expense_id'])]))) {
+                continue;
+            }
+            // A purchase whose expense exists but is not one ITFlow pays back (no vendor, archived) - shown, as an entry
+            $out[$user_id][] = mitReimbItemFinish([
+                'source' => 'entry', 'kind' => $row['kind'], 'date' => $row['entry_date'], 'user_id' => intval($user_id), 'what' => mitReimbWhat($row),
+                'where' => mitReimbTicketText($row) . (($row['ticket_subject'] ?? '') !== '' ? ' · ' . $row['ticket_subject'] : ''),
+                'ticket_id' => intval($row['ticket_id']), 'miles' => $row['kind'] === 'mileage' ? (float) $row['miles'] : 0.0, 'amount' => round((float) $row['amount'], 2),
+                'trip_id' => intval($row['trip_id']), 'expense_id' => 0, 'claimed' => false, 'entry' => $row, 'paid' => '', 'reference' => '',
+            ]);
+        }
+    }
+    foreach ($out as &$items) {
+        usort($items, function ($a, $b) {
+            return [$a['date'], $a['kind'], $a['what']] <=> [$b['date'], $b['kind'], $b['what']];
+        });
+    }
+    unset($items);
+    return $out;
+}
+
+/** An item's state: who pays it and whether it is paid - [label, tone] in 'state', and 'owed' / 'via'. */
+function mitReimbItemFinish(array $item) {
+    $payroll = mitReimbViaPayroll();
+    $paid_date = $item['paid'] !== '' ? date('M j', strtotime($item['paid'])) : '';
+    $by_payroll = $item['paid'] !== '' && strpos($item['reference'], 'Payroll') === 0;
+    $item['via'] = $item['paid'] === '' ? '' : ($by_payroll ? 'payroll' : 'itflow');
+    $item['owed'] = true;
+    if ($item['paid'] !== '') {
+        // Paid back in ITFlow outside payroll: not payroll's to pay (in payroll mode it is left out of the totals)
+        $item['owed'] = !$payroll || $by_payroll;
+        $item['state'] = $by_payroll ? ["Paid through payroll $paid_date", 'success'] : ["Paid back in ITFlow $paid_date", 'success'];
+        return $item;
+    }
+    $approved = mitReimbSheetStatusOn($item['user_id'], $item['date']) === 'approved';
+    if ($item['source'] === 'entry' && ($item['kind'] === 'mileage' || !mitReimbItflowPaysBack())) {
+        // Not in ITFlow's paying back - paid with payroll, as before 26.11
+        $item['state'] = $approved ? ['Paid with payroll', 'success'] : ['Goes to payroll', 'secondary'];
+    } elseif ($payroll) {
+        $item['state'] = $approved ? ['Approved - not marked paid', 'warning'] : ['Goes to payroll', 'secondary'];
+    } elseif ($item['source'] === 'trip' && !$item['claimed']) {
+        $item['state'] = ['Waiting in Trips > To pay back', 'warning'];
+    } elseif ($item['source'] === 'entry') {
+        $item['state'] = [mitTsSettings()['approval'] ? 'An expense once approved' : 'An expense once the period ends', 'secondary'];
+    } else {
+        $item['state'] = ['Waiting in Expenses > To reimburse', 'warning'];
+    }
+    return $item;
+}
+
+/** The status of the timesheet holding a person's day ('' when none) - read once per person and dates. */
+function mitReimbSheetStatusOn($user_id, $date) {
+    static $cache = [];
+    $key = intval($user_id) . '|' . substr((string) $date, 0, 7);
+    if (!isset($cache[$key])) {
+        $start = substr((string) $date, 0, 7) . '-01';
+        $cache[$key] = mitTsLockedDates($user_id, date('Y-m-d', strtotime("$start -1 month")), date('Y-m-t', strtotime("$start +1 month")), ['open', 'submitted', 'returned', 'approved']);
+    }
+    return $cache[$key][$date] ?? '';
+}
+
+/** Totals for people in dates: user_id => [miles, mileage, purchases, total, count, elsewhere] - what is owed (mitReimbItems). */
 function mitReimbTotals(array $user_ids, $from, $to) {
     $totals = [];
     foreach (array_filter(array_map('intval', $user_ids)) as $user_id) {
-        $totals[$user_id] = ['miles' => 0.0, 'mileage' => 0.0, 'purchases' => 0.0, 'total' => 0.0, 'count' => 0];
+        $totals[$user_id] = ['miles' => 0.0, 'mileage' => 0.0, 'purchases' => 0.0, 'total' => 0.0, 'count' => 0, 'elsewhere' => 0.0];
     }
-    foreach (mitReimbForUsers($user_ids, $from, $to) as $user_id => $rows) {
-        foreach ($rows as $row) {
+    foreach (mitReimbItems($user_ids, $from, $to) as $user_id => $items) {
+        foreach ($items as $item) {
             $t = &$totals[$user_id];
-            if ($row['kind'] === 'mileage') {
-                $t['miles'] += (float) $row['miles'];
-                $t['mileage'] += (float) $row['amount'];
-            } else {
-                $t['purchases'] += (float) $row['amount'];
+            if (!$item['owed']) {
+                $t['elsewhere'] += $item['amount'];
+                unset($t);
+                continue;
             }
-            $t['total'] += (float) $row['amount'];
-            $t['count']++;
-            unset($t);
-        }
-    }
-    // Paid back through ITFlow: drives logged in ITFlow's own Trips (own vehicle) count on the timesheet too
-    foreach (mitReimbItflowTrips($user_ids, $from, $to) as $user_id => $trips) {
-        foreach ($trips as $trip) {
-            $t = &$totals[$user_id];
-            $t['miles'] += (float) $trip['trip_miles'];
-            $t['mileage'] += (float) $trip['value'];
-            $t['total'] += (float) $trip['value'];
+            if ($item['kind'] === 'mileage') {
+                $t['miles'] += $item['miles'];
+                $t['mileage'] += $item['amount'];
+            } else {
+                $t['purchases'] += $item['amount'];
+            }
+            $t['total'] += $item['amount'];
             $t['count']++;
             unset($t);
         }
@@ -268,56 +503,21 @@ function mitReimbTotals(array $user_ids, $from, $to) {
     return $totals;
 }
 
-/**
- * Drives in their own vehicle logged in ITFlow's Trips (not by our Reimbursements box) by people in dates - user_id => [trip rows
- * with 'value' at ITFlow's mileage rate]. Only while ITFlow pays people back.
- */
-function mitReimbItflowTrips(array $user_ids, $from, $to) {
-    global $mysqli;
-    $user_ids = array_filter(array_map('intval', $user_ids));
-    $out = [];
-    if (!$user_ids || !mitReimbItflowPaysBack()) {
-        return $out;
-    }
-    $rate = mitReimbItflowRate();
-    $ours = mitReimbReady() ? " AND trips.trip_id NOT IN (SELECT trip_id FROM mit_reimbursements WHERE trip_id IS NOT NULL)" : '';
-    $result = mysqli_query($mysqli, "SELECT trips.trip_id, trips.trip_date, trips.trip_purpose, trips.trip_source, trips.trip_destination, trips.trip_miles,
-            trips.round_trip, trips.trip_user_id, trips.trip_expense_id, trips.trip_ticket_id
-        FROM trips WHERE trips.trip_own_vehicle = 1 AND trips.trip_archived_at IS NULL AND trips.trip_user_id IN (" . implode(',', $user_ids) . ")
-            AND trips.trip_date BETWEEN '" . escapeSql($from) . "' AND '" . escapeSql($to) . "'$ours ORDER BY trips.trip_date, trips.trip_id");
-    while ($row = mysqli_fetch_assoc($result)) {
-        $row['value'] = round((float) $row['trip_miles'] * $rate, 2);
-        $out[intval($row['trip_user_id'])][] = $row;
-    }
-    return $out;
-}
-
-/**
- * Where an entry is in ITFlow's paying back ([label, tone]), or null while ITFlow doesn't pay back: mileage waits in Trips > To pay
- * back until claimed, purchases become an expense paid personally on approval and wait in Expenses > Reimburse.
- */
+/** Where one of our entries is in being paid back ([label, tone]) - the same as its line on the timesheet. */
 function mitReimbState(array $row) {
-    global $mysqli;
-    if (!mitReimbItflowPaysBack()) {
-        return null;
-    }
-    $expense_id = 0;
-    if ($row['kind'] === 'mileage') {
-        $expense_id = intval($row['trip_id'] ?? 0) ? intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT trip_expense_id FROM trips WHERE trip_id = " . intval($row['trip_id'])))[0] ?? 0) : 0;
-        if (!$expense_id) {
-            return [mitReimbViaPayroll() ? 'Goes to payroll' : 'Waiting in Trips', 'secondary'];
-        }
-    } else {
-        $expense_id = intval($row['expense_id'] ?? 0);
-        if (!$expense_id) {
-            return [mitReimbViaPayroll() ? 'Goes to payroll' : 'An expense once approved', 'secondary'];
+    $date = (string) $row['entry_date'];
+    foreach (mitReimbItems([intval($row['user_id'])], $date, $date)[intval($row['user_id'])] ?? [] as $item) {
+        if (($item['entry']['reimb_id'] ?? 0) == $row['reimb_id']) {
+            return $item['state'];
         }
     }
-    $paid = mysqli_fetch_row(mysqli_query($mysqli, "SELECT reimbursement_date, reimbursement_reference FROM expenses JOIN reimbursements ON reimbursement_id = expense_reimbursement_id WHERE expense_id = $expense_id"));
-    if ($paid) {
-        return [(strpos((string) $paid[1], 'Payroll') === 0 ? 'Paid through payroll ' : 'Paid back ') . date('M j', strtotime($paid[0])), 'success'];
+    // Its trip or expense is dated elsewhere - read from that
+    foreach (mitReimbItems([intval($row['user_id'])], '1970-01-01', '2999-12-31')[intval($row['user_id'])] ?? [] as $item) {
+        if (($item['entry']['reimb_id'] ?? 0) == $row['reimb_id']) {
+            return $item['state'];
+        }
     }
-    return mitReimbViaPayroll() ? ['Goes to payroll', 'secondary'] : ['Waiting in Expenses > Reimburse', 'warning'];
+    return null;
 }
 
 /** A ticket's reference for an entry ("TCK-12"), or "a deleted ticket". */
@@ -351,17 +551,17 @@ function mitReimbWhyLocked(array $row) {
     return mitTsWhyDayLocked($user_id, $row['entry_date']);
 }
 
-/** '' or why an entry is settled in ITFlow: its trip claimed for mileage, or its expense paid back. */
+/** '' or why an entry is settled: its trip claimed for mileage, or its expense paid back (through payroll or in ITFlow). */
 function mitReimbPaidBack(array $row) {
     global $mysqli;
     if (!mitReimbItflowPaysBack()) {
         return '';
     }
     if (intval($row['trip_id'] ?? 0) && intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT trip_expense_id FROM trips WHERE trip_id = " . intval($row['trip_id'])))[0] ?? 0)) {
-        return 'Its mileage has been paid back in ITFlow (Trips) - it can no longer change.';
+        return 'Its mileage has been paid (Trips) - it can no longer change.';
     }
     if (intval($row['expense_id'] ?? 0) && intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT expense_reimbursement_id FROM expenses WHERE expense_id = " . intval($row['expense_id'])))[0] ?? 0)) {
-        return 'It has been paid back in ITFlow (Expenses > Reimburse) - it can no longer change.';
+        return 'It has been paid back - it can no longer change.';
     }
     return '';
 }
@@ -557,10 +757,65 @@ function mitReimbTripLocked($trip_id) {
     return mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_reimbursements WHERE trip_id = " . intval($trip_id) . " LIMIT 1")) > 0;
 }
 
+/**
+ * Why ITFlow may not change or delete this trip now (agent/post/trip.php) - '' when it may. An own-vehicle trip is money owed on
+ * the driver's timesheet: its day on a submitted or approved timesheet is locked (before and after the change - date, driver,
+ * own vehicle), and one paid through payroll stays as it was paid. $new: the posted trip (date, driver, own_vehicle), or [] to
+ * delete. $trip_id 0 = a new trip.
+ */
+function mitReimbTripWhyLocked($trip_id, array $new = []) {
+    global $mysqli;
+    if (!mitReimbReady() || !mitReimbItflowPaysBack()) {
+        return '';
+    }
+    $old = intval($trip_id) ? mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT t.trip_date, t.trip_user_id, t.trip_own_vehicle, r.reimbursement_reference
+        FROM trips t LEFT JOIN expenses e ON t.trip_expense_id > 0 AND e.expense_id = t.trip_expense_id LEFT JOIN reimbursements r ON r.reimbursement_id = e.expense_reimbursement_id
+        WHERE t.trip_id = " . intval($trip_id))) : null;
+    $checks = [];
+    if ($old && intval($old['trip_own_vehicle'])) {
+        if (strpos((string) $old['reimbursement_reference'], 'Payroll') === 0) {
+            return 'This trip was paid through payroll with a timesheet - reopen that timesheet to change it.';
+        }
+        $checks[] = [intval($old['trip_user_id']), $old['trip_date']];
+    }
+    if ($new) {
+        $own = isset($new['own_vehicle']) ? !empty($new['own_vehicle']) : ($old ? intval($old['trip_own_vehicle']) === 1 : false);
+        if ($own) {
+            $checks[] = [intval($new['driver'] ?? ($old['trip_user_id'] ?? 0)), (string) ($new['date'] ?? ($old['trip_date'] ?? ''))];
+        }
+    }
+    foreach ($checks as [$user_id, $date]) {
+        if ($user_id && calendarIsDate($date) && ($held = mitTsLockedDates($user_id, $date, $date, ['submitted', 'approved']))) {
+            $name = (string) getFieldById('users', $user_id, 'user_name');
+            return 'Driving in their own vehicle on ' . date('M j', strtotime($date)) . ' is on ' . ($name !== '' ? "$name's" : 'their') . ' timesheet, which is '
+                . $held[$date] . ' - ' . ($held[$date] === 'approved' ? 'reopen it' : 'send it back') . ' to change trips on that day.';
+        }
+    }
+    return '';
+}
+
+/** Why ITFlow may not change or delete this expense (functions/expenses.php expenseSave / expenseDelete): paid through payroll. */
+function mitReimbExpenseWhyLocked(array $expense) {
+    global $mysqli;
+    if (!empty($GLOBALS['mit_reimb_undoing']) || !intval($expense['expense_reimbursement_id'] ?? 0)) {
+        return '';
+    }
+    $reference = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT reimbursement_reference FROM reimbursements WHERE reimbursement_id = " . intval($expense['expense_reimbursement_id'])))[0] ?? '');
+    return strpos($reference, 'Payroll') === 0 ? 'It was paid through payroll with a timesheet (' . $reference . ') - reopen that timesheet to change it.' : '';
+}
+
+/** Why ITFlow may not undo this reimbursement (functions/expenses.php reimbursementDelete): a timesheet's payroll payment is undone by reopening it. */
+function mitReimbReimbursementWhyLocked(array $row) {
+    if (!empty($GLOBALS['mit_reimb_undoing']) || strpos((string) ($row['reimbursement_reference'] ?? ''), 'Payroll') !== 0) {
+        return '';
+    }
+    return 'This was paid through payroll with a timesheet - reopen that timesheet (Timesheets) to undo it.';
+}
+
 /** The words an expense recorded from a purchase carries. */
 function mitReimbExpenseDescription(array $row) {
     $user_name = (string) getFieldById('users', intval($row['user_id']), 'user_name');
-    return "Reimbursed to $user_name: " . $row['description'] . ($row['vendor'] ? ' (' . $row['vendor'] . ')' : '') . ' - ticket ' . mitReimbTicketText($row);
+    return (mitReimbItflowPaysBack() ? "Paid by $user_name: " : "Reimbursed to $user_name: ") . $row['description'] . ($row['vendor'] ? ' (' . $row['vendor'] . ')' : '') . ' - ticket ' . mitReimbTicketText($row);
 }
 
 /** A purchase already recorded as an ITFlow expense was changed: the expense's date, amount and words follow it. */
@@ -590,7 +845,20 @@ function mitReimbRecordEnded() {
             if (($done = mitReimbRecordExpenses($user_id, $period)) > 0) {
                 $log[] = "{$user['user_name']}: $done purchase(s) recorded as expenses for {$period['label']}";
             }
-            // No approval step: a settled period's mileage and purchases are paid with payroll here (sheet 0)
+            // No approval step: a settled period's mileage and purchases are paid with payroll here (sheet 0) - once; anything
+            // dated into it later waits for the person's next timesheet to show it (it stays "Goes to payroll" there)
+            $done_key = 'ts_payroll_closed_' . intval($user_id) . '_' . $period['start'];
+            if (!mitReimbViaPayroll() || mitSetting($done_key, '') !== '') {
+                continue;
+            }
+            if (($why = mitReimbPayrollProblem($user_id, $period)) !== '') {
+                if (mitSetting("{$done_key}_problem", '') !== date('Y-m-d')) {
+                    mitSetSetting("{$done_key}_problem", date('Y-m-d'));
+                    $log[] = "{$user['user_name']}, {$period['label']}: $why";
+                }
+                continue;
+            }
+            mitSetSetting($done_key, date('Y-m-d'));
             if (($paid = mitReimbPayrollClose($user_id, $period, 0)) !== '') {
                 $log[] = "{$user['user_name']}, {$period['label']}: $paid";
             }
@@ -607,7 +875,9 @@ function mitReimbRecordExpenses($user_id, array $period) {
     global $mysqli, $config_module_enable_accounting, $session_company_currency;
     $settings = mitReimbSettings();
     $paid_back = mitReimbItflowPaysBack();
-    if (!mitReimbReady() || intval($config_module_enable_accounting ?? 0) !== 1 || !$settings['category_id'] || (!$paid_back && !$settings['account_id'])) {
+    // Paid back through ITFlow (payroll or its own To reimburse) every purchase becomes an expense - that is what is paid back, so a
+    // category is not needed (none = uncategorised) and the Accounting switch only hides the pages. Otherwise only as set.
+    if (!mitReimbReady() || (!$paid_back && (intval($config_module_enable_accounting ?? 0) !== 1 || !$settings['category_id'] || !$settings['account_id']))) {
         return 0;
     }
     $currency = $session_company_currency ?: (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT company_currency FROM companies WHERE company_id = 1"))[0];
@@ -633,7 +903,7 @@ function mitReimbRecordExpenses($user_id, array $period) {
             . ($paid_back ? "expense_account_id = 0, expense_paid_by = " . intval($user_id) . ", expense_vendor_id = " . mitReimbVendorId($row['vendor'] ?? '') . ","
                 : "expense_account_id = " . intval($settings['account_id']) . ", expense_vendor_id = 0,") . "
             expense_client_id = " . intval($row['client_id']) . ", expense_category_id = " . intval($settings['category_id']) . ",
-            expense_description = '" . escapeSql($description) . "', expense_reference = 'Reimbursement " . intval($row['reimb_id']) . "'"
+            expense_description = '" . escapeSql($description) . "', expense_reference = 'Ticket purchase " . intval($row['reimb_id']) . "'"
             . ($receipt !== '' ? ", expense_receipt = '" . escapeSql($receipt) . "'" : ''));
         $expense_id = mysqli_insert_id($mysqli);
         mysqli_query($mysqli, "UPDATE mit_reimbursements SET expense_id = $expense_id WHERE reimb_id = " . intval($row['reimb_id']));
@@ -667,7 +937,7 @@ function mitReimbListHtml(array $rows, $show, $can_change = null) {
         $by = $show === 'ticket' ? escapeHtml(mitReimbTicketText($row)) . ($subject ? ' · ' . escapeHtml($row['ticket_subject']) : '')
             : escapeHtml($row['user_name'] ?? '');
         $change = $can_change === null ? mitReimbWhyLocked($row) === '' : $can_change;
-        $html .= '<div class="list-group-item px-3 py-2"><div class="d-flex align-items-start gap-2"><i class="fas fa-fw ' . $icon . ' text-muted mt-1"></i>'
+        $html .= '<div class="list-group-item px-3 py-2"' . (intval($row['trip_id'] ?? 0) ? ' data-mit-reimb-trip="' . intval($row['trip_id']) . '"' : '') . '><div class="d-flex align-items-start gap-2"><i class="fas fa-fw ' . $icon . ' text-muted mt-1"></i>'
             . '<div class="flex-grow-1" style="min-width:0"><div class="text-truncate" title="' . escapeHtml(mitReimbWhat($row)) . '">' . escapeHtml(mitReimbWhat($row)) . '</div>'
             . '<div class="small text-muted">' . escapeHtml(date('M j', strtotime($row['entry_date']))) . ' · ' . $by
             . ($row['kind'] === 'mileage' && $row['rate'] !== null ? ' · ' . mitMoney($row['rate']) . '/mi' : '')
@@ -684,7 +954,7 @@ function mitReimbListHtml(array $rows, $show, $can_change = null) {
 }
 
 /**
- * The ticket's Reimbursements box (agent/ticket.php, side column under Parts). When mileage is ITFlow's (Log a trip) and the
+ * The ticket's Mileage & purchases box (agent/ticket.php, side column under Parts). When mileage is ITFlow's (Log a trip) and the
  * ticket has ITFlow's Trips box, agent/js/mit_ticket_layout.js moves the purchases into that box ([data-mit-reimb-card] ->
  * .itflow-ticket-trips) - one box for the ticket's driving and purchases. With nothing logged there is no box: purchases are
  * added from the ticket's ⋮ menu (mitReimbMenuItem).
@@ -697,15 +967,6 @@ function mitReimbTicketCard(array $ticket, $can_edit) {
     $rows = mitReimbForTicket($ticket_id);
     // Paid back through ITFlow: mileage is logged with ITFlow's own "Log a trip" (its Trips box); the timesheet counts those drives
     $itflow_trips = mitReimbItflowPaysBack() && intval($ticket['ticket_client_id'] ?? 0) > 0;
-    // Mileage entered here before is an ITFlow trip on this ticket too - listed in ITFlow's Trips box (accounting on), not twice
-    $trip_ids = array_filter(array_map('intval', array_column($rows, 'trip_id')));
-    if ($itflow_trips && $trip_ids && !empty($GLOBALS['config_module_enable_accounting'])) {
-        $listed = array_map('intval', array_column(mysqli_fetch_all(mysqli_query($GLOBALS['mysqli'], "SELECT trip_id FROM trips WHERE trip_ticket_id = $ticket_id
-            AND trip_archived_at IS NULL AND trip_id IN (" . implode(',', $trip_ids) . ")")), 0));
-        $rows = array_values(array_filter($rows, function ($row) use ($listed) {
-            return !($row['kind'] === 'mileage' && in_array(intval($row['trip_id'] ?? 0), $listed, true));
-        }));
-    }
     if (!$rows && !$can_edit) {
         return '';
     }
@@ -714,7 +975,7 @@ function mitReimbTicketCard(array $ticket, $can_edit) {
         // Nothing yet: no box of its own - only the button, which the layout script puts in ITFlow's Trips box (if shown)
         return '<div hidden data-mit-reimb-card>' . $add . '</div>';
     }
-    $html = '<div class="card mb-3" data-mit-reimb-card><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Reimbursements'
+    $html = '<div class="card mb-3" data-mit-reimb-card><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Mileage &amp; purchases'
         . ($rows ? ' <span class="badge text-bg-light border ms-1">' . count($rows) . '</span>' : '') . '</h5><div class="card-tools">';
     if ($can_edit && !$itflow_trips) {
         $html .= '<button type="button" class="btn btn-tool ajax-modal" title="Log mileage" data-modal-url="/agent/modals/mit_reimburse/reimburse.php?ticket_id=' . $ticket_id . '&kind=mileage"><i class="fas fa-car"></i></button>';
@@ -725,36 +986,54 @@ function mitReimbTicketCard(array $ticket, $can_edit) {
     }
     $html .= mitReimbListHtml($rows, 'agent');
     $total = array_sum(array_column($rows, 'amount'));
-    return $html . '<div class="px-3 py-2 border-top small text-muted d-flex"><span>' . ($itflow_trips && !in_array('mileage', array_column($rows, 'kind'), true) ? 'Purchases' : 'Total') . '</span><span class="ms-auto fw-semibold">' . mitMoney($total) . '</span></div></div></div>';
+    return $html . '<div class="px-3 py-2 border-top small text-muted d-flex"><span>' . ($itflow_trips ? (in_array('mileage', array_column($rows, 'kind'), true) ? 'Logged for pay back' : 'Purchases') : 'Total') . '</span><span class="ms-auto fw-semibold">' . mitMoney($total) . '</span></div></div></div>';
 }
 
-/** The person's reimbursements on their timesheet (agent/mit_timesheet.php), with the period's total. */
+/** One line of the list (timesheet): what, when, where it came from, its state and amount - and Change for our own entries. */
+function mitReimbItemHtml(array $item) {
+    $entry = $item['entry'];
+    $icon = $item['kind'] === 'mileage' ? ($item['source'] === 'trip' ? 'fa-route' : 'fa-car') : 'fa-shopping-bag';
+    $from = $item['source'] === 'trip' && !$entry ? ' · logged in Trips' : '';
+    $html = '<div class="list-group-item px-3 py-2' . ($item['owed'] ? '' : ' text-body-secondary') . '" data-mit-reimb-item="' . $item['source'] . '"><div class="d-flex align-items-start gap-2">'
+        . '<i class="fas fa-fw ' . $icon . ' text-muted mt-1"></i><div class="flex-grow-1" style="min-width:0">'
+        . '<div class="text-truncate" title="' . escapeHtml($item['what']) . '">' . escapeHtml($item['what']) . '</div>'
+        . '<div class="small text-muted">' . escapeHtml(date('M j', strtotime($item['date']))) . ' · ' . escapeHtml($item['where']) . $from
+        . ($entry && !empty($entry['receipt']) && mitReimbMaySeeReceipt($entry) ? ' · <a href="/agent/mit_receipt.php?id=' . intval($entry['reimb_id']) . '" target="_blank" rel="noopener"><i class="fas fa-paperclip me-1"></i>receipt</a>' : '')
+        . ' · <span class="badge text-bg-' . $item['state'][1] . '-subtle text-' . $item['state'][1] . '-emphasis border" data-mit-reimb-state>' . escapeHtml($item['state'][0]) . '</span>'
+        . '</div></div><div class="text-end small text-nowrap fw-semibold">' . ($item['owed'] ? '' : '<s>') . mitMoney($item['amount']) . ($item['owed'] ? '' : '</s>') . '</div>';
+    if ($entry && mitReimbWhyLocked($entry) === '') {
+        $html .= '<button type="button" class="btn btn-sm btn-light ajax-modal" title="Change" data-modal-url="/agent/modals/mit_reimburse/reimburse.php?id=' . intval($entry['reimb_id']) . '"><i class="fas fa-pen"></i></button>';
+    }
+    return $html . '</div></div>';
+}
+
+/** The person's mileage and purchases on their timesheet (agent/mit_timesheet.php): the period's list (mitReimbItems) and what is owed. */
 function mitReimbTimesheetBox($user_id, array $period) {
     if (!mitReimbOn()) {
         return '';
     }
-    $rows = mitReimbForUsers([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [];
-    $trips = mitReimbItflowTrips([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [];
-    if (!$rows && !$trips) {
+    $items = mitReimbItems([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [];
+    if (!$items) {
         return '';
     }
     $t = mitReimbTotals([$user_id], $period['start'], $period['end'])[intval($user_id)];
-    $itflow = mitReimbItflowPaysBack();
-    $trip_html = '';
-    foreach ($trips as $trip) {
-        $state = mitReimbState(['kind' => 'mileage', 'trip_id' => $trip['trip_id']]);
-        $trip_html .= '<div class="list-group-item px-3 py-2" data-mit-itflow-trip><div class="d-flex align-items-start gap-2"><i class="fas fa-fw fa-route text-muted mt-1"></i>'
-            . '<div class="flex-grow-1" style="min-width:0"><div class="text-truncate">' . escapeHtml(rtrim(rtrim(number_format((float) $trip['trip_miles'], 1), '0'), '.') . ' mi'
-                . (trim((string) $trip['trip_purpose']) !== '' ? ' - ' . $trip['trip_purpose'] : '')) . '</div>'
-            . '<div class="small text-muted">' . escapeHtml(date('M j', strtotime($trip['trip_date']))) . ' · logged in Trips · <span class="badge text-bg-' . $state[1] . '-subtle text-' . $state[1] . '-emphasis border">' . escapeHtml($state[0]) . '</span></div></div>'
-            . '<div class="text-end small text-nowrap fw-semibold">' . mitMoney($trip['value']) . '</div></div></div>';
+    $payroll = mitReimbViaPayroll();
+    $approval = mitTsSettings()['approval'];
+    $html = '';
+    foreach ($items as $item) {
+        $html .= mitReimbItemHtml($item);
     }
-    return '<div class="card mb-3"><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Reimbursements</h5>'
+    if ($payroll) {
+        $footer = 'Paid with payroll for this period - marked paid when ' . ($approval ? 'it is approved' : 'the period has ended') . ', and locked with it.'
+            . ($t['elsewhere'] > 0 ? ' Crossed out: already paid back in ITFlow, so not in the total.' : '');
+    } elseif (mitReimbItflowPaysBack()) {
+        $footer = 'Paid back through ITFlow - mileage from Trips > To pay back, purchases from Expenses > To reimburse - not with payroll. Locked when the period is approved.';
+    } else {
+        $footer = 'Logged on tickets. Paid with this period and locked when it is approved.';
+    }
+    return '<div class="card mb-3"><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Mileage and purchases</h5>'
         . '<div class="card-tools small text-muted pt-1">' . ($t['miles'] ? rtrim(rtrim(number_format($t['miles'], 1), '0'), '.') . ' mi · ' : '')
-        . '<strong>' . mitMoney($t['total']) . '</strong></div></div>'
-        . '<div class="card-body p-0">' . ($rows ? mitReimbListHtml($rows, 'ticket') : '') . ($trip_html !== '' ? '<div class="list-group list-group-flush">' . $trip_html . '</div>' : '') . '</div>'
-        . '<div class="card-footer small text-muted py-2" data-mit-reimb-footer>' . (mitReimbViaPayroll()
-            ? 'Paid with payroll for this period - marked paid when it is approved, and locked with it.'
-            : ($itflow ? 'Paid back through ITFlow - mileage from Trips > To pay back, purchases from Expenses > Reimburse - not with payroll. Locked when the period is approved.'
-            : 'Logged on tickets. Paid with this period and locked when it is approved.')) . '</div></div>';
+        . '<strong data-mit-reimb-total>' . mitMoney($t['total']) . '</strong></div></div>'
+        . '<div class="card-body p-0"><div class="list-group list-group-flush">' . $html . '</div></div>'
+        . '<div class="card-footer small text-muted py-2" data-mit-reimb-footer>' . $footer . '</div></div>';
 }

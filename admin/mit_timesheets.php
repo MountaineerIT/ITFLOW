@@ -253,59 +253,76 @@ $company_week = mitTsCompanySchedule();
                     $reimb = mitReimbSettings();
                     $expense_categories = mysqli_fetch_all(mysqli_query($mysqli, "SELECT category_id, category_name FROM categories WHERE category_type = 'Expense' AND (category_archived_at IS NULL OR category_id = " . intval($reimb['category_id']) . ") ORDER BY category_name"), MYSQLI_ASSOC);
                     $accounts = mysqli_fetch_all(mysqli_query($mysqli, "SELECT account_id, account_name FROM accounts WHERE account_archived_at IS NULL OR account_id = " . intval($reimb['account_id']) . " ORDER BY account_name"), MYSQLI_ASSOC); ?>
-                    <h6 class="text-muted text-uppercase small mb-3">Reimbursements</h6>
+                    <h6 class="text-muted text-uppercase small mb-3">Mileage and purchases</h6>
                     <div class="row g-3 mb-4">
-                        <?php $mit_itflow_pays = mitReimbItflowPaysBack(); $mit_payroll = mitReimbViaPayroll(); ?>
+                        <?php $mit_itflow_pays = mitReimbItflowPaysBack(); $mit_payroll = mitReimbViaPayroll(); $mit_approval = mitTsSettings()['approval'];
+                        $mit_itflow_rate = mitReimbItflowRate(); ?>
                         <?php if ($mit_itflow_pays) { ?>
                             <div class="col-md-4">
-                                <label class="form-label">Mileage and purchases are paid back</label>
+                                <label class="form-label">Paid back</label>
                                 <select class="form-select" name="reimb_payback" data-mit-reimb-payback>
                                     <option value="payroll" <?= $mit_payroll ? 'selected' : '' ?>>With payroll</option>
-                                    <option value="itflow" <?= $mit_payroll ? '' : 'selected' ?>>Through ITFlow (Trips / Expenses &gt; Reimburse)</option>
+                                    <option value="itflow" <?= $mit_payroll ? '' : 'selected' ?>>Through ITFlow (Trips &gt; To pay back, Expenses &gt; To reimburse)</option>
                                 </select>
                             </div>
                             <div class="col-md-8"><div class="alert alert-info small mb-0" data-mit-reimb-itflow>
                                 <?php if ($mit_payroll) { ?>
-                                    Drives logged with <strong>Log a trip</strong> (own vehicle) and purchases added on tickets show on each person's timesheet
-                                    and in the payroll report (Mileage, Purchases, Reimburse). Approving the timesheet marks them paid through payroll from the
-                                    account picked below, so they never wait in Trips or Expenses &gt; Reimburse. Reopening it puts them back.
+                                    Everything a person paid for themselves goes on their timesheet and the payroll report (Mileage, Purchases, Reimburse):
+                                    trips in their own vehicle (ITFlow's <strong>Log a trip</strong>), purchases added on tickets, and expenses entered in
+                                    Expenses as paid personally by them. <?= $mit_approval ? 'Approving the timesheet' : 'Once the period has ended, the hourly timesheet job' ?>
+                                    marks them paid through payroll from the account below, so they leave Trips &gt; To pay back and Expenses &gt; To reimburse.
+                                    <?= $mit_approval ? 'Reopening it puts them back.' : '' ?> Anything paid back in ITFlow first is left out of the payroll total.
                                 <?php } else { ?>
-                                    People are paid back through ITFlow: mileage waits under Trips (driven in their own vehicle) and approved purchases under
-                                    Expenses &gt; Reimburse as paid personally - no account is needed for them.
+                                    People are paid back in ITFlow: trips in their own vehicle wait under Trips &gt; To pay back, and purchases (an expense once
+                                    the timesheet is approved) under Expenses &gt; To reimburse. The payroll report shows them for reference only.
                                 <?php } ?>
-                                Mileage is at ITFlow's rate<?= mitReimbItflowRate() > 0 ? '' : ' (not set yet - Settings &gt; Invoices and billing; until then the rate here is used)' ?>.
                             </div></div>
                         <?php } ?>
-                        <?php $mit_rate_itflow = $mit_itflow_pays && mitReimbItflowRate() > 0; // ITFlow's own rate wins - shown, changed there ?>
                         <div class="col-md-4">
                             <label class="form-label">Mileage rate</label>
                             <div class="input-group">
                                 <span class="input-group-text"><?= escapeHtml($session_company_currency) ?></span>
-                                <input type="text" inputmode="decimal" class="form-control" <?= $mit_rate_itflow ? 'readonly data-mit-rate-itflow' : 'name="mileage_rate"' ?> value="<?= $reimb['rate'] ? escapeHtml(rtrim(rtrim(number_format($reimb['rate'], 4, '.', ''), '0'), '.')) : '' ?>" placeholder="0.70" aria-label="Rate per mile">
+                                <input type="text" inputmode="decimal" class="form-control" name="mileage_rate" value="<?= $reimb['rate'] ? escapeHtml(rtrim(rtrim(number_format($reimb['rate'], 4, '.', ''), '0'), '.')) : '' ?>" placeholder="0.70" aria-label="Rate per mile" data-mit-mileage-rate>
                                 <span class="input-group-text">a mile</span>
                             </div>
-                            <div class="form-text"><?php if ($mit_rate_itflow) { ?>ITFlow's rate - change it in <a href="settings_invoice.php#setting=config_mileage_rate">Settings &gt; Invoices and billing</a>.<?php } ?>
-                                Mileage logged on tickets keeps the rate of the day it was logged.</div>
+                            <?php if ($mit_itflow_pays) { ?>
+                                <div class="form-text">Also ITFlow's rate (<a href="settings_invoice.php#setting=config_mileage_rate">Settings &gt; Invoices and billing</a>, "Paid back a mile") - saved to both.</div>
+                                <?php if ($mit_itflow_rate <= 0) { ?>
+                                    <div class="alert alert-warning small py-2 mt-2 mb-0" data-mit-rate-missing>ITFlow's mileage rate is not set, so <strong>Log a trip</strong> has no
+                                        "In their own vehicle" switch and trips are never paid back. Save a rate here to set it.</div>
+                                <?php } ?>
+                            <?php } else { ?>
+                                <div class="form-text">Mileage logged on tickets keeps the rate of the day it was logged.</div>
+                            <?php } ?>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Record purchases as expenses in</label>
+                            <label class="form-label">Expense category for purchases</label>
                             <select class="form-select" name="reimb_category">
-                                <option value="0">- Don't record them -</option>
+                                <option value="0"><?= $mit_itflow_pays ? '- None -' : "- Don't record them -" ?></option>
                                 <?php foreach ($expense_categories as $category) { ?>
                                     <option value="<?= intval($category['category_id']) ?>" <?= intval($category['category_id']) === $reimb['category_id'] ? 'selected' : '' ?>><?= escapeHtml($category['category_name']) ?></option>
                                 <?php } ?>
                             </select>
+                            <div class="form-text"><?= $mit_approval ? 'When a timesheet is approved' : 'When a period has ended' ?>, its purchases become expenses (Finance &gt; Expenses) with their receipts<?= $mit_itflow_pays ? ', paid personally by the person.' : ' - with Accounting on and an account picked.' ?></div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label"><?= $mit_payroll ? 'Payroll pays from account' : 'Paid from account' ?><?= $mit_itflow_pays && !$mit_payroll ? ' <span class="text-muted small">(not used - paid back in ITFlow)</span>' : '' ?></label>
-                            <select class="form-select" name="reimb_account">
-                                <option value="0">- Pick an account -</option>
-                                <?php foreach ($accounts as $account) { ?>
-                                    <option value="<?= intval($account['account_id']) ?>" <?= intval($account['account_id']) === $reimb['account_id'] ? 'selected' : '' ?>><?= escapeHtml($account['account_name']) ?></option>
+                        <?php if (!$mit_itflow_pays || $mit_payroll) { ?>
+                            <div class="col-md-4">
+                                <label class="form-label"><?= $mit_payroll ? 'Payroll pays from account' : 'Paid from account' ?></label>
+                                <select class="form-select" name="reimb_account">
+                                    <option value="0">- Pick an account -</option>
+                                    <?php foreach ($accounts as $account) { ?>
+                                        <option value="<?= intval($account['account_id']) ?>" <?= intval($account['account_id']) === $reimb['account_id'] ? 'selected' : '' ?>><?= escapeHtml($account['account_name']) ?></option>
+                                    <?php } ?>
+                                </select>
+                                <?php if ($mit_payroll && !$reimb['account_id']) { ?>
+                                    <div class="alert alert-warning small py-2 mt-2 mb-0" data-mit-account-missing>Pick one - timesheets with mileage or purchases can't be approved until then.</div>
+                                <?php } else { ?>
+                                    <div class="form-text"><?= $mit_payroll ? 'The money out for each paid timesheet is recorded from this account.' : 'Purchases are recorded as paid from this account.' ?></div>
                                 <?php } ?>
-                            </select>
-                            <div class="form-text">When a timesheet is approved its purchases are added to Finance &gt; Expenses with their receipts (with Invoicing on).</div>
-                        </div>
+                            </div>
+                        <?php } else { ?>
+                            <input type="hidden" name="reimb_account" value="<?= intval($reimb['account_id']) ?>">
+                        <?php } ?>
                     </div>
                 <?php } ?>
 

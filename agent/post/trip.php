@@ -18,6 +18,8 @@ if (isset($_POST['add_trip'])) {
 
     validateCSRFToken();
 
+    if (function_exists('mitReimbTripWhyLocked') && ($mit_why = mitReimbTripWhyLocked(0, $_POST)) !== '') { flashAlert(escapeHtml($mit_why), 'error'); redirect(); } // Mountaineer IT: a locked timesheet day
+
     $trip_id = tripSave($_POST, 0, $error);
     if (!$trip_id) {
         flashAlert(escapeHtml($error), 'error');
@@ -41,9 +43,11 @@ if (isset($_POST['edit_trip'])) {
 
     // Mountaineer IT: a trip made by a reimbursement is changed there, so payroll and the trip stay the same
     if (function_exists('mitReimbTripLocked') && mitReimbTripLocked($trip_id)) {
-        flashAlert('This trip belongs to mileage logged for reimbursement - change it in the ticket\'s Reimbursements box.', 'error');
+        flashAlert('This trip is mileage logged on a ticket for pay back - change it there, on the ticket (Change beside it).', 'error');
         redirect();
     }
+
+    if (function_exists('mitReimbTripWhyLocked') && ($mit_why = mitReimbTripWhyLocked($trip_id, $_POST)) !== '') { flashAlert(escapeHtml($mit_why), 'error'); redirect(); } // Mountaineer IT: a locked timesheet day
 
     if (!tripSave($_POST, $trip_id, $error)) {
         flashAlert(escapeHtml($error), 'error');
@@ -65,9 +69,11 @@ if (isset($_GET['delete_trip'])) {
 
     // Mountaineer IT: a trip made by a reimbursement is removed there
     if (function_exists('mitReimbTripLocked') && mitReimbTripLocked(intval($_GET['delete_trip']))) {
-        flashAlert('This trip belongs to mileage logged for reimbursement - remove it in the ticket\'s Reimbursements box.', 'error');
+        flashAlert('This trip is mileage logged on a ticket for pay back - remove it there, on the ticket (Change beside it).', 'error');
         redirect();
     }
+
+    if (function_exists('mitReimbTripWhyLocked') && ($mit_why = mitReimbTripWhyLocked(intval($_GET['delete_trip']))) !== '') { flashAlert(escapeHtml($mit_why), 'error'); redirect(); } // Mountaineer IT: a locked timesheet day
 
     $row = tripDelete(intval($_GET['delete_trip']), $error);
     if (!$row) {
@@ -136,7 +142,7 @@ if (isset($_POST['bulk_edit_trips'])) {
     $kept = 0;
     foreach ($trip_ids as $trip_id) {
         $row = tripRow($trip_id);
-        if (!$row || (function_exists('mitReimbTripLocked') && mitReimbTripLocked($trip_id))) { // Mountaineer IT: a timesheet's mileage changes there
+        if (!$row || (function_exists('mitReimbTripLocked') && (mitReimbTripLocked($trip_id) || (in_array($field, ['driver', 'vehicle'], true) && mitReimbTripWhyLocked($trip_id, $field === 'driver' ? ['driver' => $value] : ['own_vehicle' => $value]) !== '')))) { // Mountaineer IT: a timesheet's mileage changes there; a locked timesheet day
             $kept += $row ? 1 : 0;
             continue;
         }
@@ -166,7 +172,7 @@ if (isset($_POST['bulk_delete_trips'])) {
     $count = 0;
     $kept = 0;
     foreach (array_unique(array_filter(array_map('intval', (array) ($_POST['trip_ids'] ?? [])))) as $trip_id) {
-        if (function_exists('mitReimbTripLocked') && mitReimbTripLocked($trip_id)) { $kept++; continue; } // Mountaineer IT: a timesheet's mileage is removed there
+        if (function_exists('mitReimbTripLocked') && (mitReimbTripLocked($trip_id) || mitReimbTripWhyLocked($trip_id) !== '')) { $kept++; continue; } // Mountaineer IT: a timesheet's mileage is removed there; a locked timesheet day
         $row = tripDelete($trip_id, $delete_error);
         if (!$row) {
             $kept += $delete_error !== '' && strpos($delete_error, 'no longer exists') === false ? 1 : 0;

@@ -137,10 +137,16 @@ if (isset($_POST['mit_ts_settings_save'])) {
     foreach ($values as $key => $value) {
         mitSetSetting("ts_$key", $value);
     }
-    // The rate field is read-only (not posted) while ITFlow's own rate is set - the rest of the section still saves
+    // One mileage rate: ours, and ITFlow's own "Paid back a mile" when ITFlow pays people back (Log a trip offers "In their own
+    // vehicle" only while that is set). An empty box leaves ITFlow's alone.
     if (isset($_POST['mileage_rate'])) {
         $rate = trim(str_replace([',', '$'], '', (string) $_POST['mileage_rate']));
-        mitSetSetting('ts_mileage_rate', is_numeric($rate) && (float) $rate >= 0 && (float) $rate < 100 ? (string) round((float) $rate, 4) : '0');
+        $rate = is_numeric($rate) && (float) $rate >= 0 && (float) $rate < 100 ? round((float) $rate, 4) : 0.0;
+        mitSetSetting('ts_mileage_rate', (string) $rate);
+        if ($rate > 0 && function_exists('mitReimbItflowPaysBack') && mitReimbItflowPaysBack() && abs(mitReimbItflowRate() - $rate) > 0.00001) {
+            mysqli_query($mysqli, "UPDATE settings SET config_mileage_rate = $rate WHERE company_id = 1");
+            logAudit('Settings', 'Edit', escapeSql("$session_name set the mileage rate (paid back a mile) to $rate in Admin > Timesheets"));
+        }
     }
     if (isset($_POST['reimb_payback'])) {
         mitSetSetting('ts_payback', $_POST['reimb_payback'] === 'itflow' ? 'itflow' : 'payroll');

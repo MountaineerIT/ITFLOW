@@ -8,7 +8,7 @@
  * column) lets you drag them about, then save it for yourself or, as an admin, as the company default.
  * The page's markup is ITFlow's own; nothing here changes it server-side, so a box this script does
  * not know simply stays where ITFlow put it. Boxes are found by their title icon (ICONS below) -
- * ITFlow's, plus our Parts box (fa-microchip, functions/mit_procurement_parts.php) and Reimbursements box
+ * ITFlow's, plus our Parts box (fa-microchip, functions/mit_procurement_parts.php) and Mileage & purchases box
  * (fa-receipt, functions/mit_reimbursements.php).
  */
 (function () {
@@ -98,6 +98,22 @@
             body.classList.add('border-top');
             body.dataset.mitReimbInTrips = '';
             trips.insertBefore(body, trips.querySelector(':scope > .card-footer'));
+            // Mileage logged with our form is an ITFlow trip too: our line (with Change) stays, ITFlow's line for it goes
+            let shown = 0;
+            body.querySelectorAll('[data-mit-reimb-trip]').forEach(function (line) {
+                const theirs = trips.querySelector('a[data-modal-url$="trip.php?id=' + line.dataset.mitReimbTrip + '"]');
+                if (theirs) {
+                    theirs.remove();
+                }
+            });
+            // The count beside the title: every line in the box
+            trips.querySelectorAll(':scope > .list-group > .list-group-item, [data-mit-reimb-in-trips] .list-group-item').forEach(function () {
+                shown++;
+            });
+            const badge = trips.querySelector('.card-header .card-title .badge');
+            if (badge) {
+                badge.textContent = String(shown);
+            }
             const title = trips.querySelector('.card-header .card-title');
             const label = title && title.firstChild && title.firstChild.nextSibling; // <i> icon, then ITFlow's "Trips"
             if (label && label.nodeType === 3) {
@@ -153,7 +169,7 @@
     };
     const NAMES = {
         description: 'Description', reply: 'Reply box', conversation: 'Conversation', details: 'Details', contact: 'Contact',
-        also_open: 'Also open', site: 'Site', tasks: 'Tasks', parts: 'Parts', reimburse: 'Reimbursements', linked: 'Linked', history: 'History',
+        also_open: 'Also open', site: 'Site', tasks: 'Tasks', parts: 'Parts', reimburse: 'Mileage & purchases', linked: 'Linked', history: 'History',
         fill_ins: 'Fill-ins', trips: 'Trips', ai_triage: 'AI suggestions'
     };
     // ITFlow's own layout - where a box goes back to, and where a saved layout slots a box it never saw
