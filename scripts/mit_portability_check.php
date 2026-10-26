@@ -228,6 +228,9 @@ if ($n = $count("SELECT COUNT(*) FROM mit_ninja_devices WHERE asset_id IS NOT NU
 if ($n = $count("SELECT COUNT(*) FROM mit_ai_sources")) {
     $after[] = "AI helper: $n tickets / documents in its library - stock ITFlow has no helper that searches them (its own AI features keep working). The library stays unused in mit_ai_*.";
 }
+if (($n = $count("SELECT COUNT(*) FROM mit_ai_conversations")) > 0) {
+    $after[] = "AI helper: $n Ask AI conversation(s) - stock ITFlow has no Ask AI panel. They stay unused in mit_ai_conversations / mit_ai_messages.";
+}
 if ($n = $count("SELECT COUNT(*) FROM mit_align_clients") + $count("SELECT COUNT(*) FROM mit_align_devices") + $count("SELECT COUNT(*) FROM mit_align_licenses")) {
     $after[] = "MSP Align: $n clients / assets / licenses carry MSP Align's scores and status - stock ITFlow shows none of it and has no links to MSP Align (MSP Align itself keeps working - it reads ITFlow's own API). The copies stay unused in mit_align_*.";
 }

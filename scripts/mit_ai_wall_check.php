@@ -31,7 +31,7 @@ const MIT_AI_WALL_FORBIDDEN = [
 ];
 
 const MIT_AI_WALL_TABLES = ['settings', 'tickets', 'ticket_replies', 'documents', 'clients', 'users', 'ai_providers', 'mit_ai_sources', 'mit_ai_chunks',
-    'mit_ai_conversations', 'mit_ai_messages'];
+    'mit_ai_conversations', 'mit_ai_messages', 'ai_usage'];
 
 $root = dirname(__DIR__);
 $files = [];
@@ -65,7 +65,12 @@ foreach ($files as $path) {
         if (!is_array($token) || !in_array($token[0], [T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE], true)) {
             continue;
         }
-        if (!preg_match_all('/\b(?:FROM|JOIN|INTO|UPDATE|TABLE(?: IF (?:NOT )?EXISTS)?|TABLES LIKE)\s+[`\'"]?([a-z_][a-z0-9_]*)/i', $token[1], $found)) {
+        // SQL here is written in capitals (the helper's style), so English words like "from past tickets" are not read as tables -
+        // and SQL written in small letters is refused, so it can't slip past this check
+        if (preg_match('/\b(?:select|insert into|delete from|update)\b.{0,200}\b(?:from|set|where)\b/', $token[1]) && preg_match('/\b(?:from|join)\s+`?[a-z_]+`?\s+(?:where|join|on|set|left|order|group|limit)\b/', $token[1])) {
+            $problems[] = "$path:" . $token[2] . " has SQL in small letters - write the helper's SQL in capitals so this check can read it";
+        }
+        if (!preg_match_all('/\b(?:FROM|JOIN|INTO|UPDATE|TABLE(?: IF (?:NOT )?EXISTS)?|TABLES LIKE)\s+[`\'"]?([a-z_][a-z0-9_]*)/', $token[1], $found)) {
             continue;
         }
         foreach ($found[1] as $table) {

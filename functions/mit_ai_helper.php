@@ -51,6 +51,8 @@ const MIT_AI_PLAIN_VALUES = ['wrong', 'incorrect', 'correct', 'right', 'expired'
     'strong', 'long', 'short', 'complex', 'simple', 'temporary', 'updated', 'accepted', 'rejected', 'denied', 'disabled', 'enabled', 'no', 'none',
     'also', 'probably', 'likely', 'usually', 'always', 'never', 'just', 'only', 'what', 'unchanged', 'sent', 'emailed', 'texted', 'given', 'provided'];
 
+require_once __DIR__ . '/mit_ai_ask.php'; // round 2: the Ask AI panel
+
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run
 const MIT_AI_EMBED_BATCH = 64;        // passages per embeddings request
@@ -298,15 +300,21 @@ function mitAiChunk($head, $text) {
  * ---------- building the library ----------
  */
 
-/** A ticket as the library keeps it: [title, client_id, signature, text] - or null when it doesn't belong (open, archived). */
-function mitAiTicketSource($ticket_id) {
+/**
+ * A ticket as the library keeps it: [title, client_id, signature, head, text] - or null when it doesn't belong (open, archived).
+ * $open_too: also an open ticket (the one an agent asks about in the Ask AI panel - functions/mit_ai_ask.php), with its internal notes.
+ */
+function mitAiTicketSource($ticket_id, $open_too = false) {
     global $mysqli;
     $ticket_id = intval($ticket_id);
     $settings = mitAiHelperSettings();
+    if ($open_too) {
+        $settings['internal'] = true;
+    }
     $ticket = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT t.ticket_id, t.ticket_prefix, t.ticket_number, t.ticket_subject, t.ticket_details,
             t.ticket_client_id, t.ticket_updated_at, t.ticket_resolved_at, t.ticket_closed_at, c.client_name
         FROM tickets t LEFT JOIN clients c ON c.client_id = t.ticket_client_id
-        WHERE t.ticket_id = $ticket_id AND t.ticket_archived_at IS NULL AND (t.ticket_resolved_at IS NOT NULL OR t.ticket_closed_at IS NOT NULL)"));
+        WHERE t.ticket_id = $ticket_id AND t.ticket_archived_at IS NULL" . ($open_too ? '' : " AND (t.ticket_resolved_at IS NOT NULL OR t.ticket_closed_at IS NOT NULL)")));
     if (!$ticket) {
         return null;
     }
@@ -329,7 +337,7 @@ function mitAiTicketSource($ticket_id) {
         'title' => mb_substr("$reference - " . $ticket['ticket_subject'], 0, 255),
         'client_id' => intval($ticket['ticket_client_id']),
         'signature' => hash('sha256', implode('|', $sign)),
-        'head' => "Ticket $reference" . ($client !== '' ? " ($client)" : '') . ', ' . ($ticket['ticket_resolved_at'] ? 'resolved ' . substr($ticket['ticket_resolved_at'], 0, 10) : 'closed')
+        'head' => "Ticket $reference" . ($client !== '' ? " ($client)" : '') . ', ' . ($ticket['ticket_resolved_at'] ? 'resolved ' . substr($ticket['ticket_resolved_at'], 0, 10) : ($ticket['ticket_closed_at'] ? 'closed' : 'open'))
             . ': ' . $ticket['ticket_subject'],
         'text' => $text,
     ];

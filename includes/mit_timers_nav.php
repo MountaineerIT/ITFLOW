@@ -7,6 +7,7 @@
  */
 ?>
 <?= function_exists('mitDevBadge') ? mitDevBadge() : '' // development mode badge (functions/mit_dev_mode.php) ?>
+<?= function_exists('mitAiPanelNav') ? mitAiPanelNav() : '' // the Ask AI button and panel (functions/mit_ai_ask.php) ?>
 <li class="nav-item dropdown" id="mitTimers" hidden>
     <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Ticket timers">
         <i class="fas fa-stopwatch" aria-hidden="true"></i>

@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.155 - 2026-10-26
+- AI helper, part 2: **Ask AI** in the top bar. Ask about a problem and get an answer drawn from your team's past tickets and documents, with numbered sources that link to each ticket or document it used. Follow-up questions keep the conversation; earlier conversations are listed (and can be deleted), and each answer has a thumbs up / down.
+- On a ticket page, "About this ticket" sends that ticket along with the question, so you can ask "what should I try next?".
+- Each technician only gets passages from clients they can open, and only sees their own conversations. Passwords stay out: the question, the ticket and the answer all go through the password filter, and the AI is told never to write one out.
+- Admin > Integrations > AI helper: a monthly token limit for the helper (answers and meaning search), this month's tokens, and the last 30 days' questions and thumbs up / down. Answers use ITFlow's AI model for Tickets (or General).
+
 ## 26.10.154 - 2026-10-26
 - AI helper: the password filter no longer throws away ordinary notes that only talk about passwords ("the user needs a password for the copier", "password reset for Bob", "Outlook keeps prompting for a password"). A sentence is taken out only when it gives one - "password is ...", "PIN: ...", "set the password to ...", "the NAS password purplemonkey" - or has a password-like word next to the password. Product names, versions, error and KB numbers, file names and e-mail addresses are no longer mistaken for passwords.
 - "Passwords taken out" has a "What?" link on each ticket: it shows an admin exactly what was taken out and why, to check it was a real password (shown only there, never sent to the AI).

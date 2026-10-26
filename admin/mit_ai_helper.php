@@ -80,6 +80,23 @@ $rule_names = ['labelled' => 'Labelled as a password or key', 'sentence' => 'A s
                 <label class="form-label">Embeddings model</label>
                 <input type="text" class="form-control" name="ai_helper_embed_model" maxlength="200" value="<?= escapeHtml($settings['embed_model']) ?>" placeholder="text-embedding-3-small">
             </div>
+            <div class="col-12"><h6 class="mb-0 mt-2"><i class="fas fa-fw fa-comments me-2"></i>Ask AI (the panel in the top bar)</h6>
+                <div class="form-text">Answers use ITFlow's AI model for Tickets (or General) - <a href="ai_models.php">AI Models</a>. Each question sends the closest
+                    passages and, on a ticket, that ticket - roughly 3,000-4,000 tokens.</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Monthly token limit</label>
+                <input type="number" min="0" step="10000" class="form-control" name="ai_helper_monthly_tokens" value="<?= intval(mitAiTokenLimit()) ?>" data-mit-ai-limit>
+                <div class="form-text">Answers and meaning search together; 0 = no limit. When reached, the helper says so until the 1st.</div>
+            </div>
+            <div class="col-md-6 small" data-mit-ai-usage>
+                <div class="text-muted mt-md-4">This month: <strong><?= number_format(mitAiTokensThisMonth()) ?></strong> tokens<?= mitAiTokenLimit() ? ' of ' . number_format(mitAiTokenLimit()) : '' ?>.
+                    <?php $mit_ai_stats = mitAiAskStats(30); if ($mit_ai_stats) { ?>
+                        Last 30 days: <?= intval($mit_ai_stats['questions']) ?> question(s), <i class="fas fa-thumbs-up"></i> <?= intval($mit_ai_stats['up']) ?>
+                        <i class="fas fa-thumbs-down ms-1"></i> <?= intval($mit_ai_stats['down']) ?>.
+                    <?php } ?>
+                </div>
+            </div>
             <div class="col-12 d-flex flex-wrap gap-2">
                 <button type="submit" name="mit_ai_helper_save" class="btn btn-primary"><i class="fas fa-check me-2"></i>Save</button>
                 <?php if ($settings['embed_provider'] && $settings['embed_model'] !== '') { ?>

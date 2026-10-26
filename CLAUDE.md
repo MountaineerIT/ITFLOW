@@ -1257,8 +1257,28 @@ model: see DEPLOYMENT.md.
   `tests/scenarios/scenario-ai-scrub.php` holds both lists - leaks that must go, ordinary notes that must stay word for word.
   The test install has an AI stand-in `ai-mock/index.php` (not in the repo: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
   echoing the question, `/_calls` / `/_clear`). Tests: scenarios `scenario-ai-wall.php` (canaries), `scenario-ai-library.php` (lifecycle,
-  switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`. Round 2 (next): the Ask AI panel (top bar + ticket), answers citing
-  sources, conversations; round 3: documentation drafting.
+  switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`. Round 3 (next):
+  documentation drafting.
+  Round 2 - the Ask AI panel (26.10.155): `functions/mit_ai_ask.php` (ours, required from mit_ai_helper.php). Tables M045
+  `mit_ai_conversations` (user FK users CASCADE, ticket FK tickets SET NULL, title) / `mit_ai_messages` (conversation FK CASCADE, role,
+  content - stored cleaned -, `sources` JSON of the passages sent, feedback 1 / -1). `mitAiPanelNav()` - the top bar's Ask AI button and a
+  Bootstrap offcanvas, echoed from our `includes/mit_timers_nav.php` (no new line in ITFlow's files); on an agent's ticket page
+  (`agent/ticket.php?ticket_id=`) it carries data-ticket-id / -label for "About this ticket". Script `agent/js/mit_ai_helper.js` (moves the
+  panel to <body>; draws only HTML the server made safe; Enter sends; thumbs; earlier conversations with delete); requests
+  `agent/mit_ai_ajax.php` (GET list / conversation, POST ask / feedback / delete with the CSRF token; ask closes the session first).
+  `mitAiAsk($conversation_id, $question, $ticket_id)`: `mitAiAskCan` (helper on, M045, Use AI, Support view, `aiReady('Tickets')`), the
+  monthly limit (`mit_settings` ai_helper_monthly_tokens vs `mitAiTokensThisMonth` = ITFlow's ai_usage for mit_ai_helper + mit_ai_embed),
+  the question through `mitAiScrub`, the agent's own conversation only, the ticket only when `mitAiAskTicket` (Support view + its
+  client), the current ticket via `mitAiTicketSource($id, true)` (open too, internal notes) cut to `MIT_AI_TICKET_CHARS`, `mitAiSearch` (the
+  current ticket left out of its own sources), the last `MIT_AI_HISTORY_TURNS` messages, `mitAiSystemPrompt()` (cite [n], say when the
+  passages don't cover it, never write a password - "kept in ITFlow's password vault"), ITFlow's `callAiApi` with `getAiModel('Tickets')`,
+  feature `mit_ai_helper`, `secrets => remove`; the answer through `mitAiScrub` again, then `mitAiAnswerHtml` (escaped, then a little
+  Markdown and [n] links). `mitAiMessageOut` hides sources of clients the agent can no longer open and marks `cited` ones (the rest fold
+  under "Also looked at"). Admin page: monthly token limit, this month's tokens, 30-day questions / thumbs (`mitAiAskStats`). Test
+  install: the stand-in's /v1/chat/completions echoes "MOCK ANSWER for: <question...>" and cites the first three [n]; a scenario / smoke
+  provider is saved with the full /v1/chat/completions address (as ITFlow's form saves it) and its model on the Tickets use case.
+  Tests: scenario `scenario-ai-ask.php` (ticket + passages sent, no canary sent or stored, follow-up history, owner only, client-limited
+  technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
