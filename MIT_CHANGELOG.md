@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.160 - 2026-10-26
+- `scripts/install_local_ai.sh` can be run directly (it was missing its "executable" mark - `bash scripts/install_local_ai.sh` worked before too).
+
 ## 26.10.159 - 2026-10-26
 - AI helper: meaning search can run on the ITFlow server itself - free, and nothing leaves the server. Install it once from a root shell: `sudo bash /var/www/itflow/scripts/install_local_ai.sh` (Ollama with the nomic-embed-text model, about 1 GB of memory, no GPU), then Admin > Integrations > AI helper > **Use this server**. The library re-does its passages with it over the next runs; **Switch off** goes back to what you had before.
 - New installs can add it with `install.sh --local-ai`.
