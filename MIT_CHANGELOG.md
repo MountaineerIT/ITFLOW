@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.170 - 2026-10-27
+- Checks that QuickBooks Online keeps ITFlow's hands off its invoices everywhere money moves: charging a saved card, refunding, the guest pay link, paying from the client portal (also at checkout, for an invoice that went to QuickBooks after it was picked), the nightly payment reminders and autopay (they skip invoices sent to QuickBooks or entered there by hand), and the dashboard's Needs attention counts by service board and without project tickets.
+- No change to how ITFlow works.
+
 ## 26.10.169 - 2026-10-27
 - More checks that our parts of ITFlow's pages and functions really work: Microsoft 365 mail sign-in and Admin > Mail with our app, Outlook busy times on the calendar, booking emails without the invite for agents whose Outlook is synced, development mode keeping the mail parser, AI triage, log forwarding and custom actions off, service boards by role on the client overview, dashboard and search, "the 2nd Tuesday" rules on the client overview and dashboard (and after moving recurring tickets' next run in bulk), the notification switches, the NinjaOne and MSP Align buttons in an asset's window, and the QuickBooks lock on deleting a client through the API.
 - No change to how ITFlow works.
