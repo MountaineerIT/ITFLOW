@@ -187,6 +187,7 @@ model: see DEPLOYMENT.md.
   `guest_download_file.php` checks the item first, quoted filename. Stage 3 (26.10.96): `agent/invoice.php` / `quote.php` /
   `recurring_invoice.php` draw the logo only when one is set (an empty name asked for the uploads/settings/ folder - 403);
   `client/login_reset.php` reads the user row with `?? 0`; `agent/user/post.php` HTTP_REFERER `?? ''`. 26.10.98: `agent/post/invoice_model.php` discounts `?? 0` (add_invoice posts no recurring_discount). 26.10.120: `admin/post/settings_company.php` deletes the old logo only when there is one (the first upload unlinked the folder). 26.10.136: `cron/update_check.php` stores at most the newest 100 pending commits, subjects cut to 200 characters, under 60 KB (ITFlow's TEXT column overflowed - "Data too long for column 'config_update_pending_commits'"). 26.10.128: `guest/guest_view_quote.php` / `guest_view_invoice.php` draw the logo only when one is set (same as the agent pages); `guest_view_invoice.php`, `client/recurring_invoices.php`, `client/unpaid_invoices.php` read the Stripe row with `?? 0` (no provider = warnings). 26.10.173: `includes/filter_footer.php` has a page step for more than 10,000 pages (production's 578,870-row audit log at 50 a page stopped with "Division by zero" - in v26.10 and upstream develop too; `scenario-pager-many-pages.php`).
+  M046 (26.10.174): installs made from ITFlow's November 2025 db.sql (production among them) have a leftover `contract_templates.company_id` int NOT NULL with no default (in that db.sql a few days, never in ITFlow's updates) - ITFlow's own Add contract template failed. M046 gives it DEFAULT 0 when it is there without one (column and values kept; other installs untouched). Smoke `83-contracts.spec.js` uses ITFlow's contracts end to end (template, contract, recurring invoice, prepaid hours).
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -1054,7 +1055,7 @@ model: see DEPLOYMENT.md.
   QuickBooks disconnect's revoke - change nothing there); the one write let through is Graph sending a message already redirected
   to the test inbox (`mitDevSendingRedirected`, set around `mitM365GraphSendMail`), plus QuickBooks once `mitQboDevProblem` allows it.
   NinjaOne / Bitwarden / Ingram still sync into this server (reads); nothing done here goes back. A new integration must use one of those two
-  helpers. ITFlow's own AI providers and domain checks are not ours and not gated. A red DEVELOPMENT badge in the top bar (`mitDevBadge` from `includes/mit_timers_nav.php`). Smoke
+  helpers. ITFlow's own AI providers and domain checks are not ours and not gated (the user confirmed Oct 27: keep AI working on a restored copy, for testing - it uses production's provider and key there). A red DEVELOPMENT badge in the top bar (`mitDevBadge` from `includes/mit_timers_nav.php`). Smoke
   `17-dev-mode.spec.js`.
 - Review fixes (Oct 2026): `functions/mit_common.php` (ours, required first in `functions.php`) - shared
   helpers: `mitMailBody` / `mitSqlHtml` (HTML for SQL without escapeSql's strip_tags), `mitProductIsTangible`,

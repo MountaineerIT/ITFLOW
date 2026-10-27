@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.174 - 2026-10-27
+- Fixed: Admin > Contract templates could not add a template on servers first installed in November 2025 (production among them) - ITFlow's installer then left a required column behind. Database update M046 gives it a default; nothing else changes.
+- A new check uses ITFlow's contracts from start to finish (template, client contract, its recurring invoice, prepaid hours) alongside our features.
+
 ## 26.10.173 - 2026-10-27
 - Fixed (ITFlow's own bug, also on production today): Admin > Audit logs and App logs stopped half-way with an error for anyone set to 50 rows a page or fewer once a log had more than 10,000 pages.
 - Found by a practice run of the first move to this build on a copy of production's database: ITFlow's updates and all of ours ran in 15 seconds, nothing was lost, every page opens.

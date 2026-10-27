@@ -30,7 +30,7 @@ return [
             'admin/includes/mit_admin_nav.php', 'admin/includes/mit_integrations_nav.php', 'admin/includes/mit_modules_fields.php',
             'agent/includes/mit_billing_nav.php'],
         'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
-            'tests/smoke/79-platform-pages.spec.js', 'tests/scenarios/scenario-mail-logo.php', 'tests/scenarios/scenario-pager-many-pages.php', 'tests/smoke/99-php-log.spec.js'],
+            'tests/smoke/79-platform-pages.spec.js', 'tests/scenarios/scenario-mail-logo.php', 'tests/scenarios/scenario-pager-many-pages.php', 'tests/smoke/83-contracts.spec.js', 'tests/smoke/99-php-log.spec.js'],
         'assumes' => [
             'ITFlow runs admin/database_updates.php in version order and our runner after it (update_cli, setup, restores).',
             'functions.php requires ours; mit_common.php first.',
