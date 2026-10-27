@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.168 - 2026-10-27
+- Fixed: in a recurring ticket or calendar entry, choosing "On the 15th" (the same date each month) again after a weekday rule like "the third Wednesday" jumped straight back to the weekday rule.
+- New checks that a part of ours on ITFlow's pages is really there and working: quote and product pictures (kept, copied, removed with their line, quote, product or client), the Procurement and Billing menus and a project's Purchase orders card, parts returned to the shelf when a client is deleted, service board tags, Escalate, the role form's boards and the calendar's To schedule list, the portal ending other sign-ins after a password or two-step change, the version and release notes on Admin > Update, the modern look's settings and sign-in screens, the cron warning, helper techs (moves, the old lead's invite cancelled, portal replies copied), projects moving tickets in and out, and every remaining way to change an invoice waiting in a QuickBooks batch.
+- Two earlier QuickBooks checks ("mark sent" and "email") were not really testing anything - they now do.
+- No change to how ITFlow works apart from the fix above.
+
 ## 26.10.167 - 2026-10-27
 - Hook proof (scripts/mit_hook_proof.php, for the test server): switches off one of our hooks in ITFlow's code at a time on a copy of the test install and runs that feature's tests, to find hooks no test would notice going. First results: quote pricing and the remembered Tickets list filters have hooks without a test - tests come next.
 - scripts/mit_test_copy.sh makes or refreshes side-by-side copies of the test install for checks like this. No change to how ITFlow works.
