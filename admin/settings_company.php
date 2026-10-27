@@ -90,10 +90,11 @@ echo settingsPageStart('company');
                         <?php if ($logo_url !== '') { ?>
                             <a href="post.php?remove_company_logo&csrf_token=<?= $_SESSION['csrf_token'] ?>" class="btn btn-sm btn-outline-danger mt-2 confirm-link" data-settings-remove-logo><i class="fas fa-trash-alt me-2"></i>Take the logo off</a>
                         <?php } ?>
-                        <?= function_exists('mitBrandLogoField') ? mitBrandLogoField() : '' // Mountaineer IT: logo on its own in the side menu ?>
                     </div>
                 </div>
             <?= settingsSectionEnd() ?>
+
+            <?= function_exists('mitBrandLogoField') ? mitBrandLogoField() : '' // Mountaineer IT: the logo on ITFlow's screens, and how the side menu shows it ?>
 
             <?= settingsSectionStart('internal', 'Your own client record', 'If you keep a client record for your own company - for internal tickets, documentation, assets and credentials - point it out here. Your company name in the sidebar then links straight to it.') ?>
                 <?= settingsSelect('config_internal_client_id', intval($config_internal_client_id), $internal_clients, ['icon' => 'fa-house-user', 'search' => true]) ?>

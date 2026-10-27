@@ -12,7 +12,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 12 | 4 | 8 | 12 | 23 | 15 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 12 | 4 | 12 | 12 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 6 | 6 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
@@ -274,6 +274,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert
 - `functions/sanitize.php`: checkFileUpload, escapeHtml, escapeSql
+- `functions/settings.php`: settingsInput, settingsSectionEnd, settingsSectionStart, settingsSwitch
 - `functions/software.php`: softwareSeatsUsedSql
 - `functions/ticket.php`: ticketOverdueSql
 

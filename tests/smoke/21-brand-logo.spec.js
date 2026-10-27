@@ -22,6 +22,10 @@ test('company logo: on its own in the side menu when it shows the company name, 
     await expect(plainField, 'the no-tile switch').toHaveCount(1);
     const wasPlain = await plainField.isChecked();
     const hadLogo = await page.locator('a[href*="remove_company_logo"]').count() > 0;
+    // Their own sections of ITFlow's settings page, under its Logo section - not squeezed into it
+    await expect(page.locator('#section-logo [data-mit-brand-app-logo], #section-logo [data-mit-brand-logo-only]'), 'not inside the Logo section').toHaveCount(0);
+    await expect(page.locator('#section-mit-app-logo [data-mit-brand-app-logo]'), "Logo on ITFlow's screens section").toHaveCount(1);
+    await expect(page.locator('#section-mit-side-menu-logo [data-mit-brand-logo-only]'), 'In the side menu section').toHaveCount(1);
     const save = async (on, upload, plain = false) => {
         await visit(page, 'admin/settings_company.php');
         const form = page.locator('form:has(button[name=edit_company])');
@@ -87,6 +91,29 @@ test('company logo: on its own in the side menu when it shows the company name, 
             if (await remove.count()) {
                 await page.goto('admin/' + (await remove.getAttribute('href')));
             }
+        }
+    }
+});
+
+test('saving Company Details without touching the logo settings keeps them', async ({ page }) => {
+    const db = require('./mitdb');
+    const read = () => db.rows("SELECT setting_name, setting_value FROM mit_settings WHERE setting_name IN ('brand_logo_only', 'brand_logo_plain', 'brand_app_logo') ORDER BY setting_name");
+    const before = read();
+    db.exec("INSERT INTO mit_settings (setting_name, setting_value) VALUES ('brand_logo_only', '1'), ('brand_logo_plain', '1') ON DUPLICATE KEY UPDATE setting_value = '1'");
+    try {
+        const errors = watch(page);
+        await visit(page, 'admin/settings_company.php', errors);
+        await expect(page.locator('#mitBrandLogoOnly'), 'shows on').toBeChecked();
+        await expect(page.locator('#mitBrandLogoPlain')).toBeChecked();
+        await submit(page.locator('form:has(button[name=edit_company])'), 'edit_company');
+        await flash(page);
+        expect(db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'brand_logo_only'"), 'still on').toBe('1');
+        expect(db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'brand_logo_plain'"), 'still on').toBe('1');
+        await expectClean(page, errors);
+    } finally {
+        db.exec("DELETE FROM mit_settings WHERE setting_name IN ('brand_logo_only', 'brand_logo_plain')");
+        for (const row of before.filter((r) => r.setting_name !== 'brand_app_logo')) {
+            db.exec(`INSERT INTO mit_settings (setting_name, setting_value) VALUES (${db.q(row.setting_name)}, ${db.q(row.setting_value)})`);
         }
     }
 });

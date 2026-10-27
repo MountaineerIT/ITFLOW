@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.184 - 2026-10-27
+- Admin > Settings > Company Details: the logo for ITFlow's screens and the side-menu switches are two sections of ITFlow's new settings page ("Logo on ITFlow's screens" with a dark preview, "In the side menu") instead of being squeezed into ITFlow's Logo section. Saving the page without touching them keeps them as they were (now tested).
+
 ## 26.10.183 - 2026-10-27
 - Tests: To Bill's smoke test also checks the menu badges, the "of parts" note, the Parts column and the message after Make Invoices - every procurement hook is now caught by a test when it breaks.
 

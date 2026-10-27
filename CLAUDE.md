@@ -871,7 +871,9 @@ model: see DEPLOYMENT.md.
   one-line tile; others, like the client overview's Financial strip `.itflow-ov-stats`, stay stacked), `.itflow-client-switcher`, `btn-outline-dark`
   / `-info` reply-type toggles.
   Logo on its own (26.10.120, every look): `mitBrandLogoOnly` / `mitBrandLogoField` / `mitBrandLogoSave` in `functions/mit_theme.php`,
-  `mit_settings` brand_logo_only - one line under the upload field in `admin/settings_company.php`, one in `admin/post/settings_company.php`
+  `mit_settings` brand_logo_only - one line after ITFlow's Logo section in `admin/settings_company.php` (26.10.184: two sections of
+  ITFlow's settings page of their own, built with its settingsSectionStart / settingsInput / settingsSwitch - "Logo on ITFlow's screens" `#section-mit-app-logo`
+  with a dark preview tile, "In the side menu" `#section-mit-side-menu-logo`; inside ITFlow's Logo row they pushed its preview off centre), one in `admin/post/settings_company.php`
   edit_company, and in `agent/includes/side_nav.php` `$mit_logo_only` (the logo tile gets `data-mit-logo-only` + an inline style to take
   the width, the name span is left out). Smoke `21-brand-logo.spec.js`.
   26.10.134: `mitBrandLogoAttrs()` now writes those attributes (the side_nav line calls it) and adds `data-mit-logo-plain` + an inline
