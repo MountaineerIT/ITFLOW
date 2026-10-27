@@ -54,6 +54,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+    db.exec("DELETE FROM email_queue WHERE email_recipient = 'smoke61@example.invalid'");
     for (const id of [made.sent, made.queued, made.control].filter(Boolean)) {
         db.exec(`DELETE FROM payments WHERE payment_invoice_id = ${id}; DELETE FROM mit_qbo_batch_invoices WHERE invoice_id = ${id}; DELETE FROM mit_invoice_approvals WHERE invoice_id = ${id};
             DELETE FROM mit_qbo_manual WHERE invoice_id = ${id}; DELETE FROM invoice_items WHERE item_invoice_id = ${id}; DELETE FROM history WHERE history_invoice_id = ${id}; DELETE FROM invoices WHERE invoice_id = ${id}`);
@@ -88,6 +89,7 @@ for (const which of ['control', 'sent', 'queued']) {
         const errors = watch(page);
         const id = made[which];
         const before = state(id);
+        const lastEmail = Number(db.val('SELECT COALESCE(MAX(email_id), 0) FROM email_queue'));
         await visit(page, `agent/invoice.php?invoice_id=${id}`, errors);
         const token = await csrf(page);
         const line = db.val(`SELECT item_id FROM invoice_items WHERE item_invoice_id = ${id} ORDER BY item_id LIMIT 1`);
@@ -131,7 +133,7 @@ for (const which of ['control', 'sent', 'queued']) {
             expect(now, `after "${label}" (${method} ${url}) the ${which} invoice is unchanged`).toEqual(before);
         }
         expect(statuses['notes in place (ajax)'], 'ajax notes refused with 409').toBe(409);
-        expect(Number(db.val(`SELECT COUNT(*) FROM email_queue WHERE email_recipient = 'smoke61@example.invalid'`)), 'nothing emailed').toBe(0);
+        expect(Number(db.val(`SELECT COUNT(*) FROM email_queue WHERE email_id > ${lastEmail} AND email_recipient = 'smoke61@example.invalid'`)), 'nothing emailed').toBe(0);
         // The API
         const api = await page.evaluate(async ({ key, id, client }) => {
             const r = await fetch('/api/v1/invoice_items/create.php', { method: 'POST', headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },

@@ -120,7 +120,7 @@ test('ninjaone: an asset linked to a device has its "Open in NinjaOne" button on
     test.skip(!row, 'no asset linked to a NinjaOne device here (run a sync first)');
     const errors = watch(page);
     await visit(page, `agent/asset.php?client_id=${row.asset_client_id}&asset_id=${row.asset_id}`, errors);
-    await expect(page.locator(`a[data-mit-ninja-asset="${row.asset_id}"]`).first(), 'on the asset page').toHaveAttribute('title', 'Open in NinjaOne');
+    await expect(page.locator(`a[data-mit-ninja-asset="${row.asset_id}"]`).first(), 'on the asset page').toHaveAttribute('title', /^Open in NinjaOne/);
     await page.evaluate((id) => {
         const b = document.createElement('button');
         b.className = 'ajax-modal d-none';

@@ -42,7 +42,7 @@ foreach ([$hidden, $resolved] as $t) {
 }
 mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '$tag findme', ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:10:00', ticket_reply_by = 1, ticket_reply_ticket_id = $hidden");
 
-$access = ['tickets' => true, 'docs' => true, 'financial' => true, 'sales' => true, 'credentials' => false];
+$access = ['tickets' => true, 'docs' => true, 'financial' => true, 'sales' => true, 'support' => true, 'credentials' => false];
 $look = function () use ($client_id, $access, $tag, $hidden) {
     $counts = [];
     foreach (clientOverviewAttention($client_id, $access, null) as $item) {
@@ -58,7 +58,13 @@ $look = function () use ($client_id, $access, $tag, $hidden) {
             $replies = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM {$group['from']} WHERE {$group['where']}"))[0]);
         }
     }
-    return ['unassigned' => $counts['Unassigned tickets'] ?? 0, 'unbilled' => $counts['Resolved, not invoiced'] ?? 0, // items with nothing in them are left out
+    $dash = 0;
+    foreach (dashboardAttention($access) as $item) {
+        if ($item['label'] === 'Unassigned tickets') {
+            $dash = intval($item['count']);
+        }
+    }
+    return ['dash_unassigned' => $dash, 'unassigned' => $counts['Unassigned tickets'] ?? 0, 'unbilled' => $counts['Resolved, not invoiced'] ?? 0, // items with nothing in them are left out
         'listed' => in_array($hidden, $open, true), 'team_unassigned' => intval($team['unassigned'] ?? 0), 'trend' => $trend, 'replies' => $replies];
 };
 try {
@@ -76,6 +82,19 @@ try {
     scenarioCheck('limited role: resolved, not invoiced leaves it out', $limited['unbilled'], 0);
     scenarioCheck('admin: on the open tickets list', $admin['listed'], true);
     scenarioCheck('limited role: not on the open tickets list', $limited['listed'], false);
+    scenarioCheck("dashboard's Needs attention: fewer unassigned for the limited role", $admin['dash_unassigned'] - $limited['dash_unassigned'] >= 1, true);
+    if (function_exists('mitProjectTicketsApart') && mitProjectTicketsApart()) {
+        // A project ticket is kept off the service counts (project tickets kept apart)
+        $session_is_admin = true;
+        $session_user_role = 0;
+        $session_user_id = 1;
+        mysqli_query($mysqli, "INSERT INTO projects SET project_prefix = 'PRJ-', project_number = 7" . date('His') . ", project_name = '$tag project', project_client_id = $client_id");
+        $project = mysqli_insert_id($mysqli);
+        $before = $look()['dash_unassigned'];
+        $in_project = scenarioMakeTicket($client_id, $contact_id, ['ticket_subject' => "$tag project ticket", 'ticket_project_id' => $project]);
+        scenarioCheck("dashboard's Needs attention: an unassigned project ticket is not counted", $look()['dash_unassigned'], $before);
+        mysqli_query($mysqli, "DELETE FROM projects WHERE project_id = $project");
+    }
     scenarioCheck("dashboard's unassigned count: less for the limited role", $admin['team_unassigned'] - $limited['team_unassigned'] >= 1, true);
     scenarioCheck('ticket trend: the hidden tickets left out for the limited role', $admin['trend'] - $limited['trend'] >= 2, true);
     scenarioCheck('conversation search: admin finds the note', $admin['replies'], 1);

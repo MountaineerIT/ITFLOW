@@ -941,7 +941,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-payments.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`
 
 **Hooks in ITFlow's files**
 
