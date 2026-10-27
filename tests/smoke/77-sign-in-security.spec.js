@@ -1,7 +1,8 @@
 // Sign-ins end when the password or MFA changes (mitSessionStamp / mitSessionCheck / mitSessionRestamp - functions/mit_common.php,
 // hooks in includes/load_user_session.php, agent/user/post/profile.php, functions/user.php):
 //  - an admin setting a new password for someone (Admin > Users > Edit) ends every sign-in of theirs (the admin's own carries on);
-//  - turning MFA on yourself ends your other sign-ins, and the browser you did it in carries on.
+//  - turning MFA on yourself ends your other sign-ins, and the browser you did it in carries on (turning it off too).
+// Not tested, on purpose: userSetPassword's own re-stamp (functions/user.php) - ITFlow signs you out after changing your own password.
 // Uses a throwaway agent login of its own (the technician's role), removed at the end.
 
 const crypto = require('crypto');
@@ -94,6 +95,12 @@ test('turning MFA on yourself: your other sign-ins end, this one carries on', as
     expect(db.val(`SELECT user_token <> '' FROM users WHERE user_id = ${made.userId}`), 'MFA is on').toBe('1');
     expect(await signedIn(mine.page), 'the browser that turned it on carries on').toBe(true);
     expect(await signedIn(other.page), 'the other sign-in ended').toBe(false);
+
+    // Turning it off again (with the password) - the stored MFA changes again, and this browser still carries on
+    const again = await csrf(mine.page);
+    await db.pagePost(mine.page, '/agent/user/post.php', { csrf_token: again, disable_your_mfa: '1', current_password: PASSWORD });
+    expect(db.val(`SELECT user_token = '' FROM users WHERE user_id = ${made.userId}`), 'MFA is off').toBe('1');
+    expect(await signedIn(mine.page), 'the browser that turned it off carries on').toBe(true);
     await mine.context.close();
     await other.context.close();
 });
