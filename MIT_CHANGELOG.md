@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.172 - 2026-10-27
+- The last of our hooks in ITFlow's pages now have tests that notice when they go missing: the procurement status on an invoice's lines once the invoice is locked, the Outlook calendar link in the Account menu, and our settings pages keeping Admin > Settings open.
+- No change to how ITFlow works.
+
 ## 26.10.171 - 2026-10-27
 - Every place our features hook into ITFlow's own code is now either caught by a test when it goes missing, or listed with the reason it can't be (for example, the client portal no longer draws the tables our phone fix wraps).
 - New checks: tickets an agent helps on show in their dashboard, schedule and calendar feed; agents who can't see a client aren't offered in the Schedule window; the agent colours in the calendar's Whose picker and the colour bar on bookings; a booking's end time (an end before the start is corrected, the end is in the emails, the invite never ends where it starts); Outlook busy times on the calendar; the Admin > Mail mailbox test through Microsoft Graph; our cost never appearing in the products API.
