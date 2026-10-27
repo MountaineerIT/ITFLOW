@@ -256,7 +256,7 @@ return [
             'agent/includes/mit_timesheet_nav.php', 'admin/mit_timesheets.php', 'admin/modals/mit_timesheets/*.php', 'admin/post/mit_timesheets.php',
             'cron/mit_timesheets.php'],
         'tests' => ['tests/smoke/04-permissions.spec.js', 'tests/smoke/05-california.spec.js', 'tests/smoke/19-own-employment.spec.js',
-            'tests/smoke/29-payroll-payback.spec.js', 'tests/smoke/31-rest-breaks.spec.js', 'tests/smoke/7[0-5]-*.spec.js', 'tests/scenarios/scenario-ts-*.php',
+            'tests/smoke/29-payroll-payback.spec.js', 'tests/smoke/31-rest-breaks.spec.js', 'tests/smoke/7[0-9]-*.spec.js', 'tests/scenarios/scenario-ts-*.php',
             'tests/scenarios/fixture-hourly.php'],
         'assumes' => [
             'Ticket time = ticket_replies.ticket_reply_time_worked by ticket_reply_by; billable by tickets.ticket_billable.',

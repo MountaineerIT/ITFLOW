@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 55 | 4 | 7 | 26 | 67 | 27 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 130 | 1 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 131 | 1 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 1 | 9 | 4 | 20 | 7 |
@@ -25,7 +25,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 2 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 3 | 8 | 5 | 13 | 14 |
 | [Procurement (to order, POs, receiving, ticket parts, unbilled parts, vendor bills)](#procurement) | 20 | 4 | 27 | 25 | 147 | 13 |
-| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 20 | 56 | 20 | 89 | 17 |
+| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 21 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 4 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
@@ -881,7 +881,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Closure days are business_holidays (getBusinessHolidays, restampOpenSlaTickets).
 - change_client_ticket turns public replies internal (mitTsKeepPublicNotes runs first).
 
-**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
+**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
 
 **Hooks in ITFlow's files**
 

@@ -6,7 +6,11 @@
  * smoke specs - and put the line back. A hook whose loss no test notices is a gap: write a test that fails without it.
  *
  *   php scripts/mit_hook_proof.php --list [--feature=key,key]                    the hook sites and how each would be switched off
- *   php scripts/mit_hook_proof.php --copy=N [--feature=key,key] [--site=file:line] [--out=results.jsonl]
+ *   php scripts/mit_hook_proof.php --copy=N [--feature=key,key] [--site=file:line | --sites=list.txt] [--out=results.jsonl]
+ *
+ * Features whose tests use the shared stand-ins (Microsoft 365 / Outlook / mail parser at 127.0.0.1:8765, QuickBooks, usage,
+ * NinjaOne, Customer Thermometer, AI, Align - one state each for every copy) must run on one copy, one at a time - two copies at
+ * once trip each other up and every later site looks "noticed".
  *
  * Switching off, so that ITFlow carries on as if our code were not there (never a broken page - each change must pass php -l):
  *   guard     function_exists('mitX') on the line -> false (the hook's fallback runs)
@@ -94,6 +98,10 @@ if ($only !== null) {
 }
 if (!empty($opts['site']) && $opts['site'] !== true) {
     $sites = array_intersect_key($sites, [$opts['site'] => true]);
+}
+// --sites=file: one "file:line" a line (re-running results that need a second look)
+if (!empty($opts['sites']) && $opts['sites'] !== true) {
+    $sites = array_intersect_key($sites, array_flip(array_filter(array_map('trim', file($opts['sites']) ?: []))));
 }
 ksort($sites);
 
