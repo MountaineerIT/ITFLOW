@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 55 | 4 | 7 | 26 | 67 | 27 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 127 | 1 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 129 | 1 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 1 | 9 | 4 | 20 | 7 |
@@ -118,7 +118,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
-**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`
+**Our files** `scripts/mit_hook_proof.php`, `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`
 
 <a id="dev_mode"></a>
 ## Development mode (a production copy on a test server) (`dev_mode`)
