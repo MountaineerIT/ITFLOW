@@ -4,15 +4,16 @@ PHP/MySQL MSP PSA, forked from https://github.com/itflow-org/itflow. Deployment 
 model: see DEPLOYMENT.md.
 
 ## Branches
-- `MountaineerIT` – production, default branch. **Never push to or merge into it without
+- `MountaineerIT-ITFLOW` – production, default branch. **Never push to or merge into it without
   asking the user first.** Changes reach it only via a PR from `develop`.
+  (Renamed from `MountaineerIT` on Oct 27 2026 - the old branch can be deleted; nothing was set to follow it yet.)
 - `develop` – staging; beta server tracks it. All work goes here first, committed directly.
 - `master` – untouched copy of upstream master, comparison only.
 - Other branches are leftover upstream copies; ignore them.
 
 ## Rules
 - Commit directly to `develop` (no feature branches or PRs into `develop`) – after the user
-  confirms the push. PRs are only for `develop` → `MountaineerIT`.
+  confirms the push. PRs are only for `develop` → `MountaineerIT-ITFLOW`.
 - **Ask the user to confirm before every `git push`** (any branch) and before merging any PR.
 - **Version (Oct 2026):** our build is ITFlow's release + an iteration - `MIT_VERSION` in `includes/mit_version.php`
   (26.10.1, 26.10.2 ...). Every push to `develop` goes up by one: bump it in the last commit before the push and add a
@@ -97,7 +98,7 @@ model: see DEPLOYMENT.md.
 - Keep diffs against upstream minimal so release merges stay clean.
 
 ## Our deviations from upstream (re-check after every upstream merge)
-- Default/release branch is `MountaineerIT` instead of `master`: `functions/app.php`
+- Default/release branch is `MountaineerIT-ITFLOW` instead of `master`: `functions/app.php`
   (`getRepoBranch`), `admin/update.php` (release-branch badge), `setup/index.php` and
   `scripts/setup_cli.php` (default `$repo_branch`).
 - `scripts/mit_ai_wall_check.php` (the AI helper's password wall - see Rules) - ours.
@@ -1395,7 +1396,7 @@ model: see DEPLOYMENT.md.
    upstream `develop`. Exception (Oct 2026): upstream `develop` (unreleased 26.11 work, DB
    2.8.9) was merged into our `develop` at the user's request to get the new ticket page
    early. Until upstream releases 26.11, `develop` is ahead of any release - **do not promote
-   `develop` to `MountaineerIT` before 26.11 is out** without the user explicitly accepting
+   `develop` to `MountaineerIT-ITFLOW` before 26.11 is out** without the user explicitly accepting
    unreleased upstream code in production. When 26.11 is released, merge its tag as usual.
    Checked Oct 18 (user chose to wait for the release): upstream develop then had 47 more commits, DB 2.9.0 -> 3.2.2.
    Merged again Oct 25 at the user's request (public beta): DB 3.4.7; the product column clash is handled (mitBeforeItflowUpdate + M040,
@@ -1426,6 +1427,6 @@ done Oct 27, 26.10.173-174): restore it into a copy (`sh scripts/mit_test_copy.s
 (test logins copied in: admin@mountaineerit.test / tech@test.test rows from the test install), time the main pages, and use the
 features. The full smoke suite on that copy mostly fails on test-data assumptions (user ids, theme, settings) - check suspects on
 the test install with production's settings (time zone America/Los_Angeles) instead. Delete the copy and the backup afterwards.
-Then open a PR `develop` → `MountaineerIT` listing what's included and any DB updates, plus the results of the practice run,
+Then open a PR `develop` → `MountaineerIT-ITFLOW` listing what's included and any DB updates, plus the results of the practice run,
 the stock-ITFlow portability test (see Rules), `sh scripts/mit_verify.sh` and the smoke tests. Ask the user before merging.
 The day itself and the first promotion's switch of production to this repository are in DEPLOYMENT.md "Releasing to production".

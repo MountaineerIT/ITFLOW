@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.179 - 2026-10-27
+- The production branch is now `MountaineerIT-ITFLOW` (the GitHub default): new installs, updates with no branch set and the "Not the release branch" warning on Admin > Update follow it.
+
 ## 26.10.178 - 2026-10-27
 - ITFlow's latest work pulled in (database 3.4.9): new asset types - NAS, UPS, PDU, Modem/ONT and NVR/DVR - each with its own details (a switch's ports, a UPS's battery...), and "Do it later" / "Skip all" on the Get started checklist.
 - Every check passed after it; nothing of ours needed changing.

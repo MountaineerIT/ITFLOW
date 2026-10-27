@@ -207,7 +207,7 @@ if (isset($_POST['add_database'])) {
         } else {
             // The tables are there - now point ITFlow at them
             $installation_id = randomString(32);
-            $new_config = setupConfigContents($host, $username, $password, $database, (string) ($_SERVER['HTTP_HOST'] ?? ''), $installation_id, 'MountaineerIT');
+            $new_config = setupConfigContents($host, $username, $password, $database, (string) ($_SERVER['HTTP_HOST'] ?? ''), $installation_id, 'MountaineerIT-ITFLOW');
             if (@file_put_contents("../config.php", $new_config) !== false && file_exists('../config.php')) {
                 setupConfigChanged("../config.php");
                 setupFlash("Connected to <strong>" . escapeHtml($database) . "</strong> and created ITFlow's tables - now your account.");

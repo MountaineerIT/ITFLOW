@@ -11,7 +11,7 @@ Adjust paths if yours differ.
 
 | Branch          | Purpose                                                        | Who pulls from it   |
 |-----------------|----------------------------------------------------------------|---------------------|
-| `MountaineerIT` | Production. Default branch. Changes arrive only by PR from `develop`. | Production servers  |
+| `MountaineerIT-ITFLOW` | Production. Default branch. Changes arrive only by PR from `develop`. | Production servers  |
 | `develop`       | Staging. Our changes and ITFlow's releases land here first.    | Beta / test server  |
 | `master`        | Untouched copy of upstream `master`, for comparison only. **Never deploy it** – see "Moving an existing install over". | Nobody |
 
@@ -24,7 +24,7 @@ itflow-org/itflow (official releases)
 develop  ──►  beta server         ← our changes are committed straight to develop
         │  PR once tested on beta ("Claude, promote develop to production")
         ▼
-MountaineerIT  ──►  production servers
+MountaineerIT-ITFLOW  ──►  production servers
 ```
 
 ## How a server knows which branch to follow
@@ -35,10 +35,10 @@ in the server's `config.php`:
 
 | Server     | `origin`                                         | `$repo_branch`              |
 |------------|--------------------------------------------------|-----------------------------|
-| Production | `https://github.com/MountaineerIT/ITFLOW.git`    | `'MountaineerIT'` (default) |
+| Production | `https://github.com/MountaineerIT/ITFLOW.git`    | `'MountaineerIT-ITFLOW'` (default) |
 | Beta       | `https://github.com/MountaineerIT/ITFLOW.git`    | `'develop'`                 |
 
-Admin > Update shows "Not the release branch" on anything other than `MountaineerIT` –
+Admin > Update shows "Not the release branch" on anything other than `MountaineerIT-ITFLOW` –
 expected on the beta server.
 
 Clicking **Update** in Admin > Update does not update immediately: it *queues* the update and
@@ -97,12 +97,12 @@ the `itflow` database and user and delete `/var/www/itflow` first).
 
    ```bash
    sudo install -d -o www-data -g www-data /var/www/itflow
-   sudo -u www-data git clone -b MountaineerIT https://github.com/MountaineerIT/ITFLOW.git /var/www/itflow
+   sudo -u www-data git clone -b MountaineerIT-ITFLOW https://github.com/MountaineerIT/ITFLOW.git /var/www/itflow
    # beta server: use -b develop
    ```
 
 3. Run the web setup (`https://<host>/setup`) or `scripts/setup_cli.php` (as `www-data`).
-   Setup writes `$repo_branch = 'MountaineerIT'` into `config.php`; **on the beta server
+   Setup writes `$repo_branch = 'MountaineerIT-ITFLOW'` into `config.php`; **on the beta server
    change it to `'develop'`**.
 
 4. Add the single cron entry to `www-data`'s crontab (`sudo crontab -u www-data -e`) and turn
@@ -143,7 +143,7 @@ the `itflow` database and user and delete `/var/www/itflow` first).
    sudo -u www-data git fetch origin
    ```
 
-4. Edit `config.php`: `$repo_branch = 'MountaineerIT';` (or `'develop'` on beta).
+4. Edit `config.php`: `$repo_branch = 'MountaineerIT-ITFLOW';` (or `'develop'` on beta).
 5. Check `www-data`'s crontab has only the single `cron.php` line. Older installs may still
    have separate lines for `nightly_tasks.php`, `ticket_email_parser.php` etc. – remove them,
    or those jobs run twice and outside the schedules set in Maintenance > Cron.
@@ -417,14 +417,14 @@ checklist can go.
   (`update_cli.php --update_db`), and checks the result - time taken, every ticket / client still there, consistency and
   portability, every page opened, our features used on your data. The October 27 run took 15 seconds and found two ITFlow bugs
   already on production (audit-log pages, contract templates) - both fixed before they could bite;
-- opens the `develop` → `MountaineerIT` PR listing what is in it, the database updates and those results. **You** approve the merge.
+- opens the `develop` → `MountaineerIT-ITFLOW` PR listing what is in it, the database updates and those results. **You** approve the merge.
 
 **On the day** (production):
 1. Pick a quiet time and tell the team; the update itself takes under a minute, sign-ins carry on.
 2. **Full backup** (Admin > Backup) and download it off the server. Keep its backup key with it.
 3. Maintenance > Cron: cron switched on, and `www-data`'s crontab has only the one `cron.php` line.
 4. **First promotion only** - production was installed from itflow-org and still follows its `master`: do "Moving an existing
-   install over from itflow-org" above (point `origin` at this repository, `$repo_branch = 'MountaineerIT'` in `config.php`).
+   install over from itflow-org" above (point `origin` at this repository, `$repo_branch = 'MountaineerIT-ITFLOW'` in `config.php`).
    Without it, Update would pull itflow-org's code, not ours.
 5. Admin > Update > **Update**. Within a minute or two Maintenance > Cron shows Application Update finished, and Admin > Update
    shows our version (e.g. 26.11.3) with "ITFlow 26.11" under it and no database updates waiting.
@@ -498,7 +498,7 @@ Ask Claude Code (with this repository attached): *"Check ITFlow for updates and 
 It will fetch the latest **official release** from itflow-org, summarise what changed
 (including any database updates), merge it into `develop` and, once you confirm, push it.
 The beta server picks it up; test there (including the smoke tests below), then ask Claude to open the
-`develop` → `MountaineerIT` PR.
+`develop` → `MountaineerIT-ITFLOW` PR.
 
 Before merging, `scripts/mit_upstream_impact.php` says per feature of ours what the release touches - functions we call that
 changed, our hooked ITFlow files, column / table names that clash with ours, and things ITFlow now does too (ours-or-theirs
@@ -587,7 +587,7 @@ production. Never point them at production: they add and delete a test client.
 ## Rules for our own changes
 
 - Changes are committed straight to `develop` and tested on the beta server – no PRs needed.
-- Nothing is pushed or merged into `MountaineerIT` except a reviewed PR from `develop`.
+- Nothing is pushed or merged into `MountaineerIT-ITFLOW` except a reviewed PR from `develop`.
 - Don't modify `libs/` (third-party code).
 - Keep edits to upstream files small – every changed line can conflict when ITFlow releases
   are merged in. Prefer the `*/custom/` directories where they fit.

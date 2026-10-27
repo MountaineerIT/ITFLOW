@@ -24,7 +24,7 @@ INSTALL_DIR="/var/www/itflow"
 WEB_USER="www-data"
 CREDENTIALS_FILE="/root/itflow-install-credentials.txt"
 
-BRANCH="MountaineerIT"
+BRANCH="MountaineerIT-ITFLOW"
 DOMAIN=""
 SSL_MODE=""
 LE_EMAIL=""
@@ -45,8 +45,8 @@ usage() {
 ITFlow installer (Mountaineer IT build) for Debian 12 / 13
 
 Options:
-  -b, --branch NAME      Branch to install and track: develop (beta) or MountaineerIT (production).
-                         Default: MountaineerIT
+  -b, --branch NAME      Branch to install and track: develop (beta) or MountaineerIT-ITFLOW (production).
+                         Default: MountaineerIT-ITFLOW
   -d, --domain FQDN      Server name, e.g. itflow-beta.example.com
   -s, --ssl MODE         letsencrypt | self-signed | none
                          letsencrypt needs the domain's public DNS pointing here and ports 80/443 open.
@@ -205,13 +205,13 @@ if [[ -z "$LOCAL_AI" ]]; then
 fi
 
 if [[ -z "$AUTO_UPDATE" ]]; then
-    if [[ "$BRANCH" == "MountaineerIT" ]]; then AUTO_UPDATE=0; else AUTO_UPDATE=1; fi
+    if [[ "$BRANCH" == "MountaineerIT-ITFLOW" ]]; then AUTO_UPDATE=0; else AUTO_UPDATE=1; fi
 fi
 
 cat <<EOF
 
     Install ITFlow with these settings:
-      Branch       $BRANCH $( [[ "$BRANCH" == "MountaineerIT" ]] && echo "(production)" || echo "(beta / testing)" )
+      Branch       $BRANCH $( [[ "$BRANCH" == "MountaineerIT-ITFLOW" ]] && echo "(production)" || echo "(beta / testing)" )
       URL          $SITE_URL
       HTTPS        $SSL_MODE
       Timezone     $TIMEZONE

@@ -41,7 +41,7 @@ $cli_fields = [
     ],
     'Where ITFlow is reached' => [
         'base-url' => ['Its address, without https:// (e.g. itflow.example.com)', true],
-        'repo-branch' => ['Git branch it updates from', false, 'MountaineerIT'],
+        'repo-branch' => ['Git branch it updates from', false, 'MountaineerIT-ITFLOW'],
     ],
     'Your account - an administrator' => [
         'user-name' => ['Your name', true],
@@ -291,8 +291,8 @@ $base_url = cliAsk('base-url', 'Its address, without https:// (e.g. itflow.examp
     return $value === '' || preg_match('/\s/', $value) ? 'An address like itflow.example.com, or example.com/itflow.' : '';
 });
 $base_url = rtrim(preg_replace('#^[a-z][a-z0-9+.-]*://#i', '', $base_url), '/');
-$repo_branch = $options['repo-branch'] ?? 'MountaineerIT';
-$repo_branch = is_string($repo_branch) && trim($repo_branch) !== '' ? trim($repo_branch) : 'MountaineerIT';
+$repo_branch = $options['repo-branch'] ?? 'MountaineerIT-ITFLOW';
+$repo_branch = is_string($repo_branch) && trim($repo_branch) !== '' ? trim($repo_branch) : 'MountaineerIT-ITFLOW';
 
 // ---------- Your account ----------
 echo "\n== Your account - an administrator ==\n";
