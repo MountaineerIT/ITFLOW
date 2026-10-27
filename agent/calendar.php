@@ -70,6 +70,8 @@ foreach ($sources as $key => $source) {
     #itflowCalendar .is-timegrid .mit-cal-when { display: flex; }
     #itflowCalendar .mit-cal-when .itflow-cal-time { display: inline-block; flex-shrink: 0; }
     #itflowCalendar .mit-cal-agent { font-weight: 600; margin: 0 .25rem 0 .1rem; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    /* Mountaineer IT: a short booking keeps its text inside the block - FullCalendar centres it, so it ran out above and below (26.10.181) */
+    #itflowCalendar :has(> .itflow-cal-event.is-timegrid) { align-items: flex-start; overflow: hidden; }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 

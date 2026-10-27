@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="ITFlow - Mountaineer IT build">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#93c5fd" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#93c5fd" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="round"><rect width="1280" height="320" rx="20"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <rect width="1280" height="320" fill="url(#sky)"/>
+    <circle cx="1080" cy="100" r="140" fill="url(#glow)"/>
+    <circle cx="1080" cy="100" r="30" fill="#fde68a" fill-opacity=".9"/>
+    <!-- ridges, back to front -->
+    <path d="M0 272 L140 236 L250 258 L380 222 L500 254 L620 230 L740 262 L860 226 L990 252 L1110 214 L1200 240 L1280 226 L1280 320 L0 320 Z" fill="#1d4ed8" fill-opacity=".35"/>
+    <path d="M0 292 L160 254 L290 284 L420 248 L560 286 L690 256 L820 290 L960 252 L1090 282 L1200 258 L1280 276 L1280 320 L0 320 Z" fill="#2f6fde" fill-opacity=".55"/>
+    <path d="M0 308 L200 280 L350 304 L500 276 L650 306 L800 282 L950 306 L1100 284 L1220 302 L1280 292 L1280 320 L0 320 Z" fill="#0b1220" fill-opacity=".85"/>
+    <g font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+      <text x="72" y="84" fill="#93c5fd" font-size="20" font-weight="600" letter-spacing="4">MOUNTAINEER IT BUILD</text>
+      <text x="68" y="152" fill="#ffffff" font-size="72" font-weight="800" letter-spacing="-1">ITFlow</text>
+      <text x="72" y="194" fill="#cbd5e1" font-size="24" font-weight="400">Tickets, scheduling, timesheets and billing for MSPs - self-hosted and open source</text>
+    </g>
+  </g>
+</svg>

@@ -264,3 +264,32 @@ test('calendar: Left behind sits under the calendar, as wide as it, both on the 
         expect(box.y + box.height, 'the card ends on the screen').toBeLessThanOrEqual(page.viewportSize().height);
     }
 });
+
+test('calendar: a short booking keeps its text inside its block (FullCalendar centres it, so it ran out above)', async ({ page }) => {
+    const db = require('./mitdb');
+    const errors = watch(page);
+    await visit(page, 'agent/calendar.php', errors);
+    const me = Number(await page.locator('#itflowCalendar').getAttribute('data-user-id'));
+    const client = Number(db.val('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1'));
+    test.skip(!client, 'no client');
+    const subject = smokeName('short booking');
+    const date = day(1, '10:00').slice(0, 10);
+    const id = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = 990000 + FLOOR(RAND() * 9999), ticket_subject = ${db.q(subject)},
+        ticket_details = '', ticket_priority = 'Low', ticket_status = 2, ticket_schedule = '${date} 10:00:00', ticket_schedule_end = '${date} 10:30:00',
+        ticket_url_key = MD5(RAND()), ticket_created_at = NOW(), ticket_created_by = ${me}, ticket_assigned_to = ${me}, ticket_client_id = ${client}`);
+    const before = await page.locator('#calendarAgent').inputValue();
+    try {
+        await visit(page, `agent/calendar.php?date=${date}`, errors);
+        await pickWhose(page, me);
+        await page.locator('button', { hasText: /^Week$/ }).first().click();
+        const text = page.locator('.itflow-cal-event.is-timegrid', { hasText: subject });
+        await expect(text).toHaveCount(1);
+        const [inner, block] = await text.evaluate((e) => [e.getBoundingClientRect().top, e.parentElement.parentElement.getBoundingClientRect().top]);
+        expect(inner, 'the text starts inside the half-hour block, not above it').toBeGreaterThanOrEqual(block - 1);
+        expect(await text.evaluate((e) => getComputedStyle(e.parentElement).overflow), 'and is cut off at its bottom').toBe('hidden');
+        await expectClean(page, errors);
+    } finally {
+        db.exec(`DELETE FROM tickets WHERE ticket_id = ${id}`);
+        await pickWhose(page, before).catch(() => {});
+    }
+});

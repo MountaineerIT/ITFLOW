@@ -108,6 +108,11 @@ model: see DEPLOYMENT.md.
   `cron/mit_consistency.php` (one entry in `includes/cron_jobs.php`), `scripts/mit_verify.sh` - ours (see Rules, Cross-checks).
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
   tests, see its README) – ours.
+- `README.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/bug_report.md` / `feature_request.md` (Oct 27, 26.10.180) - ours: this build, an
+  unofficial fork (GPL-3.0 credit to ITFlow kept), private reporting on our repository; ITFlow's `support.md` (forum) removed. On an
+  upstream merge keep ours (take any useful change of theirs by hand); delete `support.md` again if it comes back.
+  Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
+  itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
   `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (Release
@@ -228,6 +233,8 @@ model: see DEPLOYMENT.md.
   in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week; its lines carry
   a `MountaineerIT` comment for the hook check) - seven days from any day, the arrows move one day, so a booking can be dragged
   across a weekend; allowed in the saved state's view list (`functions/mit_calendar.php`, which maps its first name `mitTimeGrid7`).
+  Short bookings (26.10.181): FullCalendar v7 centres a time-grid event's content, so a 30-minute block's text ran out above and below it -
+  one rule in `agent/calendar.php`'s style block (`:has(> .itflow-cal-event.is-timegrid)`: top-aligned, overflow hidden); smoke: last test of 08.
   The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw
   bookings as time-grid blocks (26.10.148 - as `mitTimeGrid7` they were drawn as month's one-line items). Smoke: `08-calendar.spec.js`.
   Entries assigned to agents (26.10.115): `functions/mit_event_agents.php` (ours, required from mit_calendar.php) - ITFlow's own

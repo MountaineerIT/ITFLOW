@@ -1,26 +1,17 @@
 # Security Policy
 
-## **Please do NOT report security concerns/vulnerabilities publicly**
+This is Mountaineer IT's build of ITFlow (an independent fork, not the official ITFlow).
 
-**ITFlow stores important information, so we take security seriously**
+## Please do NOT report security problems in public issues
 
-- Whilst we are confident in the safety of the code, no system is risk-free. Nearly all software has bugs.
-- Use your best judgement before storing highly confidential information in ITFlow.
-- We attempt to follow security best practices where possible, including automated code scanning.
+Report them privately through GitHub: **Security > Report a vulnerability** on this repository
+(https://github.com/MountaineerIT/ITFLOW/security/advisories/new).
 
-## Supported Versions
-We operate a rolling release model. Any bug fixes will be released into latest version of ITFlow, so you must stay up-to-date.
+If the problem is also in stock ITFlow (code we haven't changed), please report it to the ITFlow project too, through
+[their security policy](https://github.com/itflow-org/itflow/security/policy).
 
-| Version | Supported          |
-|---------| ------------------ |
-| 26.09   | :white_check_mark: |
+## Supported versions
 
-## Reporting a Vulnerability via GitHub Security Advisories
+Only the latest version on the `MountaineerIT-ITFLOW` branch gets fixes. Keep installs up to date through Admin > Update.
 
-**Security contact: [GitHub Security Advisories](https://github.com/itflow-org/itflow/security/advisories/new)**
-
-If you have discovered a security issue, please **[report it](https://github.com/itflow-org/itflow/security/advisories/new)** to us so we can fix it. 
-
-You should expect to receive an initial acknowledgement within 7 days. If you don't receive any feedback, we may have missed the initial email from GitHub (we're human!). Please raise a forum discussion quoting ONLY the assigned GHSA ref.
-
-Note: Please don't submit AI slop. AI can be useful for drafting and research, but you are responsible for reviewing and validating anything you submit. We reserve the right to restrict repository access if you repeatedly ignore this requirement.
+No system is risk-free - use your judgement before storing highly confidential information in it.
