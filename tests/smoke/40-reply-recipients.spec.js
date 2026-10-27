@@ -82,6 +82,15 @@ test('reply recipients: only the people in To are emailed, and the choice is rem
     expect(JSON.parse(reply.ticket_reply_emailed_to).map((r) => r.email).sort(), 'who it went to').toEqual([cara, otto, typed].sort());
     expect(db.value(`SELECT COUNT(*) FROM email_queue WHERE email_ticket_reply_id = ${reply.ticket_reply_id}`), 'each email carries the reply').toBe('3');
     await expect(page.locator('.badge', { hasText: 'Email reply' }).first()).toBeVisible();
+    // ITFlow's "emailed to" line opens its list of recipients inside our ticket layout
+    const emailedLine = page.locator(`a.ticket-reply-emailed[href="#replyEmailed${reply.ticket_reply_id}"]`);
+    await expect(emailedLine).toBeVisible();
+    await emailedLine.click();
+    const panel = page.locator(`#replyEmailed${reply.ticket_reply_id}`);
+    await expect(panel).toBeVisible();
+    for (const email of [cara, otto, typed]) {
+        await expect(panel).toContainText(email);
+    }
     const choices = Object.fromEntries(db.rows(`SELECT email, send FROM mit_ticket_mail_choices WHERE ticket_id = ${made.ticketId}`).map((r) => [r.email, r.send]));
     expect(choices, 'remembered where it differs from the default').toEqual({ [watcher]: '0', [otto]: '1', [typed]: '1' });
     const body = db.value(`SELECT email_content FROM email_queue WHERE email_recipient = '${otto}' AND email_subject LIKE ${db.q(`%[${made.number}]%`)}`);
@@ -113,6 +122,19 @@ test('reply recipients: only the people in To are emailed, and the choice is rem
     await page.waitForTimeout(800);
     expect(alerted, 'refused with a message').toContain('Add at least one person to To');
     expect(db.value(`SELECT COUNT(*) FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketId} AND ticket_reply LIKE '%Smoke reply three ${stamp}%'`)).toBe('0');
+    await expectClean(page, errors);
+});
+
+test('reply recipients: the To list closes when you click into the reply box (ITFlow\'s and our closing together)', async ({ page }) => {
+    test.skip(!made.ticketId, 'no ticket');
+    const errors = watch(page);
+    await visit(page, ticketPage());
+    await page.click('label[for=public_reply_type_opt2]');
+    const wrap = page.locator('#mitSendTo .is-open');
+    await page.locator('#mitSendTo [aria-expanded]').first().click();
+    await expect(wrap, 'the To list opens').toHaveCount(1);
+    await page.frameLocator('#replyComposer iframe').first().locator('body').click();
+    await expect(wrap, 'and closes on a click into the editor').toHaveCount(0);
     await expectClean(page, errors);
 });
 

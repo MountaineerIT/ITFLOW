@@ -87,6 +87,14 @@ try {
     scenarioCheck('the note is kept', strpos($body, 'Fixed the printer') !== false, true);
     scenarioCheck('[Agent] as written in the email', strpos($body, 'From Pat O&#039;Neil.') !== false || strpos($body, "From Pat O'Neil.") !== false, true);
     scenarioCheck('no SQL backslash in the email', strpos($body, 'O\\') === false, true);
+    // ITFlow 3.4.8: given the resolving note's id, the note is marked emailed - our wording still used
+    if (function_exists('ticketReplyEmailReady') && ticketReplyEmailReady()) {
+        mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '<p>Fixed it</p>', ticket_reply_type = 'Public', ticket_reply_by = 1, ticket_reply_ticket_id = $t3");
+        $resolve_note = intval(mysqli_insert_id($mysqli));
+        ticketMailResolved($t3, '<p>Fixed it</p>', $resolve_note);
+        scenarioCheck('resolved email with a note id: the note is marked emailed', scenarioValue("SELECT ticket_reply_emailed FROM ticket_replies WHERE ticket_reply_id = $resolve_note"), '1');
+        scenarioCheck('... and the email has our wording', strpos((string) scenarioValue("SELECT email_content FROM email_queue WHERE email_ticket_reply_id = $resolve_note LIMIT 1"), 'Reopen: the button below') !== false, true);
+    }
     // No note: nothing left where [Note] was
     $t4 = scenarioMakeTicket($client_id, $contact_id);
     ticketResolve(ticketRow($t4));

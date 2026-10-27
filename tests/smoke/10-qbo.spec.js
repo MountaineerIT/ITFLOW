@@ -6,6 +6,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean, csrf } = require('./helpers');
+const db = require('./db');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -147,6 +148,15 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
     await visit(page, invoicePage(), errors);
     await expect(page.locator('body')).not.toContainText('Smoke test refused');
     await expect(page.locator('body')).toContainText('Sent');
+    // Taking a ticket off it is refused too (our guard kept through ITFlow 3.4.8's rewrite of remove_ticket_from_invoice)
+    const ticketNumber = Number(db.value('SELECT IFNULL(MAX(ticket_number), 0) + 1000 FROM tickets'));
+    db.run(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${ticketNumber}, ticket_subject = 'Smoke test QBO ticket', ticket_details = 'x', ticket_priority = 'Low',
+        ticket_status = 5, ticket_created_by = 1, ticket_url_key = 'smokeqbo${Date.now()}', ticket_client_id = ${made.clientId}, ticket_invoice_id = ${made.invoiceId}`);
+    const lockedTicket = db.value(`SELECT ticket_id FROM tickets WHERE ticket_number = ${ticketNumber}`);
+    await page.goto(`/agent/post.php?remove_ticket_from_invoice&invoice_id=${made.invoiceId}&ticket_id=${lockedTicket}&csrf_token=${encodeURIComponent(await csrf(page))}`);
+    const stillOn = db.value(`SELECT ticket_invoice_id FROM tickets WHERE ticket_id = ${lockedTicket}`);
+    db.run(`DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${lockedTicket}; DELETE FROM tickets WHERE ticket_id = ${lockedTicket}`);
+    expect(stillOn, 'the ticket stays on the locked invoice').toBe(String(made.invoiceId));
     await expectClean(page, errors);
 });
 
