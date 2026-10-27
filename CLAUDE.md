@@ -108,6 +108,9 @@ model: see DEPLOYMENT.md.
   `cron/mit_consistency.php` (one entry in `includes/cron_jobs.php`), `scripts/mit_verify.sh` - ours (see Rules, Cross-checks).
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
   tests, see its README) – ours.
+- `README.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/bug_report.md` / `feature_request.md` (Oct 27, 26.10.180) - ours: this build, an
+  unofficial fork (GPL-3.0 credit to ITFlow kept), private reporting on our repository; ITFlow's `support.md` (forum) removed. On an
+  upstream merge keep ours (take any useful change of theirs by hand); delete `support.md` again if it comes back.
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
   `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (Release

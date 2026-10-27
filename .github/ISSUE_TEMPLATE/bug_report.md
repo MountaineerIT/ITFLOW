@@ -1,23 +1,24 @@
 ---
 name: Bug report
-about: Please report bugs on the Forum @ https://forum.itflow.org/t/bug
-title: 'Please report bugs on the Forum'
-labels: Support
+about: Something in the Mountaineer IT build doesn't work as it should
+title: ''
+labels: bug
 assignees: ''
 
 ---
 
-We're now using GitHub Issues exclusively for development.
--
+<!-- This is the Mountaineer IT build of ITFlow, not the official ITFlow. Don't paste passwords, client data or server addresses here - this repository is public. -->
 
-Going forward, GitHub Issues will be used to track confirmed bugs & planned features via Github Projects. This allows us to keep GitHub clean & tidy, whilst maintaining an active and relaxed community experience on the Forum.
+**What happened**
 
-Please raise bugs on the forum @ https://forum.itflow.org/t/bug. Make sure to mention whether you can replicate the bug on demo.itflow.org. 
 
-Thanks,
+**What you expected**
 
-The ITFlow team :)
 
---
+**Steps to reproduce**
+1.
+2.
 
-To privately discuss a security issue, please see https://github.com/itflow-org/itflow/security
+**Version** (Admin > Update, e.g. 26.10.179 / ITFlow 26.10):
+
+**Page / screenshot** (optional):
