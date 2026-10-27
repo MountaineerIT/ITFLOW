@@ -131,12 +131,13 @@ $app_update_available = $latest_version !== ''
         <div class="row">
             <div class="col-md-3 col-6 mb-3">
                 <small class="text-secondary text-uppercase">Release</small>
-                <div class="h5 mb-0"><?= escapeHtml(APP_VERSION) ?></div>
+                <div class="h5 mb-0"><?= escapeHtml(function_exists('mitVersion') ? mitVersion() : APP_VERSION) // Mountaineer IT: our build's version ?></div>
+                <?php if (function_exists('mitVersion')) { ?><small class="text-secondary">ITFlow <?= escapeHtml(APP_VERSION) ?></small><?php } ?>
             </div>
             <div class="col-md-3 col-6 mb-3">
                 <small class="text-secondary text-uppercase">Branch</small>
                 <div class="h5 mb-0"><?= escapeHtml($repo_branch) ?></div>
-                <?php if ($repo_branch !== 'master') { ?>
+                <?php if ($repo_branch !== 'MountaineerIT-ITFLOW') { ?>
                     <small class="text-warning">Not the release branch</small>
                 <?php } ?>
             </div>
@@ -173,6 +174,8 @@ $app_update_available = $latest_version !== ''
                 <?php } ?>
             </small>
         </p>
+
+        <?php require_once "includes/mit_changelog_card.php"; // Mountaineer IT: our release notes (MIT_CHANGELOG.md) ?>
 
         <?php if (!empty($update_queued_at)) { ?>
             <div class="alert alert-info">

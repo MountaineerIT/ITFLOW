@@ -1,0 +1,675 @@
+# Mountaineer IT hook manifest - written by: php scripts/mit_hook_check.php --update
+# Our names in ITFlow's files (file, name, times used) and our own files. Update it after a deliberate change, never to
+# make a failing check pass after a merge without finding out why the hook went.
+hook	.htaccess	MIT_CHANGELOG	2
+hook	.htaccess	MIT_FEATURES	2
+hook	admin/backup.php	mitRestoreRowButton	3
+hook	admin/backup.php	mit_restore_card	1
+hook	admin/cron.php	mit_cron_card	1
+hook	admin/database_updates.php	mitBeforeItflowUpdate	2
+hook	admin/database_updates.php	mit_db_upgrade	3
+hook	admin/includes/side_nav.php	mitAdminSettingsPages	1
+hook	admin/includes/side_nav.php	mit_admin_nav	1
+hook	admin/includes/side_nav.php	mit_integrations_nav	1
+hook	admin/modals/role/role_add.php	mitBoardRoleField	2
+hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
+hook	admin/modals/user/user_form.php	mitCalendarColorField	1
+hook	admin/modals/user/user_form.php	mitTsPayTypeField	1
+hook	admin/oauth_microsoft_mail_callback.php	mitMicrosoftTokenFields	1
+hook	admin/oauth_microsoft_mail_callback.php	mit_m365	1
+hook	admin/post/roles.php	mitBoardRoleSave	4
+hook	admin/post/settings_company.php	mitBrandLogoSave	2
+hook	admin/post/settings_company.php	mit_lines	2
+hook	admin/post/settings_mail.php	mitM365ConnectPrompt	2
+hook	admin/post/settings_mail.php	mitM365GraphMailboxTest	1
+hook	admin/post/settings_mail.php	mitM365KeepCertificateSecret	2
+hook	admin/post/settings_mail.php	mitMicrosoftTokenFields	2
+hook	admin/post/settings_mail.php	mit_m365	2
+hook	admin/post/settings_mail.php	mit_test	3
+hook	admin/post/settings_module.php	mitModulesSave	2
+hook	admin/post/settings_module.php	mit_lines	2
+hook	admin/post/settings_notification.php	mitNotificationsSave	2
+hook	admin/post/settings_notification.php	mit_changed	2
+hook	admin/post/users.php	mitSaveAgentColor	1
+hook	admin/post/users.php	mitTsSavePayType	2
+hook	admin/settings_company.php	mitBrandLogoField	2
+hook	admin/settings_invoice.php	mit_usage_card	1
+hook	admin/settings_mail.php	mit_m365_card	1
+hook	admin/settings_module.php	mit_modules_fields	1
+hook	admin/settings_notification.php	data-mit-notifications	1
+hook	admin/settings_notification.php	mitNotificationRows	2
+hook	admin/settings_project.php	mit_project_card	1
+hook	admin/settings_quote.php	mit_quote_card	1
+hook	admin/settings_ticket.php	mitNoResponseReady	1
+hook	admin/settings_ticket.php	mitServiceTicketColor	1
+hook	admin/settings_ticket.php	mit_calendar_card	1
+hook	admin/settings_ticket.php	mit_no_response_card	1
+hook	admin/update.php	MIT_CHANGELOG	1
+hook	admin/update.php	MountaineerIT	1
+hook	admin/update.php	mitVersion	3
+hook	admin/update.php	mit_changelog_card	1
+hook	agent/ajax.php	mitBoardVisibleSql	2
+hook	agent/ajax.php	mitCleanCalendarState	1
+hook	agent/ajax.php	mitLeftBehindAjax	1
+hook	agent/ajax.php	mitQboInvoiceLock	4
+hook	agent/ajax.php	mitSetUserPreference	1
+hook	agent/ajax.php	mitTicketLayoutAjax	1
+hook	agent/ajax.php	mitTicketPickOptions	2
+hook	agent/ajax.php	mitTicketPickSet	2
+hook	agent/ajax.php	mitTicketScheduleMinutes	1
+hook	agent/ajax.php	mitTicketTechCalendarMove	1
+hook	agent/ajax.php	mit_calendar	1
+hook	agent/ajax.php	mit_calendar_state	1
+hook	agent/ajax.php	mit_left_behind	2
+hook	agent/ajax.php	mit_options	2
+hook	agent/ajax.php	mit_set	3
+hook	agent/ajax.php	mit_split_projects	1
+hook	agent/ajax.php	mit_ticket_layout	2
+hook	agent/ajax.php	mit_ticket_techs	1
+hook	agent/ajax.php	mit_timer_tickets	1
+hook	agent/ajax.php	mit_timers	1
+hook	agent/asset.php	mitAlignAssetPanel	2
+hook	agent/asset.php	mitNinjaAssetButton	2
+hook	agent/assets.php	mitAlignAssetBadge	2
+hook	agent/assets.php	mitClientTiles	2
+hook	agent/calendar.php	data-mit-agent	2
+hook	agent/calendar.php	mit-cal-agent	1
+hook	agent/calendar.php	mit-cal-when	3
+hook	agent/calendar.php	mit-tech-dot	1
+hook	agent/calendar.php	mitAgentColor	1
+hook	agent/calendar.php	mitAsset	2
+hook	agent/calendar.php	mitCalendarState	1
+hook	agent/calendar.php	mitLeftBehindCard	2
+hook	agent/calendar.php	mit_calendar	1
+hook	agent/calendar.php	mit_outlook	1
+hook	agent/calendar.php	mit_ticket_techs	1
+hook	agent/client_overview.php	mitAlignClientCard	2
+hook	agent/client_overview.php	mitAlignReplacesAttention	1
+hook	agent/client_overview.php	mitCtClientCard	2
+hook	agent/client_overview.php	mitUsageClientCard	2
+hook	agent/client_overview.php	mit_align_card	3
+hook	agent/dashboard.php	mitAlignDashCard	2
+hook	agent/dashboard.php	mitBoardDashCard	2
+hook	agent/dashboard.php	mitBoardDashLinks	2
+hook	agent/dashboard.php	mitBoardDashPicker	2
+hook	agent/dashboard.php	mitCtDashCard	2
+hook	agent/dashboard.php	mit_align_dash	3
+hook	agent/includes/inc_client_top_head.php	mitAlignClientButton	2
+hook	agent/includes/inc_client_top_head.php	mitClientHeadMeta	2
+hook	agent/includes/side_nav.php	mitBrandLogoAttrs	2
+hook	agent/includes/side_nav.php	mitBrandLogoOnly	2
+hook	agent/includes/side_nav.php	mitBrandScreenLogo	2
+hook	agent/includes/side_nav.php	mit_billing_nav	1
+hook	agent/includes/side_nav.php	mit_dispatch_nav	1
+hook	agent/includes/side_nav.php	mit_logo_only	2
+hook	agent/includes/side_nav.php	mit_procurement_nav	1
+hook	agent/includes/side_nav.php	mit_timesheet_nav	1
+hook	agent/invoice.php	mitPaperLineExtras	1
+hook	agent/invoice.php	mitProcInvoiceMenuItem	1
+hook	agent/invoice.php	mitProcInvoiceSummary	1
+hook	agent/invoice.php	mitQboInvoiceBar	2
+hook	agent/invoice.php	mit_quotes	1
+hook	agent/invoice.php	mit_staff	1
+hook	agent/invoices.php	mitQboListBadge	3
+hook	agent/invoices.php	mit_qbo_ids	2
+hook	agent/js/calendar.js	MountaineerIT	3
+hook	agent/js/calendar.js	data-mit-agent	1
+hook	agent/js/calendar.js	mit-cal-agent	2
+hook	agent/js/calendar.js	mit-cal-when	1
+hook	agent/js/calendar.js	mit-tech-dot	1
+hook	agent/js/calendar.js	mitAgent	1
+hook	agent/js/calendar.js	mitStriped	3
+hook	agent/js/calendar.js	mit_calendar	2
+hook	agent/js/calendar.js	mit_calendar_state	2
+hook	agent/js/calendar.js	mit_event_agents	2
+hook	agent/js/ticket_schedule_modal.js	mit_calendar	1
+hook	agent/js/ticket_schedule_modal.js	mit_ticket_tech	1
+hook	agent/modals/asset/asset.php	mitAlignAssetPanel	2
+hook	agent/modals/asset/asset.php	mitNinjaAssetButton	2
+hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
+hook	agent/modals/calendar/calendar_event.php	mitEventQuickAssign	2
+hook	agent/modals/calendar/calendar_event.php	mit_assign	5
+hook	agent/modals/calendar/calendar_event.php	mit_who	4
+hook	agent/modals/calendar/calendar_event_add.php	mitEventDefaultAgents	2
+hook	agent/modals/calendar/calendar_event_form.php	mitEventAssignField	2
+hook	agent/modals/calendar/calendar_event_form.php	mitRepeatOnField	2
+hook	agent/modals/calendar/calendar_event_form.php	mit_assign	5
+hook	agent/modals/product/product_form.php	mitProductImageField	2
+hook	agent/modals/quote/quote_to_invoice.php	mitProcQuoteConvertFields	1
+hook	agent/modals/recurring_ticket/recurring_ticket_add.php	mitRecurringTicketRepeatOnField	1
+hook	agent/modals/recurring_ticket/recurring_ticket_edit.php	mitRecurringTicketRepeatOnField	1
+hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitAgentCanSeeClient	1
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleLengths	1
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitTicketScheduleMinutes	1
+hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
+hook	agent/post/billing.php	mitImageErrorFlash	1
+hook	agent/post/billing.php	mitQboGuardInvoice	10
+hook	agent/post/billing.php	mitQboInvoiceLock	2
+hook	agent/post/billing.php	mitQuoteItemDelete	2
+hook	agent/post/billing.php	mitQuoteItemSave	2
+hook	agent/post/client.php	mitQboGuardClientDelete	2
+hook	agent/post/client.php	mitQuoteImagesDelete	1
+hook	agent/post/client.php	mitTicketPartsDeleting	1
+hook	agent/post/client.php	mitTsDeleteGuard	2
+hook	agent/post/expense.php	mitQboGuardInvoice	2
+hook	agent/post/invoice.php	mitQboGuardEmail	2
+hook	agent/post/invoice.php	mitQboGuardInvoice	16
+hook	agent/post/payment.php	mitLock	1
+hook	agent/post/payment.php	mitQboGuardInvoice	2
+hook	agent/post/payment.php	mitQboGuardPayment	4
+hook	agent/post/payment.php	mitQboGuardPaymentEdit	6
+hook	agent/post/payment.php	mitQboTakesPayments	2
+hook	agent/post/payment.php	mitUnlock	3
+hook	agent/post/product.php	mitImageErrorFlash	2
+hook	agent/post/product.php	mitProductDelete	2
+hook	agent/post/product.php	mitProductSave	2
+hook	agent/post/quote.php	mitProcAfterQuoteConvert	2
+hook	agent/post/quote.php	mitQuoteItemCopy	1
+hook	agent/post/quote.php	mitQuoteItemDelete	1
+hook	agent/post/recurring_ticket.php	mitByDayFollow	2
+hook	agent/post/recurring_ticket.php	mitRecurringTicketSaveByDay	3
+hook	agent/post/ticket.php	mitAgentCanSeeClient	1
+hook	agent/post/ticket.php	mitBoardAfterCreate	2
+hook	agent/post/ticket.php	mitBoardRoute	2
+hook	agent/post/ticket.php	mitInternalNoteNotify	2
+hook	agent/post/ticket.php	mitNotifyOn	6
+hook	agent/post/ticket.php	mitProjectTicketMoved	4
+hook	agent/post/ticket.php	mitQboGuardInvoice	2
+hook	agent/post/ticket.php	mitReplyRecipientsMail	1
+hook	agent/post/ticket.php	mitReplyRecipientsReady	2
+hook	agent/post/ticket.php	mitReplyTimesFlash	2
+hook	agent/post/ticket.php	mitReplyTimesFromEdit	2
+hook	agent/post/ticket.php	mitReplyTimesFromPost	2
+hook	agent/post/ticket.php	mitReplyTimesSavePending	4
+hook	agent/post/ticket.php	mitScheduleLeadChanging	1
+hook	agent/post/ticket.php	mitScheduleNotifyFromPost	2
+hook	agent/post/ticket.php	mitTicketClientMoved	1
+hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
+hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
+hook	agent/post/ticket.php	mit_board	1
+hook	agent/post/ticket.php	mit_content	2
+hook	agent/post/ticket.php	mit_reply_recipients	1
+hook	agent/post/ticket.php	mit_resolved	4
+hook	agent/post/ticket.php	mit_row	4
+hook	agent/post/ticket.php	mit_send_to_present	2
+hook	agent/post/ticket.php	mit_subject	2
+hook	agent/post/trip.php	mitQboGuardInvoice	4
+hook	agent/post/trip.php	mitReimbTripLocked	8
+hook	agent/post/trip.php	mitReimbTripWhyLocked	8
+hook	agent/post/trip.php	mit_why	6
+hook	agent/project.php	mitProcProjectCard	1
+hook	agent/quote.php	mitPaperLineExtras	1
+hook	agent/quote.php	mitQuoteProfitBox	1
+hook	agent/quote.php	mit_quotes	1
+hook	agent/quote.php	mit_staff	1
+hook	agent/recurring_invoice.php	mitUsageRecurringCard	2
+hook	agent/software.php	mitAlignLicenseLine	2
+hook	agent/software.php	mitClientTiles	2
+hook	agent/ticket.php	mitBoardEscalateMenuItem	2
+hook	agent/ticket.php	mitBoardTicketProp	2
+hook	agent/ticket.php	mitNoResponseButton	2
+hook	agent/ticket.php	mitReimbMenuItem	2
+hook	agent/ticket.php	mitReimbTicketCard	1
+hook	agent/ticket.php	mitReplyRecipientsField	2
+hook	agent/ticket.php	mitReplyTimesField	2
+hook	agent/ticket.php	mitReplyTimesText	2
+hook	agent/ticket.php	mitScheduleShortText	1
+hook	agent/ticket.php	mitTicketLayoutHtml	1
+hook	agent/ticket.php	mitTicketPartsCard	1
+hook	agent/ticket.php	mitTicketPickButton	4
+hook	agent/ticket.php	mitTicketTechsProp	1
+hook	agent/ticket.php	mit_category	1
+hook	agent/ticket.php	mit_sla	1
+hook	agent/ticket.php	mit_ticket_layout	1
+hook	agent/ticket_kanban.php	mitBoardListTag	2
+hook	agent/ticket_kanban.php	mitTicketTechsListBadge	1
+hook	agent/ticket_list.php	mitBoardListTag	2
+hook	agent/ticket_list.php	mitTicketTechsListBadge	1
+hook	agent/tickets.php	mitAssignedSql	2
+hook	agent/tickets.php	mitBoardHiddenInput	2
+hook	agent/tickets.php	mitBoardSwitcher	2
+hook	agent/tickets.php	mitBoardTicketsFilter	2
+hook	agent/tickets.php	mitClientTiles	2
+hook	agent/tickets.php	mitListViewResetButton	2
+hook	agent/tickets.php	mitListViewRestore	2
+hook	agent/tickets.php	mitProjectTicketsShows	2
+hook	agent/user/includes/user_side_nav.php	mit_outlook	1
+hook	agent/user/post/profile.php	mitSaveAgentColor	1
+hook	agent/user/post/profile.php	mitSessionRestamp	1
+hook	agent/user/post/profile.php	mitThemeSavePreference	1
+hook	agent/user/post/profile.php	mitTsSavePreferences	1
+hook	agent/user/user_preferences.php	mitCalendarColorField	1
+hook	agent/user/user_preferences.php	mitThemePreferenceField	1
+hook	agent/user/user_preferences.php	mitTsPreferenceFields	1
+hook	api/v1/clients/delete.php	mitQboClientLock	2
+hook	api/v1/clients/delete.php	mitQuoteImagesDelete	1
+hook	api/v1/clients/delete.php	mitTicketPartsDeleting	1
+hook	api/v1/clients/delete.php	mitTsDeleteBlocked	2
+hook	api/v1/enforce_api_rbac.php	mit_usage	2
+hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
+hook	api/v1/products/read.php	mitProductApiColumns	2
+hook	client/includes/check_login.php	mitSessionCheck	2
+hook	client/includes/footer.php	mit_portal_tables	1
+hook	client/login_microsoft.php	mitPortalEntraTenant	1
+hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
+hook	client/login_reset.php	mitLoginHead	2
+hook	client/pay.php	mitQboTakesPayments	2
+hook	client/post.php	mitQboGuardPayment	2
+hook	client/post.php	mitSessionRestamp	6
+hook	client/post.php	mitTicketTechsCopyReply	2
+hook	client/post.php	mit_invoice_id	2
+hook	cron/ai_triage.php	mitDevMode	2
+hook	cron/mail_queue.php	mitDevMailRedirect	2
+hook	cron/mail_queue.php	mitM365GraphSendMail	1
+hook	cron/mail_queue.php	mitM365GraphSendReady	2
+hook	cron/mail_queue.php	mitMailInlineImages	2
+hook	cron/mail_queue.php	mit_common	1
+hook	cron/mail_queue.php	mit_dev_mode	1
+hook	cron/mail_queue.php	mit_graph	3
+hook	cron/nightly_tasks.php	mitQboSendsReminders	2
+hook	cron/nightly_tasks.php	mitQboTakesPayments	4
+hook	cron/nightly_tasks.php	mitRecurringTicketByDayColumn	1
+hook	cron/ticket_email_parser.php	mitAgentCanWorkTicket	2
+hook	cron/ticket_email_parser.php	mitBoardMessageAddresses	2
+hook	cron/ticket_email_parser.php	mitBoardRoute	2
+hook	cron/ticket_email_parser.php	mitDevMode	2
+hook	cron/ticket_email_parser.php	mitM365GraphMailbox	2
+hook	cron/ticket_email_parser.php	mitM365GraphMailboxReady	2
+hook	cron/ticket_email_parser.php	mitTicketTechsCopyReply	2
+hook	cron/ticket_email_parser.php	mit_board_addresses	2
+hook	functions.php	mit_ai_helper	1
+hook	functions.php	mit_align	1
+hook	functions.php	mit_boards	1
+hook	functions.php	mit_calendar	1
+hook	functions.php	mit_common	1
+hook	functions.php	mit_cron_health	1
+hook	functions.php	mit_ct	1
+hook	functions.php	mit_dispatch	1
+hook	functions.php	mit_list_views	1
+hook	functions.php	mit_m365	1
+hook	functions.php	mit_ninjaone	1
+hook	functions.php	mit_no_response	1
+hook	functions.php	mit_notifications	1
+hook	functions.php	mit_procurement	1
+hook	functions.php	mit_projects	1
+hook	functions.php	mit_qbo	1
+hook	functions.php	mit_quotes	1
+hook	functions.php	mit_reply_recipients	1
+hook	functions.php	mit_theme	1
+hook	functions.php	mit_ticket_layout	1
+hook	functions.php	mit_timesheets	1
+hook	functions.php	mit_usage	1
+hook	functions/app.php	MountaineerIT	1
+hook	functions/app.php	mitTicketScheduleEnd	1
+hook	functions/backup.php	mit_feedback	1
+hook	functions/backup.php	mit_receipts	1
+hook	functions/billing.php	mitProcQuoteConvertGroups	2
+hook	functions/billing.php	mitQboHandlesInvoiceMail	2
+hook	functions/billing.php	mitUsageApply	2
+hook	functions/billing.php	mit_hold	2
+hook	functions/billing_pay.php	mitQboCardPaymentBooked	2
+hook	functions/billing_pdf.php	mitQuotePdfImage	2
+hook	functions/calendar.php	mitAgentColor	1
+hook	functions/calendar.php	mitByDayDate	1
+hook	functions/calendar.php	mitByDayRule	6
+hook	functions/calendar.php	mitByDayText	1
+hook	functions/calendar.php	mitCalendarTicketItems	2
+hook	functions/calendar.php	mitEventByDayColumn	2
+hook	functions/calendar.php	mitEventByDaySql	2
+hook	functions/calendar.php	mitEventItemsAgents	2
+hook	functions/calendar.php	mitHolidayCalendarItems	2
+hook	functions/calendar.php	mitHolidayCalendarSources	2
+hook	functions/calendar.php	mitOutlookBusyItems	1
+hook	functions/calendar.php	mitOutlookCalendarSources	2
+hook	functions/calendar.php	mitProjectBookingItems	2
+hook	functions/calendar.php	mitScheduleOverlapSql	2
+hook	functions/calendar.php	mitTicketScheduleEnd	2
+hook	functions/calendar.php	mitTicketTechCalendarItems	1
+hook	functions/calendar.php	mitTicketTechFeedItems	1
+hook	functions/calendar.php	mit_recurring	2
+hook	functions/calendar.php	mit_ticket_techs	1
+hook	functions/client_overview.php	mitBoardVisibleSql	6
+hook	functions/client_overview.php	mitEventByDayColumn	2
+hook	functions/dashboard.php	mitAssignedSql	1
+hook	functions/dashboard.php	mitBoardDashAnd	6
+hook	functions/dashboard.php	mitEventByDayColumn	2
+hook	functions/dashboard.php	mitServiceTicketsAnd	2
+hook	functions/dashboard.php	mitTicketTechDashboardItems	1
+hook	functions/expenses.php	mitReimbExpenseWhyLocked	4
+hook	functions/expenses.php	mitReimbReimbursementWhyLocked	2
+hook	functions/income_import.php	mitQboTakesPayments	4
+hook	functions/log_forward.php	mitDevMode	4
+hook	functions/logging.php	mitDevMode	2
+hook	functions/products.php	mitQboInvoiceLock	2
+hook	functions/project.php	mitProjectTicketMoved	4
+hook	functions/reports.php	mitBoardReportEntry	1
+hook	functions/reports.php	mitTsReportEntry	1
+hook	functions/reports.php	mit_boards	2
+hook	functions/reports.php	mit_payroll	1
+hook	functions/reports.php	mit_timesheets	2
+hook	functions/request.php	mitMicrosoftTokenFields	2
+hook	functions/request.php	mit_m365	1
+hook	functions/roles.php	mitRoleModuleInfo	2
+hook	functions/search.php	mitBoardVisibleSql	4
+hook	functions/sla.php	mitProjectSlaOff	2
+hook	functions/sla.php	mitProjectSlaStart	2
+hook	functions/sla.php	mit_projects	1
+hook	functions/ticket.php	mitByDayDate	1
+hook	functions/ticket.php	mitByDayRule	2
+hook	functions/ticket.php	mitByDayText	1
+hook	functions/ticket.php	mitNotifyOn	4
+hook	functions/ticket.php	mitOutlookSyncsEmail	2
+hook	functions/ticket.php	mitRecurringTicketByDay	3
+hook	functions/ticket.php	mitResolvedMailContent	2
+hook	functions/ticket.php	mitScheduleConflicts	1
+hook	functions/ticket.php	mitScheduleExtraRecipients	2
+hook	functions/ticket.php	mitScheduleNotify	6
+hook	functions/ticket.php	mitScheduleWhenText	1
+hook	functions/ticket.php	mitTicketPartsDeleting	1
+hook	functions/ticket.php	mitTicketScheduleEnd	1
+hook	functions/ticket.php	mitTicketTechsLeadCancelled	1
+hook	functions/ticket.php	mitTicketTechsLeadMoved	1
+hook	functions/ticket.php	mitTsDeleteGuard	2
+hook	functions/ticket.php	mit_contact	4
+hook	functions/ticket.php	mit_extra	3
+hook	functions/ticket.php	mit_recurring	1
+hook	functions/ticket.php	mit_schedule_skip_contact	1
+hook	functions/ticket.php	mit_ticket_techs	1
+hook	functions/ticket.php	mit_watchers	4
+hook	functions/ticket_fields.php	mitNotifyOn	8
+hook	functions/user.php	mitSessionRestamp	2
+hook	guest/guest_ajax.php	mitQboTakesPayments	2
+hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
+hook	includes/billing_paper.php	mitPaperAddFields	2
+hook	includes/billing_paper.php	mitPaperLineExtras	2
+hook	includes/billing_paper.php	mitPaperLineImage	2
+hook	includes/cron_jobs.php	mit_ai_helper	1
+hook	includes/cron_jobs.php	mit_ai_index	2
+hook	includes/cron_jobs.php	mit_align	1
+hook	includes/cron_jobs.php	mit_align_sync	2
+hook	includes/cron_jobs.php	mit_boards	3
+hook	includes/cron_jobs.php	mit_consistency	3
+hook	includes/cron_jobs.php	mit_cron_health	1
+hook	includes/cron_jobs.php	mit_cron_watch	2
+hook	includes/cron_jobs.php	mit_ct	1
+hook	includes/cron_jobs.php	mit_customer_thermometer	2
+hook	includes/cron_jobs.php	mit_ninjaone	1
+hook	includes/cron_jobs.php	mit_ninjaone_sync	2
+hook	includes/cron_jobs.php	mit_outlook	1
+hook	includes/cron_jobs.php	mit_outlook_sync	2
+hook	includes/cron_jobs.php	mit_procurement_parts	1
+hook	includes/cron_jobs.php	mit_procurement_tidy	2
+hook	includes/cron_jobs.php	mit_project_tickets	2
+hook	includes/cron_jobs.php	mit_projects	1
+hook	includes/cron_jobs.php	mit_qbo_billing	1
+hook	includes/cron_jobs.php	mit_qbo_sync	2
+hook	includes/cron_jobs.php	mit_timesheets	3
+hook	includes/cron_jobs.php	mit_usage	3
+hook	includes/footer.php	mitVersion	2
+hook	includes/header.php	mitThemeHead	2
+hook	includes/load_user_session.php	mitSessionCheck	2
+hook	includes/stripe_init.php	mitDevBlockStripe	2
+hook	includes/top_nav.php	mit_cron_nav	1
+hook	includes/top_nav.php	mit_timers_nav	1
+hook	js/quick_pick.js	mit_ticket_picks	1
+hook	login.php	mitBrandScreenLogo	2
+hook	login.php	mitLoginHead	2
+hook	scripts/restore_cli.php	mitRestoreItflowUpdates	1
+hook	scripts/restore_cli.php	mit_itflow_error	3
+hook	scripts/restore_cli.php	mit_updates_applied	1
+hook	scripts/restore_cli.php	mit_updates_error	2
+hook	scripts/setup_cli.php	MountaineerIT	3
+hook	scripts/setup_cli.php	mit_updates_error	2
+hook	scripts/update_cli.php	mit_updates_applied	1
+hook	scripts/update_cli.php	mit_updates_error	2
+hook	setup/index.php	MountaineerIT	1
+hook	setup/index.php	mitRestoreItflowUpdates	1
+hook	setup/index.php	mit_itflow_error	5
+hook	setup/index.php	mit_message	3
+hook	setup/index.php	mit_updates_error	4
+ours	admin/database_updates/mountaineerit/M001.php
+ours	admin/database_updates/mountaineerit/M002.php
+ours	admin/database_updates/mountaineerit/M003.php
+ours	admin/database_updates/mountaineerit/M004.php
+ours	admin/database_updates/mountaineerit/M005.php
+ours	admin/database_updates/mountaineerit/M006.php
+ours	admin/database_updates/mountaineerit/M007.php
+ours	admin/database_updates/mountaineerit/M008.php
+ours	admin/database_updates/mountaineerit/M009.php
+ours	admin/database_updates/mountaineerit/M010.php
+ours	admin/database_updates/mountaineerit/M011.php
+ours	admin/database_updates/mountaineerit/M012.php
+ours	admin/database_updates/mountaineerit/M013.php
+ours	admin/database_updates/mountaineerit/M014.php
+ours	admin/database_updates/mountaineerit/M015.php
+ours	admin/database_updates/mountaineerit/M016.php
+ours	admin/database_updates/mountaineerit/M017.php
+ours	admin/database_updates/mountaineerit/M018.php
+ours	admin/database_updates/mountaineerit/M019.php
+ours	admin/database_updates/mountaineerit/M020.php
+ours	admin/database_updates/mountaineerit/M021.php
+ours	admin/database_updates/mountaineerit/M022.php
+ours	admin/database_updates/mountaineerit/M023.php
+ours	admin/database_updates/mountaineerit/M024.php
+ours	admin/database_updates/mountaineerit/M025.php
+ours	admin/database_updates/mountaineerit/M026.php
+ours	admin/database_updates/mountaineerit/M027.php
+ours	admin/database_updates/mountaineerit/M028.php
+ours	admin/database_updates/mountaineerit/M029.php
+ours	admin/database_updates/mountaineerit/M030.php
+ours	admin/database_updates/mountaineerit/M031.php
+ours	admin/database_updates/mountaineerit/M032.php
+ours	admin/database_updates/mountaineerit/M033.php
+ours	admin/database_updates/mountaineerit/M034.php
+ours	admin/database_updates/mountaineerit/M035.php
+ours	admin/database_updates/mountaineerit/M036.php
+ours	admin/database_updates/mountaineerit/M037.php
+ours	admin/database_updates/mountaineerit/M038.php
+ours	admin/database_updates/mountaineerit/M039.php
+ours	admin/database_updates/mountaineerit/M040.php
+ours	admin/database_updates/mountaineerit/M041.php
+ours	admin/database_updates/mountaineerit/M042.php
+ours	admin/database_updates/mountaineerit/M043.php
+ours	admin/database_updates/mountaineerit/M044.php
+ours	admin/database_updates/mountaineerit/M045.php
+ours	admin/database_updates/mountaineerit/M046.php
+ours	admin/database_updates/mountaineerit/M047.php
+ours	admin/database_updates_mountaineerit.php
+ours	admin/includes/mit_admin_nav.php
+ours	admin/includes/mit_calendar_card.php
+ours	admin/includes/mit_changelog_card.php
+ours	admin/includes/mit_cron_card.php
+ours	admin/includes/mit_integrations_nav.php
+ours	admin/includes/mit_m365_card.php
+ours	admin/includes/mit_modules_fields.php
+ours	admin/includes/mit_no_response_card.php
+ours	admin/includes/mit_procurement_card.php
+ours	admin/includes/mit_project_card.php
+ours	admin/includes/mit_quote_card.php
+ours	admin/includes/mit_restore_card.php
+ours	admin/includes/mit_usage_card.php
+ours	admin/mit_ai_helper.php
+ours	admin/mit_align.php
+ours	admin/mit_boards.php
+ours	admin/mit_customer_thermometer.php
+ours	admin/mit_ninjaone.php
+ours	admin/mit_procurement_settings.php
+ours	admin/mit_qbo.php
+ours	admin/mit_qbo_callback.php
+ours	admin/mit_timesheets.php
+ours	admin/mit_usage_connectors.php
+ours	admin/modals/mit_backup/restore.php
+ours	admin/modals/mit_boards/board.php
+ours	admin/modals/mit_timesheets/charge_code.php
+ours	admin/modals/mit_timesheets/holiday.php
+ours	admin/modals/mit_timesheets/leave_bank.php
+ours	admin/modals/mit_timesheets/person.php
+ours	admin/modals/mit_timesheets/person_leave.php
+ours	admin/post/mit_ai_helper.php
+ours	admin/post/mit_align.php
+ours	admin/post/mit_backup_restore.php
+ours	admin/post/mit_boards.php
+ours	admin/post/mit_calendar_settings.php
+ours	admin/post/mit_cron_health.php
+ours	admin/post/mit_customer_thermometer.php
+ours	admin/post/mit_m365.php
+ours	admin/post/mit_ninjaone.php
+ours	admin/post/mit_no_response_settings.php
+ours	admin/post/mit_procurement_settings.php
+ours	admin/post/mit_project_settings.php
+ours	admin/post/mit_qbo.php
+ours	admin/post/mit_quote_settings.php
+ours	admin/post/mit_timesheets.php
+ours	admin/post/mit_usage_connectors.php
+ours	admin/post/mit_usage_settings.php
+ours	agent/includes/mit_billing_nav.php
+ours	agent/includes/mit_dispatch_nav.php
+ours	agent/includes/mit_procurement_nav.php
+ours	agent/includes/mit_timesheet_nav.php
+ours	agent/js/mit_ai_helper.js
+ours	agent/js/mit_dispatch.js
+ours	agent/js/mit_feedback.js
+ours	agent/js/mit_left_behind.js
+ours	agent/js/mit_ninjaone.js
+ours	agent/js/mit_reply_recipients.js
+ours	agent/js/mit_reply_times.js
+ours	agent/js/mit_schedule_notify.js
+ours	agent/js/mit_ticket_layout.js
+ours	agent/js/mit_timesheet.js
+ours	agent/mit_ai_ajax.php
+ours	agent/mit_ct_reviews.php
+ours	agent/mit_dispatch.php
+ours	agent/mit_dispatch_ajax.php
+ours	agent/mit_feedback_ajax.php
+ours	agent/mit_invoice_approvals.php
+ours	agent/mit_ninjaone_ajax.php
+ours	agent/mit_procurement.php
+ours	agent/mit_purchase_order.php
+ours	agent/mit_purchase_orders.php
+ours	agent/mit_qbo_batch.php
+ours	agent/mit_qbo_batches.php
+ours	agent/mit_receipt.php
+ours	agent/mit_receiving.php
+ours	agent/mit_timesheet.php
+ours	agent/mit_timesheet_ajax.php
+ours	agent/mit_timesheets.php
+ours	agent/mit_unbilled_parts.php
+ours	agent/mit_usage_review.php
+ours	agent/modals/mit_ai/document.php
+ours	agent/modals/mit_board/board_move.php
+ours	agent/modals/mit_no_response/no_response.php
+ours	agent/modals/mit_procurement/from_invoice.php
+ours	agent/modals/mit_procurement/item.php
+ours	agent/modals/mit_procurement/part.php
+ours	agent/modals/mit_procurement/parts_bill.php
+ours	agent/modals/mit_procurement/po_action.php
+ours	agent/modals/mit_reimburse/reimburse.php
+ours	agent/modals/mit_timesheet/day.php
+ours	agent/modals/mit_timesheet/decide.php
+ours	agent/modals/mit_timesheet/leave.php
+ours	agent/modals/ticket/mit_ticket_tech.php
+ours	agent/post/mit_boards.php
+ours	agent/post/mit_event_agents.php
+ours	agent/post/mit_no_response.php
+ours	agent/post/mit_procurement.php
+ours	agent/post/mit_procurement_parts.php
+ours	agent/post/mit_qbo.php
+ours	agent/post/mit_reimbursements.php
+ours	agent/post/mit_ticket_techs.php
+ours	agent/post/mit_timesheets.php
+ours	agent/post/mit_usage.php
+ours	agent/reports/mit_boards.php
+ours	agent/reports/mit_payroll.php
+ours	agent/user/mit_outlook.php
+ours	agent/user/mit_outlook_callback.php
+ours	agent/user/post/mit_outlook.php
+ours	api/v1/mit_usage/create.php
+ours	api/v1/mit_usage/read.php
+ours	cron/mit_ai_index.php
+ours	cron/mit_align_sync.php
+ours	cron/mit_boards.php
+ours	cron/mit_consistency.php
+ours	cron/mit_cron_watch.php
+ours	cron/mit_customer_thermometer.php
+ours	cron/mit_ninjaone_sync.php
+ours	cron/mit_outlook_sync.php
+ours	cron/mit_procurement_tidy.php
+ours	cron/mit_project_tickets.php
+ours	cron/mit_qbo_sync.php
+ours	cron/mit_timesheets.php
+ours	cron/mit_usage.php
+ours	css/mit_login.css
+ours	css/mit_login_plain.css
+ours	css/mit_theme.css
+ours	functions/mit_ai_ask.php
+ours	functions/mit_ai_docs.php
+ours	functions/mit_ai_helper.php
+ours	functions/mit_ai_local.php
+ours	functions/mit_align.php
+ours	functions/mit_backup_restore.php
+ours	functions/mit_board_roles.php
+ours	functions/mit_boards.php
+ours	functions/mit_calendar.php
+ours	functions/mit_client_tiles.php
+ours	functions/mit_common.php
+ours	functions/mit_consistency.php
+ours	functions/mit_cron_health.php
+ours	functions/mit_ct.php
+ours	functions/mit_db_upgrade.php
+ours	functions/mit_dev_mode.php
+ours	functions/mit_dispatch.php
+ours	functions/mit_dispatch_workload.php
+ours	functions/mit_event_agents.php
+ours	functions/mit_feedback.php
+ours	functions/mit_leave.php
+ours	functions/mit_left_behind.php
+ours	functions/mit_list_views.php
+ours	functions/mit_m365.php
+ours	functions/mit_m365_mailbox.php
+ours	functions/mit_ninjaone.php
+ours	functions/mit_no_response.php
+ours	functions/mit_notifications.php
+ours	functions/mit_outlook.php
+ours	functions/mit_procurement.php
+ours	functions/mit_procurement_extras.php
+ours	functions/mit_procurement_parts.php
+ours	functions/mit_projects.php
+ours	functions/mit_qbo.php
+ours	functions/mit_qbo_billing.php
+ours	functions/mit_quotes.php
+ours	functions/mit_recurring.php
+ours	functions/mit_reimbursements.php
+ours	functions/mit_reply_recipients.php
+ours	functions/mit_reply_times.php
+ours	functions/mit_theme.php
+ours	functions/mit_ticket_layout.php
+ours	functions/mit_ticket_picks.php
+ours	functions/mit_ticket_techs.php
+ours	functions/mit_timesheet_view.php
+ours	functions/mit_timesheets.php
+ours	functions/mit_ts_california.php
+ours	functions/mit_ts_holidays.php
+ours	functions/mit_usage.php
+ours	functions/mit_usage_connectors.php
+ours	includes/mit_cron_nav.php
+ours	includes/mit_timers_nav.php
+ours	includes/mit_version.php
+ours	js/mit_portal_tables.js
+ours	js/mit_quote_pricing.js
+ours	js/mit_repeat_on.js
+ours	js/mit_theme.js
+ours	js/mit_time_inputs.js
+ours	js/mit_timers.js
+ours	mit_health.php
+ours	scripts/mit_ai_embed_worker.php
+ours	scripts/mit_ai_wall_check.php
+ours	scripts/mit_consistency_check.php
+ours	scripts/mit_feature_lib.php
+ours	scripts/mit_feature_map.php
+ours	scripts/mit_features.php
+ours	scripts/mit_hook_check.php
+ours	scripts/mit_hook_proof.php
+ours	scripts/mit_portability_check.php
+ours	scripts/mit_upstream_impact.php

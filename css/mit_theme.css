@@ -1,0 +1,841 @@
+/*
+ * Mountaineer IT - the modern look (functions/mit_theme.php loads it after ITFlow's own styles).
+ * Slate sidebar with a solid blue pill on the current page, a plain top bar, soft rounded panels with boxes inside,
+ * pastel icon tiles for counts, small-caps table headings, tinted status pills, Inter. Light and dark: every colour is a
+ * --mit-* variable, set again under [data-bs-theme="dark"]. Only colours, type and spacing - ITFlow's markup is untouched,
+ * so Account > Preferences > Look > Classic turns it all off.
+ */
+
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url(fonts/inter/inter-latin-ext-wght-normal.woff2) format("woff2-variations");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url(fonts/inter/inter-latin-wght-normal.woff2) format("woff2-variations");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root,
+:root[data-bs-theme="light"] {
+    --mit-page: #fff;
+    --mit-panel: #f4f6f9;
+    --mit-box: #fff;
+    --mit-hover: #eceff4;
+    --mit-line: #e6eaf0;
+    --mit-row-alt: #eef2f7;
+    --mit-row-line: #dde3eb;
+    --mit-check-border: #8a94a3;
+    --mit-field-line: #dfe3ea;
+    --mit-text: #1f2937;
+    --mit-muted: #6b7280;
+    --mit-head: #4b5563;
+    --mit-accent: #2f6fde;
+    --mit-accent-dark: #1f5fc8;
+    --mit-accent-soft: #eef4fd;
+    --mit-link: #1f5fc8;
+    --mit-side: #1e2a3b;
+    --mit-side-text: #d6dde8;
+    --mit-side-muted: #8a97ab;
+    --mit-bar: #fff;
+    --mit-bar-line: #eef1f5;
+    --mit-bar-ink: #4b5563;
+    --mit-tint-base: #fff;     /* tinted pills and tiles mix their colour into this ... */
+    --mit-tint-ink: #000;      /* ... and darken their text towards this */
+    --mit-tint-amount: 17%;
+    --mit-shadow: 0 12px 32px -8px rgba(15, 23, 42, .18);
+}
+:root[data-bs-theme="dark"] {
+    --mit-page: #0f1623;
+    --mit-panel: #172131;
+    --mit-box: #1d293b;
+    --mit-hover: #223047;
+    --mit-line: #2a3649;
+    --mit-row-alt: #1a2536;
+    --mit-row-line: #314058;
+    --mit-check-border: #7d8ba0;
+    --mit-field-line: #334155;
+    --mit-text: #e5e9f0;
+    --mit-muted: #94a3b8;
+    --mit-head: #a3b0c2;
+    --mit-accent: #3b7ee8;
+    --mit-accent-dark: #2f6fde;
+    --mit-accent-soft: rgba(59, 126, 232, .16);
+    --mit-link: #7aa7f2;
+    --mit-side: #0b111c;
+    --mit-side-text: #c8d1de;
+    --mit-side-muted: #6f7d92;
+    --mit-bar: #0f1623;
+    --mit-bar-line: #1d2737;
+    --mit-bar-ink: #c8d1de;
+    --mit-tint-base: #172131;
+    --mit-tint-ink: #fff;
+    --mit-tint-amount: 30%;
+    --mit-shadow: 0 12px 32px -8px rgba(0, 0, 0, .6);
+}
+
+/* ITFlow's own variables, so its pages, buttons and charts (js/dashboard.js, client_overview.js, reports.js read
+   --itflow-accent and --bs-success ... when they draw) follow the same palette */
+:root body {
+    --bs-body-font-family: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --bs-body-bg: var(--mit-page);
+    --bs-body-color: var(--mit-text);
+    --bs-link-color: var(--mit-link);
+    --bs-link-hover-color: var(--mit-accent-dark);
+    --bs-primary: var(--mit-accent);
+    --bs-success: #1f9d61;
+    --bs-success-rgb: 31, 157, 97;
+    --bs-danger: #e0484d;
+    --bs-danger-rgb: 224, 72, 77;
+    --bs-warning: #f0ad2e;
+    --bs-warning-rgb: 240, 173, 46;
+    --bs-info: #2ea8c9;
+    --bs-info-rgb: 46, 168, 201;
+    --bs-purple: #7c5cd6;
+    --bs-secondary-bg: var(--mit-panel);
+    --bs-tertiary-bg: var(--mit-panel);
+    --bs-border-color: var(--mit-line);
+}
+
+/* The company's theme colour (Admin > Settings > Theme - ITFlow puts .theme-<colour> on body) is the accent: the menu's
+   current-page pill, buttons, tabs, links and the line along the top bar. Each colour comes with a link shade that reads
+   on white, the text colour that reads on the accent itself (dark on yellow), and in dark mode a shade lifted enough to
+   show against the dark menu. Blue keeps our own shade. ITFlow's charts and theme previews read --itflow-accent. */
+:root body {
+    --mit-on-accent: #fff;
+    --itflow-accent: var(--mit-accent);
+    --mit-accent-dark: color-mix(in srgb, var(--mit-accent) 82%, #000);
+    --mit-accent-soft: color-mix(in srgb, var(--mit-accent) 10%, var(--mit-box));
+}
+:root[data-bs-theme="dark"] body {
+    --mit-accent-soft: color-mix(in srgb, var(--mit-accent) 20%, var(--mit-box));
+}
+body.theme-blue { --mit-accent: #2f6fde; --mit-on-accent: #fff; --bs-primary-rgb: 47, 111, 222; --mit-link: #1f5fc8; --bs-link-color-rgb: 31, 95, 200; }
+[data-bs-theme="dark"] body.theme-blue { --mit-accent: #3b7ee8; --mit-on-accent: #fff; --bs-primary-rgb: 59, 126, 232; --mit-link: #7aa7f2; --bs-link-color-rgb: 122, 167, 242; }
+body.theme-lightblue { --mit-accent: #3c8dbc; --mit-on-accent: #fff; --bs-primary-rgb: 60, 141, 188; --mit-link: #32769e; --bs-link-color-rgb: 50, 118, 158; }
+[data-bs-theme="dark"] body.theme-lightblue { --mit-accent: #3c8dbc; --mit-on-accent: #fff; --bs-primary-rgb: 60, 141, 188; --mit-link: #3c8dbc; --bs-link-color-rgb: 60, 141, 188; }
+body.theme-navy { --mit-accent: #001f3f; --mit-on-accent: #fff; --bs-primary-rgb: 0, 31, 63; --mit-link: #001f3f; --bs-link-color-rgb: 0, 31, 63; }
+[data-bs-theme="dark"] body.theme-navy { --mit-accent: #385069; --mit-on-accent: #fff; --bs-primary-rgb: 56, 80, 105; --mit-link: #788899; --bs-link-color-rgb: 120, 136, 153; }
+body.theme-indigo { --mit-accent: #6610f2; --mit-on-accent: #fff; --bs-primary-rgb: 102, 16, 242; --mit-link: #6610f2; --bs-link-color-rgb: 102, 16, 242; }
+[data-bs-theme="dark"] body.theme-indigo { --mit-accent: #6610f2; --mit-on-accent: #fff; --bs-primary-rgb: 102, 16, 242; --mit-link: #9d66f7; --bs-link-color-rgb: 157, 102, 247; }
+body.theme-purple { --mit-accent: #6f42c1; --mit-on-accent: #fff; --bs-primary-rgb: 111, 66, 193; --mit-link: #6f42c1; --bs-link-color-rgb: 111, 66, 193; }
+[data-bs-theme="dark"] body.theme-purple { --mit-accent: #6f42c1; --mit-on-accent: #fff; --bs-primary-rgb: 111, 66, 193; --mit-link: #9473d1; --bs-link-color-rgb: 148, 115, 209; }
+body.theme-fuchsia { --mit-accent: #f012be; --mit-on-accent: #fff; --bs-primary-rgb: 240, 18, 190; --mit-link: #ce0fa3; --bs-link-color-rgb: 206, 15, 163; }
+[data-bs-theme="dark"] body.theme-fuchsia { --mit-accent: #f012be; --mit-on-accent: #fff; --bs-primary-rgb: 240, 18, 190; --mit-link: #f017bf; --bs-link-color-rgb: 240, 23, 191; }
+body.theme-pink { --mit-accent: #e83e8c; --mit-on-accent: #fff; --bs-primary-rgb: 232, 62, 140; --mit-link: #c83578; --bs-link-color-rgb: 200, 53, 120; }
+[data-bs-theme="dark"] body.theme-pink { --mit-accent: #e83e8c; --mit-on-accent: #fff; --bs-primary-rgb: 232, 62, 140; --mit-link: #e8428e; --bs-link-color-rgb: 232, 66, 142; }
+body.theme-maroon { --mit-accent: #d81b60; --mit-on-accent: #fff; --bs-primary-rgb: 216, 27, 96; --mit-link: #d81b60; --bs-link-color-rgb: 216, 27, 96; }
+[data-bs-theme="dark"] body.theme-maroon { --mit-accent: #d81b60; --mit-on-accent: #fff; --bs-primary-rgb: 216, 27, 96; --mit-link: #e14d83; --bs-link-color-rgb: 225, 77, 131; }
+body.theme-red { --mit-accent: #dc3545; --mit-on-accent: #fff; --bs-primary-rgb: 220, 53, 69; --mit-link: #d33342; --bs-link-color-rgb: 211, 51, 66; }
+[data-bs-theme="dark"] body.theme-red { --mit-accent: #dc3545; --mit-on-accent: #fff; --bs-primary-rgb: 220, 53, 69; --mit-link: #e25563; --bs-link-color-rgb: 226, 85, 99; }
+body.theme-orange { --mit-accent: #fd7e14; --mit-on-accent: #1f2937; --bs-primary-rgb: 253, 126, 20; --mit-link: #b1580e; --bs-link-color-rgb: 177, 88, 14; }
+[data-bs-theme="dark"] body.theme-orange { --mit-accent: #fd7e14; --mit-on-accent: #1f2937; --bs-primary-rgb: 253, 126, 20; --mit-link: #fd7e14; --bs-link-color-rgb: 253, 126, 20; }
+body.theme-yellow { --mit-accent: #ffc107; --mit-on-accent: #1f2937; --bs-primary-rgb: 255, 193, 7; --mit-link: #8f6c04; --bs-link-color-rgb: 143, 108, 4; }
+[data-bs-theme="dark"] body.theme-yellow { --mit-accent: #ffc107; --mit-on-accent: #1f2937; --bs-primary-rgb: 255, 193, 7; --mit-link: #ffc107; --bs-link-color-rgb: 255, 193, 7; }
+body.theme-olive { --mit-accent: #3d9970; --mit-on-accent: #fff; --bs-primary-rgb: 61, 153, 112; --mit-link: #327d5c; --bs-link-color-rgb: 50, 125, 92; }
+[data-bs-theme="dark"] body.theme-olive { --mit-accent: #3d9970; --mit-on-accent: #fff; --bs-primary-rgb: 61, 153, 112; --mit-link: #3d9970; --bs-link-color-rgb: 61, 153, 112; }
+body.theme-green { --mit-accent: #28a745; --mit-on-accent: #fff; --bs-primary-rgb: 40, 167, 69; --mit-link: #1f8236; --bs-link-color-rgb: 31, 130, 54; }
+[data-bs-theme="dark"] body.theme-green { --mit-accent: #28a745; --mit-on-accent: #fff; --bs-primary-rgb: 40, 167, 69; --mit-link: #28a745; --bs-link-color-rgb: 40, 167, 69; }
+body.theme-teal { --mit-accent: #20c997; --mit-on-accent: #1f2937; --bs-primary-rgb: 32, 201, 151; --mit-link: #148161; --bs-link-color-rgb: 20, 129, 97; }
+[data-bs-theme="dark"] body.theme-teal { --mit-accent: #20c997; --mit-on-accent: #1f2937; --bs-primary-rgb: 32, 201, 151; --mit-link: #20c997; --bs-link-color-rgb: 32, 201, 151; }
+body.theme-cyan { --mit-accent: #17a2b8; --mit-on-accent: #fff; --bs-primary-rgb: 23, 162, 184; --mit-link: #117b8c; --bs-link-color-rgb: 17, 123, 140; }
+[data-bs-theme="dark"] body.theme-cyan { --mit-accent: #17a2b8; --mit-on-accent: #fff; --bs-primary-rgb: 23, 162, 184; --mit-link: #17a2b8; --bs-link-color-rgb: 23, 162, 184; }
+body.theme-gray { --mit-accent: #6c757d; --mit-on-accent: #fff; --bs-primary-rgb: 108, 117, 125; --mit-link: #6a737a; --bs-link-color-rgb: 106, 115, 122; }
+[data-bs-theme="dark"] body.theme-gray { --mit-accent: #6c757d; --mit-on-accent: #fff; --bs-primary-rgb: 108, 117, 125; --mit-link: #7e868d; --bs-link-color-rgb: 126, 134, 141; }
+body.theme-black { --mit-accent: #000000; --mit-on-accent: #fff; --bs-primary-rgb: 0, 0, 0; --mit-link: #000000; --bs-link-color-rgb: 0, 0, 0; }
+[data-bs-theme="dark"] body.theme-black { --mit-accent: #4c4c4c; --mit-on-accent: #fff; --bs-primary-rgb: 76, 76, 76; --mit-link: #868686; --bs-link-color-rgb: 134, 134, 134; }
+
+body, .btn, .form-control, .form-select, .table, .card, .nav-link, .dropdown-menu, .modal, .tooltip, .popover,
+input, select, textarea, button {
+    font-family: var(--bs-body-font-family) !important;
+    -webkit-font-smoothing: antialiased;
+}
+body, body.bg-body-tertiary, .app-wrapper, .app-main {
+    background: var(--mit-page) !important;
+    color: var(--mit-text);
+}
+h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+/* ---------- sidebar ---------- */
+.app-sidebar,
+.app-sidebar .sidebar-brand {
+    background: var(--mit-side) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+.app-sidebar .itflow-brand-name,
+.app-sidebar .brand-text {
+    color: #fff !important;
+    font-weight: 700 !important;
+    letter-spacing: -.01em;
+}
+.app-sidebar .nav-header {
+    color: var(--mit-side-muted) !important;
+    text-transform: uppercase;
+    font-size: .7rem !important;
+    letter-spacing: .1em;
+    font-weight: 600 !important;
+    padding-top: 1.1rem !important;
+}
+.app-sidebar .nav-link {
+    color: var(--mit-side-text) !important;
+    border-radius: 8px !important;
+    font-weight: 500;
+    margin: 2px 0;
+}
+.app-sidebar .nav-link i {
+    color: var(--mit-side-text) !important;
+    opacity: .85;
+}
+.app-sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, .06) !important;
+    color: #fff !important;
+}
+.app-sidebar .nav-link.active,
+.app-sidebar .nav-pills .nav-link.active {
+    background: var(--mit-accent) !important;
+    color: var(--mit-on-accent) !important;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25) !important;
+}
+.app-sidebar .nav-link.active i {
+    color: var(--mit-on-accent) !important;
+    opacity: 1;
+}
+.app-sidebar .nav-treeview .nav-link.active {
+    background: rgba(255, 255, 255, .1) !important;
+    box-shadow: none !important;
+}
+.app-sidebar .badge {
+    background: rgba(255, 255, 255, .08) !important;
+    color: var(--mit-side-text) !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+}
+.app-sidebar .badge.text-bg-danger,
+.app-sidebar .badge.bg-danger {
+    background: rgba(239, 68, 68, .22) !important;
+    color: #fecaca !important;
+}
+.app-sidebar .nav-link.active .badge {
+    background: color-mix(in srgb, var(--mit-on-accent) 20%, transparent) !important;
+    color: var(--mit-on-accent) !important;
+}
+.app-sidebar .itflow-client-switcher > .dropdown-toggle,
+.app-sidebar .itflow-client-switcher > button,
+.app-sidebar .itflow-client-switcher > a {
+    background: rgba(255, 255, 255, .06) !important;
+    border-radius: 12px !important;
+    border-left: 3px solid var(--mit-accent) !important;
+}
+
+/* ---------- top bar (in light mode js/mit_theme.js also switches it to Bootstrap's light colours) ---------- */
+body .app-header.navbar {
+    background-color: var(--mit-bar) !important;
+    border-top: 3px solid var(--mit-accent);
+    border-bottom: 1px solid var(--mit-bar-line) !important;
+    box-shadow: none !important;
+}
+body .app-header.navbar > .container-fluid > .navbar-nav > .nav-item > .nav-link,
+body .app-header.navbar > .container-fluid > .navbar-nav > .nav-item > .nav-link > i {
+    color: var(--mit-bar-ink) !important;
+}
+.app-header .navbar-search input,
+.app-header .navbar-search .form-control,
+.app-header .navbar-search .btn {
+    background: var(--mit-panel) !important;
+    border: 1px solid var(--mit-bar-line) !important;
+    border-radius: 8px !important;
+    color: var(--mit-text) !important;
+}
+
+/* ---------- panels: soft, rounded, no border; boxes inside ---------- */
+.card:not([class*="bg-"]):not([class*="text-bg-"]),
+.card.bg-dark {
+    --bs-card-bg: var(--mit-panel);
+    background: var(--mit-panel) !important;
+    color: var(--mit-text) !important;
+    border: 0 !important;
+    border-radius: 16px !important;
+    box-shadow: none !important;
+}
+.card .card:not([class*="bg-"]):not([class*="text-bg-"]),
+.modal .card:not([class*="bg-"]):not([class*="text-bg-"]),
+.card .card.bg-dark {
+    --bs-card-bg: var(--mit-box);
+    background: var(--mit-box) !important;
+    border: 1px solid var(--mit-line) !important;
+    border-radius: 12px !important;
+}
+.card-header:not([class*="bg-"]),
+.card-header.bg-dark,
+.card-footer:not([class*="bg-"]) {
+    background: transparent !important;
+    color: var(--mit-text) !important;
+    border-color: var(--mit-line) !important;
+}
+.card-header.bg-dark {
+    border-bottom: 0 !important;
+    padding-top: 1rem;
+}
+/* Light outline buttons made for the dark header (the reports' Export) - the header is light here */
+.card-header.bg-dark .btn-outline-light {
+    color: var(--mit-text) !important;
+    border-color: var(--mit-line) !important;
+    background: var(--mit-box) !important;
+}
+.card-header.bg-dark .btn-outline-light:hover,
+.card-header.bg-dark .btn-outline-light:focus-visible,
+.card-header.bg-dark .btn-outline-light.show {
+    border-color: var(--mit-accent) !important;
+    color: var(--mit-accent) !important;
+}
+.card-header.bg-dark .card-title,
+.card-header.bg-dark h3,
+.card-header.bg-dark h5,
+.card.bg-dark .card-title {
+    color: var(--mit-text) !important;
+}
+.card-header .card-title,
+.card-header h3.card-title,
+.card-header h5.card-title {
+    font-weight: 700 !important;
+    letter-spacing: -.01em;
+}
+.card-header .card-title > i:first-child,
+.card-header h3 > i:first-child,
+.card-header h5 > i:first-child {
+    color: var(--mit-accent) !important;
+}
+.card-header.bg-dark .text-light,
+.card-header.bg-dark .text-white,
+.card.bg-dark a.text-light {
+    color: var(--mit-link) !important;
+}
+.card-header.bg-dark .btn-tool,
+.card-header.bg-dark .btn-link {
+    color: var(--mit-muted) !important;
+}
+.card > .list-group .list-group-item,
+.card > .list-group-flush .list-group-item {
+    background: transparent;
+    color: var(--mit-text);
+    border-color: var(--mit-line);
+}
+.card > .list-group > .list-group-item:nth-child(even) {
+    background: var(--mit-box);
+}
+
+/* ---------- tables: alternating rows, small-caps headings ---------- */
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: transparent;
+    --bs-table-color: var(--mit-text);
+}
+.table > thead > tr > th,
+.table > thead.table-light > tr > th,
+.table > thead.table-dark > tr > th {
+    background: transparent !important;
+    color: var(--mit-head) !important;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--mit-line) !important;
+    border-top: 0 !important;
+}
+.table > thead > tr > th a {
+    color: inherit !important;
+}
+.table:not(.table-bordered) > tbody > tr:nth-child(odd) > * {
+    background: var(--mit-box);
+}
+.table:not(.table-bordered) > tbody > tr:nth-child(even) > * {
+    background: var(--mit-row-alt);
+}
+/* A line between rows as well as the stripe, so each row (a ticket with its client, status and activity) reads as one */
+.table:not(.table-bordered):not(.table-borderless) > tbody > tr > * {
+    border-bottom: 1px solid var(--mit-row-line);
+}
+.table:not(.table-bordered) > tbody > tr:last-child > * {
+    border-bottom: 0;
+}
+.table-hover > tbody > tr:hover > * {
+    background: var(--mit-accent-soft) !important;
+    --bs-table-bg-state: transparent;
+}
+.table td a.text-dark,
+.table td a.text-body,
+.table td a.fw-bold,
+.table td a.text-bold {
+    color: var(--mit-link) !important;
+}
+
+/* ---------- buttons, tabs, inputs ---------- */
+/* Tick boxes and radios with a border that shows on white and on the row stripe (Bootstrap's is a faint grey) */
+.form-check-input:not(:checked) {
+    border-color: var(--mit-check-border);
+}
+.form-check-input:not(:checked):hover {
+    border-color: var(--mit-accent);
+}
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+}
+.btn-primary,
+.btn-dark {
+    --bs-btn-bg: var(--mit-accent);
+    --bs-btn-border-color: var(--mit-accent);
+    --bs-btn-hover-bg: var(--mit-accent-dark);
+    --bs-btn-hover-border-color: var(--mit-accent-dark);
+    --bs-btn-active-bg: var(--mit-accent-dark);
+    --bs-btn-active-border-color: var(--mit-accent-dark);
+    --bs-btn-color: var(--mit-on-accent);
+    --bs-btn-hover-color: var(--mit-on-accent);
+    background-color: var(--bs-btn-bg) !important;
+    border-color: var(--bs-btn-border-color) !important;
+    color: var(--mit-on-accent) !important;
+}
+.btn-primary:hover,
+.btn-dark:hover {
+    background-color: var(--mit-accent-dark) !important;
+}
+.btn-light,
+.btn-secondary,
+.btn-outline-secondary,
+.btn-outline-dark,
+.btn-default {
+    --bs-btn-hover-bg: var(--mit-hover);
+    --bs-btn-hover-color: var(--mit-text);
+    --bs-btn-active-bg: var(--mit-hover);
+    --bs-btn-active-color: var(--mit-text);
+    background-color: var(--mit-box);
+    border: 1px solid var(--mit-field-line) !important;
+    color: var(--mit-text) !important;
+}
+.btn-check:checked + .btn-outline-secondary,
+.btn-check:checked + .btn-light,
+.btn-check:checked + .btn-outline-info,
+.btn-check:checked + .btn-outline-primary,
+.btn-outline-secondary.active {
+    background-color: var(--mit-accent) !important;
+    border-color: var(--mit-accent) !important;
+    color: var(--mit-on-accent) !important;
+}
+/* Internal note and other "dark" choices stay dark when picked */
+.btn-check:checked + .btn-outline-dark,
+.btn-outline-dark.active {
+    background-color: var(--mit-side) !important;
+    border-color: var(--mit-side) !important;
+    color: #fff !important;
+}
+.nav-pills .nav-link {
+    border-radius: 8px;
+    font-weight: 500;
+}
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+    background: var(--mit-accent) !important;
+    color: var(--mit-on-accent) !important;
+}
+.nav-pills .nav-link.active .badge {
+    background: color-mix(in srgb, var(--mit-on-accent) 25%, transparent) !important;
+    color: var(--mit-on-accent) !important;
+}
+.form-control,
+.form-select,
+.input-group-text {
+    border-radius: 8px;
+    border-color: var(--mit-field-line);
+}
+.form-control:focus,
+.form-select:focus {
+    border-color: color-mix(in srgb, var(--mit-accent) 45%, #fff);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--mit-accent) 15%, transparent);
+}
+.modal-content {
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px -12px rgba(15, 23, 42, .3);
+}
+.modal-header.bg-dark {
+    background: var(--mit-side) !important;
+    border-radius: 16px 16px 0 0;
+}
+.dropdown-menu {
+    border-color: var(--mit-line);
+    border-radius: 12px;
+    box-shadow: var(--mit-shadow);
+}
+.page-link {
+    border-radius: 8px !important;
+    margin: 0 2px;
+}
+.page-item.active .page-link {
+    background: var(--mit-accent);
+    border-color: var(--mit-accent);
+    color: var(--mit-on-accent);
+}
+
+/* ---------- tinted pills: each takes a colour (--mit-tone) and shows a soft tint of it ---------- */
+.badge {
+    border-radius: 6px;
+    font-weight: 600;
+}
+.badge.bg-primary, .badge.text-bg-primary { --mit-tone: var(--mit-accent); }
+.badge.bg-success, .badge.text-bg-success { --mit-tone: #1f9d61; }
+.badge.bg-warning, .badge.text-bg-warning { --mit-tone: #d9930c; }
+.badge.bg-danger, .badge.text-bg-danger { --mit-tone: #e0484d; }
+.badge.bg-info, .badge.text-bg-info { --mit-tone: #1a9cbf; }
+.badge.bg-secondary, .badge.text-bg-secondary,
+.badge.bg-dark, .badge.text-bg-dark,
+.badge.bg-light, .badge.text-bg-light { --mit-tone: #64748b; }
+/* Statuses, tags and categories carry their own colour inline - js/mit_theme.js copies it into --mit-tone */
+.badge.bg-primary, .badge.text-bg-primary, .badge.bg-success, .badge.text-bg-success, .badge.bg-warning, .badge.text-bg-warning,
+.badge.bg-danger, .badge.text-bg-danger, .badge.bg-info, .badge.text-bg-info, .badge.bg-secondary, .badge.text-bg-secondary,
+.badge.bg-dark, .badge.text-bg-dark, .badge.bg-light, .badge.text-bg-light, .badge.mit-tone {
+    background: color-mix(in srgb, var(--mit-tone) var(--mit-tint-amount), var(--mit-tint-base)) !important;
+    color: color-mix(in srgb, var(--mit-tone) 72%, var(--mit-tint-ink)) !important;
+}
+
+/* ---------- count tiles: ITFlow's dashboard / client overview strip, and ours (.mit-tiles) ----------
+   Compact: icon | label (detail under it) | number on the right, in equal columns - the last row is not stretched. */
+.card.card:has(> .itflow-dash-rail) {
+    background: transparent !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+}
+.itflow-dash-rail,
+.mit-tiles {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 10px;
+    margin: 0;
+}
+.mit-tiles {
+    margin-bottom: 1rem;
+}
+.itflow-dash-rail-item,
+.mit-tile {
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    column-gap: 10px;
+    align-items: center;
+    min-width: 0;
+    background: var(--mit-panel) !important;
+    border: 0 !important;
+    border-radius: 12px;
+    padding: 9px 14px 9px 10px !important;
+    box-shadow: none !important;
+    color: var(--mit-text) !important;
+    text-decoration: none;
+}
+.itflow-dash-rail-clear {
+    grid-column: 1 / -1;
+}
+/* Tiles made of other pieces (the client overview's Financial strip: label / amount / note) stay stacked */
+.itflow-dash-rail-item:not(:has(> .itflow-dash-rail-label)) {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    gap: .15rem;
+    padding: 12px 16px !important;
+}
+.itflow-dash-rail-item:not(:has(> .itflow-dash-rail-label)) .itflow-dash-money-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+/* A second row only for a detail line, so a plain label sits in the middle */
+.itflow-dash-rail-item:has(> .itflow-dash-rail-detail),
+.mit-tile:has(> .mit-tile-detail) {
+    grid-template-rows: auto auto;
+}
+a.itflow-dash-rail-item:hover,
+a.mit-tile:hover {
+    background: var(--mit-hover) !important;
+}
+.itflow-dash-rail-label {
+    display: contents !important;
+    color: var(--mit-text) !important;
+    font-size: .85rem;
+    font-weight: 500;
+    line-height: 1.25;
+}
+.itflow-dash-rail-label > .fas,
+.mit-tile-icon {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    width: 34px !important;
+    height: 34px;
+    margin: 0 !important;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    font-size: .9rem;
+    background: color-mix(in srgb, var(--itflow-dash-tone, var(--mit-tone)) var(--mit-tint-amount), var(--mit-tint-base));
+    color: color-mix(in srgb, var(--itflow-dash-tone, var(--mit-tone)) 80%, var(--mit-tint-ink)) !important;
+}
+.mit-tile-label {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: .85rem;
+    font-weight: 500;
+    line-height: 1.25;
+}
+.itflow-dash-rail-count,
+.mit-tile-value {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    text-align: right;
+    color: var(--mit-text) !important;
+}
+.itflow-dash-rail-detail,
+.mit-tile-detail {
+    grid-column: 2;
+    grid-row: 2;
+    color: var(--mit-muted);
+    font-size: .75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- client header (agent/includes/inc_client_top_head.php + mitClientHeadMeta) ---------- */
+.itflow-client-head {
+    background: var(--mit-panel) !important;
+}
+.itflow-client-head > .card-body:first-child {
+    padding: 1rem 1.25rem !important;
+}
+.itflow-client-head .itflow-client-avatar {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1rem !important;
+    border-radius: 12px !important;
+}
+.itflow-client-head-name {
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -.02em;
+}
+.itflow-client-avatar {
+    border-radius: 10px !important;
+}
+.mit-client-meta {
+    color: var(--mit-muted);
+    font-size: .875rem;
+}
+.mit-client-meta a {
+    color: var(--mit-link);
+}
+.mit-client-meta > span + span::before {
+    content: "·";
+    margin: 0 .5rem;
+    color: var(--mit-muted);
+}
+.mit-client-meta {
+    order: 99;  /* under the name, after the open tickets / balance on the right */
+}
+
+/* Light boxes inside pages (the invoice's Bill To) follow the panel colours, so they read in dark mode too */
+.bg-light:not(.badge):not(.btn) {
+    background-color: var(--mit-box) !important;
+    color: var(--mit-text) !important;
+}
+
+/* ---------- quotes, invoices, recurring invoices: the document (agent/quote.php, invoice.php, recurring_invoice.php -
+   the card around table#items) reads as a sheet of paper, with the actions in a toolbar above it ---------- */
+.card:has(> .card-body table#items) {
+    background: var(--mit-box) !important;
+    border: 1px solid var(--mit-line) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 12px 32px -16px rgba(15, 23, 42, .18) !important;
+    overflow: hidden;
+}
+.card:has(> .card-body table#items) > .card-header {
+    background: var(--mit-panel) !important;
+    border-bottom: 1px solid var(--mit-line) !important;
+    padding: .75rem 1.25rem !important;
+}
+.card:has(> .card-body table#items) > .card-body {
+    padding: 2rem 2.25rem 1.5rem;
+}
+/* Company: name strong, details muted */
+.card:has(> .card-body table#items) > .card-body > .row:first-child h4 {
+    font-size: 1.35rem;
+    margin-bottom: .35rem;
+    color: var(--mit-text);
+}
+/* Without a logo the company column takes the room, so QUOTE / INVOICE sits at the right edge */
+.card:has(> .card-body table#items) > .card-body > .row:first-child > .col-sm-6 {
+    flex: 1 1 0;
+}
+/* Our staff-only boxes on the document (profit) in the same quiet amber as the cost column */
+.card:has(> .card-body table#items) .bg-warning-subtle.border {
+    background: color-mix(in srgb, #f0ad2e 9%, var(--mit-box)) !important;
+    border-color: color-mix(in srgb, #f0ad2e 45%, transparent) !important;
+    border-radius: 12px !important;
+}
+.card:has(> .card-body table#items) > .card-body > .row:first-child .list-unstyled {
+    color: var(--mit-muted);
+    line-height: 1.6;
+}
+/* QUOTE / INVOICE title, status, and the number / dates box */
+.card:has(> .card-body table#items) > .card-body > .row:first-child h3 {
+    color: var(--mit-accent);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    margin-bottom: .5rem;
+}
+.card:has(> .card-body table#items) > .card-body > .row:first-child h5.badge {
+    font-size: .8rem !important;
+    padding: .35em .8em !important;
+    margin-bottom: .75rem;
+}
+.card:has(> .card-body table#items) .table-borderless {
+    clear: both;
+    background: var(--mit-panel);
+    border-radius: 12px;
+    overflow: hidden;
+    --bs-table-bg: transparent;
+}
+.card:has(> .card-body table#items) .table-borderless > :not(caption) > * > * {
+    background: transparent !important;
+    padding: .45rem .9rem;
+    border: 0;
+}
+.card:has(> .card-body table#items) .table-borderless th {
+    color: var(--mit-muted);
+    font-weight: 500;
+}
+.card:has(> .card-body table#items) .table-borderless td {
+    font-weight: 600;
+}
+/* To / Bill To */
+.card:has(> .card-body table#items) > .card-body > .row.bg-light {
+    margin-left: 0;
+    margin-right: 0;
+    background: var(--mit-panel) !important;
+    border-radius: 12px;
+    border-left: 4px solid var(--mit-accent);
+    padding: 1rem 1.25rem !important;
+    line-height: 1.6;
+}
+.card:has(> .card-body table#items) > .card-body > .row.bg-light h6 {
+    color: var(--mit-muted);
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: .35rem;
+}
+.card:has(> .card-body table#items) > .card-body > .row.bg-light li:first-child {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+/* Line items: tinted heading, lined rows (a document, not a zebra list) */
+.card:has(> .table-responsive > table#items) {
+    border: 1px solid var(--mit-line) !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+#items > thead > tr > th {
+    background: var(--mit-accent-soft) !important;
+    color: var(--mit-accent-dark) !important;
+    border-bottom: 0 !important;
+    padding-top: .7rem;
+    padding-bottom: .7rem;
+}
+#items > tbody > tr > * {
+    background: var(--mit-box) !important;
+    border-bottom: 1px solid var(--mit-line) !important;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+}
+#items > tbody > tr:hover > * {
+    background: var(--mit-accent-soft) !important;
+}
+/* The add-a-line row: a dashed strip set apart from the lines above */
+#items > tbody > tr:has(input[name="name"]) > * {
+    background: var(--mit-panel) !important;
+    border-top: 2px dashed var(--mit-field-line) !important;
+    border-bottom: 0 !important;
+}
+#items > tbody > tr:has(input[name="name"]) .form-control,
+#items > tbody > tr:has(input[name="name"]) .form-select {
+    background-color: var(--mit-box);
+}
+/* Our cost (staff only) - a quiet amber, not a yellow block */
+#items .bg-warning-subtle {
+    background: color-mix(in srgb, #f0ad2e 9%, var(--mit-box)) !important;
+    box-shadow: inset 2px 0 0 color-mix(in srgb, #f0ad2e 55%, transparent), inset -2px 0 0 color-mix(in srgb, #f0ad2e 55%, transparent);
+}
+#items > thead .bg-warning-subtle {
+    color: #a16207 !important;
+}
+/* Totals: a box, the Total in a blue band */
+.card:has(> .card-body table#items) .table:has(tr.h5) {
+    border: 1px solid var(--mit-line);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.card:has(> .card-body table#items) .table:has(tr.h5) td {
+    background: var(--mit-box) !important;
+    border-bottom: 1px solid var(--mit-line) !important;
+    padding: .6rem .9rem;
+}
+.card:has(> .card-body table#items) .table:has(tr.h5) tr.h5 > td {
+    background: var(--mit-accent-soft) !important;
+    color: var(--mit-accent-dark) !important;
+    font-weight: 800;
+    border-bottom: 0 !important;
+}
+/* Notes */
+.card:has(> .card-body table#items) .card .card-header.text-bold {
+    color: var(--mit-muted) !important;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+}
+/* A logo picture that is missing (js/mit_theme.js marks it) */
+img.mit-img-missing {
+    display: none !important;
+}
+[class*="col-"]:has(> img.mit-img-missing) {
+    display: none !important;
+}
+@media print {
+    .card:has(> .card-body table#items) {
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+}
+
+/* Admin > Settings > Theme: each colour's card is a label.itflow-theme-swatch, and ITFlow's Preferences Light / Dark swatch
+   rule (1.75rem wide) used to match it too and squeezed the names to a letter or two per line. That is fixed in
+   itflow_custom.css, but browsers keep that file (it has no version in its address) - this file's address changes with
+   every update, so the cards are put right here as well */
+label.itflow-theme-swatch {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    border: 0 !important;
+    background: none;
+}

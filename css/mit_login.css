@@ -1,0 +1,176 @@
+/*
+ * Mountaineer IT - sign-in screens (login.php, client/login_reset.php; loaded by mitLoginHead() in functions/mit_theme.php).
+ * A dark navy backdrop with soft blue / cyan glows, a faint grid and network-node lines in two corners (css/mit_login_nodes.svg -
+ * a file, since login.php's Content-Security-Policy default-src 'self' refuses data: images), and a white rounded card. Only colours and spacing - ITFlow's markup is untouched.
+ */
+
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url(fonts/inter/inter-latin-wght-normal.woff2) format("woff2-variations");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url(fonts/inter/inter-latin-ext-wght-normal.woff2) format("woff2-variations");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+body.login-page {
+    --mit-accent: #2f6fde;
+    --mit-accent-dark: #1f5fc8;
+    position: relative;
+    min-height: 100vh;
+    font-family: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #e5e9f0;
+    background-color: #0b1220 !important;
+    background-image:
+        radial-gradient(ellipse 60% 50% at 15% 10%, rgba(47, 111, 222, .35), transparent 70%),
+        radial-gradient(ellipse 50% 45% at 90% 95%, rgba(34, 211, 238, .18), transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 50%, #13203a, #0b1220) !important;
+}
+/* Faint grid, fading out towards the edges */
+body.login-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(148, 163, 184, .07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, .07) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 30%, transparent 100%);
+    mask-image: radial-gradient(ellipse 70% 65% at 50% 45%, #000 30%, transparent 100%);
+}
+/* Network nodes in the top-left and bottom-right corners */
+body.login-page::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url(mit_login_nodes.svg), url(mit_login_nodes.svg);
+    background-repeat: no-repeat;
+    background-size: 520px 520px, 440px 440px;
+    background-position: -120px -110px, calc(100% + 110px) calc(100% + 90px);
+    opacity: .9;
+}
+html:has(> body.login-page) {
+    background: #0b1220;
+    color-scheme: dark;  /* a dark scrollbar, when there is one */
+}
+body.login-page > .login-box,
+body.login-page > small {
+    position: relative;
+    z-index: 1;
+}
+
+/* ---------- logo ---------- */
+.login-page .login-box {
+    width: 400px;
+    max-width: calc(100vw - 32px);
+}
+.login-page .login-logo {
+    margin-bottom: 1.25rem;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+.login-page .login-logo a,
+.login-page .login-logo b {
+    color: #fff;
+}
+.login-page .login-logo .text-primary {
+    color: #7aa7f2 !important;
+}
+/* An uploaded logo sits on a white plate, so a dark logo still shows */
+.login-page .login-logo img {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 20px;
+    max-height: 96px;
+    width: auto;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5);
+}
+
+/* ---------- card ---------- */
+.login-page .card {
+    border: 1px solid rgba(255, 255, 255, .08) !important;
+    border-radius: 18px !important;
+    overflow: hidden;
+    background: #fff;
+    color: #1f2937;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6), 0 0 0 1px rgba(47, 111, 222, .08) !important;
+}
+.login-page .login-card-body {
+    padding: 1.75rem 1.75rem 1.25rem;
+    border-radius: 18px;
+}
+.login-page .login-box-msg {
+    color: #4b5563;
+}
+.login-page .form-control,
+.login-page .input-group-text {
+    height: 46px;
+    border-color: #dfe3ea;
+    font-size: .95rem;
+}
+.login-page .form-control {
+    border-radius: 10px 0 0 10px;
+}
+.login-page .input-group-text {
+    border-radius: 0 10px 10px 0;
+    background: #f4f6f9;
+    color: #6b7280;
+}
+.login-page .form-control:focus {
+    border-color: #9dbcf0;
+    box-shadow: 0 0 0 .2rem rgba(47, 111, 222, .15);
+}
+.login-page .btn {
+    border-radius: 10px;
+    font-weight: 600;
+    padding-top: .65rem;
+    padding-bottom: .65rem;
+}
+.login-page .btn-primary {
+    background: var(--mit-accent);
+    border-color: var(--mit-accent);
+    box-shadow: 0 8px 20px -8px rgba(47, 111, 222, .7);
+}
+.login-page .btn-primary:hover,
+.login-page .btn-primary:focus {
+    background: var(--mit-accent-dark);
+    border-color: var(--mit-accent-dark);
+}
+.login-page .btn-dark {
+    background: #1e2a3b;
+    border-color: #1e2a3b;
+}
+.login-page .card a {
+    color: var(--mit-accent-dark);
+}
+.login-page .alert {
+    border-radius: 10px;
+}
+
+/* ---------- "Powered by" ---------- */
+.login-page > small.text-muted {
+    margin-top: 1rem;
+    color: rgba(203, 213, 225, .6) !important;
+}
+
+@media (max-width: 576px) {
+    body.login-page::after {
+        background-size: 360px 360px, 300px 300px;
+        background-position: -140px -130px, calc(100% + 120px) calc(100% + 110px);
+        opacity: .6;
+    }
+}

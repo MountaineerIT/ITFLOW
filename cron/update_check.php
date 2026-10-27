@@ -70,7 +70,19 @@ if ($updates->result !== 0) {
 }
 
 $update_check_latest = escapeSql($updates->latest_version);
-$update_check_commits = escapeSql((string) json_encode($updates->pending_commits));
+
+// The list is kept in a TEXT column (64 KB): each subject cut to 200 characters and at most the newest 100 commits - a long
+// run of commits with long subjects ("Data too long for column 'config_update_pending_commits'") stopped the check
+$update_check_list = array_map(function ($commit) {
+    $commit[2] = mb_strlen((string) $commit[2]) > 200 ? mb_substr((string) $commit[2], 0, 199) . '…' : (string) $commit[2];
+    return $commit;
+}, array_slice($updates->pending_commits, 0, 100));
+$update_check_json = (string) json_encode($update_check_list);
+while (strlen($update_check_json) > 60000 && $update_check_list) {
+    array_pop($update_check_list);
+    $update_check_json = (string) json_encode($update_check_list);
+}
+$update_check_commits = escapeSql($update_check_json);
 
 mysqli_query($mysqli, "UPDATE settings SET
     config_update_latest_commit = '$update_check_latest',

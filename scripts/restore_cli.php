@@ -34,7 +34,19 @@ if (!file_exists("../config.php")) {
 }
 
 require_once "../config.php";
-require_once "../includes/inc_set_timezone.php";
+
+// A restore is often run against a database that only has config.php so far (the setup
+// wizard's database step, no settings row yet). Only take the timezone from settings when
+// it is there - inc_set_timezone.php assumes it is and would stop the restore.
+try {
+    $restore_timezone_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT config_timezone FROM settings WHERE company_id = 1"));
+} catch (Throwable $e) {
+    $restore_timezone_row = null;
+}
+if (!empty($restore_timezone_row['config_timezone'])) {
+    require_once "../includes/inc_set_timezone.php";
+}
+
 require_once "../functions.php";
 
 $options = getopt("", ["file:", "key:", "inspect", "yes", "help"]);
@@ -125,6 +137,21 @@ if (!$ok) {
 }
 
 logAudit("Backup", "Restore", "Restored from " . escapeSql(basename($file)) . " via the command line");
+
+// Mountaineer IT: a backup from an older ITFlow release gets ITFlow's database updates first, then ours - the same order
+// as update_cli (ours can add columns a later ITFlow update adds too, so ITFlow's must not come after them)
+$mit_itflow_error = mitRestoreItflowUpdates();
+if ($mit_itflow_error !== '') {
+    fwrite(STDERR, "Warning: ITFlow database update failed at $mit_itflow_error - run php scripts/update_cli.php --update_db to finish (Mountaineer IT updates were left until then).\n");
+} else {
+    require_once __DIR__ . "/../admin/database_updates_mountaineerit.php";
+    foreach ($mit_updates_applied as $applied_name) {
+        echo "  Mountaineer IT database update $applied_name applied\n";
+    }
+    if ($mit_updates_error) {
+        fwrite(STDERR, "Warning: Mountaineer IT database update failed at $mit_updates_error - run php scripts/update_cli.php --update_db to retry.\n");
+    }
+}
 
 echo "\nDone.\n";
 echo "\nNext steps:\n";

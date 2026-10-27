@@ -1,0 +1,8 @@
+/* Mountaineer IT - "No light tile behind the logo" (Company Details, functions/mit_theme.php mitBrandLogoPlain): the sign-in
+   logo without mit_login.css's white plate. A file, not an inline style - login.php's CSP refuses inline styles. */
+.login-page .login-logo img {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+}

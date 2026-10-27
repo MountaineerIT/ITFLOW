@@ -54,14 +54,15 @@ $scope = 'offline_access openid profile https://outlook.office.com/IMAP.AccessAs
 $ch = curl_init($token_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+// Mountaineer IT: our Microsoft 365 app signs in with a certificate (functions/mit_m365.php)
+curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(mitMicrosoftTokenFields($token_url, [
     'client_id' => $config_mail_oauth_client_id,
     'client_secret' => $config_mail_oauth_client_secret,
     'grant_type' => 'authorization_code',
     'code' => $code,
     'redirect_uri' => $redirect_uri,
     'scope' => $scope,
-], '', '&'));
+]), '', '&'));
 curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 
 $raw_body = curl_exec($ch);
@@ -89,15 +90,14 @@ $refresh_token_esc = mysqli_real_escape_string($mysqli, $refresh_token);
 $access_token_esc = mysqli_real_escape_string($mysqli, $access_token);
 $expires_at_esc = mysqli_real_escape_string($mysqli, $expires_at);
 
+// Only the token - Sending and Receiving stay as they were set; connecting for one doesn't turn on the other
 mysqli_query($mysqli, "UPDATE settings SET
-    config_imap_provider = 'microsoft_oauth',
-    config_smtp_provider = 'microsoft_oauth',
     config_mail_oauth_refresh_token = '$refresh_token_esc',
     config_mail_oauth_access_token = '$access_token_esc',
     config_mail_oauth_access_token_expires_at = '$expires_at_esc'
     WHERE company_id = 1
 ");
 
-logAudit("Settings", "Edit", "$session_name completed Microsoft OAuth connect flow for mail settings");
-flashAlert("Microsoft OAuth connected successfully. Token expires at $expires_at.");
+logAudit("Settings", "Edit", "$session_name connected Microsoft 365 for mail");
+flashAlert("Microsoft 365 connected - ITFlow can now use the mailbox");
 redirect($settings_mail_path);

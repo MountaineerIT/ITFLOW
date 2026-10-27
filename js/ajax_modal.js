@@ -50,6 +50,19 @@ document.addEventListener('click', function (e) {
         return;
     }
 
+    // Only ever load our own pages: the reply's scripts are run, so a link in ticket or email HTML that carries this
+    // class must not be able to fetch (and run) another site's
+    let sameOrigin = false;
+    try {
+        sameOrigin = new URL(modalUrl, window.location.href).origin === window.location.origin;
+    } catch (err) {
+        sameOrigin = false;
+    }
+    if (!sameOrigin) {
+        console.warn('ajax-modal: refused a URL on another site:', modalUrl);
+        return;
+    }
+
     const host = document.querySelector('.app-main') || document.body;
 
     // Show loading spinner while fetching content

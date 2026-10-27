@@ -13,15 +13,15 @@ if (file_exists("config.php")) {
     // Start the session
     require_once "includes/session_init.php";
 
-    // If user is an agent
-    if (isset($_SESSION['logged'])) {
-        require_once "includes/load_global_settings.php";
-        header("Location: /agent/$config_start_page");
+    // If user is a client (the portal sign-in also sets 'logged', so this is asked first - an agent page would sign them out)
+    if (!empty($_SESSION['client_logged_in'])) {
+        header("Location: /client/");
         exit();
 
-    // If user is a client
-    } elseif (isset($_SESSION['client_logged_in'])) {
-        header("Location: /client/");
+    // If user is an agent
+    } elseif (isset($_SESSION['logged'])) {
+        require_once "includes/load_global_settings.php";
+        header("Location: /agent/$config_start_page");
         exit();
 
     // Not logged in

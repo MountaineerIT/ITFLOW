@@ -68,10 +68,18 @@ function cronJobRegistry(): array
             'interval_minutes' => 1,
         ],
         [
+            'name' => 'ai_triage',
+            'label' => 'AI Triage',
+            'script' => 'ai_triage.php',
+            'description' => 'Gives new tickets from email, the portal and the API a category and priority by AI, when Settings > Tickets says to. Up to 5 a run.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
             'name' => 'domain_refresher',
             'label' => 'Domain Refresher',
             'script' => 'domain_refresher.php',
-            'description' => 'Refreshes WHOIS and DNS for the domain that was checked longest ago. One domain per run.',
+            'description' => 'Looks up DNS, registration and expiry for domains that are due - never looked up, not in a week, or expiring within 60 days. Up to 50 a run.',
             'schedule' => 'Daily',
             'daily_at' => '04:00',
         ],
@@ -98,7 +106,7 @@ function cronJobRegistry(): array
             'name' => 'certificate_refresher',
             'label' => 'Certificate Refresher',
             'script' => 'certificate_refresher.php',
-            'description' => 'Re-reads the expiry date and issuer of every SSL certificate on file.',
+            'description' => 'Checks the host of every certificate once a day - what it serves now, its expiry and issuer, and whether it is OK, for another name, untrusted, expired or unreachable.',
             'schedule' => 'Daily',
             'daily_at' => '03:30',
         ],
@@ -109,6 +117,123 @@ function cronJobRegistry(): array
             'description' => 'Asks the git remote whether a newer release exists and stores the answer for Maintenance > Update.',
             'schedule' => 'Daily',
             'daily_at' => '02:30',
+        ],
+        [
+            // Mountaineer IT (functions/mit_outlook.php)
+            'name' => 'mit_outlook_sync',
+            'label' => 'Outlook Calendar Sync',
+            'script' => 'mit_outlook_sync.php',
+            'description' => 'Puts each agent\'s scheduled tickets in the Outlook calendar they connected under Account > Outlook calendar, and puts back events changed there.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
+            // Mountaineer IT (functions/mit_timesheets.php)
+            'name' => 'mit_timesheets',
+            'label' => 'Timesheets',
+            'script' => 'mit_timesheets.php',
+            'description' => 'Timesheet reminders, and PTO / sick leave earned and carried over, as set in Admin > Timesheets.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 60,
+        ],
+        [
+            // Mountaineer IT (functions/mit_procurement_parts.php)
+            'name' => 'mit_procurement_tidy',
+            'label' => 'Procurement Tidy-up',
+            'script' => 'mit_procurement_tidy.php',
+            'description' => 'Cancels items to order for deleted tickets and clients, and frees ticket parts whose invoice line was deleted.',
+            'schedule' => 'Daily',
+            'daily_at' => '04:15',
+        ],
+        [
+            // Mountaineer IT (functions/mit_ninjaone.php)
+            'name' => 'mit_ninjaone_sync',
+            'label' => 'NinjaOne Sync',
+            'script' => 'mit_ninjaone_sync.php',
+            'description' => 'Brings NinjaOne devices in as assets of the ITFlow clients they are mapped to (Admin > Integrations > NinjaOne). Does nothing until it is set up and switched on there.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 60,
+        ],
+        [
+            // Mountaineer IT (functions/mit_usage.php)
+            'name' => 'mit_usage',
+            'label' => 'Usage Counts',
+            'script' => 'mit_usage.php',
+            'description' => 'Counts each client\'s contacts carrying the tag of a usage-billed recurring invoice line, and reads the usage connectors (NinjaOne, Bitwarden, Ingram Micro - Admin > Integrations > Usage connectors), so the snapshot day has a count to bill.',
+            'schedule' => 'Daily',
+            'daily_at' => '00:30',
+        ],
+        [
+            // Mountaineer IT (functions/mit_ct.php)
+            'name' => 'mit_customer_thermometer',
+            'label' => 'Customer Thermometer',
+            'script' => 'mit_customer_thermometer.php',
+            'description' => 'Sends a Customer Thermometer survey for each newly resolved ticket on the chosen service boards and reads the responses back. Does nothing until it is set up and switched on (Admin > Integrations > Customer Thermometer).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 5,
+        ],
+        [
+            // Mountaineer IT (functions/mit_align.php)
+            'name' => 'mit_align_sync',
+            'label' => 'MSP Align',
+            'script' => 'mit_align_sync.php',
+            'description' => 'Copies health and alignment scores, device lifecycle status and license renewals from MSP Align for the clients, assets and licenses it has from ITFlow. Only reads from MSP Align. Does nothing until it is set up (Admin > Integrations > MSP Align).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 60,
+        ],
+        [
+            // Mountaineer IT (functions/mit_ai_helper.php)
+            'name' => 'mit_ai_index',
+            'label' => 'AI Helper Library',
+            'script' => 'mit_ai_index.php',
+            'description' => 'Keeps the AI helper\'s library of resolved tickets and documents up to date, with passwords and keys taken out before anything is kept. Never reads the password vault. Does nothing while the AI helper is off (Admin > Integrations > AI helper).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 5,
+        ],
+        [
+            // Mountaineer IT (functions/mit_qbo_billing.php)
+            'name' => 'mit_qbo_sync',
+            'label' => 'QuickBooks Online Payments',
+            'script' => 'mit_qbo_sync.php',
+            'description' => 'Brings payments made in QuickBooks Online back to the ITFlow invoices sent there, so balances and statuses follow. Does nothing until QuickBooks Online is connected (Admin > Integrations).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 60,
+        ],
+        [
+            // Mountaineer IT (functions/mit_projects.php)
+            'name' => 'mit_project_tickets',
+            'label' => 'Project Ticket SLAs',
+            'script' => 'mit_project_tickets.php',
+            'description' => 'Takes the SLA off tickets that joined a project and gives it back to ones that left, for the ways in and out that do not do it at once (the API, deleting a project).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
+            // Mountaineer IT (functions/mit_boards.php)
+            'name' => 'mit_boards',
+            'label' => 'Service Boards',
+            'script' => 'mit_boards.php',
+            'description' => 'Puts tickets made by the portal, the API, recurring tickets and projects on their board by the routing rules (tickets from email and New Ticket get theirs at once).',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
+            // Mountaineer IT (functions/mit_consistency.php)
+            'name' => 'mit_consistency',
+            'label' => 'Consistency Check',
+            'script' => 'mit_consistency.php',
+            'description' => 'Checks that our data still agrees with ITFlow\'s (payroll payments, QuickBooks batches, parts, usage billing, boards) - fails when it does not, so Cron Watch emails the admins.',
+            'schedule' => 'Daily',
+            'daily_at' => '05:20',
+        ],
+        [
+            // Mountaineer IT (functions/mit_cron_health.php)
+            'name' => 'mit_cron_watch',
+            'label' => 'Cron Watch',
+            'script' => 'mit_cron_watch.php',
+            'description' => 'Emails the admins when a job here fails, gets stuck or falls behind, and when it is fixed.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 5,
         ],
         [
             'name' => 'app_update',

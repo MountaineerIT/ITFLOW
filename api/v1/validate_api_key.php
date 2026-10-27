@@ -10,6 +10,10 @@
 require_once __DIR__ . '../../../functions.php';
 require_once __DIR__ . "../../../config.php";
 
+// ITFlow's timezone on both clocks, as the pages and cron have it - what the API
+// stamps, the SLA times it works out and when a key expires all go by it
+require_once __DIR__ . "/../../includes/inc_set_timezone.php";
+
 // JSON header
 header('Content-Type: application/json');
 
@@ -18,7 +22,7 @@ $_POST = json_decode(file_get_contents('php://input'), true);
 
 // Get IP & UA
 $ip = escapeSql(getIP());
-$user_agent = escapeSql($_SERVER['HTTP_USER_AGENT']);
+$user_agent = escapeSql($_SERVER['HTTP_USER_AGENT'] ?? '');
 
 // Temp Added this to work with the new logAction function
 $session_ip = $ip;
@@ -48,19 +52,35 @@ DEFINE("WORDING_UNAUTHORIZED", "HTTP/1.1 401 Unauthorized");
 // Decline methods other than GET/POST
 if ($_SERVER['REQUEST_METHOD'] !== "GET" && $_SERVER['REQUEST_METHOD'] !== "POST") {
     header("HTTP/1.1 405 Method Not Allowed");
-    var_dump($_SERVER['REQUEST_METHOD']);
     exit();
 }
 
+// Mountaineer IT: the key comes in a header (X-API-Key, or Authorization: Bearer) or the POST body - never in the address,
+// which ends up in web server and proxy logs
+if (isset($_GET['api_key'])) {
+    header(WORDING_UNAUTHORIZED);
+    echo json_encode(['success' => 'False', 'message' => 'Send the API key in the X-API-Key header (or Authorization: Bearer), not in the address.']);
+    exit();
+}
+$api_key_header = (string) ($_SERVER['HTTP_X_API_KEY'] ?? '');
+// Apache does not always hand PHP the Authorization header in $_SERVER - ask it directly
+$api_key_auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
+if ($api_key_auth === '' && function_exists('getallheaders')) {
+    $api_key_auth = (string) (array_change_key_case(getallheaders() ?: [], CASE_LOWER)['authorization'] ?? '');
+}
+if ($api_key_header === '' && preg_match('/^Bearer\s+(\S+)$/i', $api_key_auth, $api_key_match)) {
+    $api_key_header = $api_key_match[1];
+}
+
 // Check API key is provided
-if (!isset($_GET['api_key']) && !isset($_POST['api_key'])) {
+if ($api_key_header === '' && !isset($_POST['api_key'])) {
     header(WORDING_UNAUTHORIZED);
     exit();
 }
 
 // Set API key variable
-if (isset($_GET['api_key'])) {
-    $api_key = escapeSql($_GET['api_key']);
+if ($api_key_header !== '') {
+    $api_key = escapeSql($api_key_header);
 }
 if (isset($_POST['api_key'])) {
     $api_key = escapeSql($_POST['api_key']);
@@ -70,14 +90,23 @@ if (isset($_POST['api_key'])) {
 if (isset($api_key)) {
     $api_key = escapeSql($api_key);
 
-    $sql = mysqli_query($mysqli, "SELECT api_key_decrypt_hash, api_key_name, api_key_user_id FROM api_keys WHERE api_key_secret = '$api_key' AND api_key_expire > NOW() LIMIT 1");
+    $sql = mysqli_query($mysqli, "SELECT api_key_id, api_key_decrypt_hash, api_key_name, api_key_user_id FROM api_keys WHERE api_key_secret = '$api_key' AND api_key_expire > NOW() LIMIT 1");
 
     // Failed
     if (mysqli_num_rows($sql) !== 1) {
-        // Invalid Key
+        // Invalid Key - an expired one is logged against it (functions/api_keys.php), and a run of them from one address tells the admins
 
         $url_path = escapeSql(parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH));
-        mysqli_query($mysqli, "INSERT INTO logs SET log_type = 'API', log_action = 'Failed', log_description = 'Incorrect or expired key (endpoint: $url_path)', log_ip = '$ip', log_user_agent = '$user_agent'");
+        $expired_key = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT api_key_id, api_key_name, api_key_expire FROM api_keys WHERE api_key_secret = '$api_key' LIMIT 1"));
+        if ($expired_key) {
+            $failed_description = escapeSql("Expired API key " . $expired_key['api_key_name'] . " used - it ended " . $expired_key['api_key_expire']) . " (endpoint: $url_path)";
+        } else {
+            $failed_description = "Unknown API key used (endpoint: $url_path)";
+        }
+        mysqli_query($mysqli, "INSERT INTO logs SET log_type = 'API', log_action = 'Failed', log_description = '$failed_description', log_ip = '$ip', log_user_agent = '$user_agent',
+            log_entity_id = " . intval($expired_key['api_key_id'] ?? 0));
+        logForwardQueue('audit', mysqli_insert_id($mysqli));
+        apiKeyWatch();
 
         $return_arr['success'] = "False";
         $return_arr['message'] = "Authentication failed. API key is invalid or has expired.";
@@ -96,6 +125,13 @@ if (isset($api_key)) {
         $api_key_decrypt_hash = $row['api_key_decrypt_hash']; // No sanitization
         $api_key_user_id = intval($row['api_key_user_id']);
 
+        // When it was last used, for Admin > API Keys - at most once a minute, not every call
+        mysqli_query($mysqli, "UPDATE api_keys SET api_key_last_used_at = NOW() WHERE api_key_id = " . intval($row['api_key_id']) . "
+            AND (api_key_last_used_at IS NULL OR api_key_last_used_at < NOW() - INTERVAL 1 MINUTE)");
+
+        // What it is used for - each call counted to its day and endpoint (functions/api_keys.php)
+        apiKeyUsageRecord($row['api_key_id'], apiKeyUsageEndpoint($_SERVER['REQUEST_URI'] ?? ''), getIP());
+
         // Set limit & offset for queries
         if (isset($_GET['limit'])) {
             $limit = intval($_GET['limit']);
@@ -112,6 +148,9 @@ if (isset($api_key)) {
         } else {
             $offset = 0;
         }
+        // A negative or huge limit / offset was an SQL error
+        $limit = max(1, min(1000, $limit));
+        $offset = max(0, $offset);
 
         // When the key is tied to a user, enforce that user's RBAC (module + operation + client scope)
         require __DIR__ . '/enforce_api_rbac.php';

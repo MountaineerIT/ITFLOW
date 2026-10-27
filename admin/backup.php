@@ -154,12 +154,13 @@ if (!empty($_SESSION['backup_master_key_reveal'])) {
                             <?php } ?>
                         </td>
                         <td class="text-end">
+                            <?= function_exists('mitRestoreRowButton') ? mitRestoreRowButton($backup) : '' // Mountaineer IT: restore from here ?>
                             <?php if ($status === 'Complete') { ?>
-                                <a class="btn btn-sm btn-primary" href="backup_download.php?backup_id=<?= $backup_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">
+                                <a class="btn btn-sm btn-primary" title="Download backup" href="backup_download.php?backup_id=<?= $backup_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">
                                     <i class="fas fa-fw fa-download"></i>
                                 </a>
                             <?php } ?>
-                            <a class="btn btn-sm btn-danger confirm-link" href="post.php?delete_backup=<?= $backup_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">
+                            <a class="btn btn-sm btn-danger confirm-link" title="Delete backup" href="post.php?delete_backup=<?= $backup_id ?>&csrf_token=<?= $_SESSION['csrf_token'] ?>">
                                 <i class="fas fa-fw fa-trash"></i>
                             </a>
                         </td>
@@ -187,8 +188,8 @@ if (!empty($_SESSION['backup_master_key_reveal'])) {
         <?php if ($backup_key !== '') { ?>
             <div class="input-group">
                 <input type="text" class="form-control font-monospace" value="<?= escapeHtml($backup_key) ?>" readonly onclick="this.select();">
-                    <button class="btn btn-secondary" type="button" onclick="navigator.clipboard.writeText('<?= escapeHtml($backup_key) ?>');">
-                        <i class="fas fa-fw fa-copy"></i>
+                    <button class="btn btn-secondary clipboardjs" title="Copy backup key" type="button" data-clipboard-text="<?= escapeHtml($backup_key) ?>">
+                        <i class="far fa-fw fa-copy"></i>
                     </button>
             </div>
         <?php } ?>
@@ -254,7 +255,8 @@ if (!empty($_SESSION['backup_master_key_reveal'])) {
         <h3 class="card-title"><i class="fas fa-fw fa-undo me-2"></i>Restoring</h3>
     </div>
     <div class="card-body">
-        <p>Restoring replaces the database and the uploads folder with what is in the archive. It cannot be done from here, on purpose - a running install is the wrong place to be dropping its own tables from a browser.</p>
+        <p>Restoring replaces the database and the uploads folder with what is in the archive.</p>
+        <?php if (function_exists('mitRestoreRowButton')) { require_once __DIR__ . '/includes/mit_restore_card.php'; } // Mountaineer IT: restore from here ?>
         <p class="mb-2"><strong>From the command line</strong> - the only option that works for large backups:</p>
         <pre class="bg-dark text-white p-2"><?= escapeHtml("php " . dirname(__DIR__) . "/scripts/restore_cli.php --file=/path/to/backup.zip") ?></pre>
         <p class="mb-0"><strong>From a browser</strong>, on a fresh install only, the setup wizard has a restore step at <code>/setup</code>. Once an install has users, that step closes itself.</p>

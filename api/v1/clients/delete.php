@@ -7,9 +7,21 @@ require_once '../require_post_method.php';
 // Default
 $delete_count = false;
 
+// Mountaineer IT: not while its invoices are in QuickBooks batches (the delete then fails as not found)
+if (!empty($client_id) && function_exists('mitQboClientLock') && mitQboClientLock($client_id) !== '') {
+    $client_id = 0;
+}
+if (!empty($client_id) && function_exists('mitTsDeleteBlocked') && mitTsDeleteBlocked(0, $client_id) !== '') { $client_id = 0; } // Mountaineer IT: its ticket time is on a submitted timesheet
+
 if (!empty($client_id)) {
     $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT client_name FROM clients WHERE client_id = $client_id AND client_archived_at IS NOT NULL LIMIT 1"));
     $client_name = $row['client_name'];
+
+    // Their payments and other income go with them - not once any has cleared on a reconciled statement
+    if (!empty($client_name) && reconcileClientLock($client_id)) {
+        echo json_encode(['success' => 'False', 'message' => 'Money from this client cleared on a reconciled bank statement - keep the client archived, or undo that reconciliation in ITFlow first.']);
+        exit();
+    }
 
     if (!empty($client_name)) {
         // Delete Associations
@@ -17,7 +29,9 @@ if (!empty($client_id)) {
         mysqli_query($mysqli, "DELETE FROM documents WHERE document_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM contacts WHERE contact_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM assets WHERE asset_client_id = $client_id");
+        mysqli_query($mysqli, "DELETE FROM racks WHERE rack_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM domains WHERE domain_client_id = $client_id");
+        mysqli_query($mysqli, "DELETE calendar_event_attendees FROM calendar_event_attendees JOIN calendar_events ON event_id = attendee_event_id WHERE event_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM calendar_events WHERE event_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM files WHERE file_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM folders WHERE folder_client_id = $client_id");
@@ -40,6 +54,7 @@ if (!empty($client_id)) {
         $sql_quotes = mysqli_query($mysqli, "SELECT quote_id FROM quotes WHERE quote_client_id = $client_id");
         while ($quote_row = mysqli_fetch_assoc($sql_quotes)) {
             $quote_id = intval($quote_row['quote_id']);
+            mitQuoteImagesDelete($quote_id); // Mountaineer IT: the lines' image files
             mysqli_query($mysqli, "DELETE FROM quote_items WHERE item_quote_id = $quote_id");
         }
         mysqli_query($mysqli, "DELETE FROM quotes WHERE quote_client_id = $client_id");
@@ -60,6 +75,7 @@ if (!empty($client_id)) {
         $sql_tickets = mysqli_query($mysqli, "SELECT ticket_id FROM tickets WHERE ticket_client_id = $client_id");
         while ($ticket_row = mysqli_fetch_assoc($sql_tickets)) {
             $ticket_id = intval($ticket_row['ticket_id']);
+            mitTicketPartsDeleting($ticket_id); // Mountaineer IT: put unbilled stock parts back
             mysqli_query($mysqli, "DELETE FROM ticket_replies WHERE ticket_reply_ticket_id = $ticket_id");
             mysqli_query($mysqli, "DELETE FROM ticket_views WHERE view_ticket_id = $ticket_id");
         }
@@ -67,7 +83,7 @@ if (!empty($client_id)) {
         mysqli_query($mysqli, "DELETE FROM trips WHERE trip_client_id = $client_id");
         mysqli_query($mysqli, "DELETE FROM vendors WHERE vendor_client_id = $client_id");
 
-        removeDirectory("../../uploads/clients/$client_id");
+        removeDirectory(__DIR__ . "/../../../uploads/clients/$client_id");
 
         $delete_sql = mysqli_query($mysqli, "DELETE FROM clients WHERE client_id = $client_id");
 

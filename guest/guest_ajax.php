@@ -11,7 +11,6 @@ require_once "../config.php";
 // Set Timezone
 require_once "../includes/inc_set_timezone.php";
 require_once "../functions.php";
-require_once "../libs/totp/totp.php";
 
 
 /*
@@ -40,7 +39,10 @@ if (isset($_GET['stripe_create_pi'])) {
         LIMIT 1"
     );
     if (!$invoice_sql || mysqli_num_rows($invoice_sql) !== 1) {
-        exit("Invalid Invoice ID/SQL query");
+        exit(json_encode(['error' => 'Invalid Invoice ID/SQL query']));
+    }
+    if (function_exists('mitQboTakesPayments') && mitQboTakesPayments($invoice_id)) { // Mountaineer IT: paid in QuickBooks Online
+        exit(json_encode(['error' => 'Please pay this invoice from the QuickBooks email you received.']));
     }
 
     $row = mysqli_fetch_assoc($invoice_sql);
@@ -59,14 +61,19 @@ if (isset($_GET['stripe_create_pi'])) {
 
     $balance_to_pay = round($balance_to_pay, 2);
 
-    if (intval($balance_to_pay) == 0) {
-        exit("No balance outstanding");
+    // In cents, so a balance under 1.00 can still be paid
+    if (round($balance_to_pay * 100) <= 0) {
+        exit(json_encode(['error' => 'No balance outstanding']));
     }
 
-    // Setup Stripe from payment_providers
-    $stripe_provider = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT payment_provider_id, payment_provider_private_key FROM payment_providers WHERE payment_provider_name = 'Stripe' LIMIT 1"));
+    // Setup Stripe from payment_providers - switched on, and the invoice under its threshold (as the Pay button)
+    $stripe_provider = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT payment_provider_id, payment_provider_private_key, payment_provider_threshold FROM payment_providers WHERE payment_provider_name = 'Stripe' AND payment_provider_active = 1 LIMIT 1"));
     if (!$stripe_provider) {
-        exit("Stripe not enabled / configured");
+        exit(json_encode(['error' => 'Stripe not enabled / configured']));
+    }
+    $stripe_threshold = floatval($stripe_provider['payment_provider_threshold']);
+    if ($stripe_threshold > 0 && $stripe_threshold <= $invoice_amount) {
+        exit(json_encode(['error' => 'Invoice is over the online payment limit']));
     }
     $stripe_provider_id = intval($stripe_provider['payment_provider_id']);
     $stripe_secret_key = $stripe_provider['payment_provider_private_key'];
@@ -113,48 +120,5 @@ if (isset($_GET['stripe_create_pi'])) {
         echo json_encode(['error' => $e->getMessage()]);
     }
 
-    exit;
-}
-
-/*
- * Returns the current TOTP code for a shared credential
- * Authenticated via the share ID + key, same as guest_view_item.php
- */
-if (isset($_GET['get_share_totp_token'])) {
-
-    header('Content-Type: application/json');
-
-    $item_id = intval($_GET['id']);
-    $item_key = escapeSql($_GET['key']);
-
-    // Deliberately no item_view_limit check here - the page view already consumed a view,
-    //  and blocking token refreshes would break rotation for limit-1 shares.
-    //  Active + expiry checks still apply, so revoking the share stops codes immediately.
-    $sql = mysqli_query($mysqli, "SELECT item_related_id, item_client_id FROM shared_items WHERE item_id = $item_id AND item_key = '$item_key' AND item_type = 'Credential' AND item_active = 1 AND item_expire_at > NOW() LIMIT 1");
-
-    if (!$sql || mysqli_num_rows($sql) !== 1) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    $row = mysqli_fetch_assoc($sql);
-    $credential_id = intval($row['item_related_id']);
-    $client_id = intval($row['item_client_id']);
-
-    $credential_sql = mysqli_query($mysqli, "SELECT credential_otp_secret FROM credentials WHERE credential_id = $credential_id AND credential_client_id = $client_id LIMIT 1");
-
-    if (!$credential_sql || mysqli_num_rows($credential_sql) !== 1) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    $totp_secret = mysqli_fetch_assoc($credential_sql)['credential_otp_secret'];
-
-    if (empty($totp_secret)) {
-        exit(json_encode(['error' => 'invalid']));
-    }
-
-    echo json_encode([
-        'token' => TokenAuth6238::getTokenCode(strtoupper($totp_secret)),
-        'expires_in' => 30 - (time() % 30)
-    ]);
     exit;
 }

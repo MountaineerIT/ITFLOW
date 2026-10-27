@@ -253,9 +253,15 @@ foreach (cronJobRegistry() as $cron_dispatch_job) {
         require_once $cron_dispatch_path;
         cronJobFinished($mysqli, $cron_dispatch_job['name'], 'Completed', microtime(true) - $cron_dispatch_started);
     } catch (CronJobStopped $e) {
-        // The job ended itself early - disabled in settings, nothing configured, nothing to do
+        // The job ended itself early - disabled in settings, nothing configured, nothing to do. One that stopped with an
+        // error code (e.g. the mail server refused the connection) is a failure, so it shows and alerts like one
         $reason = $e->getMessage();
-        cronJobFinished($mysqli, $cron_dispatch_job['name'], $reason === '' ? 'Stopped' : "Stopped: $reason", microtime(true) - $cron_dispatch_started);
+        if ($e->getCode() !== 0) {
+            logApp("Cron", "error", "Cron job {$cron_dispatch_job['name']} stopped with an error" . ($reason === '' ? '' : ": $reason"));
+            cronJobFinished($mysqli, $cron_dispatch_job['name'], 'Failed', microtime(true) - $cron_dispatch_started, $reason === '' ? 'Stopped with an error - see the app log' : $reason);
+        } else {
+            cronJobFinished($mysqli, $cron_dispatch_job['name'], $reason === '' ? 'Stopped' : "Stopped: $reason", microtime(true) - $cron_dispatch_started);
+        }
     } catch (Throwable $e) {
         // One job throwing is not a reason to skip the rest of the cycle
         echo "Cron: job '{$cron_dispatch_job['name']}' failed - " . $e->getMessage() . "\n";

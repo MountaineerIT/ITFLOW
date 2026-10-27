@@ -1,0 +1,12 @@
+{
+  "name": "itflow-mountaineerit-smoke",
+  "private": true,
+  "description": "Smoke tests for the Mountaineer IT build of ITFlow - run against a test install, never production",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}

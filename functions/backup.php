@@ -219,11 +219,34 @@ function backupAssertUploadsGuards(): void
     }
 
     $htaccess = $uploads . "/.htaccess";
-    $wanted = "Options -ExecCGI -Indexes\nphp_flag engine off\nRemoveHandler .php .phtml .phar .phps\nRemoveType .php .phtml .phar .phps\n<FilesMatch \"\\.(php|phtml|phar|phps|cgi|pl|sh)\$\">\n  Require all denied\n</FilesMatch>\n";
+    $wanted = "Options -ExecCGI -Indexes\nphp_flag engine off\nRemoveHandler .php .phtml .phar .phps\nRemoveType .php .phtml .phar .phps\n<FilesMatch \"\\.(php|phtml|phar|phps|cgi|pl|sh)\$\">\n  Require all denied\n</FilesMatch>\n"
+        // Mountaineer IT: no type guessing and no scripts in anything opened straight from uploads/ (as in the shipped file)
+        . "<IfModule mod_headers.c>\n    Header always set X-Content-Type-Options \"nosniff\"\n    Header always set Content-Security-Policy \"script-src 'none'; object-src 'none'; base-uri 'none'\"\n</IfModule>\n";
 
     // Overwrite unconditionally - an archive is allowed to carry a .htaccess, it is not
     // allowed to decide what ours says.
     @file_put_contents($htaccess, $wanted);
+
+    // Mountaineer IT: nor may one further down - a .htaccess or .user.ini in a sub-folder could switch PHP back on there.
+    // Ours are written again below (receipts, backups, tmp); the app makes the rest when it needs them.
+    $guards = [
+        'backups/.htaccess' => "Require all denied\nOptions -ExecCGI -Indexes\nphp_flag engine off\n",
+        'tmp/.htaccess' => "Require all denied\nOptions -ExecCGI -Indexes\nphp_flag engine off\n",
+        'mit_receipts/.htaccess' => "Require all denied\n",
+        'mit_feedback/.htaccess' => "Require all denied\n",
+    ];
+    $found = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads, FilesystemIterator::SKIP_DOTS));
+    foreach ($found as $file) {
+        $relative = substr($file->getPathname(), strlen($uploads) + 1);
+        if (in_array($file->getFilename(), ['.htaccess', '.user.ini'], true) && $relative !== '.htaccess') {
+            @unlink($file->getPathname());
+        }
+    }
+    foreach ($guards as $relative => $content) {
+        if (is_dir($uploads . '/' . dirname($relative))) {
+            @file_put_contents($uploads . '/' . $relative, $content);
+        }
+    }
 
     $index = $uploads . "/index.php";
     if (!file_exists($index)) {

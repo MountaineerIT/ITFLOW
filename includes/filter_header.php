@@ -17,7 +17,7 @@ $url_query_strings_sort = http_build_query($get_copy);
 
 // Paging
 if (isset($_GET['page'])) {
-    $page = intval($_GET['page']);
+    $page = max(1, intval($_GET['page'])); // page 0 or below made a negative LIMIT - an SQL error
     $record_from = (($page)-1)*$user_config_records_per_page;
     $record_to = $user_config_records_per_page;
 } else {
@@ -60,7 +60,12 @@ if (isset($_GET['q'])) {
 
 // Sortby
 if (!empty($_GET['sort'])) {
-    $sort = escapeSql(preg_replace('/[^a-z_]/', '', $_GET['sort'])); // JQ 2023-05-09 - See issue #673 on GitHub to see the reasoning why we used preg_replace technically escapeSql() should have been enough to escape SQL Commands
+    $sort_wanted = escapeSql(preg_replace('/[^a-z_]/', '', $_GET['sort'])); // JQ 2023-05-09 - See issue #673 on GitHub to see the reasoning why we used preg_replace technically escapeSql() should have been enough to escape SQL Commands
+    // Only a column that exists - an unknown one was an SQL error (a 500 page); the page's own default stays otherwise
+    $sort_known = $sort_wanted !== '' && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND COLUMN_NAME = '$sort_wanted' LIMIT 1")) > 0;
+    if ($sort_known) {
+        $sort = $sort_wanted;
+    }
 }
 
 // Date Handling
@@ -73,7 +78,7 @@ if (empty($_GET['canned_date'])) {
 // Date Filter
 if ($_GET['canned_date'] == "custom" && !empty($_GET['dtf'])) {
     $dtf = escapeSql($_GET['dtf']);
-    $dtt = escapeSql($_GET['dtt']);
+    $dtt = !empty($_GET['dtt']) ? escapeSql($_GET['dtt']) : '2099-12-31'; // No end date - open ended, like all time
 } elseif ($_GET['canned_date'] == "today") {
     $dtf = date('Y-m-d');
     $dtt = date('Y-m-d');

@@ -12,7 +12,8 @@ $update_count = false;
 
 if (!empty($ticket_id)) {
 
-    $ticket_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM tickets WHERE ticket_id = '$ticket_id' AND ticket_client_id = $client_id LIMIT 1"));
+    // A closed ticket stays as it was
+    $ticket_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM tickets WHERE ticket_id = '$ticket_id' AND ticket_client_id = $client_id AND ticket_closed_at IS NULL LIMIT 1"));
 
     if ($ticket_row) {
         // Assign model values from POST, falling back to the current ticket values.
@@ -26,6 +27,11 @@ if (!empty($ticket_id)) {
 
         if ($update_sql) {
             $update_count = mysqli_affected_rows($mysqli);
+
+            // A new priority can mean a different SLA
+            if ($priority !== $ticket_row['ticket_priority']) {
+                applyTicketSla($ticket_id);
+            }
 
             logTicketHistory($ticket_id, "Edited via the API ($api_key_name)");
             logAudit("Ticket", "Edit", "$ticket_prefix$ticket_number ticket via API ($api_key_name)", $client_id, $ticket_id);

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520">
+<g stroke="#7aa7f2" stroke-opacity=".28" stroke-width="1.2" fill="none">
+<path d="M40 80L150 40L260 120L380 70L480 150M150 40L170 200L260 120L330 250L480 150M40 80L90 230L170 200L240 330L330 250L450 330L480 150M90 230L60 380L180 430L240 330L360 450L450 330M180 430L120 500M360 450L470 490"/>
+</g>
+<g fill="#7aa7f2">
+<circle cx="40" cy="80" r="3" fill-opacity=".5"/>
+<circle cx="150" cy="40" r="4" fill-opacity=".6"/>
+<circle cx="260" cy="120" r="5" fill="#22d3ee" fill-opacity=".7"/>
+<circle cx="380" cy="70" r="3" fill-opacity=".5"/>
+<circle cx="480" cy="150" r="4" fill-opacity=".6"/>
+<circle cx="170" cy="200" r="3" fill-opacity=".5"/>
+<circle cx="330" cy="250" r="6" fill-opacity=".7"/>
+<circle cx="90" cy="230" r="4" fill-opacity=".5"/>
+<circle cx="240" cy="330" r="4" fill="#22d3ee" fill-opacity=".6"/>
+<circle cx="450" cy="330" r="3" fill-opacity=".5"/>
+<circle cx="60" cy="380" r="3" fill-opacity=".4"/>
+<circle cx="180" cy="430" r="5" fill-opacity=".6"/>
+<circle cx="360" cy="450" r="4" fill-opacity=".5"/>
+<circle cx="120" cy="500" r="2.5" fill-opacity=".4"/>
+<circle cx="470" cy="490" r="3" fill-opacity=".4"/>
+</g>
+</svg>

@@ -62,6 +62,20 @@ if (!empty($ticket_id) && !empty($reply)) {
         $ticket_row = null;
     }
 
+    // A closed ticket takes no replies (as on the ticket page), and the status must be one a reply may set: an active
+    // working status or Resolved - not New or Closed, which the system sets, and not an id that does not exist
+    $api_refuse = function ($message) {
+        header("HTTP/1.1 400 Bad Request");
+        echo json_encode(['success' => 'False', 'message' => $message]);
+        exit();
+    };
+    if ($ticket_row && ($ticket_row['ticket_closed_at'] !== null || intval($ticket_row['ticket_status']) === 5)) {
+        $api_refuse('That ticket is closed - it takes no replies.');
+    }
+    if ($ticket_row && $reply_ticket_status && !in_array($reply_ticket_status, ticketReplyStatuses($ticket_row['ticket_status']), true)) {
+        $api_refuse('ticket_status must be the id of an active status a reply may set (not New or Closed).');
+    }
+
     if ($ticket_row) {
 
         $ticket_prefix = escapeSql($ticket_row['ticket_prefix']);
@@ -86,7 +100,13 @@ if (!empty($ticket_id) && !empty($reply)) {
 
             // Optional status change alongside the reply
             if (!empty($reply_ticket_status)) {
-                mysqli_query($mysqli, "UPDATE tickets SET ticket_status = $reply_ticket_status WHERE ticket_id = $ticket_id LIMIT 1");
+                // Out of Resolved into a working status is a reopen - otherwise the ticket keeps its resolved time and drops
+                // off every open list without the nightly close ever closing it
+                $reopen_sql = ($original_ticket_status === 4 && $reply_ticket_status !== 4) ? ', ticket_resolved_at = NULL' : '';
+                mysqli_query($mysqli, "UPDATE tickets SET ticket_status = $reply_ticket_status $reopen_sql WHERE ticket_id = $ticket_id LIMIT 1");
+                if ($reopen_sql !== '') {
+                    resetTicketResolutionSla($ticket_id);
+                }
 
                 // Only record a status change when the status actually changed -
                 // Resolved is left out because the resolve block below logs it
@@ -102,7 +122,7 @@ if (!empty($ticket_id) && !empty($reply)) {
 
                     logTicketHistory($ticket_id, "Resolved via the API ($api_key_name)");
 
-                    logAudit("Ticket", "Resolved", "Resolved ticket $ticket_prefix$ticket_number via API ($api_key_name)", $client_id, $ticket_id);
+                    logAudit("Ticket", "Resolve", "Resolved ticket $ticket_prefix$ticket_number via API ($api_key_name)", $client_id, $ticket_id);
 
                     triggerCustomAction('ticket_resolve', $ticket_id);
                 }
@@ -119,72 +139,12 @@ if (!empty($ticket_id) && !empty($reply)) {
                 triggerCustomAction('reply_reply_agent_public', $ticket_id);
             }
 
-            // Email the contact & watchers on a public reply (mirrors the agent reply handler)
-            if ($reply_type == 'Public' && !empty($config_smtp_provider)) {
-
-                $notify_sql = mysqli_query(
-                    $mysqli,
-                    "SELECT contact_name, contact_email, ticket_status_name
-                     FROM tickets
-                     LEFT JOIN contacts ON ticket_contact_id = contact_id
-                     LEFT JOIN ticket_statuses ON ticket_status = ticket_status_id
-                     WHERE ticket_id = $ticket_id"
-                );
-                $notify_row = mysqli_fetch_assoc($notify_sql);
-
-                $contact_name = escapeSql($notify_row['contact_name']);
-                $contact_email = escapeSql($notify_row['contact_email']);
-                $ticket_status_name = escapeSql($notify_row['ticket_status_name']);
-
-                // Sanitize config vars from load_global_settings.php
-                $from_name = escapeSql($config_ticket_from_name);
-                $from_email = escapeSql($config_ticket_from_email);
-
-                $company_sql = mysqli_query($mysqli, "SELECT company_name, company_phone, company_phone_country_code FROM companies WHERE company_id = 1");
-                $company_row = mysqli_fetch_assoc($company_sql);
-                $company_name = escapeSql($company_row['company_name']);
-                $company_phone = escapeSql(formatPhoneNumber($company_row['company_phone'], $company_row['company_phone_country_code']));
-
-                $subject = "Ticket update - [$ticket_prefix$ticket_number] - $ticket_subject";
-                $body = "<i style=\'color: #808080\'>##- Please type your reply above this line -##</i><br><br>Hello $contact_name,<br><br>Your ticket regarding $ticket_subject has been updated.<br><br>--------------------------------<br>$reply<br>--------------------------------<br><br>Ticket: $ticket_prefix$ticket_number<br>Subject: $ticket_subject<br>Status: $ticket_status_name<br>Portal: <a href=\'https://$config_base_url/guest/guest_view_ticket.php?ticket_id=$ticket_id&url_key=$ticket_url_key\'>View ticket</a><br><br>--<br>$company_name - Support<br>$from_email<br>$company_phone";
-
-                $data = [];
-
-                // Email ticket contact
-                if (filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
-                    $data[] = [
-                        'from' => $from_email,
-                        'from_name' => $from_name,
-                        'recipient' => $contact_email,
-                        'recipient_name' => $contact_name,
-                        'subject' => $subject,
-                        'body' => $body
-                    ];
-                }
-
-                // Also email all the watchers
-                $watcher_body = $body . "<br><br>----------------------------------------<br>YOU ARE A COLLABORATOR ON THIS TICKET";
-                $sql_watchers = mysqli_query($mysqli, "SELECT watcher_name, watcher_email FROM ticket_watchers WHERE watcher_ticket_id = $ticket_id");
-                while ($watcher_row = mysqli_fetch_assoc($sql_watchers)) {
-                    $watcher_name = escapeSql($watcher_row['watcher_name']);
-                    $watcher_email = escapeSql($watcher_row['watcher_email']);
-
-                    if (filter_var($watcher_email, FILTER_VALIDATE_EMAIL)) {
-                        $data[] = [
-                            'from' => $from_email,
-                            'from_name' => $from_name,
-                            'recipient' => $watcher_email,
-                            'recipient_name' => $watcher_name,
-                            'subject' => $subject,
-                            'body' => $watcher_body
-                        ];
-                    }
-                }
-
-                if (!empty($data)) {
-                    addToMailQueue($data);
-                }
-
+            // Email the contact and watchers on a public reply, as the agent reply handler does -
+            // the reply keeps who it went to
+            if ($reply_type == 'Public') {
+                ticketMailReply($ticket_id, (string) getFieldById('ticket_replies', $insert_id, 'ticket_reply'), stripslashes($session_name), false, [], $insert_id);
+            } else {
+                ticketReplyEmailed($insert_id, false);
             }
 
         }

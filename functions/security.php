@@ -79,7 +79,7 @@ function encryptUserSpecificKey($user_password) {
     $salt = randomString();
 
     // Get the session info.
-    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'];
+    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'] ?? '';
     $user_encryption_session_iv = base64_decode($_SESSION['user_encryption_session_iv'] ?? '');
     $user_encryption_session_key = base64_decode($_COOKIE['user_encryption_session_key'] ?? '');
 
@@ -146,7 +146,7 @@ function decryptCredentialEntry($credential_password_ciphertext) {
     $credential_ciphertext = $salt = substr($credential_password_ciphertext, 16);
 
     // Get the user session info.
-    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'];
+    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'] ?? '';
     $user_encryption_session_iv =  base64_decode($_SESSION['user_encryption_session_iv'] ?? '');
     $user_encryption_session_key = base64_decode($_COOKIE['user_encryption_session_key'] ?? '');
 
@@ -162,7 +162,7 @@ function encryptCredentialEntry($credential_password_cleartext) {
     $iv = randomString();
 
     // Get the user session info.
-    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'];
+    $user_encryption_session_ciphertext = $_SESSION['user_encryption_session_ciphertext'] ?? '';
     $user_encryption_session_iv =  base64_decode($_SESSION['user_encryption_session_iv'] ?? '');
     $user_encryption_session_key = base64_decode($_COOKIE['user_encryption_session_key'] ?? '');
 
@@ -193,11 +193,26 @@ function apiDecryptCredentialEntry($credential_ciphertext, $api_key_decrypt_hash
     return openssl_decrypt($credential_ciphertext, 'aes-128-cbc', $site_encryption_master_key, 0, $credential_iv);
 }
 
+/**
+ * Does this decrypt password open the API key's copy of the master key? A
+ * wrong one decrypts to nothing (or rubbish), and a credential saved under
+ * that could never be read again.
+ */
+function apiDecryptPasswordOpens($api_key_decrypt_hash, #[\SensitiveParameter]$api_key_decrypt_password) {
+    $key = decryptUserSpecificKey((string) $api_key_decrypt_hash, (string) $api_key_decrypt_password);
+    return is_string($key) && $key !== '';
+}
+
 function apiEncryptCredentialEntry(#[\SensitiveParameter]$credential_cleartext, $api_key_decrypt_hash, #[\SensitiveParameter]$api_key_decrypt_password) {
     $iv = randomString();
 
     // Decrypt the api hash to get the master key
     $site_encryption_master_key = decryptUserSpecificKey($api_key_decrypt_hash, $api_key_decrypt_password);
+
+    // Wrong decrypt password - never encrypt with an empty key
+    if (empty($site_encryption_master_key)) {
+        return false;
+    }
 
     // Encrypt the credential using the master key
     $ciphertext = openssl_encrypt($credential_cleartext, 'aes-128-cbc', $site_encryption_master_key, 0, $iv);

@@ -20,13 +20,7 @@ $num_rows = mysqli_fetch_row(mysqli_query($mysqli, "SELECT FOUND_ROWS()"));
 <div class="card">
     <div class="card-header bg-dark py-2">
         <h3 class="card-title mt-2"><i class="fas fa-fw fa-puzzle-piece me-2"></i>Access Modules</h3>
-        <div class="card-tools">
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary ajax-modal" data-modal-url="modals/module/module_add.php">
-                    <i class="fas fa-fw fa-plus me-2"></i>New Module
-                </button>
-            </div>
-        </div>
+        <?php // No "New Module" button: custom modules can't be created yet (there is no add form or handler) ?>
     </div>
     <div class="card-header py-3">
         <form autocomplete="off">
@@ -34,7 +28,7 @@ $num_rows = mysqli_fetch_row(mysqli_query($mysqli, "SELECT FOUND_ROWS()"));
                 <div class="col-md-4">
                     <div class="input-group">
                         <input type="search" class="form-control" name="q" value="<?php if (isset($q)) {echo stripslashes(escapeHtml($q));} ?>" placeholder="Search Modules">
-                            <button class="btn btn-primary"><i class="fa fa-search"></i></button>
+                            <button class="btn btn-primary" title="Search"><i class="fa fa-search"></i></button>
                     </div>
                 </div>
             </div>
@@ -71,7 +65,7 @@ $num_rows = mysqli_fetch_row(mysqli_query($mysqli, "SELECT FOUND_ROWS()"));
                     <td>
                         <?php if ($module_id > 6) { ?>
                             <div class="dropdown dropstart text-center">
-                                <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="dropdown">
+                                <button class="btn btn-secondary btn-sm" title="More actions" type="button" data-bs-toggle="dropdown">
                                     <i class="fas fa-ellipsis-h"></i>
                                 </button>
                                 <div class="dropdown-menu">
@@ -101,6 +95,13 @@ $num_rows = mysqli_fetch_row(mysqli_query($mysqli, "SELECT FOUND_ROWS()"));
             </tbody>
         </table>
     </div>
+    <?php
+    $empty_state = [
+        'thing' => 'modules',
+        'icon' => 'fa-puzzle-piece',
+        'actions' => [['label' => 'New Module', 'modal' => 'modals/module/module_add.php']],
+    ];
+    ?>
     <?php require_once "../includes/filter_footer.php";
         ?>
 </div>

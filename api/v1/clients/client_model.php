@@ -2,6 +2,9 @@
 
 // Variable assignment from POST (or: blank/from DB is updating)
 
+// create.php has no row to fall back on
+$client_row = $client_row ?? null;
+
 if (isset($_POST['client_name'])) {
     $name = escapeSql($_POST['client_name']);
 } elseif ($client_row) {
@@ -91,3 +94,14 @@ if (isset($_POST['client_notes'])) {
 } else {
     $notes = '';
 }
+
+// Its tax rate (0: the default) and exemption - client_default_tax_id,
+// client_tax_exempt, client_tax_exempt_number, client_tax_exempt_expires
+// (YYYY-MM-DD); those not sent keep what the client has
+$tax_input = [];
+foreach (['client_default_tax_id' => 'default_tax_id', 'client_tax_exempt' => 'tax_exempt', 'client_tax_exempt_number' => 'tax_exempt_number', 'client_tax_exempt_expires' => 'tax_exempt_expires'] as $api_field => $tax_field) {
+    if (isset($_POST[$api_field])) {
+        $tax_input[$tax_field] = $_POST[$api_field];
+    }
+}
+$tax_set_sql = taxClientSetSql($tax_input, $client_row ?? []);

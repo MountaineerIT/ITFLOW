@@ -1,0 +1,52 @@
+# Mountaineer IT - how scripts/mit_hook_proof.php switches off hooks its own rules can't: our call in the middle of ITFlow's line,
+# a value used further on, our lines in ITFlow's JavaScript. One a line: file | text on the line | what takes its place - ITFlow's
+# own value, as if our code were not there ((nothing) = taken out; '' is PHP's empty string). Parts are separated by " | ". Lines that load our files and our cron entries are in
+# scripts/mit_hook_proof_accepted.txt instead (with why), or proven by their own checks.
+admin/includes/side_nav.php | || in_array($settings_nav_current, mitAdminSettingsPages(), true) | || false
+admin/modals/user/user_form.php | mitCalendarColorField($form_user_id, 'col-12') | ''
+admin/oauth_microsoft_mail_callback.php | mitMicrosoftTokenFields($token_url, [ | (fn($u, $f) => $f)($token_url, [
+admin/post/settings_mail.php | ($mit_test = mitM365GraphMailboxTest($config_imap_username ?? '')) !== null | ($mit_test = null) !== null
+admin/post/settings_mail.php | $fields = mitMicrosoftTokenFields($url, $fields); | $fields = $fields;
+admin/post/settings_mail.php | http_build_query(mitMicrosoftTokenFields($token_url, [ | http_build_query((fn($u, $f) => $f)($token_url, [
+agent/ajax.php | mitTicketScheduleMinutes($row['ticket_schedule'], $row['ticket_schedule_end'] ?? null) | CALENDAR_TICKET_MINUTES
+agent/calendar.php | selectOptionColor(mitAgentColor($agent['user_id'])) | ''
+agent/calendar.php | json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all')) | json_encode((object) [])
+agent/client_overview.php | && !($mit_align_card !== '' && mitAlignReplacesAttention()) | (nothing)
+agent/invoice.php | 'mit_staff' => true, | (nothing)
+agent/quote.php | 'mit_staff' => true, | (nothing)
+agent/js/calendar.js | if (agentId()) { query.set('agent_id', agentId()); } | (nothing)
+agent/js/calendar.js | const techDot = props.tech_color && !mitStriped(arg) ? | const techDot = props.tech_color ?
+agent/js/calendar.js | if (props.tech_color && mitStriped(info)) { | if (false) {
+agent/modals/ticket/ticket_edit_schedule.php | mitTicketScheduleMinutes($row['ticket_schedule'], $row['ticket_schedule_end'] ?? null) | CALENDAR_TICKET_MINUTES
+agent/modals/ticket/ticket_edit_schedule.php | || mitAgentCanSeeClient($agent_row['user_id'], $row['ticket_client_id']) | || true
+agent/post/ticket.php | $emailed_to = mitReplyRecipientsMail($ticket_id, $_POST, $mit_subject, $mit_content, $emailable_attachments['send'], $ticket_reply_id); | $emailed_to = ticketMailReply($ticket_id, $mit_subject, $mit_content, $emailable_attachments['send'], $ticket_reply_id);
+agent/post/ticket.php | if (!mitAgentCanSeeClient($schedule_tech, $row['ticket_client_id'])) { | if (false) {
+agent/ticket.php | mitScheduleShortText($ticket['ticket_schedule'], $ticket['ticket_schedule_end'] ?? null) | date('M j, g:ia', strtotime($ticket['ticket_schedule']))
+agent/tickets.php | $filter_sql[] = "AND " . mitAssignedSql($assigned_filter); | $filter_sql[] = "AND ticket_assigned_to = " . intval($assigned_filter);
+agent/tickets.php | "$base_sql AND " . mitAssignedSql($session_user_id)] | "$base_sql AND ticket_assigned_to = " . intval($session_user_id)]
+agent/user/includes/user_side_nav.php | 'mit_outlook.php' => ['fa-calendar-alt', 'Outlook calendar'], | (nothing)
+api/v1/enforce_api_rbac.php | 'mit_usage'     => 'module_sales', | (nothing)
+api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products WHERE | "SELECT * FROM products WHERE
+api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products ORDER BY | "SELECT * FROM products ORDER BY
+cron/nightly_tasks.php | recurring_ticket_start_date" . mitRecurringTicketByDayColumn() . " -- | recurring_ticket_start_date --
+functions/calendar.php | $text .= ' on ' . mitByDayText($row['event_repeat_by_day']) | $text .= ''
+functions/calendar.php | $items = array_merge($items, mitTicketTechFeedItems($feed, $from, $to)); | (nothing)
+functions/calendar.php | return mitOutlookBusyItems($from, $to, $opts); // Mountaineer IT | return []; // Mountaineer IT
+functions/calendar.php | return mitHolidayCalendarItems($from, $to); // Mountaineer IT | return []; // Mountaineer IT
+functions/calendar.php | 'color' => intval($row['ticket_assigned_to']) ? mitAgentColor($row['ticket_assigned_to']) : $source['color'], | 'color' => $source['color'],
+functions/calendar.php | $items = array_merge($items, mitTicketTechCalendarItems($from, $to, $client_id, $user_id, $can_move)); | (nothing)
+functions/dashboard.php | $where = mitAssignedSql($user_id) . " AND | $where = "ticket_assigned_to = " . intval($user_id) . " AND
+functions/dashboard.php | $items = array_merge($items, mitTicketTechDashboardItems($from, $to)); | (nothing)
+functions/reports.php | 'mit_payroll' => mitTsReportEntry(), | (nothing)
+functions/reports.php | 'mit_boards' => mitBoardReportEntry(), | (nothing)
+functions/ticket.php | $end = mitTicketScheduleEnd($schedule, $end); | $end = $end ?: date('Y-m-d H:i:s', strtotime($schedule) + 3600);
+functions/ticket.php | $conflicts = mitScheduleConflicts($row['ticket_assigned_to'], $schedule, $end, $ticket_id); | $conflicts = [];
+functions/ticket.php | $conflicts = array_merge($conflicts, mitTicketTechsLeadMoved($ticket_id)); | (nothing)
+functions/ticket.php | return 'on ' . mitByDayText(mitRecurringTicketByDay($row)) | return 'on the same day'
+js/quick_pick.js | || result.reload)) | ))
+functions/calendar.php | 'end' => mitTicketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']), | 'end' => date('Y-m-d H:i:s', strtotime($row['ticket_schedule']) + 3600),
+functions/request.php | $fields = mitMicrosoftTokenFields($url, $fields); | $fields = $fields;
+functions/ticket.php | $when_text = mitScheduleWhenText($schedule, $end); | $when_text = date('M j, g:ia', strtotime($schedule));
+functions/calendar.php | mitByDayDate($year, ($month - 1) % 12 + 1, $by_day) | sprintf('%04d-%02d-01', $year, ($month - 1) % 12 + 1)
+functions/ticket.php | mitByDayDate($year, ($month - 1) % 12 + 1, $by_day) | sprintf('%04d-%02d-01', $year, ($month - 1) % 12 + 1)
+agent/modals/ticket/ticket_edit_schedule.php | $schedule_lengths = mitScheduleLengths(); | $schedule_lengths = [60 => '1 hour'];

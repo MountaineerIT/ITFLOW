@@ -201,6 +201,17 @@ if ($database_updates_error) {
     exit(1);
 }
 
+// Mountaineer IT's own updates (admin/database_updates/mountaineerit/), after ITFlow's
+require_once "../admin/database_updates_mountaineerit.php";
+foreach ($mit_updates_applied as $applied_name) {
+    echo "Applied Mountaineer IT database update $applied_name\n";
+}
+if ($mit_updates_error) {
+    fwrite(STDERR, "Error: Mountaineer IT database update failed at $mit_updates_error\n");
+    fwrite(STDERR, "Re-running will retry it.\n");
+    exit(1);
+}
+
 if (count($database_updates_applied) > 0) {
     echo "Database updated from version $old_db_version to $latest_db_version.\n";
 } else {

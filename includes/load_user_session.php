@@ -1,7 +1,7 @@
 <?php
 
 $session_ip = escapeSql(getIP());
-$session_user_agent = escapeSql($_SERVER['HTTP_USER_AGENT']);
+$session_user_agent = escapeSql($_SERVER['HTTP_USER_AGENT'] ?? '');
 $session_user_id = intval($_SESSION['user_id']);
 
 $sql = mysqli_query(
@@ -27,7 +27,7 @@ $session_user_role = intval($row['user_role_id']);
 $session_user_role_display = escapeSql($row['role_name']);
 $session_is_admin = isset($row['role_is_admin']) && $row['role_is_admin'] == 1;
 $session_user_config_force_mfa = intval($row['user_config_force_mfa']);
-$user_config_records_per_page = intval($row['user_config_records_per_page']);
+$user_config_records_per_page = max(1, intval($row['user_config_records_per_page']));
 $user_config_theme_dark = intval($row['user_config_theme_dark']);
 
 // Check user type is agent aka 1
@@ -49,6 +49,24 @@ if ($session_user_archived_at !== null) {
     session_unset();
     session_destroy();
     redirect("/login.php");
+}
+
+// Mountaineer IT: the password or MFA changed since this sign-in (a reset, the incident-response button) - sign in again
+if (function_exists('mitSessionCheck') && !mitSessionCheck($session_user_id)) {
+    session_unset();
+    session_destroy();
+    redirect("/login.php");
+}
+
+// MFA required but not set up yet - only the set up page, enabling MFA and logging out are allowed
+if ($session_user_config_force_mfa === 1 && trim((string) $session_token) === '') {
+    $mfa_script = $_SERVER['SCRIPT_NAME'] ?? '';
+    $mfa_allowed = $mfa_script === '/agent/user/mfa_enforcement.php'
+        || ($mfa_script === '/agent/user/post.php' && (isset($_POST['enable_mfa']) || isset($_GET['logout'])))
+        || ($mfa_script === '/agent/post.php' && isset($_GET['logout']));
+    if (!$mfa_allowed) {
+        redirect("/agent/user/mfa_enforcement.php");
+    }
 }
 
 // Load user client permissions (allow + deny lists)

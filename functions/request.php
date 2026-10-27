@@ -10,6 +10,10 @@
  * them in one process, where the second declaration is a fatal error.
  */
 function httpFormPost(string $url, array $fields): array {
+    // Mountaineer IT: our Microsoft 365 app signs in with a certificate (functions/mit_m365.php)
+    if (function_exists('mitMicrosoftTokenFields')) {
+        $fields = mitMicrosoftTokenFields($url, $fields);
+    }
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -98,7 +102,7 @@ function getOS($user_os) {
 function isMobile()
 {
     // Check if the user agent is a mobile device
-    return preg_match('/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|opera mini|palm|phone|pie|tablet|up.browser|up.link|webos|wos)/i', $_SERVER['HTTP_USER_AGENT']);
+    return preg_match('/(android|avantgo|blackberry|bolt|boost|cricket|docomo|fone|hiptop|mini|opera mini|palm|phone|pie|tablet|up.browser|up.link|webos|wos)/i', $_SERVER['HTTP_USER_AGENT'] ?? '');
 }
 
 // Redirect Function
