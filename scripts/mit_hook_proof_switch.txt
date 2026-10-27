@@ -29,7 +29,6 @@ api/v1/enforce_api_rbac.php | 'mit_usage'     => 'module_sales', | (nothing)
 api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products WHERE | "SELECT * FROM products WHERE
 api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products ORDER BY | "SELECT * FROM products ORDER BY
 cron/nightly_tasks.php | recurring_ticket_start_date" . mitRecurringTicketByDayColumn() . " -- | recurring_ticket_start_date --
-functions/app.php | 'end' => mitTicketScheduleEnd($datetime, $end), | 'end' => $end ?: date('Y-m-d H:i:s', strtotime($datetime) + 3600),
 functions/calendar.php | $text .= ' on ' . mitByDayText($row['event_repeat_by_day']) | $text .= ''
 functions/calendar.php | $items = array_merge($items, mitTicketTechFeedItems($feed, $from, $to)); | (nothing)
 functions/calendar.php | return mitOutlookBusyItems($from, $to, $opts); // Mountaineer IT | return []; // Mountaineer IT
