@@ -397,6 +397,76 @@ overwritten. Don't edit tracked files on a server; make changes in this reposito
 **Browser caching:** CSS and JavaScript files are not versioned, so after an update ask users
 to hard-refresh (Ctrl+F5) if a page looks or behaves oddly.
 
+## Releasing to production
+
+Production only ever gets what beta has run. A release is: beta checklist → "Claude, promote develop to production" → you
+approve the PR → update production on a day you pick.
+
+**When.** Not before ITFlow releases 26.11: `develop` carries ITFlow's unreleased 26.11 work (merged early in October 2026 for
+the new ticket page), so promoting it earlier puts unreleased ITFlow code on production. Promote earlier only if you decide to
+accept that. After 26.11 is out and merged, any `develop` that has been on beta for a few working days and passed the beta
+checklist can go.
+
+**What Claude does when asked to promote** (CLAUDE.md, "Promote to production"):
+- `sh scripts/mit_verify.sh` on the test install - syntax, hooks, feature map, consistency, portability, scenarios, smoke tests;
+- the portability test - a backup restored into stock ITFlow, main pages clicked, a client / ticket / reply saved;
+- **a practice run on a fresh production backup**: you make a *Database Only* backup on production (Admin > Backup) and share it
+  and its key; Claude restores it into a copy on the test server in development mode, runs the update exactly as production will
+  (`update_cli.php --update_db`), and checks the result - time taken, every ticket / client still there, consistency and
+  portability, every page opened, our features used on your data. The October 27 run took 15 seconds and found two ITFlow bugs
+  already on production (audit-log pages, contract templates) - both fixed before they could bite;
+- opens the `develop` → `MountaineerIT` PR listing what is in it, the database updates and those results. **You** approve the merge.
+
+**On the day** (production):
+1. Pick a quiet time and tell the team; the update itself takes under a minute, sign-ins carry on.
+2. **Full backup** (Admin > Backup) and download it off the server. Keep its backup key with it.
+3. Maintenance > Cron: cron switched on, and `www-data`'s crontab has only the one `cron.php` line.
+4. **First promotion only** - production was installed from itflow-org and still follows its `master`: do "Moving an existing
+   install over from itflow-org" above (point `origin` at this repository, `$repo_branch = 'MountaineerIT'` in `config.php`).
+   Without it, Update would pull itflow-org's code, not ours.
+5. Admin > Update > **Update**. Within a minute or two Maintenance > Cron shows Application Update finished, and Admin > Update
+   shows our version (e.g. 26.11.3) with "ITFlow 26.11" under it and no database updates waiting.
+6. Check straight away (read-only, safe on production):
+   ```bash
+   cd /var/www/itflow && sudo -u www-data php scripts/mit_consistency_check.php
+   ```
+   "No failures" is the answer you want (warnings about settings not filled in yet are expected the first time). Then open the
+   dashboard, a ticket (add an internal note), the calendar, an invoice and Admin > Audit logs; no warning beside the bell.
+7. Ask everyone to hard-refresh (Ctrl+F5) once.
+
+**First promotion - settings to fill in afterwards:**
+- Admin > Settings > Modules: Procurement, Timesheets and Dispatch are **on** - switch off any you aren't starting with yet.
+- Admin > Timesheets: pay period, mileage rate ("Paid back a mile") and "Payroll pays from account"; each person's pay type,
+  approver and time zone (People tab). Timesheets - and California rules for hourly people - start on the promotion day;
+  earlier days are left as they were.
+- Admin > Roles: give each role its Procurement / Timesheets / Dispatch level, and the boards it sees.
+- Admin > Settings > Boards, Notifications, Ticket (calendar colours, "Resolve - no response" wording).
+- Integrations (Microsoft 365, NinjaOne, QuickBooks, Customer Thermometer, MSP Align, AI helper) stay off until set up -
+  each has its own section in this file.
+
+**If something goes wrong:** the update's database changes can't be taken back one by one - the way back is the Full backup
+from step 2. Put the files back (`sudo -u www-data git -C /var/www/itflow reset --hard <the commit Admin > Update showed
+before>`), then restore the backup (Admin > Backup > Restore, or `scripts/restore_cli.php --file=... --key=...`). Tell Claude
+what you saw first - most problems after an update are a setting or a single page, fixed forward on `develop` in minutes.
+
+### Beta checklist (before every promotion)
+
+Beta runs `develop` (nightly self-update). Before asking for a promotion, on beta:
+
+| Check | What you should see |
+|---|---|
+| Admin > Update | The version you expect; no database updates waiting |
+| Top bar | No cron warning beside the bell (Cron Watch) |
+| Tickets: new ticket, reply by email to the contact, internal note with Notify, timer, Resolve, "Resolve - no response" | Emails in the mail queue (development mode: to the test inbox), the timer stops on send, history lines |
+| Calendar / Dispatch: book a ticket, drag it, add a helper | Booking email with the right times, the agent's colour, no clash warnings that shouldn't be there |
+| Timesheet: a day's times and codes, Submit, approve as a manager | Totals match what you typed; the payroll report shows the same |
+| Procurement: an item to order → PO → approve → receive | Stock / assets / ticket note appear; the PO PDF opens |
+| Quote → invoice with "Send to procurement" | The invoice line shows "Waiting to order" |
+| Client portal: sign in as a contact, open a ticket | The ticket and its public replies only |
+| Anything new in this release | Whatever its changelog entry says it does |
+
+Anything odd: tell Claude before promoting - it becomes a test, so it is checked every time after that.
+
 ## If the repository is ever made private again (deploy keys)
 
 The repository is public, so servers clone and update over HTTPS with no credentials.
@@ -427,6 +497,13 @@ It will fetch the latest **official release** from itflow-org, summarise what ch
 (including any database updates), merge it into `develop` and, once you confirm, push it.
 The beta server picks it up; test there (including the smoke tests below), then ask Claude to open the
 `develop` → `MountaineerIT` PR.
+
+Before merging, `scripts/mit_upstream_impact.php` says per feature of ours what the release touches - functions we call that
+changed, our hooked ITFlow files, column / table names that clash with ours, and things ITFlow now does too (ours-or-theirs
+decisions you make before the merge, not after). It also runs weekly against ITFlow's `develop` as an early warning - nothing is
+merged by it. After the merge every feature of ours is used end to end on copies of the test install (the functional pass), and
+`scripts/mit_hook_proof.php` can switch each of our hooks in ITFlow's files off one at a time to prove a test notices it gone.
+Then release as in "Releasing to production".
 
 ## California timesheets
 

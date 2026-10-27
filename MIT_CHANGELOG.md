@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.175 - 2026-10-27
+- DEPLOYMENT.md has a "Releasing to production" section: when to promote, what is checked first (including a practice run on a fresh copy of production's database), the steps on the day, the first promotion's switch of production to this repository, settings to fill in afterwards, how to roll back, and a beta checklist.
+- No change to how ITFlow works.
+
 ## 26.10.174 - 2026-10-27
 - Fixed: Admin > Contract templates could not add a template on servers first installed in November 2025 (production among them) - ITFlow's installer then left a required column behind. Database update M046 gives it a default; nothing else changes.
 - A new check uses ITFlow's contracts from start to finish (template, client contract, its recurring invoice, prepaid hours) alongside our features.

@@ -1399,5 +1399,14 @@ model: see DEPLOYMENT.md.
    user before pushing to `develop`.
 
 ## "Promote to production"
-Open a PR `develop` → `MountaineerIT` listing what's included and any DB updates, plus the
-result of the stock-ITFlow portability test (see Rules), of `sh scripts/mit_verify.sh` and of the smoke tests. Ask the user before merging.
+Not before ITFlow 26.11 is released and merged (see "Pull in ITFlow's updates" 2.) unless the user accepts unreleased upstream code.
+Before the PR, a practice run on a fresh production backup (the user makes a Database Only backup and shares it + its key; first
+done Oct 27, 26.10.173-174): restore it into a copy (`sh scripts/mit_test_copy.sh 9`, database recreated with
+`COLLATE utf8mb4_uca1400_ai_ci` - production is MariaDB 11.x -, dump imported, `$config_mit_dev_mode = 1` + a test inbox), run
+`sudo -u www-data php scripts/update_cli.php --update_db` as production will, then consistency + portability, 01-pages + 99-php-log
+(test logins copied in: admin@mountaineerit.test / tech@test.test rows from the test install), time the main pages, and use the
+features. The full smoke suite on that copy mostly fails on test-data assumptions (user ids, theme, settings) - check suspects on
+the test install with production's settings (time zone America/Los_Angeles) instead. Delete the copy and the backup afterwards.
+Then open a PR `develop` → `MountaineerIT` listing what's included and any DB updates, plus the results of the practice run,
+the stock-ITFlow portability test (see Rules), `sh scripts/mit_verify.sh` and the smoke tests. Ask the user before merging.
+The day itself and the first promotion's switch of production to this repository are in DEPLOYMENT.md "Releasing to production".
