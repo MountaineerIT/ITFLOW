@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.167 - 2026-10-27
+- Hook proof (scripts/mit_hook_proof.php, for the test server): switches off one of our hooks in ITFlow's code at a time on a copy of the test install and runs that feature's tests, to find hooks no test would notice going. First results: quote pricing and the remembered Tickets list filters have hooks without a test - tests come next.
+- scripts/mit_test_copy.sh makes or refreshes side-by-side copies of the test install for checks like this. No change to how ITFlow works.
+
 ## 26.10.166 - 2026-10-27
 - Feature map (MIT_FEATURES.md): every feature of ours with the tests that prove it, what it takes for granted about ITFlow, and what it uses of ITFlow's code (functions, tables and columns, the ITFlow files carrying its hooks, page elements its scripts use) - worked out from the code and checked on every verify run.
 - Early-warning report for ITFlow updates (scripts/mit_upstream_impact.php): before anything is merged, it says which of our features an ITFlow update touches and how - functions we call that changed, columns we use, hooked files that changed or won't merge, page elements that are gone, ITFlow adding something we already do, and new ITFlow columns named like ours (the "Duplicate column" that stuck beta on Oct 25). Run on the Oct 25 update, it names the product cost clash, ITFlow's reimbursements, stock tracking and markup.

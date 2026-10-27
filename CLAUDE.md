@@ -82,6 +82,13 @@ model: see DEPLOYMENT.md.
   names that overlap it (ours-or-theirs decision) and **name clashes** - a new ITFlow column / table named like one our database updates use
   (`mfOurSchemaNames`, as 2.9.4's product_cost). Run it weekly on upstream/develop (early warning - report to the user, merge nothing) and
   before every merge; `tests/scenarios/scenario-impact-report.php` proves it still catches the Oct 25 problems.
+- **Hook proof (Oct 27, 26.10.167):** `php scripts/mit_hook_proof.php --list [--feature=k]` lists every hook site of ours in ITFlow's files
+  (from the feature map) and how it is switched off - `guard` (function_exists('mitX') -> false), `call` (our statement commented out),
+  `output` (<?= mitX() ?> -> ''), `include` (our card / nav / fields require left out), `manual` (JS / CSS, loaders, values used further on -
+  review by hand). `--copy=N [--feature=..] [--out=f.jsonl]` runs it on a copy of the test install (`sh scripts/mit_test_copy.sh N` makes /
+  refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
+  off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
+  line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
