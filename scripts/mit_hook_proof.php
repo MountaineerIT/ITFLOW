@@ -94,8 +94,8 @@ function mfSwitchOff($file, $line) {
 // "accepted", not run. Keep it short: an entry is a promise that the hook was checked by hand.
 $accepted = [];
 foreach (file(__DIR__ . '/mit_hook_proof_accepted.txt', FILE_IGNORE_NEW_LINES) ?: [] as $entry) {
-    $parts = array_map('trim', explode('|', $entry, 3));
-    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#') {
+    $parts = array_map('trim', explode(' | ', $entry, 3));
+    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#' && $parts[1] !== '') {
         $accepted[] = $parts;
     }
 }
@@ -103,8 +103,8 @@ foreach (file(__DIR__ . '/mit_hook_proof_accepted.txt', FILE_IGNORE_NEW_LINES) ?
 // (scripts/mit_hook_proof_switch.txt: "file | text on the line | what replaces that text" - ITFlow's own value, without us)
 $custom = [];
 foreach (file(__DIR__ . '/mit_hook_proof_switch.txt', FILE_IGNORE_NEW_LINES) ?: [] as $entry) {
-    $parts = array_map('trim', explode('|', $entry, 3));
-    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#') {
+    $parts = array_map('trim', explode(' | ', $entry, 3)); // " | " - the code itself may hold || and |
+    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#' && $parts[1] !== '') {
         $custom[] = $parts;
     }
 }
@@ -112,7 +112,7 @@ foreach ($sites as $id => &$site) {
     [$site['how'], $site['new']] = mfSwitchOff($site['file'], $site['text']);
     foreach ($custom as [$file, $old, $new]) {
         if ($site['file'] === $file && strpos($site['text'], $old) !== false) {
-            [$site['how'], $site['new']] = ['custom', str_replace($old, $new === "''" ? '' : $new, $site['text'])];
+            [$site['how'], $site['new']] = ['custom', str_replace($old, $new === '(nothing)' ? '' : $new, $site['text'])];
         }
     }
     foreach ($accepted as [$file, $fragment, $why]) {

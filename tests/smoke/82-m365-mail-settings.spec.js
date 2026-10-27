@@ -33,6 +33,16 @@ test('Admin > Mail: our app card, its certificate marker kept on save, Connect a
         config_mail_oauth_client_secret: 'typed-over-secret', config_mail_oauth_tenant_id: made.before.config_mail_oauth_tenant_id });
     expect(db.val('SELECT config_mail_oauth_client_secret FROM settings WHERE company_id = 1'), 'still the certificate marker').toBe('mit-m365-certificate');
 
+    // Test receiving: through Microsoft Graph, the way the mail parser reads the mailbox (not ITFlow's IMAP test)
+    const imap = await db.pagePost(page, '/admin/post.php', { csrf_token: token, tab: 'oauth', test_email_imap: '1' });
+    expect(imap.text, 'the mailbox test went through Graph').toContain('Microsoft Graph');
+    // Test the token: ITFlow's own refresh, signed with our certificate (the stand-in refuses the placeholder secret)
+    const usesStandIn = db.php("echo defined('MICROSOFT_OAUTH_BASE_URL') && strpos(MICROSOFT_OAUTH_BASE_URL, '127.0.0.1') !== false ? 1 : 0;").trim() === '1';
+    if (usesStandIn) {
+        const tokenTest = await db.pagePost(page, '/admin/post.php', { csrf_token: token, tab: 'oauth', test_oauth_token_refresh: '1', oauth_provider: 'microsoft_oauth' });
+        expect(tokenTest.text, 'the token test passes on the certificate').not.toContain('OAuth token test failed');
+    }
+
     // Connect: catch the trip to Microsoft and read what it asks for
     // (a redirect is followed by the browser itself, so it is read from the request events; anything at Microsoft is stopped)
     let authorize = '';
