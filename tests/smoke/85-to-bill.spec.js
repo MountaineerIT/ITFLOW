@@ -79,6 +79,9 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
     // An hour at 100 + 2 x 120 + 15
     await expect.poll(async () => money(await total.textContent()), 'the total counts the parts').toBe(355);
     await expect(page.locator('[data-unbilled-summary]')).toContainText('2 parts');
+    await expect(page.locator('.itflow-billing-stat', { hasText: 'To bill' }), 'the To bill figure says what is parts').toContainText('$255.00 of parts');
+    // The client's menu: To Bill's badge counts the ticket and its two parts
+    await expect(page.locator('.app-sidebar a[href*="unbilled_time.php?client_id="] .badge'), "the client menu's badge").toHaveText('3');
 
     // Leave the cable for later, and bill the SSDs at 110
     const cable = card.locator('[data-mit-part-row]', { hasText: N.cable });
@@ -114,6 +117,8 @@ test('every client: a Parts column, and a client with only parts gets its invoic
     const rowB = page.locator('[data-unbilled-row]', { hasText: N.b });
     await expect(rowA.locator('[data-mit-to-bill-parts]'), "A's cable still waits").toContainText('1 part');
     await expect(rowB.locator('[data-mit-to-bill-parts]')).toContainText('199.50');
+    await expect(page.locator('thead th', { hasText: /^Parts$/ }), 'a Parts column').toHaveCount(1);
+    await expect(page.locator('.app-sidebar a[href="/agent/unbilled_time.php"] .badge'), "the menu badge's tip names the parts").toHaveAttribute('title', /\bparts?\b/);
 
     // Only B
     await page.locator('[data-unbilled-all]').uncheck();
@@ -122,6 +127,7 @@ test('every client: a Parts column, and a client with only parts gets its invoic
     await expect(page.locator('[data-unbilled-summary]')).toContainText('1 part');
     await page.locator('select[name=category]').selectOption(String(made.category));
     await Promise.all([page.waitForURL(/invoices\.php/), page.locator('[data-unbilled-submit]').click()]);
+    await expect(page.locator('.alert, [role=alert]').first(), 'the message names the part').toContainText('1 part');
     const invoice = Number(db.val(`SELECT invoice_id FROM mit_ticket_parts WHERE part_id = ${made.router}`));
     expect(invoice, 'the router went on an invoice').toBeGreaterThan(0);
     expect(Number(db.val(`SELECT invoice_client_id FROM invoices WHERE invoice_id = ${invoice}`)), "B's own").toBe(made.b);

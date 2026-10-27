@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.183 - 2026-10-27
+- Tests: To Bill's smoke test also checks the menu badges, the "of parts" note, the Parts column and the message after Make Invoices - every procurement hook is now caught by a test when it breaks.
+
 ## 26.10.182 - 2026-10-27
 - Billing: Unbilled Time and Unbilled Parts are one menu entry, "To Bill". Each client's parts on tickets show beside their tickets, expenses and travel, count in the totals and the menu badge, and Make Invoice puts them on the same invoice (each part with its ticket in the description). A client with only parts gets its own invoice. The old Unbilled Parts address opens To Bill.
 
