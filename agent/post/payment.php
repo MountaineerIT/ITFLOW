@@ -563,6 +563,10 @@ if (isset($_GET['delete_payment'])) {
         LIMIT 1"
     );
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That payment no longer exists.', 'error');
+        redirect();
+    }
     $invoice_id = intval($row['payment_invoice_id']);
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
@@ -607,6 +611,10 @@ if (isset($_GET['refund_payment_stripe'])) {
         LIMIT 1"
     );
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That payment no longer exists.', 'error');
+        redirect();
+    }
     $invoice_id = intval($row['payment_invoice_id']);
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);

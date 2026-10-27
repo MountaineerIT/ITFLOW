@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.164 - 2026-10-26
+- ITFlow's latest updates merged in (upstream develop, database 3.4.7 -> 3.4.8): each ticket reply now shows whether it was emailed and who to, with each email's state from the mail queue (sent, waiting, failed and why); after sending, the confirmation says how many people it went to. Also ITFlow's security sweep (API and client-limited agents), pickers that close when you click into the reply box, and response-only standard SLAs in Get started.
+- Replies sent through our "To" line and "Resolve - no response" notes get the same "Email reply" label and list of who it went to as ITFlow's own sends.
+
 ## 26.10.163 - 2026-10-26
 - The one-line installer now asks whether to install local AI for the AI helper's search (Ollama on the server; default no, shows the server's memory). `--local-ai` / `--no-local-ai` answer it ahead for unattended installs. Existing servers: `bash /var/www/itflow/scripts/install_local_ai.sh` as before.
 

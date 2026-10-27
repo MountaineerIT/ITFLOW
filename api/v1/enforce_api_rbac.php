@@ -201,8 +201,9 @@ if ($resource_module[$resource] !== '' && lookupUserPermission($resource_module[
 // permission at all, just an optional filter applied inside apiClientScopeSql().
 $client_id = intval($_POST['client_id'] ?? $_GET['client_id'] ?? 0);
 $client_id_supplied = isset($_POST['client_id']) || isset($_GET['client_id']);
-// Fail closed: every endpoint other than the GET-only reads is a write, so archive,
-// unarchive, close, resolve and anything added later are checked against the client too.
+// Everything but a read is a write - archive, unarchive, resolve and close act on one
+// client's record just as update does, so they name a client the user can reach too.
+// Listing the reads, not the writes, keeps a new kind of write from slipping past.
 $is_write = !in_array($operation_file, ['read.php', 'time.php'], true);
 if ($is_write && !apiUserCanAccessClient($client_id)) {
     // Writes act on a single client the caller names (client_id 0 = a global record).

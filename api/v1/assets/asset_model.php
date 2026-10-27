@@ -160,9 +160,8 @@ if (isset($_POST['asset_network_id'])) {
     $network = '0';
 }
 
-// Only this client's own location, contact and network (and its own or a shared vendor) - an id of another client's
-// would show that client's details inside this one's asset
-$location = ticketClientOwnedId('location', $location, $client_id);
-$contact = ticketClientOwnedId('contact', $contact, $client_id);
-$network = ticketClientOwnedId('network', $network, $client_id);
-$vendor = ticketClientOwnedId('vendor', $vendor, 0) ?: ticketClientOwnedId('vendor', $vendor, $client_id);
+// Only the client's own, as in the asset form - another client's would show on this one's asset, and the asset on theirs
+$vendor = assetClientOwnedId('vendor', $vendor, $client_id);
+$location = assetClientOwnedId('location', $location, $client_id);
+$contact = assetClientOwnedId('contact', $contact, $client_id);
+$network = assetClientOwnedId('network', $network, $client_id);

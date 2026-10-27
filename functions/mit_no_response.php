@@ -90,6 +90,7 @@ function mitNoResponseResolve(array $row, $message) {
     $html = nl2br(escapeHtml(trim((string) $message)));
     mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . mitSqlHtml($html) . "', ticket_reply_type = 'Public',
         ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = $ticket_id");
+    $reply_id = intval(mysqli_insert_id($mysqli));
 
     // ITFlow's "resolved" email (26.11's emailHtml look: reply line, company details, the conversation), its words ours
     $mailed = 0;
@@ -102,7 +103,11 @@ function mitNoResponseResolve(array $row, $message) {
         unset($content['message']);
         $content['history'] = [];
         $mailed = intval(ticketMailSend($ticket_id, "Ticket resolved - [" . ticketReference($ticket) . "] - " . $ticket['ticket_subject'], ticketEmailPreview($content),
-            ['to_contact' => !empty($row['contact_email'])]));
+            ['to_contact' => !empty($row['contact_email']), 'ticket_reply_id' => $reply_id]));
+    }
+    // ITFlow 3.4.8: the note shows who it was emailed to
+    if (function_exists('ticketReplyEmailed')) {
+        ticketReplyEmailed($reply_id, $mailed > 0);
     }
 
     ticketResolve($row, ' - no response from the client');

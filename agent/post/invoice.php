@@ -68,6 +68,10 @@ if (isset($_POST['edit_invoice'])) {
     // Get Invoice Number and Prefix and Client ID for Logging
     $sql = mysqli_query($mysqli,"SELECT invoice_prefix, invoice_number, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
     $client_id = intval($row['invoice_client_id']);
@@ -101,6 +105,10 @@ if (isset($_POST['add_invoice_copy'])) {
         invoice_currency_code, invoice_discount_amount, invoice_note, invoice_number,
         invoice_prefix, invoice_scope FROM clients, invoices WHERE client_id = invoice_client_id AND invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $client_net_terms = intval($row['client_net_terms']); // 0 is On Receipt
     $invoice_scope = escapeSql($row['invoice_scope']);
     $invoice_discount_amount = floatval($row['invoice_discount_amount']);
@@ -168,6 +176,10 @@ if (isset($_POST['mark_invoice_sent'])) {
     // Get Invoice Number and Prefix and Client ID for Logging
     $sql = mysqli_query($mysqli,"SELECT invoice_prefix, invoice_number, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
     $client_id = intval($row['invoice_client_id']);
@@ -213,6 +225,10 @@ if (isset($_GET['mark_invoice_non-billable'])) {
     // Get Invoice Number and Prefix and Client ID for Logging
     $sql = mysqli_query($mysqli,"SELECT invoice_prefix, invoice_number, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
     $client_id = intval($row['invoice_client_id']);
@@ -243,6 +259,10 @@ if (isset($_GET['cancel_invoice'])) {
     // Get Invoice Number and Prefix and Client ID for Logging
     $sql = mysqli_query($mysqli,"SELECT invoice_prefix, invoice_number, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
     $client_id = intval($row['invoice_client_id']);
@@ -276,6 +296,10 @@ if (isset($_GET['delete_invoice'])) {
     // Get Invoice Number and Prefix and Client ID for Logging
     $sql = mysqli_query($mysqli,"SELECT invoice_prefix, invoice_number, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id");
     $row = mysqli_fetch_assoc($sql);
+    if (!$row) {
+        flashAlert('That invoice no longer exists.', 'error');
+        redirect();
+    }
     $invoice_prefix = escapeSql($row['invoice_prefix']);
     $invoice_number = intval($row['invoice_number']);
     $client_id = intval($row['invoice_client_id']);
@@ -574,6 +598,8 @@ if (isExportRequest('export_invoices')) {
 
     $num_rows = mysqli_num_rows($sql);
 
+    guardExportHasRows($num_rows, 'invoices');
+
     if ($num_rows > 0) {
 
         guardExportPdfRowCount($format, $num_rows);
@@ -720,9 +746,9 @@ if (isset($_GET['remove_ticket_from_invoice'])) {
 
     enforceUserPermission('module_sales', 2);
 
-    $invoice_id = intval($_GET['invoice_id']);
+    $invoice_id = intval($_GET['invoice_id'] ?? 0);
     if (function_exists('mitQboGuardInvoice')) { mitQboGuardInvoice($invoice_id); } // Mountaineer IT: locked while in a QuickBooks batch
-    $ticket_id = intval($_GET['ticket_id']);
+    $ticket_id = intval($_GET['ticket_id'] ?? 0);
 
     $invoice = billingRow('invoice', $invoice_id);
     $ticket = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_prefix, ticket_number, ticket_client_id FROM tickets WHERE ticket_id = $ticket_id AND ticket_invoice_id = $invoice_id"));

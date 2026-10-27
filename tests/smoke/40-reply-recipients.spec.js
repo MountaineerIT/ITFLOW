@@ -75,6 +75,13 @@ test('reply recipients: only the people in To are emailed, and the choice is rem
     const before = await emailReply(page, `Smoke reply one ${stamp}`, [cara, otto, typed]);
     expect(before, 'To starts with the contact and the watcher').toEqual([cara, watcher].sort());
     expect(queued(), 'queued to exactly those picked').toEqual([cara, otto, typed].sort());
+    // ITFlow 3.4.8: the reply keeps who it was emailed to - our To line records it as ITFlow's own send does
+    expect(await flash(page)).toContain('emailed to 3 people');
+    const reply = db.rows(`SELECT ticket_reply_id, ticket_reply_emailed, ticket_reply_emailed_to FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketId} AND ticket_reply LIKE '%Smoke reply one ${stamp}%'`)[0];
+    expect(reply.ticket_reply_emailed, 'marked emailed').toBe('1');
+    expect(JSON.parse(reply.ticket_reply_emailed_to).map((r) => r.email).sort(), 'who it went to').toEqual([cara, otto, typed].sort());
+    expect(db.value(`SELECT COUNT(*) FROM email_queue WHERE email_ticket_reply_id = ${reply.ticket_reply_id}`), 'each email carries the reply').toBe('3');
+    await expect(page.locator('.badge', { hasText: 'Email reply' }).first()).toBeVisible();
     const choices = Object.fromEntries(db.rows(`SELECT email, send FROM mit_ticket_mail_choices WHERE ticket_id = ${made.ticketId}`).map((r) => [r.email, r.send]));
     expect(choices, 'remembered where it differs from the default').toEqual({ [watcher]: '0', [otto]: '1', [typed]: '1' });
     const body = db.value(`SELECT email_content FROM email_queue WHERE email_recipient = '${otto}' AND email_subject LIKE ${db.q(`%[${made.number}]%`)}`);

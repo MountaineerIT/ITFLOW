@@ -106,5 +106,5 @@ if (isset($_POST['contact_location_id'])) {
     $location_id = '0';
 }
 
-// Only this client's own location
-$location_id = ticketClientOwnedId('location', $location_id, $client_id);
+// Only one of the client's own sites, as in the contact form
+$location_id = assetClientOwnedId('location', $location_id, $client_id);

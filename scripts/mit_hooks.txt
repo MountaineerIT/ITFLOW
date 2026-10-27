@@ -192,7 +192,7 @@ hook	agent/post/ticket.php	mit_content	2
 hook	agent/post/ticket.php	mit_reply_recipients	1
 hook	agent/post/ticket.php	mit_resolved	4
 hook	agent/post/ticket.php	mit_row	4
-hook	agent/post/ticket.php	mit_send_to_present	1
+hook	agent/post/ticket.php	mit_send_to_present	2
 hook	agent/post/ticket.php	mit_subject	2
 hook	agent/post/trip.php	mitQboGuardInvoice	4
 hook	agent/post/trip.php	mitReimbTripLocked	8
@@ -469,6 +469,7 @@ ours	admin/database_updates/mountaineerit/M041.php
 ours	admin/database_updates/mountaineerit/M042.php
 ours	admin/database_updates/mountaineerit/M043.php
 ours	admin/database_updates/mountaineerit/M044.php
+ours	admin/database_updates/mountaineerit/M045.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
@@ -521,6 +522,7 @@ ours	agent/includes/mit_billing_nav.php
 ours	agent/includes/mit_dispatch_nav.php
 ours	agent/includes/mit_procurement_nav.php
 ours	agent/includes/mit_timesheet_nav.php
+ours	agent/js/mit_ai_helper.js
 ours	agent/js/mit_dispatch.js
 ours	agent/js/mit_left_behind.js
 ours	agent/js/mit_ninjaone.js
@@ -529,6 +531,7 @@ ours	agent/js/mit_reply_times.js
 ours	agent/js/mit_schedule_notify.js
 ours	agent/js/mit_ticket_layout.js
 ours	agent/js/mit_timesheet.js
+ours	agent/mit_ai_ajax.php
 ours	agent/mit_ct_reviews.php
 ours	agent/mit_dispatch.php
 ours	agent/mit_dispatch_ajax.php
@@ -546,6 +549,7 @@ ours	agent/mit_timesheet_ajax.php
 ours	agent/mit_timesheets.php
 ours	agent/mit_unbilled_parts.php
 ours	agent/mit_usage_review.php
+ours	agent/modals/mit_ai/document.php
 ours	agent/modals/mit_board/board_move.php
 ours	agent/modals/mit_no_response/no_response.php
 ours	agent/modals/mit_procurement/from_invoice.php
@@ -591,7 +595,10 @@ ours	cron/mit_usage.php
 ours	css/mit_login.css
 ours	css/mit_login_plain.css
 ours	css/mit_theme.css
+ours	functions/mit_ai_ask.php
+ours	functions/mit_ai_docs.php
 ours	functions/mit_ai_helper.php
+ours	functions/mit_ai_local.php
 ours	functions/mit_align.php
 ours	functions/mit_backup_restore.php
 ours	functions/mit_board_roles.php
@@ -647,6 +654,7 @@ ours	js/mit_theme.js
 ours	js/mit_time_inputs.js
 ours	js/mit_timers.js
 ours	mit_health.php
+ours	scripts/mit_ai_embed_worker.php
 ours	scripts/mit_ai_wall_check.php
 ours	scripts/mit_consistency_check.php
 ours	scripts/mit_hook_check.php

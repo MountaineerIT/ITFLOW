@@ -122,9 +122,10 @@ function mitReplyRecipientsField($ticket_id, $can_email = true) {
 /**
  * From add_ticket_reply, instead of ticketMailContactAndWatchers() when the box was posted: emails whoever was ticked
  * (the contact gets ITFlow's own email, everyone else the same with ITFlow's collaborator line) and remembers the choice.
- * Returns the number of emails queued.
+ * Returns the number of emails queued. $reply_id (ITFlow 3.4.8): the reply they carry - kept with each email and on the reply
+ * (ticketReplyEmailed), so the conversation shows who it went to and whether it went, as for ITFlow's own sends.
  */
-function mitReplyRecipientsMail($ticket_id, array $post, $subject, $body, array $attachments) {
+function mitReplyRecipientsMail($ticket_id, array $post, $subject, $body, array $attachments, $reply_id = 0) {
     global $mysqli, $config_smtp_provider, $config_ticket_from_email, $config_ticket_from_name, $session_user_id;
     $ticket_id = intval($ticket_id);
     $list = mitReplyRecipients($ticket_id);
@@ -154,8 +155,14 @@ function mitReplyRecipientsMail($ticket_id, array $post, $subject, $body, array 
         }
     }
 
+    $emailed = function ($count) use ($reply_id) {
+        if (function_exists('ticketReplyEmailed')) {
+            ticketReplyEmailed($reply_id, $count > 0);
+        }
+        return $count;
+    };
     if (!$ticked) {
-        return 0;
+        return $emailed(0);
     }
     // ITFlow 26.11: its email builder - each one greeted by name, with why they get it (as ticketMailSend), $body its content
     if (is_array($body) && function_exists('emailQueue')) {
@@ -174,14 +181,15 @@ function mitReplyRecipientsMail($ticket_id, array $post, $subject, $body, array 
             $recipients[] = ['email' => $email, 'name' => $name, 'greet' => in_array($group, ['contact', 'colleague', 'client', 'agent'], true) ? $name : '',
                 'footnote' => $why[$group] ?? "You get this because you were copied on this ticket with $company_name."];
         }
-        $sent = emailQueue($recipients, $subject, $body, ['from' => function_exists('ticketEmailFrom') ? ticketEmailFrom() : null, 'attachments' => $attachments]);
+        $sent = emailQueue($recipients, $subject, $body, ['from' => function_exists('ticketEmailFrom') ? ticketEmailFrom() : null, 'attachments' => $attachments,
+            'ticket_reply_id' => intval($reply_id)]);
         if ($sent) {
             logTicketHistory($ticket_id, escapeSql("Reply emailed to " . mb_substr(implode(', ', $sent), 0, 400)));
         }
-        return count($sent);
+        return $emailed(count($sent));
     }
     if (empty($config_smtp_provider)) {
-        return 0;
+        return $emailed(0);
     }
     $from_email = escapeSql($config_ticket_from_email);
     $from_name = escapeSql($config_ticket_from_name);

@@ -500,6 +500,8 @@ if (isExportRequest('export_clients')) {
 
     $num_rows = mysqli_num_rows($sql);
 
+    guardExportHasRows($num_rows, 'clients');
+
     if ($num_rows > 0) {
 
         guardExportPdfRowCount($format, $num_rows);

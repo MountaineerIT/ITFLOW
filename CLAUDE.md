@@ -1327,6 +1327,14 @@ model: see DEPLOYMENT.md.
   back gets a newline after each block, `mitAiScrub`, ITFlow's `aiCleanHtml` (purifier) and `aiDocumentSplit` (title / summary). The
   company's own client = a general article without client names. The test install's stand-in answers a "knowledge base articles" request
   with HTML holding a <script> and a password on purpose. Tests: scenario `scenario-ai-document.php`, smoke `34-ai-document.spec.js`.
+- Upstream develop merged again (Oct 26, 26.10.164 - 4 commits, ITFlow DB 3.4.7 -> 3.4.8: replies keep whether they were emailed and who to -
+  `ticket_replies.ticket_reply_emailed` / `_emailed_to`, `email_queue.email_ticket_reply_id`, ITFlow's `ticketReplyEmailed($reply_id, $sent)`
+  and `emailQueue(..., ['ticket_reply_id' => ...])`). Ours follows: `mitReplyRecipientsMail(..., $reply_id)` passes the reply id and records it
+  (its return = `$emailed_to` for ITFlow's "emailed to N people" flash in add_ticket_reply; nobody picked -> "nobody was picked in To"),
+  `mitNoResponseResolve` the same for its note; ticketMailResolved keeps `mitResolvedMailContent` with ITFlow's reply id. ITFlow's own
+  pickers now close on a click into an iframe (`itflowDismissPopups`) - our To / Notify script's frame-focus close is kept (harmless).
+  Security sweep conflicts (API asset / contact models, link_contact_to_asset) taken as ITFlow's (`assetClientOwnedId` - a vendor must be
+  the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
