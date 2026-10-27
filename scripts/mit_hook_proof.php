@@ -17,7 +17,9 @@
  *   call      a statement that is only our call (mitX(...);) -> commented out
  *   output    <?= mitX(...) ... ?> -> <?= '' ?>
  *   include   a card / menu section / form fields of ours required into ITFlow's page -> not required
- * Hooks no test can see are listed in scripts/mit_hook_proof_accepted.txt with why ("accepted", not run).
+ * Hooks no test can see are listed in scripts/mit_hook_proof_accepted.txt with why ("accepted", not run); hooks these rules
+ * can't switch off (our call inside ITFlow's line, a value used further on, our lines in ITFlow's JavaScript) are switched off
+ * as scripts/mit_hook_proof_switch.txt says - ITFlow's own value in place of ours ("custom").
  * Not switched off automatically (listed as "manual" for review): lines loading our files, values used further on, our hooks in
  * ITFlow's JavaScript / CSS. Results go to --out (one JSON line a site: noticed by which test, not noticed, manual, broken).
  * Never on production: refuses an install whose base URL is not *.test.
@@ -97,8 +99,22 @@ foreach (file(__DIR__ . '/mit_hook_proof_accepted.txt', FILE_IGNORE_NEW_LINES) ?
         $accepted[] = $parts;
     }
 }
+// Hooks the rules above can't switch off (a value used further on, our call in the middle of ITFlow's line): how to, by hand
+// (scripts/mit_hook_proof_switch.txt: "file | text on the line | what replaces that text" - ITFlow's own value, without us)
+$custom = [];
+foreach (file(__DIR__ . '/mit_hook_proof_switch.txt', FILE_IGNORE_NEW_LINES) ?: [] as $entry) {
+    $parts = array_map('trim', explode('|', $entry, 3));
+    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#') {
+        $custom[] = $parts;
+    }
+}
 foreach ($sites as $id => &$site) {
     [$site['how'], $site['new']] = mfSwitchOff($site['file'], $site['text']);
+    foreach ($custom as [$file, $old, $new]) {
+        if ($site['file'] === $file && strpos($site['text'], $old) !== false) {
+            [$site['how'], $site['new']] = ['custom', str_replace($old, $new === "''" ? '' : $new, $site['text'])];
+        }
+    }
     foreach ($accepted as [$file, $fragment, $why]) {
         if ($site['file'] === $file && strpos($site['text'], $fragment) !== false) {
             [$site['how'], $site['new']] = ['accepted', $why];

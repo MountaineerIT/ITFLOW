@@ -42,9 +42,9 @@ return [
     ],
     'checks' => [
         'name' => 'Our checks (hooks, consistency, portability, AI wall, verify, feature map)',
-        'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
+        'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'scripts/mit_hook_proof_switch.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
             'MIT_FEATURES.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
-        'tests' => ['tests/smoke/30-checks.spec.js'],
+        'tests' => ['tests/smoke/30-checks.spec.js', 'tests/scenarios/scenario-cron-registry.php'],
         'assumes' => ['ITFlow\'s cron dispatcher (includes/cron_jobs.php) runs our jobs.'],
         'watch' => [],
         'overlap' => [],
