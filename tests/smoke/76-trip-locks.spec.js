@@ -75,6 +75,15 @@ test('an own-vehicle trip on a submitted timesheet day: no logging, changing or 
     const after = trip(made.lockedTrip);
     expect(after && !after.trip_archived_at, 'deleting it is refused').toBeTruthy();
 
+    // Bulk edit (Trips > tick > Set): the locked trip keeps its vehicle and the made-by-a-ticket one its driver
+    const other = Number(db.val(`SELECT user_id FROM users WHERE user_id <> ${made.tech} AND user_archived_at IS NULL AND user_status = 1 AND user_type = 1 ORDER BY user_id LIMIT 1`) || 0);
+    await postTrip(page, { bulk_edit_trips: '1', field: 'vehicle', value: '0', 'trip_ids[]': [String(made.lockedTrip)] });
+    expect(db.val(`SELECT trip_own_vehicle FROM trips WHERE trip_id = ${made.lockedTrip}`), 'bulk vehicle change refused on the locked day').toBe('1');
+    if (other) {
+        await postTrip(page, { bulk_edit_trips: '1', field: 'driver', value: String(other), 'trip_ids[]': [String(made.reimbTrip)] });
+        expect(Number(trip(made.reimbTrip).trip_user_id), 'bulk driver change refused on a ticket\'s mileage').toBe(made.tech);
+    }
+
     // Nor can an open day's own-vehicle trip be moved onto the locked day
     await postTrip(page, { edit_trip: '1', trip_id: String(made.reimbTrip), ...tripFields({ date: DAY }) });
     expect(trip(made.reimbTrip).trip_date, 'not moved onto a submitted day').toBe(OPEN_DAY);
