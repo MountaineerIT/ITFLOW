@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 55 | 8 | 7 | 26 | 67 | 27 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 145 | 1 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 146 | 1 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -26,7 +26,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 14 |
 | [Procurement (to order, POs, receiving, ticket parts, unbilled parts, vendor bills)](#procurement) | 20 | 5 | 27 | 25 | 147 | 13 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 5 | 15 | 12 | 64 | 24 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 1 | 15 | 7 | 24 | 4 |
@@ -941,7 +941,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-payments.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-payments.php`
 
 **Hooks in ITFlow's files**
 

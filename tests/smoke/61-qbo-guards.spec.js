@@ -178,3 +178,57 @@ test('the sync payment follows QuickBooks: no hand edits, no deleting; client an
     expect(state(made.queued), 'queued draft unchanged').toEqual(before);
     expect(Number(db.val(`SELECT invoice_id FROM mit_ticket_parts WHERE part_id = ${part}`)), 'part not billed').toBe(0);
 });
+
+test('card payments refuse an invoice in QuickBooks: agent saved card and refund, the guest link, the client portal', async ({ page, browser }) => {
+    test.skip(!made.sent, 'no setup');
+    // A Stripe set-up for the test only (never called: the locks come first), and a portal login for the billing contact
+    const provider = db.insert(`INSERT INTO payment_providers SET payment_provider_name = 'Stripe', payment_provider_description = 'Smoke 61', payment_provider_public_key = 'pk_test_smoke61',
+        payment_provider_private_key = 'sk_test_smoke61', payment_provider_threshold = 0, payment_provider_active = 1, payment_provider_account = 1, payment_provider_expense_vendor = 0,
+        payment_provider_expense_category = 0`);
+    const contact = db.val(`SELECT contact_id FROM contacts WHERE contact_client_id = ${made.client} AND contact_primary = 1`);
+    const password = 'Smoke-61-portal-pass';
+    const portalUser = Number(db.php(`mysqli_query($mysqli, "INSERT INTO users SET user_name = 'Smoke 61 billing', user_email = 'smoke61@example.invalid', user_password = '"
+        . password_hash('${password}', PASSWORD_DEFAULT) . "', user_auth_method = 'local', user_type = 2, user_status = 1");
+        $id = mysqli_insert_id($mysqli); mysqli_query($mysqli, "UPDATE contacts SET contact_user_id = $id WHERE contact_id = ${contact}"); echo $id;`).trim());
+    const context = await browser.newContext({ baseURL: test.info().project.use.baseURL, storageState: { cookies: [], origins: [] } });
+    try {
+        // Agent: charge a saved card, refund the sync's payment - refused by our locks with their own words
+        await visit(page, `agent/invoice.php?invoice_id=${made.sent}`);
+        const token = await csrf(page);
+        const charged = await db.pagePost(page, 'post.php', { csrf_token: token, add_payment_stripe: '1', invoice_id: String(made.sent), saved_payment_id: '1' });
+        expect(charged.text, 'saved card: refused as in QuickBooks').toContain('its payments are recorded in QuickBooks Online');
+        const pay = db.val(`SELECT payment_id FROM payments WHERE payment_invoice_id = ${made.sent} LIMIT 1`);
+        if (pay) {
+            const refund = await db.pageGet(page, `post.php?refund_payment_stripe=${pay}&csrf_token=${encodeURIComponent(token)}`);
+            expect(refund.text, 'refund of the sync payment: refused as from QuickBooks').toContain('comes from QuickBooks Online and follows it');
+        }
+
+        // The guest pay link's Stripe request
+        const urlKey = db.val(`SELECT invoice_url_key FROM invoices WHERE invoice_id = ${made.sent}`);
+        const guest = await page.evaluate(async (body) => {
+            const r = await fetch('/guest/guest_ajax.php?stripe_create_pi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return r.text();
+        }, { invoice_id: made.sent, url_key: urlKey });
+        expect(guest, 'guest link: told to pay from the QuickBooks email').toContain('QuickBooks email');
+
+        // The client portal: paying the sent invoice is refused; one chosen before it went to QuickBooks is refused at checkout
+        const portal = await context.newPage();
+        await portal.goto('login.php');
+        await portal.fill('input[name=email]', 'smoke61@example.invalid');
+        await portal.fill('input[name=password]', password);
+        await Promise.all([portal.waitForNavigation(), portal.click('button[name=login]')]);
+        await portal.goto('client/unpaid_invoices.php');
+        const ptoken = await portal.locator('input[name=csrf_token]').first().inputValue();
+        const refused = await db.pagePost(portal, '/client/post.php', { csrf_token: ptoken, portal_pay: '1', method: 'new', 'invoice_ids[]': [String(made.sent)] });
+        expect(refused.text, 'portal pay: refused as in QuickBooks').toContain('its payments are recorded in QuickBooks Online');
+        db.exec(`UPDATE invoices SET invoice_status = 'Sent' WHERE invoice_id = ${made.control}`);
+        await db.pagePost(portal, '/client/post.php', { csrf_token: ptoken, portal_pay: '1', method: 'new', 'invoice_ids[]': [String(made.control)] });
+        db.php(`mitInvoiceApprove([${made.control}]); $b = mitQboBatchCreate('Smoke 61 late', false); mitQboBatchAdd($b, [${made.control}]); echo $b;`).trim().split('\n').forEach((l) => /^\d+$/.test(l) && made.batches.push(Number(l)));
+        await portal.goto('client/pay.php');
+        await expect(portal.locator('body'), 'checkout: refused once it is in QuickBooks').toContainText('paid through our accounting system now');
+    } finally {
+        await context.close();
+        db.exec(`UPDATE contacts SET contact_user_id = 0 WHERE contact_id = ${contact}; DELETE FROM users WHERE user_id = ${portalUser};
+            DELETE FROM payment_providers WHERE payment_provider_id = ${provider}`);
+    }
+});
