@@ -233,6 +233,7 @@ function backupAssertUploadsGuards(): void
         'backups/.htaccess' => "Require all denied\nOptions -ExecCGI -Indexes\nphp_flag engine off\n",
         'tmp/.htaccess' => "Require all denied\nOptions -ExecCGI -Indexes\nphp_flag engine off\n",
         'mit_receipts/.htaccess' => "Require all denied\n",
+        'mit_feedback/.htaccess' => "Require all denied\n",
     ];
     $found = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads, FilesystemIterator::SKIP_DOTS));
     foreach ($found as $file) {

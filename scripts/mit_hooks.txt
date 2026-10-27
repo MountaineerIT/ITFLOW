@@ -303,6 +303,7 @@ hook	functions.php	mit_timesheets	1
 hook	functions.php	mit_usage	1
 hook	functions/app.php	MountaineerIT	1
 hook	functions/app.php	mitTicketScheduleEnd	1
+hook	functions/backup.php	mit_feedback	1
 hook	functions/backup.php	mit_receipts	1
 hook	functions/billing.php	mitProcQuoteConvertGroups	2
 hook	functions/billing.php	mitQboHandlesInvoiceMail	2
@@ -473,6 +474,8 @@ ours	admin/database_updates/mountaineerit/M042.php
 ours	admin/database_updates/mountaineerit/M043.php
 ours	admin/database_updates/mountaineerit/M044.php
 ours	admin/database_updates/mountaineerit/M045.php
+ours	admin/database_updates/mountaineerit/M046.php
+ours	admin/database_updates/mountaineerit/M047.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
@@ -527,6 +530,7 @@ ours	agent/includes/mit_procurement_nav.php
 ours	agent/includes/mit_timesheet_nav.php
 ours	agent/js/mit_ai_helper.js
 ours	agent/js/mit_dispatch.js
+ours	agent/js/mit_feedback.js
 ours	agent/js/mit_left_behind.js
 ours	agent/js/mit_ninjaone.js
 ours	agent/js/mit_reply_recipients.js
@@ -538,6 +542,7 @@ ours	agent/mit_ai_ajax.php
 ours	agent/mit_ct_reviews.php
 ours	agent/mit_dispatch.php
 ours	agent/mit_dispatch_ajax.php
+ours	agent/mit_feedback_ajax.php
 ours	agent/mit_invoice_approvals.php
 ours	agent/mit_ninjaone_ajax.php
 ours	agent/mit_procurement.php
@@ -617,6 +622,7 @@ ours	functions/mit_dev_mode.php
 ours	functions/mit_dispatch.php
 ours	functions/mit_dispatch_workload.php
 ours	functions/mit_event_agents.php
+ours	functions/mit_feedback.php
 ours	functions/mit_leave.php
 ours	functions/mit_left_behind.php
 ours	functions/mit_list_views.php
@@ -664,5 +670,6 @@ ours	scripts/mit_feature_lib.php
 ours	scripts/mit_feature_map.php
 ours	scripts/mit_features.php
 ours	scripts/mit_hook_check.php
+ours	scripts/mit_hook_proof.php
 ours	scripts/mit_portability_check.php
 ours	scripts/mit_upstream_impact.php

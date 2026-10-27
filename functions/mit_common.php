@@ -429,3 +429,4 @@ function mitNavCachedCount($key, callable $compute, $fresh = false) {
 
 require_once __DIR__ . '/mit_backup_restore.php'; // Admin > Backup: restore on a running install
 require_once __DIR__ . '/mit_dev_mode.php'; // development mode (config.php) - nothing reaches the outside world
+require_once __DIR__ . '/mit_feedback.php'; // bug reports and feature requests (the top bar's Bugs & ideas)

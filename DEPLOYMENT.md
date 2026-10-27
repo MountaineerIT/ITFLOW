@@ -301,6 +301,8 @@ break stock ITFlow, and lists what stops working after a move.
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
   email goes back to ITFlow's own wording.
+- **Bugs & ideas** – the top bar's button goes; the reports stay in `mit_feedback` (screenshots in `uploads/mit_feedback/`) - copy
+  out any still open first.
 - **Notification switches** – the extra rows on Admin > Settings > Notifications go; scheduling and assignment emails / notices are
   always sent again (ITFlow's own client-notifications switch still applies).
 - **Restore from Admin > Backup** – stock ITFlow restores only on a fresh install (setup wizard) or from the command line

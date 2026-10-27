@@ -1365,6 +1365,17 @@ model: see DEPLOYMENT.md.
   single line breaks and drops a first paragraph that is only a greeting (`mitIsGreeting` - ITFlow greets each recipient itself);
   `mitNoResponseResolve` resolves before it builds the email. Scenario `scenario-mail-logo.php` (also end to end through the mail queue and the
   Microsoft 365 stand-in); scenario-no-response checks one greeting and Resolved.
+- Bugs & ideas (Oct 27, 26.10.176): `functions/mit_feedback.php` (ours, required from mit_common.php) - bug reports and feature requests
+  from the top bar: `mitFeedbackNav()` echoed from our `includes/mit_timers_nav.php` (no new line in ITFlow's files) - a bug button with the
+  open count (admins) and an offcanvas panel (`agent/js/mit_feedback.js`, moved to <body> like the Ask AI panel; requests to
+  `agent/mit_feedback_ajax.php`). Table M047 `mit_feedback` (kind bug | feature, title, details, page = path + query it was sent from,
+  version = mitVersion() / ITFlow APP_VERSION, browser, image, status open | done, created_by / done_by FK users SET NULL, done_at, done_note).
+  The user's choices: every agent sends, every agent sees every report, only admins mark done / reopen / delete (the sender may delete
+  their own while open); screenshots pasted (Ctrl+V) or picked, re-drawn by GD through `mitImageStore($bytes, MIT_FEEDBACK_DIR, 2400)`
+  into `uploads/mit_feedback/` (Require all denied - also in `backupAssertUploadsGuards`' list in `functions/backup.php`), served by the
+  handler to signed-in agents only. Text is kept as typed (`mitFeedbackSql`, not escapeSql) and drawn as text by the script. A new report
+  rings the admins' bell, a closed one the sender's (`notification_type` 'Feedback', link `dashboard.php?mit_feedback=<id>` opens the panel
+  on it). Smoke `84-feedback.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

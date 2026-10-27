@@ -122,8 +122,9 @@ function mitImageUrl($relative) {
     return mitImageIsOurs($relative) ? '/' . $relative : '';
 }
 
-/** Store image bytes as our own resized copy; returns its relative path. Throws when it is not an image. */
-function mitImageStore($bytes) {
+/** Store image bytes as our own resized copy; returns its relative path. Throws when it is not an image. $dir / $max_side: where
+ * and how big (bug report screenshots go to their own closed folder - functions/mit_feedback.php). */
+function mitImageStore($bytes, $dir_relative = MIT_IMAGE_DIR, $max_side = MIT_IMAGE_MAX_SIDE) {
     if (strlen($bytes) === 0 || strlen($bytes) > MIT_IMAGE_MAX_BYTES) {
         throw new RuntimeException('The image is empty or bigger than ' . (MIT_IMAGE_MAX_BYTES / 1048576) . ' MB.');
     }
@@ -143,7 +144,7 @@ function mitImageStore($bytes) {
     // dropped. SVG is never accepted (it can carry script), so only the four bitmap types get here.
     $width = imagesx($source);
     $height = imagesy($source);
-    $scale = min(1, MIT_IMAGE_MAX_SIDE / max($width, $height));
+    $scale = min(1, $max_side / max($width, $height));
     $new_width = max(1, (int) round($width * $scale));
     $new_height = max(1, (int) round($height * $scale));
     $alpha = in_array($info[2], [IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP], true);
@@ -157,11 +158,11 @@ function mitImageStore($bytes) {
     }
     imagecopyresampled($image, $source, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
 
-    $dir = mitImagePath(MIT_IMAGE_DIR);
+    $dir = mitImagePath($dir_relative);
     if (!is_dir($dir) && !@mkdir($dir, 0750, true)) {
         throw new RuntimeException('Could not create the image folder in uploads.');
     }
-    $relative = MIT_IMAGE_DIR . '/' . bin2hex(random_bytes(16)) . ($alpha ? '.png' : '.jpg');
+    $relative = $dir_relative . '/' . bin2hex(random_bytes(16)) . ($alpha ? '.png' : '.jpg');
     $ok = $alpha ? imagepng($image, mitImagePath($relative), 6) : imagejpeg($image, mitImagePath($relative), 85);
     if (!$ok) {
         throw new RuntimeException('Could not save the image.');

@@ -337,4 +337,16 @@ return [
         'watch' => ['callAiApi', 'aiRedact', 'getAiModel', 'aiCleanHtml', 'aiDocumentSplit', 'document_form.php'],
         'overlap' => ['embedding', 'knowledge', 'assistant', 'copilot', 'ai_search', 'ai_chat', 'ai_ask', 'ai_answer'],
     ],
+    'feedback' => [
+        'name' => 'Bugs & ideas (bug reports and feature requests in the top bar)',
+        'files' => ['functions/mit_feedback.php', 'agent/mit_feedback_ajax.php', 'agent/js/mit_feedback.js'],
+        'tests' => ['tests/smoke/84-feedback.spec.js'],
+        'assumes' => [
+            'The top bar is includes/top_nav.php, which requires our includes/mit_timers_nav.php (it echoes mitFeedbackNav).',
+            'ITFlow\'s notifications table (notification_type / notification / notification_action / notification_user_id / notification_entity_id) is the bell.',
+            'Admins are users whose role has role_is_admin = 1 ($session_is_admin).',
+        ],
+        'watch' => ['notification_action', 'role_is_admin', 'session_is_admin'],
+        'overlap' => ['feedback', 'feature_request', 'bug_report', 'suggestion'],
+    ],
 ];

@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 56 | 10 | 7 | 27 | 67 | 27 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 152 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 57 | 10 | 7 | 27 | 67 | 28 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 153 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -20,10 +20,10 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 10 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 9 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 10 |
 | [Email reply "To" line, internal-note Notify](#reply_recipients) | 2 | 1 | 12 | 8 | 29 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 14 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
 | [Procurement (to order, POs, receiving, ticket parts, unbilled parts, vendor bills)](#procurement) | 20 | 5 | 27 | 25 | 147 | 13 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
@@ -32,6 +32,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 1 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
+| [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 3 | 1 | 3 | 4 | 12 | 4 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -63,6 +64,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `client/post.php`: mitSessionRestamp
 - `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
 - `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_qbo, mit_timesheets, mit_usage
+- `functions/backup.php`: mit_feedback
 - `functions/reports.php`: mit_boards, mit_timesheets
 - `functions/roles.php`: mitRoleModuleInfo
 - `functions/user.php`: mitSessionRestamp
@@ -664,6 +666,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/tickets.php`: mitListViewResetButton, mitListViewRestore
 - `cron/mail_queue.php`: mit_dev_mode
 - `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_ticket_layout
+- `functions/backup.php`: mit_feedback
 - `functions/ticket.php`: mitResolvedMailContent
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
@@ -797,6 +800,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `api/v1/clients/delete.php`: mitQuoteImagesDelete
 - `api/v1/products/read.php`: mitProductApiColumns
 - `functions.php`: mit_quotes
+- `functions/backup.php`: mit_feedback
 - `functions/billing_pdf.php`: mitQuotePdfImage
 - `includes/billing_paper.php`: mitPaperAddFields, mitPaperLineExtras, mitPaperLineImage
 
@@ -1190,3 +1194,37 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** embedding, knowledge, assistant, copilot, ai_search, ai_chat, ai_ask, ai_answer
 
 **Our files** `functions/mit_ai_ask.php`, `functions/mit_ai_docs.php`, `functions/mit_ai_helper.php`, `functions/mit_ai_local.php`, `admin/mit_ai_helper.php`, `admin/post/mit_ai_helper.php`, `agent/mit_ai_ajax.php`, `agent/js/mit_ai_helper.js`, `agent/modals/mit_ai/document.php`, `cron/mit_ai_index.php`
+
+<a id="feedback"></a>
+## Bugs & ideas (bug reports and feature requests in the top bar) (`feedback`)
+
+**Takes for granted**
+
+- The top bar is includes/top_nav.php, which requires our includes/mit_timers_nav.php (it echoes mitFeedbackNav).
+- ITFlow's notifications table (notification_type / notification / notification_action / notification_user_id / notification_entity_id) is the bell.
+- Admins are users whose role has role_is_admin = 1 ($session_is_admin).
+
+**Tests** `tests/smoke/84-feedback.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `cron/mail_queue.php`: mit_common
+- `functions.php`: mit_common
+- `functions/backup.php`: mit_feedback
+- `includes/top_nav.php`: mit_timers_nav
+
+**ITFlow functions it calls**
+
+- `functions/logging.php`: logAudit
+- `functions/sanitize.php`: escapeHtml
+- `functions/security.php`: validateCSRFToken
+
+**ITFlow tables** files, notifications, user_roles, users
+
+**ITFlow columns** notification_action, notification_entity_id, notification_type, notification_user_id, role_id, role_is_admin, user_archived_at, user_id, user_name, user_role_id, user_status, user_type
+
+**Watched in ITFlow's code** `notification_action` `role_is_admin` `session_is_admin`
+
+**"ITFlow does this too" words** feedback, feature_request, bug_report, suggestion
+
+**Our files** `functions/mit_feedback.php`, `agent/mit_feedback_ajax.php`, `agent/js/mit_feedback.js`
