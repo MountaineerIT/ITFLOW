@@ -66,6 +66,87 @@ try {
         }
         scenarioCheck('Stripe call refused', $blocked, true);
     }
+    // Log forwarding: never from a copy of production (logForwardOn / logForwardSend)
+    $forward = ['enabled' => true, 'host' => 'logs.example.invalid', 'port' => 514, 'protocol' => 'udp', 'tls_verify' => false, 'audit' => true, 'app_level' => '',
+        'format' => 'rfc5424', 'facility' => 16];
+    scenarioCheck('log forwarding is off', logForwardOn($forward), false);
+    $why = '';
+    scenarioCheck('a log line is not sent', logForwardSend($forward, ['zz dev line'], $why), false);
+    scenarioCheck('... and says why', strpos($why, 'Development mode') !== false, true);
+
+    // Custom actions: ITFlow's handler file is not run
+    $handler = getcwd() . '/functions/custom/custom_action_handler.php';
+    $marker = sys_get_temp_dir() . "/zz-dev-custom-action-$tag";
+    if (!file_exists($handler)) {
+        @mkdir(dirname($handler), 0755, true);
+        file_put_contents($handler, '<?php file_put_contents(' . var_export($marker, true) . ', "ran");');
+        try {
+            triggerCustomAction('ticket_create', 1);
+            scenarioCheck('custom actions are not run', file_exists($marker), false);
+        } finally {
+            unlink($handler);
+            @rmdir(dirname($handler));
+            @unlink($marker);
+        }
+    }
+
+    // The mail parser and AI triage jobs stop at once: a client's email stays unread, a new emailed ticket is not triaged
+    $mock_mail = '/srv/mockms/state.json';
+    if (is_writable($mock_mail) && function_exists('mitM365GraphMailboxReady') && mitM365GraphMailboxReady()) {
+        $edit = function (callable $change) use ($mock_mail) {
+            $lock = fopen("$mock_mail.lock", 'c');
+            flock($lock, LOCK_EX);
+            $s = json_decode((string) file_get_contents($mock_mail), true);
+            if (is_array($s)) {
+                file_put_contents("$mock_mail.tmp", json_encode($change($s), JSON_PRETTY_PRINT));
+                rename("$mock_mail.tmp", $mock_mail);
+            }
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        };
+        $id = 'M-ZZDEV-' . bin2hex(random_bytes(4));
+        $edit(function ($s) use ($id, $tag) {
+            $s['mail'][] = ['id' => $id, 'folder' => 'inbox', 'isRead' => false, 'flag' => 'notFlagged', 'received' => gmdate('Y-m-d\TH:i:s\Z'),
+                'mime' => "From: Zed <zz-dev@example.invalid>\r\nTo: service@mountaineerit.test\r\nSubject: $tag parser\r\nDate: " . date('r')
+                    . "\r\nMessage-ID: <$id@zz>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain\r\n\r\nhello\r\n"];
+            return $s;
+        });
+        $out = (string) shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php ticket_email_parser.php 2>&1');
+        $unread = false;
+        foreach (json_decode((string) file_get_contents($mock_mail), true)['mail'] ?? [] as $m) {
+            if ($m['id'] === $id) {
+                $unread = empty($m['isRead']);
+            }
+        }
+        scenarioCheck("the mail parser reads nothing ($out)", $unread, true);
+        $edit(function ($s) use ($id) {
+            $s['mail'] = array_values(array_filter($s['mail'] ?? [], function ($m) use ($id) { return $m['id'] !== $id; }));
+            return $s;
+        });
+    }
+    $ai_mock = 'http://127.0.0.1/ai-mock/index.php';
+    $triage_before = scenarioValue("SELECT config_ticket_ai_triage FROM settings WHERE company_id = 1");
+    mysqli_query($mysqli, "INSERT INTO ai_providers SET ai_provider_name = 'ZZ dev stand-in $tag', ai_provider_kind = 'custom', ai_provider_api_url = '$ai_mock/v1/chat/completions', ai_provider_api_key = 'mock', ai_provider_redact = 1");
+    $provider_id = mysqli_insert_id($mysqli);
+    mysqli_query($mysqli, "INSERT INTO ai_models SET ai_model_name = 'mock-chat', ai_model_use_case = 'Tickets', ai_model_ai_provider_id = $provider_id");
+    mysqli_query($mysqli, "UPDATE settings SET config_ticket_ai_triage = 1 WHERE company_id = 1");
+    [$client_id, $contact_id] = scenarioMakeClient("$tag triage");
+    $ticket_id = scenarioMakeTicket($client_id, $contact_id, ['ticket_source' => 'Email', 'ticket_subject' => "$tag triage"]);
+    try {
+        $out = (string) shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php ai_triage.php 2>&1');
+        scenarioCheck("AI triage leaves a new ticket alone ($out)", scenarioValue("SELECT COUNT(*) FROM ai_ticket_triage WHERE ai_triage_ticket_id = $ticket_id"), '0');
+        // Control: with development mode off the same job does take it (triaged, or failed against the stand-in - either way a row)
+        mitConfigSet('config_mit_dev_mode', 0);
+        shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php ai_triage.php 2>&1');
+        scenarioCheck('control: off, the job takes it', scenarioValue("SELECT COUNT(*) FROM ai_ticket_triage WHERE ai_triage_ticket_id = $ticket_id"), '1');
+    } finally {
+        mysqli_query($mysqli, "DELETE FROM ai_ticket_triage WHERE ai_triage_ticket_id = $ticket_id");
+        mysqli_query($mysqli, "DELETE FROM ai_models WHERE ai_model_ai_provider_id = $provider_id");
+        mysqli_query($mysqli, "DELETE FROM ai_providers WHERE ai_provider_id = $provider_id");
+        mysqli_query($mysqli, "UPDATE settings SET config_ticket_ai_triage = " . intval($triage_before) . " WHERE company_id = 1");
+        scenarioCleanup();
+    }
+
     // Off again: mail goes to the real recipient
     mitConfigSet('config_mit_dev_mode', 0);
     $queue("$tag three");

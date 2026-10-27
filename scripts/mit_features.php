@@ -97,7 +97,8 @@ return [
     'emails' => [
         'name' => 'Email look: logo inside the message, resolved wording, notification switches',
         'files' => ['functions/mit_notifications.php', 'agent/js/mit_schedule_notify.js'],
-        'tests' => ['tests/scenarios/scenario-mail-logo.php', 'tests/smoke/25-notifications.spec.js', 'tests/smoke/47-assign-switches.spec.js'],
+        'tests' => ['tests/scenarios/scenario-mail-logo.php', 'tests/smoke/25-notifications.spec.js', 'tests/smoke/47-assign-switches.spec.js',
+            'tests/scenarios/scenario-assign-switches.php'],
         'assumes' => [
             'Every email is built by ITFlow\'s emailHtml / emailQueue / ticketMailSend and sent by cron/mail_queue.php.',
             'emailHtml links the logo as https://<base url>/uploads/settings/<file> (mitMailInlineImages embeds it).',
@@ -129,7 +130,8 @@ return [
         'name' => 'Microsoft 365 app, Graph mail, Outlook calendar per tech',
         'files' => ['functions/mit_m365.php', 'functions/mit_m365_mailbox.php', 'functions/mit_outlook.php', 'admin/includes/mit_m365_card.php',
             'admin/post/mit_m365.php', 'agent/user/mit_outlook*.php', 'agent/user/post/mit_outlook.php', 'cron/mit_outlook_sync.php'],
-        'tests' => ['tests/scenarios/scenario-sched-outlook.php', 'tests/scenarios/scenario-dev-mode-mail.php'],
+        'tests' => ['tests/scenarios/scenario-sched-outlook.php', 'tests/scenarios/scenario-dev-mode-mail.php', 'tests/scenarios/scenario-m365-hooks.php',
+            'tests/scenarios/scenario-parser-boards.php', 'tests/smoke/82-m365-mail-settings.spec.js'],
         'assumes' => [
             'Mail OAuth settings (config_mail_oauth_*) and the token flow in functions/request.php httpFormPost / admin/post/settings_mail.php.',
             'cron/mail_queue.php sends one PHPMailer message per email; cron/ticket_email_parser.php reads mail through ImapEngine\'s Mailbox.',
@@ -166,7 +168,8 @@ return [
             'admin/modals/mit_boards/*.php', 'admin/post/mit_boards.php', 'agent/modals/mit_board/*.php', 'agent/post/mit_boards.php',
             'agent/reports/mit_boards.php', 'cron/mit_boards.php'],
         'tests' => ['tests/smoke/07-boards.spec.js', 'tests/smoke/13-board-roles.spec.js', 'tests/smoke/15-ticket-picks.spec.js', 'tests/smoke/48-boards-ui.spec.js',
-            'tests/scenarios/scenario-boards.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/scenarios/scenario-picks-project.php'],
+            'tests/scenarios/scenario-boards.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/scenarios/scenario-picks-project.php',
+            'tests/scenarios/scenario-board-scope.php'],
         'assumes' => [
             'New tickets come from add_ticket, the parser\'s addTicket, the portal, the API, recurring and projects (a sweep catches the rest).',
             'quickPick() / js/quick_pick.js markup and quick_pick_options / quick_pick_set in agent/ajax.php.',

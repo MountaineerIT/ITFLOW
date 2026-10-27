@@ -46,5 +46,17 @@ test('recurring ticket on the third Wednesday: offered, saved, shown in Edit, an
     await fillForm(modal, { repeat_on: '' });
     await submit(modal, 'edit_recurring_ticket');
     expect(db.val(`SELECT recurring_ticket_by_day FROM recurring_tickets WHERE recurring_ticket_id = ${made.id}`), 'back to the same date each month').toBeNull();
+
+    // Moved in bulk (Recurring Tickets > tick > Next run) to a date: a weekday rule follows the new date's weekday
+    db.exec(`UPDATE recurring_tickets SET recurring_ticket_by_day = '3WE' WHERE recurring_ticket_id = ${made.id}`);
+    const second = new Date(first.getFullYear(), first.getMonth() + 1, 1);
+    while (second.getDay() !== 2) {
+        second.setDate(second.getDate() + 1);
+    }
+    second.setDate(second.getDate() + 7); // the second Tuesday of the month after
+    const token = await page.locator('input[name=csrf_token]').first().inputValue();
+    await db.pagePost(page, '/agent/post.php', { csrf_token: token, bulk_edit_recurring_ticket_next_run_date: '1', next_run_date: ymd(second), 'recurring_ticket_ids[]': [String(made.id)] });
+    expect(db.val(`SELECT recurring_ticket_next_run FROM recurring_tickets WHERE recurring_ticket_id = ${made.id}`), 'moved').toBe(ymd(second));
+    expect(db.val(`SELECT recurring_ticket_by_day FROM recurring_tickets WHERE recurring_ticket_id = ${made.id}`), 'the rule follows: the second Tuesday').toBe('2TU');
     await expectClean(page, errors);
 });

@@ -112,3 +112,22 @@ test('ninjaone: Preview writes nothing, and the safety brake reports what it wou
         }
     }
 });
+
+test('ninjaone: an asset linked to a device has its "Open in NinjaOne" button on its page and in its window', async ({ page }) => {
+    const db = require('./mitdb');
+    const row = db.one(`SELECT d.asset_id, a.asset_client_id FROM mit_ninja_devices d JOIN assets a ON a.asset_id = d.asset_id
+        WHERE a.asset_archived_at IS NULL ORDER BY d.asset_id LIMIT 1`);
+    test.skip(!row, 'no asset linked to a NinjaOne device here (run a sync first)');
+    const errors = watch(page);
+    await visit(page, `agent/asset.php?client_id=${row.asset_client_id}&asset_id=${row.asset_id}`, errors);
+    await expect(page.locator(`a[data-mit-ninja-asset="${row.asset_id}"]`).first(), 'on the asset page').toHaveAttribute('title', 'Open in NinjaOne');
+    await page.evaluate((id) => {
+        const b = document.createElement('button');
+        b.className = 'ajax-modal d-none';
+        b.dataset.modalUrl = `modals/asset/asset.php?id=${id}`;
+        document.body.appendChild(b);
+        b.click();
+    }, row.asset_id);
+    await expect(page.locator(`.modal.show a[data-mit-ninja-asset="${row.asset_id}"]`).first(), 'in the asset window').toHaveCount(1);
+    await expectClean(page, errors);
+});

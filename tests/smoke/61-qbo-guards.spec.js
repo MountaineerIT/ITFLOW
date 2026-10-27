@@ -160,6 +160,13 @@ test('the sync payment follows QuickBooks: no hand edits, no deleting; client an
     // The client can't be deleted while its invoices are in batches
     await db.pageGet(page, `post.php?delete_client=${made.client}&csrf_token=${encodeURIComponent(token)}`);
     expect(Number(db.val(`SELECT COUNT(*) FROM clients WHERE client_id = ${made.client}`)), 'client kept').toBe(1);
+    // ... nor through the API (which deletes archived clients only)
+    db.exec(`UPDATE clients SET client_archived_at = NOW() WHERE client_id = ${made.client}`);
+    await page.evaluate(async ({ key, client }) => {
+        await fetch('/api/v1/clients/delete.php', { method: 'POST', headers: { 'X-API-Key': key, 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: client }) });
+    }, { key: made.keySecret, client: made.client });
+    expect(Number(db.val(`SELECT COUNT(*) FROM clients WHERE client_id = ${made.client}`)), 'client kept (API)').toBe(1);
+    db.exec(`UPDATE clients SET client_archived_at = NULL WHERE client_id = ${made.client}`);
 
     // Ticket parts can't be billed onto the queued draft
     const n = Number(db.val('SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets'));

@@ -104,6 +104,16 @@ test('MSP Align: connect, sync, and its data on the client, asset and license pa
     await expect(page.locator(`[data-mit-align-asset="${made.assetId}"]`)).toContainText('Out of warranty');
     await visit(page, `agent/asset.php?client_id=${made.clientId}&asset_id=${made.assetId}`, errors);
     await expect(page.locator(`[data-mit-align-asset-panel="${made.assetId}"]`)).toHaveAttribute('href', `${MOCK}/devices/501`);
+    // ... and the asset's quick-look window
+    await page.evaluate((id) => {
+        const b = document.createElement('button');
+        b.className = 'ajax-modal d-none';
+        b.dataset.modalUrl = `modals/asset/asset.php?id=${id}`;
+        document.body.appendChild(b);
+        b.click();
+    }, made.assetId);
+    await expect(page.locator(`.modal.show [data-mit-align-asset-panel="${made.assetId}"]`), 'in the asset window too').toHaveAttribute('href', `${MOCK}/devices/501`);
+    await page.keyboard.press('Escape');
 
     // License list
     await visit(page, `agent/software.php?client_id=${made.clientId}`, errors);
