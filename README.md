@@ -1,34 +1,44 @@
 <div id="top"></div>
 
+<div align="center">
+
+<img src=".github/images/banner.svg" alt="ITFlow - Mountaineer IT build" width="100%">
+
 [![Mountaineer IT build][build-shield]][changelog-url]
 [![Last commit][commit-shield]][commit-url]
 [![GPL License][license-shield]][license-url]
 [![Based on ITFlow][upstream-shield]][upstream-url]
 
-<div align="center">
+<p>
+  Mountaineer IT's build of <a href="https://github.com/itflow-org/itflow">ITFlow</a>, the open-source documentation, ticketing
+  and accounting system for MSPs - with scheduling, dispatch, timesheets, procurement and integrations added.
+</p>
 
-  <h3 align="center">ITFlow - Mountaineer IT build</h3>
+<p>
+  <a href="MIT_CHANGELOG.md"><strong>What's new</strong></a>
+  &nbsp;·&nbsp;
+  <a href="DEPLOYMENT.md">Install &amp; update</a>
+  &nbsp;·&nbsp;
+  <a href="MIT_FEATURES.md">Feature map</a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/MountaineerIT/ITFLOW/issues">Report a bug</a>
+  &nbsp;·&nbsp;
+  <a href="#security">Security</a>
+</p>
 
-  <p align="center">
-    Mountaineer IT's build of <a href="https://github.com/itflow-org/itflow">ITFlow</a>, the open-source documentation,
-    ticketing and accounting system for MSPs - with scheduling, dispatch, timesheets, procurement and integrations added.
-    <br />
-    <br />
-    <a href="MIT_CHANGELOG.md"><strong>What's new</strong></a>
-    ·
-    <a href="DEPLOYMENT.md">Install &amp; update</a>
-    ·
-    <a href="MIT_FEATURES.md">Feature map</a>
-    ·
-    <a href="https://github.com/MountaineerIT/ITFLOW/issues">Report a bug</a>
-    ·
-    <a href="#security">Security</a>
-  </p>
 </div>
 
+> [!NOTE]
 > **This is not the official ITFlow.** It is an independent fork maintained by Mountaineer IT and is not made, supported or
 > endorsed by the ITFlow project. For ITFlow itself - its docs, forum and support - go to [itflow.org](https://itflow.org).
 > Please don't report problems with this build to the ITFlow team.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/images/dashboard-dark.webp">
+  <img src=".github/images/dashboard.webp" alt="The dashboard - open tickets, boards, today's schedule and time logged this week">
+</picture>
+
+<sub>Screenshots use made-up demo data. Light or dark follows your GitHub theme.</sub>
 
 ## About
 
@@ -36,8 +46,36 @@ ITFlow keeps an MSP's client documentation, tickets, quotes, invoices and expens
 follows ITFlow's releases and adds what we need to run our own service desk. Everything ITFlow does still works the same way;
 our additions sit beside it and can be switched off.
 
-Each version is ITFlow's release plus our own number (for example **26.10.179** = ITFlow 26.10, our 179th update). Admin >
+Each version is ITFlow's release plus our own number (for example **26.10.181** = ITFlow 26.10, our 181st update). Admin >
 Update shows both, with the release notes.
+
+## A look around
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src=".github/images/dispatch.webp" alt="Dispatch board - a column per tech for the day, the queue of tickets to book on the left">
+      <p><b>Dispatch</b> - a column per tech; drag tickets from the queue onto someone's day, or switch to the week or workload view.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src=".github/images/calendar.webp" alt="Calendar week view with bookings coloured by tech">
+      <p><b>Calendar</b> - everyone's bookings with start and end times, a colour per tech, and tickets still to schedule.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src=".github/images/ticket.webp" alt="A ticket - details, board, schedule and the reply box with start and end times">
+      <p><b>Tickets</b> - boards, extra agents, in-place pickers, and start / end times on every note.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src=".github/images/timesheet.webp" alt="A week of a timesheet - ticket time filled in, hours on charge codes">
+      <p><b>Timesheets</b> - ticket time comes in on its own; codes, leave, approval and a payroll report.</p>
+    </td>
+  </tr>
+</table>
+
+<img src=".github/images/tickets.webp" alt="The tickets list with service boards, saved views and quick filters">
+<p align="center"><sub>The tickets list - service boards, remembered views and quick filters.</sub></p>
 
 ## What this build adds
 

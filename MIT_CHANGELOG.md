@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.181 - 2026-10-27
+- Calendar: a short booking (half an hour or less) keeps its text inside its block - it ran out above and below it, in white over the calendar.
+- GitHub page: a banner, and screenshots of the dashboard (light and dark), Dispatch, the calendar, a ticket, a timesheet and the tickets list, taken from made-up demo data.
+
 ## 26.10.180 - 2026-10-27
 - GitHub page: the README describes this build (what it adds, installing, branches, support, credit to ITFlow under GPL-3.0); issue forms and the security policy point to this repository instead of ITFlow's forum.
 
