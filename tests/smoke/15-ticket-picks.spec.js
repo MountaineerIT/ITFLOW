@@ -51,7 +51,8 @@ test('ticket picks: category, SLA and board change in place', async ({ page }) =
     await expect(prop('Category'), 'the category saved').toContainText(category);
 
     // SLA - only when the SLA line is there (SLAs in use)
-    if (await page.locator('button[data-quick-pick="mit_sla"]').count()) {
+    if (await prop('SLA').count()) {
+        await expect(page.locator('button[data-quick-pick="mit_sla"]'), 'the SLA line changes in place (our picker, not ITFlow\'s window)').toHaveCount(1);
         // An SLA change reloads the page (the timers start again) - wait for it before going on
         const reloaded = page.waitForNavigation();
         const sla = await pickOther(page, 'mit_sla');

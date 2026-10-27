@@ -76,6 +76,34 @@ test('project tickets: out of the project the SLA comes back from that moment, b
     expect(sla().ticket_response_due_at).toBeNull();
 });
 
+test('project tickets: the project page and the tickets list move them too, SLA following', async ({ page }) => {
+    test.skip(!made.ticketId, 'no ticket');
+    await visit(page, `agent/project.php?project_id=${made.projectId}`);
+    const token = await page.locator('input[name=csrf_token]').first().inputValue();
+    const post = (body) => page.evaluate(async (b) => {
+        await fetch('/agent/post.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(b) });
+    }, { csrf_token: token, ...body });
+    // Off the project from its own page (projectRemoveTicket)
+    await post({ remove_tickets_from_project: '1', project_id: String(made.projectId), 'ticket_ids[]': String(made.ticketId) });
+    expect(db.value(`SELECT ticket_project_id FROM tickets WHERE ticket_id = ${made.ticketId}`)).toBe('0');
+    expect(sla().ticket_sla_id, 'removed on the project page: the SLA back at once').toBe('1');
+    // Back on it by its number (projectAddTicket)
+    const number = db.value(`SELECT ticket_number FROM tickets WHERE ticket_id = ${made.ticketId}`);
+    await post({ link_ticket_to_project: '1', project_id: String(made.projectId), ticket_numbers: number });
+    expect(db.value(`SELECT ticket_project_id FROM tickets WHERE ticket_id = ${made.ticketId}`)).toBe(String(made.projectId));
+    expect(sla().ticket_sla_id, 'added on the project page: no SLA at once').toBe('0');
+    // Off and on again from the tickets list (bulk Project)
+    await post({ bulk_add_ticket_project: '1', project_id: '0', 'ticket_ids[]': String(made.ticketId) });
+    expect(sla().ticket_sla_id, 'taken out in bulk: the SLA back').toBe('1');
+    await post({ bulk_add_ticket_project: '1', project_id: String(made.projectId), 'ticket_ids[]': String(made.ticketId) });
+    expect(sla().ticket_sla_id, 'put in in bulk: no SLA').toBe('0');
+});
+
+test('project tickets: Admin > Settings > Projects carries the kept-apart card', async ({ page }) => {
+    await visit(page, 'admin/settings_project.php');
+    await expect(page.locator('[name=mit_project_tickets_apart]').first(), 'our card').toHaveCount(1);
+});
+
 test('project tickets: a booking is drawn in the project colour under Projects', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     const day = tomorrow();

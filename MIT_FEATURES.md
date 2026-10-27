@@ -7,26 +7,26 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 55 | 5 | 7 | 26 | 67 | 27 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 132 | 1 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 55 | 8 | 7 | 26 | 67 | 27 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 140 | 1 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
-| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 1 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 12 | 3 | 8 | 12 | 23 | 15 |
+| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 12 | 4 | 8 | 12 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 3 | 6 | 6 | 18 | 7 |
-| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 13 | 28 | 10 | 40 | 26 |
+| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 14 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 2 | 11 | 9 | 41 | 15 |
-| [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 2 | 31 | 13 | 63 | 16 |
+| [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 3 | 31 | 13 | 63 | 16 |
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 10 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 7 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 4 | 21 | 10 | 18 | 9 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 9 |
 | [Email reply "To" line, internal-note Notify](#reply_recipients) | 2 | 1 | 12 | 8 | 29 | 7 |
-| [Times on ticket notes (start / end)](#reply_times) | 2 | 2 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 3 | 8 | 5 | 13 | 14 |
-| [Procurement (to order, POs, receiving, ticket parts, unbilled parts, vendor bills)](#procurement) | 20 | 4 | 27 | 25 | 147 | 13 |
-| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 22 | 56 | 20 | 89 | 17 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 4 | 15 | 12 | 64 | 24 |
+| [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 14 |
+| [Procurement (to order, POs, receiving, ticket parts, unbilled parts, vendor bills)](#procurement) | 20 | 5 | 27 | 25 | 147 | 13 |
+| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 5 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 1 | 15 | 7 | 24 | 4 |
@@ -43,7 +43,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Module rows (module_*) and roleModuleInfo() are how permissions work; Admin > Settings > Modules form posts to settings_module.php.
 - Our menus hang off ITFlow's side_nav.php sections (SETTINGS, INTEGRATIONS, BILLING, SUPPORT).
 
-**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/99-php-log.spec.js`
+**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/smoke/99-php-log.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -118,7 +118,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
-**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`
+**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`
 
 <a id="dev_mode"></a>
 ## Development mode (a production copy on a test server) (`dev_mode`)
@@ -202,7 +202,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - ITFlow's cron_jobs table (status, last run, interval) and settings.config_cron_last_dispatch_at.
 
-**Tests** `tests/scenarios/scenario-cron-watch.php`
+**Tests** `tests/scenarios/scenario-cron-watch.php`, `tests/smoke/81-cron-health.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -243,7 +243,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.
 - login.php / client pages send CSP default-src 'self' - our files there must be files, not inline.
 
-**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`
+**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -333,7 +333,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Attendee agents (calendar_event_attendees.attendee_user_id) are an entry's assignment.
 - Holidays are business_holidays (Admin > SLA closure days).
 
-**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`
+**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`
 
 **Hooks in ITFlow's files**
 
@@ -445,7 +445,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - tickets.ticket_assigned_to is the one lead; ticketChangeAssignee changes it (four paths, none hooked - mitTicketTechsTidy on read).
 - Assignee reply copies hang off ticketMailAssigneeReplied (parser, client/post.php).
 
-**Tests** `tests/smoke/42-helpers.spec.js`, `tests/scenarios/scenario-helpers.php`
+**Tests** `tests/smoke/42-helpers.spec.js`, `tests/scenarios/scenario-helpers.php`, `tests/scenarios/scenario-parser-boards.php`
 
 **Hooks in ITFlow's files**
 
@@ -654,7 +654,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Timer keys in localStorage: <id>-startTime / <id>-pausedTime / ticket-timer-running-<id> (agent/js/ticket_time_tracking.js).
 - ticketResolve sends no mail itself; ticketMailResolved builds the resolved email.
 
-**Tests** `tests/smoke/43-layout-timers.spec.js`, `tests/smoke/23-bulk-toolbar.spec.js`, `tests/smoke/24-no-response.spec.js`, `tests/scenarios/scenario-no-response.php`
+**Tests** `tests/smoke/43-layout-timers.spec.js`, `tests/smoke/23-bulk-toolbar.spec.js`, `tests/smoke/24-no-response.spec.js`, `tests/smoke/03-our-features.spec.js`, `tests/scenarios/scenario-no-response.php`
 
 **Hooks in ITFlow's files**
 
@@ -741,7 +741,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ticket_replies.ticket_reply_time_worked holds the length; the timer fields are #hours / #minutes / #seconds.
 - flashAlert keeps one message (mitReplyTimesFlash adds the time warning back).
 
-**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`
+**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -781,7 +781,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - products.product_cost / product_vendor_id are ITFlow's (0 = none); quote_items keep our item_cost / price method / image.
 - PDFs by functions/billing_pdf.php.
 
-**Tests** `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-quote-convert-same-name.php`, `tests/scenarios/scenario-quote-pricing.php`
+**Tests** `tests/smoke/60-quote-pricing.spec.js`, `tests/smoke/65-quote-images.spec.js`, `tests/scenarios/scenario-quote-convert-same-name.php`, `tests/scenarios/scenario-quote-pricing.php`
 
 **Hooks in ITFlow's files**
 
@@ -828,7 +828,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Quotes become invoices by quoteConvert (quoteLineGroups); invoices by billingInvoiceCreate / billingRecalc / billingLineTax.
 - Expenses by expenseSave; assets carry asset_invoice_id / _item_id / _product_id.
 
-**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-stock.php`
+**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-stock.php`
 
 **Hooks in ITFlow's files**
 
@@ -881,7 +881,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Closure days are business_holidays (getBusinessHolidays, restampOpenSlaTickets).
 - change_client_ticket turns public replies internal (mitTsKeepPublicNotes runs first).
 
-**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
+**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
 
 **Hooks in ITFlow's files**
 
@@ -941,7 +941,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-payments.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-payments.php`
 
 **Hooks in ITFlow's files**
 

@@ -29,7 +29,8 @@ return [
             'admin/database_updates/mountaineerit/*.php', 'includes/mit_version.php', 'MIT_CHANGELOG.md', 'admin/includes/mit_changelog_card.php',
             'admin/includes/mit_admin_nav.php', 'admin/includes/mit_integrations_nav.php', 'admin/includes/mit_modules_fields.php',
             'agent/includes/mit_billing_nav.php'],
-        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/99-php-log.spec.js'],
+        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
+            'tests/smoke/79-platform-pages.spec.js', 'tests/scenarios/scenario-mail-logo.php', 'tests/smoke/99-php-log.spec.js'],
         'assumes' => [
             'ITFlow runs admin/database_updates.php in version order and our runner after it (update_cli, setup, restores).',
             'functions.php requires ours; mit_common.php first.',
@@ -41,7 +42,7 @@ return [
     ],
     'checks' => [
         'name' => 'Our checks (hooks, consistency, portability, AI wall, verify, feature map)',
-        'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
+        'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
             'MIT_FEATURES.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
         'tests' => ['tests/smoke/30-checks.spec.js'],
         'assumes' => ['ITFlow\'s cron dispatcher (includes/cron_jobs.php) runs our jobs.'],
@@ -75,7 +76,7 @@ return [
         'name' => 'Cron health (warning, emails, /mit_health.php)',
         'files' => ['functions/mit_cron_health.php', 'includes/mit_cron_nav.php', 'admin/includes/mit_cron_card.php', 'admin/post/mit_cron_health.php',
             'cron/mit_cron_watch.php', 'mit_health.php'],
-        'tests' => ['tests/scenarios/scenario-cron-watch.php'],
+        'tests' => ['tests/scenarios/scenario-cron-watch.php', 'tests/smoke/81-cron-health.spec.js'],
         'assumes' => ['ITFlow\'s cron_jobs table (status, last run, interval) and settings.config_cron_last_dispatch_at.'],
         'watch' => ['config_cron_last_dispatch_at'],
         'overlap' => ['cron_alert', 'health', 'heartbeat', 'cron_fail', 'cronWatch'],
@@ -84,7 +85,7 @@ return [
         'name' => 'Modern look, logo options, sign-in screen, client tiles, time fields, portal tables',
         'files' => ['functions/mit_theme.php', 'css/mit_*.css', 'css/mit_login_nodes.svg', 'css/fonts/inter/*', 'js/mit_theme.js', 'js/mit_time_inputs.js',
             'js/mit_portal_tables.js', 'functions/mit_client_tiles.php'],
-        'tests' => ['tests/smoke/21-brand-logo.spec.js', 'tests/smoke/26-portal-phone.spec.js', 'tests/smoke/46-client-tiles.spec.js'],
+        'tests' => ['tests/smoke/21-brand-logo.spec.js', 'tests/smoke/26-portal-phone.spec.js', 'tests/smoke/46-client-tiles.spec.js', 'tests/smoke/80-theme-look.spec.js'],
         'assumes' => [
             'ITFlow\'s markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.',
             'Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.',
@@ -112,7 +113,8 @@ return [
             'agent/js/mit_left_behind.js', 'js/mit_repeat_on.js', 'admin/includes/mit_calendar_card.php', 'admin/post/mit_calendar_settings.php',
             'agent/post/mit_event_agents.php'],
         'tests' => ['tests/smoke/08-calendar.spec.js', 'tests/smoke/20-event-agents.spec.js', 'tests/smoke/50-sched-window.spec.js',
-            'tests/smoke/52-calendar-state-moves.spec.js', 'tests/smoke/53-event-repeat-weekday.spec.js', 'tests/scenarios/scenario-sched-*.php'],
+            'tests/smoke/52-calendar-state-moves.spec.js', 'tests/smoke/53-event-repeat-weekday.spec.js', 'tests/smoke/54-recurring-ticket-weekday.spec.js',
+            'tests/scenarios/scenario-sched-*.php'],
         'assumes' => [
             'Bookings are tickets.ticket_schedule (+ our ticket_schedule_end); ticketSetSchedule / ticketCancelSchedule change them.',
             'functions/calendar.php builds the sources (calendarSources / calendarSourceItems / calendarEventItems); agent/js/calendar.js draws them with FullCalendar v7.',
@@ -139,7 +141,7 @@ return [
     'ticket_techs' => [
         'name' => 'Additional techs (helpers) on tickets',
         'files' => ['functions/mit_ticket_techs.php', 'agent/modals/ticket/mit_ticket_tech.php', 'agent/post/mit_ticket_techs.php'],
-        'tests' => ['tests/smoke/42-helpers.spec.js', 'tests/scenarios/scenario-helpers.php'],
+        'tests' => ['tests/smoke/42-helpers.spec.js', 'tests/scenarios/scenario-helpers.php', 'tests/scenarios/scenario-parser-boards.php'],
         'assumes' => [
             'tickets.ticket_assigned_to is the one lead; ticketChangeAssignee changes it (four paths, none hooked - mitTicketTechsTidy on read).',
             'Assignee reply copies hang off ticketMailAssigneeReplied (parser, client/post.php).',
@@ -186,7 +188,7 @@ return [
         'files' => ['functions/mit_ticket_layout.php', 'agent/js/mit_ticket_layout.js', 'includes/mit_timers_nav.php', 'js/mit_timers.js',
             'functions/mit_list_views.php', 'functions/mit_no_response.php', 'agent/modals/mit_no_response/*.php', 'agent/post/mit_no_response.php',
             'admin/includes/mit_no_response_card.php', 'admin/post/mit_no_response_settings.php'],
-        'tests' => ['tests/smoke/43-layout-timers.spec.js', 'tests/smoke/23-bulk-toolbar.spec.js', 'tests/smoke/24-no-response.spec.js',
+        'tests' => ['tests/smoke/43-layout-timers.spec.js', 'tests/smoke/23-bulk-toolbar.spec.js', 'tests/smoke/24-no-response.spec.js', 'tests/smoke/03-our-features.spec.js',
             'tests/scenarios/scenario-no-response.php'],
         'assumes' => [
             'The ticket page\'s boxes are found by their title icons (fa-align-left, fa-sliders-h, fa-user, fa-layer-group, fa-map-marker-alt, fa-tasks, fa-link, fa-history).',
@@ -213,7 +215,7 @@ return [
     'reply_times' => [
         'name' => 'Times on ticket notes (start / end)',
         'files' => ['functions/mit_reply_times.php', 'agent/js/mit_reply_times.js'],
-        'tests' => ['tests/smoke/09-note-times.spec.js', 'tests/smoke/45-note-time-locks.spec.js'],
+        'tests' => ['tests/smoke/09-note-times.spec.js', 'tests/smoke/45-note-time-locks.spec.js', 'tests/smoke/74-ts-ticket-moves.spec.js'],
         'assumes' => [
             'ticket_replies.ticket_reply_time_worked holds the length; the timer fields are #hours / #minutes / #seconds.',
             'flashAlert keeps one message (mitReplyTimesFlash adds the time warning back).',
@@ -224,7 +226,7 @@ return [
     'quotes' => [
         'name' => 'Quote pricing (cost, markup / margin) and line images',
         'files' => ['functions/mit_quotes.php', 'js/mit_quote_pricing.js', 'admin/includes/mit_quote_card.php', 'admin/post/mit_quote_settings.php'],
-        'tests' => ['tests/smoke/60-quote-pricing.spec.js', 'tests/scenarios/scenario-quote-*.php'],
+        'tests' => ['tests/smoke/60-quote-pricing.spec.js', 'tests/smoke/65-quote-images.spec.js', 'tests/scenarios/scenario-quote-*.php'],
         'assumes' => [
             'Quotes / invoices / recurring are one page: lines saved by agent/post/billing.php (billing_item_save ...), drawn by includes/billing_paper.php.',
             'products.product_cost / product_vendor_id are ITFlow\'s (0 = none); quote_items keep our item_cost / price method / image.',
@@ -239,7 +241,8 @@ return [
             'agent/mit_unbilled_parts.php', 'agent/modals/mit_procurement/*.php', 'agent/post/mit_procurement*.php', 'agent/includes/mit_procurement_nav.php',
             'admin/mit_procurement_settings.php', 'admin/includes/mit_procurement_card.php', 'admin/post/mit_procurement_settings.php',
             'cron/mit_procurement_tidy.php'],
-        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/scenarios/scenario-procurement-*.php'],
+        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js',
+            'tests/scenarios/scenario-procurement-*.php'],
         'assumes' => [
             'Stock moves through ITFlow\'s productStockMove / product_stock (productStockShortfall, productStockReturnInvoice).',
             'Quotes become invoices by quoteConvert (quoteLineGroups); invoices by billingInvoiceCreate / billingRecalc / billingLineTax.',
@@ -272,7 +275,7 @@ return [
         'name' => 'QuickBooks Online (approvals, batches, locks, payments back)',
         'files' => ['functions/mit_qbo*.php', 'admin/mit_qbo*.php', 'admin/post/mit_qbo.php', 'agent/mit_invoice_approvals.php', 'agent/mit_qbo_batch*.php',
             'agent/post/mit_qbo.php', 'cron/mit_qbo_sync.php'],
-        'tests' => ['tests/smoke/10-qbo.spec.js', 'tests/smoke/61-qbo-guards.spec.js', 'tests/scenarios/scenario-qbo-*.php'],
+        'tests' => ['tests/smoke/10-qbo.spec.js', 'tests/smoke/61-qbo-guards.spec.js', 'tests/smoke/66-qbo-more-doors.spec.js', 'tests/scenarios/scenario-qbo-*.php'],
         'assumes' => [
             'Every way an invoice or its payments change goes through a guarded handler (agent/post/invoice.php, billing.php, payment.php, ajax.php, API, nightly, portal, guest pay, bank import, reprice).',
             'Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.',

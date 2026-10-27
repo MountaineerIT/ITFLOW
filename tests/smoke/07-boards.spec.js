@@ -3,7 +3,8 @@
 // the rule are named "Smoke test ..." and removed again at the end, even when a step fails.
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, getJson, expectClean } = require('./helpers');
+const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, getJson, expectClean, csrf } = require('./helpers');
+const db = require('./mitdb');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -79,6 +80,7 @@ test('boards: a new ticket is routed, escalated, and shows on its board', async 
 
     const boardLine = page.locator('.ticket-prop:has(dt:text-is("Board"))');
     await expect(boardLine.locator(`[data-mit-board="${made.boards[0]}"]`), 'placed on the client rule\'s board').toHaveCount(1);
+    await expect(page.locator(`a.dropdown-item[data-modal-url*="board_move.php?escalate=1&ticket_id=${made.ticketId}"]`), 'Escalate in the ticket\'s menu').toHaveCount(1);
 
     // Escalate: a reason is required, it becomes an internal note
     modal = await openModal(page, `modals/mit_board/board_move.php?escalate=1&ticket_id=${made.ticketId}`);
@@ -92,6 +94,12 @@ test('boards: a new ticket is routed, escalated, and shows on its board', async 
     // The Tickets board switcher: on the new board, not on the old one
     await visit(page, `agent/tickets.php?board=${made.boards[1]}&q=${encodeURIComponent('Smoke test ticket')}`, errors);
     await expect(page.locator(`a[href*="ticket_id=${made.ticketId}"]`).first(), 'listed on its board').toBeVisible();
+    await expect(page.locator('form input[type=hidden][name=board]'), 'the search form keeps the board').toHaveValue(String(made.boards[1]));
+    for (const view of ['list', 'kanban']) {
+        await visit(page, `agent/tickets.php?view=${view}&q=${encodeURIComponent('Smoke test ticket')}&client_id=${made.clientId}`, errors);
+        const row = page.locator(view === 'list' ? `tr:has(a[href*="ticket_id=${made.ticketId}"])` : `article[data-ticket-id="${made.ticketId}"]`).first();
+        await expect(row.locator('.mit-board-dot'), `the board tag on the ${view}`).toHaveCount(1);
+    }
     await visit(page, `agent/tickets.php?board=${made.boards[0]}&q=${encodeURIComponent('Smoke test ticket')}`, errors);
     await expect(page.locator(`a[href*="ticket_id=${made.ticketId}"]`), 'not on the board it left').toHaveCount(0);
 
@@ -103,6 +111,23 @@ test('boards: a new ticket is routed, escalated, and shows on its board', async 
         const ids = (json) => (json.tickets || json).map((t) => Number(t.id));
         expect(ids(on), 'in the Dispatch queue of its board').toContain(made.ticketId);
         expect(ids(off), 'not in the queue of the board it left').not.toContain(made.ticketId);
+    }
+});
+
+test('boards: tickets made for several assets at once are routed too', async ({ page }) => {
+    test.skip(!made.clientId, 'no client');
+    const asset = db.insert(`INSERT INTO assets SET asset_type = 'Desktop', asset_name = 'Smoke 07 PC', asset_make = 'Smoke', asset_client_id = ${made.clientId}`);
+    try {
+        await visit(page, `agent/assets.php?client_id=${made.clientId}`);
+        const token = await csrf(page);
+        await db.pagePost(page, '/agent/post.php', { csrf_token: token, bulk_add_asset_ticket: '1', bulk_subject: smokeName('asset ticket'), bulk_details: 'x',
+            bulk_priority: 'Low', bulk_billable: '0', 'asset_ids[]': [String(asset)] });
+        const ticket = Number(db.val(`SELECT ticket_id FROM tickets WHERE ticket_asset_id = ${asset} ORDER BY ticket_id DESC LIMIT 1`) || 0);
+        expect(ticket, 'the ticket was made').toBeGreaterThan(0);
+        made.assetTicket = ticket;
+        expect(Number(db.val(`SELECT board_id FROM mit_ticket_boards WHERE ticket_id = ${ticket}`) || 0), "placed on the client rule's board at once").toBe(made.boards[0]);
+    } finally {
+        db.exec(`DELETE FROM assets WHERE asset_id = ${asset}`);
     }
 });
 
@@ -156,6 +181,9 @@ test.afterAll(async ({ browser }) => {
     const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
     const page = await context.newPage();
     await restoreBoard(page).catch(() => {});
+    if (made.assetTicket) {
+        await action(page, `delete_ticket=${made.assetTicket}`, `agent/ticket.php?ticket_id=${made.assetTicket}`).catch(() => {});
+    }
     if (made.ticketId) {
         await action(page, `delete_ticket=${made.ticketId}`, `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`);
     }

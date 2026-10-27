@@ -62,6 +62,7 @@ test('Technician: part from stock, changed, billed; a to-order part removed', as
     const errors = watch(page);
     const ssd = product('Smoke 63 SSD', 5);
     await visit(page, `agent/ticket.php?ticket_id=${made.ticket}`, errors);
+    await expect(page.locator('.card:has(.card-title i.fa-microchip)'), 'the ticket page has its Parts box').not.toHaveCount(0);
     let modal = await openModal(page, `modals/mit_procurement/part.php?ticket_id=${made.ticket}`, 'lg');
     await fillForm(modal, { product_id: String(ssd), name: 'Smoke 63 SSD', quantity: '2', unit_price: '120', source: 'stock' });
     await submit(modal, 'mit_part_save');
@@ -109,6 +110,7 @@ test('invoice line to procurement: capped, received with the asset window, stock
     expect(onHand(nas), 'the invoice line took 2').toBe(3);
     const lineId = db.val(`SELECT item_id FROM invoice_items WHERE item_invoice_id = ${invoiceId}`);
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
+    await expect(page.locator('a[data-modal-url*="mit_procurement/from_invoice.php"]'), "the invoice's menu has Send to procurement").not.toHaveCount(0);
     let modal = await openModal(page, `modals/mit_procurement/from_invoice.php?invoice_id=${invoiceId}`, 'lg');
     await fillForm(modal, { [`lines[${lineId}][send]`]: true, [`lines[${lineId}][qty]`]: '5', [`lines[${lineId}][cost]`]: '80', [`lines[${lineId}][vendor_id]`]: String(VENDOR) });
     await submit(modal, 'mit_proc_from_invoice');
@@ -140,6 +142,8 @@ test('invoice line to procurement: capped, received with the asset window, stock
     expect(Number(db.val(`SELECT asset_invoice_id FROM assets WHERE asset_id = ${assets[0].asset_id}`)), 'asset tied to the invoice it was sold on').toBe(invoiceId);
 
     expect(onHand(nas), 'received for the invoice: the 2 it took go back').toBe(5);
+    await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
+    await expect(page.locator('.alert:has(i.fa-truck-loading)'), 'the invoice says how much of what was ordered came in').toContainText('2 of 2 received');
     expect(Number(db.val(`SELECT item_product_id FROM invoice_items WHERE item_id = ${lineId}`)), 'line no longer moves stock').toBe(0);
     // Removing the line, then cancelling the invoice: nothing comes back a second time
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
@@ -149,4 +153,84 @@ test('invoice line to procurement: capped, received with the asset window, stock
     expect(onHand(nas), 'line removed: stock not returned again').toBe(5);
     await db.pageGet(page, `post.php?cancel_invoice=${invoiceId}&csrf_token=${encodeURIComponent(t2)}`);
     expect(onHand(nas), 'invoice cancelled: stock not returned again').toBe(5);
+});
+
+test('deleting a ticket puts its unbilled stock parts back on the shelf', async ({ page }) => {
+    const errors = watch(page);
+    const ram = product('Smoke 63 RAM', 4);
+    const n = Number(db.val('SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets'));
+    const ticket = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${n}, ticket_subject = 'Smoke 63 delete', ticket_details = 'x', ticket_priority = 'Low',
+        ticket_status = 1, ticket_client_id = ${CLIENT}, ticket_created_by = 1`);
+    await visit(page, `agent/ticket.php?ticket_id=${ticket}`, errors);
+    const token = await csrf(page);
+    await db.pagePost(page, 'post.php', { csrf_token: token, mit_part_save: '1', ticket_id: String(ticket), product_id: String(ram), name: 'Smoke 63 RAM',
+        quantity: '3', unit_price: '50', source: 'stock' });
+    expect(onHand(ram), 'the part took 3 from the shelf').toBe(1);
+    await db.pageGet(page, `post.php?delete_ticket=${ticket}&csrf_token=${encodeURIComponent(token)}`);
+    const gone = db.val(`SELECT COUNT(*) FROM tickets WHERE ticket_id = ${ticket}`) === '0';
+    if (!gone) {
+        db.exec(`DELETE FROM mit_ticket_parts WHERE ticket_id = ${ticket}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${ticket}; DELETE FROM tickets WHERE ticket_id = ${ticket}`);
+    }
+    expect(gone, 'ticket deleted').toBe(true);
+    expect(onHand(ram), 'the 3 parts went back when the ticket was deleted').toBe(4);
+});
+
+
+test('the Procurement menu, and a project page shows what is ordered for it', async ({ page }) => {
+    const errors = watch(page);
+    const project = db.insert(`INSERT INTO projects SET project_name = 'Smoke 63 project', project_client_id = ${CLIENT}, project_due = DATE_ADD(CURDATE(), INTERVAL 30 DAY)`);
+    const item = db.insert(`INSERT INTO mit_procurement_items SET source = 'manual', client_id = ${CLIENT}, project_id = ${project}, name = 'Smoke 63 project switch',
+        quantity = 2, unit_cost = 150, vendor_id = ${VENDOR}, created_by = 1`);
+    try {
+        await visit(page, `agent/project.php?project_id=${project}`, errors);
+        for (const file of ['mit_procurement.php', 'mit_purchase_orders.php', 'mit_receiving.php']) {
+            await expect(page.locator(`.app-sidebar a[href="/agent/${file}"]`), `side menu: ${file}`).toHaveCount(1);
+        }
+        const card = page.locator('.card:has(.card-title i.fa-file-signature)');
+        await expect(card, "the project's Purchase orders card").toHaveCount(1);
+        await expect(card).toContainText('300.00');
+        await expectClean(page, errors);
+    } finally {
+        db.exec(`DELETE FROM mit_procurement_items WHERE item_id = ${item}; DELETE FROM projects WHERE project_id = ${project}`);
+    }
+});
+
+test('deleting a client (in ITFlow or through the API) puts its tickets\' unbilled stock parts back', async ({ page }) => {
+    const errors = watch(page);
+    const keys = [];
+    try {
+        for (const via of ['page', 'api']) {
+            const cpu = product(`Smoke 63 CPU ${via}`, 5);
+            const client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 63 client ${via} ${Date.now()}', client_currency_code = 'USD', client_net_terms = 30`);
+            const n = Number(db.val('SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets'));
+            const ticket = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${n}, ticket_subject = 'Smoke 63 client delete', ticket_details = 'x',
+                ticket_priority = 'Low', ticket_status = 1, ticket_client_id = ${client}, ticket_created_by = 1`);
+            await visit(page, `agent/ticket.php?ticket_id=${ticket}`, errors);
+            const token = await csrf(page);
+            await db.pagePost(page, 'post.php', { csrf_token: token, mit_part_save: '1', ticket_id: String(ticket), product_id: String(cpu), name: `Smoke 63 CPU ${via}`,
+                quantity: '2', unit_price: '300', source: 'stock' });
+            expect(onHand(cpu), 'the part took 2 from the shelf').toBe(3);
+            db.exec(`UPDATE clients SET client_archived_at = NOW() WHERE client_id = ${client}`);
+            if (via === 'page') {
+                await db.pageGet(page, `post.php?delete_client=${client}&csrf_token=${encodeURIComponent(token)}`);
+            } else {
+                const secret = require('crypto').randomBytes(16).toString('hex');
+                keys.push(db.insert(`INSERT INTO api_keys SET api_key_name = 'Smoke 63', api_key_secret = '${secret}', api_key_decrypt_hash = '',
+                    api_key_expire = DATE_ADD(CURDATE(), INTERVAL 1 DAY), api_key_user_id = 1`));
+                await page.evaluate(async ({ secret, client }) => {
+                    await fetch('/api/v1/clients/delete.php', { method: 'POST', headers: { 'X-API-Key': secret, 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: client }) });
+                }, { secret, client });
+            }
+            const gone = db.val(`SELECT COUNT(*) FROM clients WHERE client_id = ${client}`) === '0';
+            if (!gone) {
+                db.exec(`DELETE FROM mit_ticket_parts WHERE ticket_id = ${ticket}; DELETE FROM tickets WHERE ticket_id = ${ticket}; DELETE FROM clients WHERE client_id = ${client}`);
+            }
+            expect(gone, `client deleted (${via})`).toBe(true);
+            expect(onHand(cpu), `the 2 parts went back (${via})`).toBe(5);
+        }
+    } finally {
+        for (const id of keys) {
+            db.exec(`DELETE FROM api_keys WHERE api_key_id = ${id}`);
+        }
+    }
 });

@@ -17,6 +17,7 @@
  *   call      a statement that is only our call (mitX(...);) -> commented out
  *   output    <?= mitX(...) ... ?> -> <?= '' ?>
  *   include   a card / menu section / form fields of ours required into ITFlow's page -> not required
+ * Hooks no test can see are listed in scripts/mit_hook_proof_accepted.txt with why ("accepted", not run).
  * Not switched off automatically (listed as "manual" for review): lines loading our files, values used further on, our hooks in
  * ITFlow's JavaScript / CSS. Results go to --out (one JSON line a site: noticed by which test, not noticed, manual, broken).
  * Never on production: refuses an install whose base URL is not *.test.
@@ -87,8 +88,22 @@ function mfSwitchOff($file, $line) {
     return ['manual', 'its value is used further on (no guard) - review by hand'];
 }
 
+// Hooks no test can see, each with why (scripts/mit_hook_proof_accepted.txt: "file | text on the line | why") - listed as
+// "accepted", not run. Keep it short: an entry is a promise that the hook was checked by hand.
+$accepted = [];
+foreach (file(__DIR__ . '/mit_hook_proof_accepted.txt', FILE_IGNORE_NEW_LINES) ?: [] as $entry) {
+    $parts = array_map('trim', explode('|', $entry, 3));
+    if (count($parts) === 3 && $parts[0] !== '' && $parts[0][0] !== '#') {
+        $accepted[] = $parts;
+    }
+}
 foreach ($sites as $id => &$site) {
     [$site['how'], $site['new']] = mfSwitchOff($site['file'], $site['text']);
+    foreach ($accepted as [$file, $fragment, $why]) {
+        if ($site['file'] === $file && strpos($site['text'], $fragment) !== false) {
+            [$site['how'], $site['new']] = ['accepted', $why];
+        }
+    }
 }
 unset($site);
 if ($only !== null) {
@@ -211,8 +226,8 @@ if (function_exists('pcntl_async_signals')) {
 foreach ($sites as $id => $s) {
     $keys = array_values(array_filter(array_keys($s['features']), function ($k) use ($baseline) { return $baseline[$k] === ''; }));
     $row = ['site' => $id, 'how' => $s['how'], 'features' => array_keys($s['features']), 'text' => trim($s['text'])];
-    if ($s['how'] === 'manual') {
-        $record($row + ['result' => 'manual', 'why' => $s['new']]);
+    if ($s['how'] === 'manual' || $s['how'] === 'accepted') {
+        $record($row + ['result' => $s['how'], 'why' => $s['new']]);
         continue;
     }
     if (!$keys) {

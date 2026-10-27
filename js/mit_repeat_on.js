@@ -87,6 +87,11 @@
     if (!window.mitRepeatOnBound) {
         window.mitRepeatOnBound = true;
         var onChange = function (e) {
+            // A choice made in the list itself is the one to keep - "On the 15th" (no value) included
+            if (e.target.matches && e.target.matches('select[data-mit-repeat-on]')) {
+                e.target.dataset.current = e.target.value;
+                return;
+            }
             var form = e.target.closest ? e.target.closest('form') : null;
             if (form && form.querySelector('select[data-mit-repeat-on]')) {
                 refreshAll(form);

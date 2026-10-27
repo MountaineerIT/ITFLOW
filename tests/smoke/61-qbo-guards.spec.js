@@ -100,17 +100,17 @@ for (const which of ['control', 'sent', 'queued']) {
             ['remove a line', 'GET', `post.php?billing_item_delete=${line}&type=invoice&doc_id=${id}`],
             ['remove tax', 'GET', `post.php?billing_remove_tax=${id}&type=invoice`],
             ['edit invoice (discount, dates)', 'POST', 'post.php', { edit_invoice: '1', invoice_id: id, date: today, due: today, category: '0', scope: 'changed', invoice_discount: '25' }],
-            ['mark sent', 'POST', 'post.php', { mark_invoice_sent: '1', invoice_id: id }],
+            ['mark sent', 'POST', 'post.php', { mark_invoice_sent: '1', invoice_id: id, sent_method: 'Hand Delivered' }],
             ['non-billable', 'GET', `post.php?mark_invoice_non-billable=${id}`],
             ['cancel', 'GET', `post.php?cancel_invoice=${id}`],
             ['delete', 'GET', `post.php?delete_invoice=${id}`],
             ['add payment', 'POST', 'post.php', { add_payment: '1', invoice_id: id, date: today, amount: '10', account: '1', payment_method: 'Cash', reference: 'Smoke 61 refused', currency_code: 'USD', balance: '340', email_receipt: '0' }],
             ['bulk payment', 'POST', 'post.php', { add_bulk_payment: '1', client_id: made.client, date: today, amount: '340', balance: '680', account: '1', currency_code: 'USD', payment_method: 'Cash', reference: 'Smoke 61 bulk', email_receipt: '0' }],
-            ['email', 'POST', 'post.php', { email_invoice: '1', invoice_id: id }],
+            ['email', 'POST', 'post.php', { email_invoice: '1', invoice_id: id, quick_send: '1' }],
             ['unbilled time onto it', 'POST', 'post.php', { unbilled_invoice: '1', client_id: made.client, invoice_id: id, date: today }],
             ['take approval back', 'GET', `post.php?mit_invoice_unapprove=${id}`],
             ['notes in place (ajax)', 'POST', 'ajax.php', { invoice_set_notes: '1', invoice_id: id, note: 'Smoke 61 changed note' }],
-            ['line order (ajax)', 'POST', 'ajax.php', { billing_items_order: '1', type: 'invoice', doc_id: id, 'item_ids[]': lineIds }],
+            ['line order (ajax)', 'POST', 'ajax.php', { billing_items_order: '1', type: 'invoice', doc_id: id, items: lineIds.join(',') }],
         ];
         const statuses = {};
         if (which === 'control') {

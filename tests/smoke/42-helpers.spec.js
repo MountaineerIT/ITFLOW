@@ -66,6 +66,19 @@ test('helpers: add the technician with the lead, then book the lead', async ({ p
     const helper = items.find((i) => i.extendedProps && i.extendedProps.kind === 'helper' && Number(i.extendedProps.ticket_id) === made.ticketId);
     expect(helper, 'the helper booking on the calendar').toBeTruthy();
     expect(helper.start).toContain(`${day} 09:00`);
+
+    // Dragging the helper's booking on the calendar moves theirs onto their own time - not the lead's
+    const csrf = await page.locator('input[name=csrf_token]').first().inputValue();
+    const moved = await page.evaluate(async (body) => {
+        const r = await fetch('/agent/ajax.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(body) });
+        return r.json().catch(() => ({}));
+    }, { calendar_move: '1', csrf_token: csrf, kind: 'helper', id: String(made.ticketId), user_id: '2', start: `${day} 11:00:00`, end: `${day} 12:00:00` });
+    expect(moved.ok, `helper booking moved (${JSON.stringify(moved)})`).toBe(true);
+    expect(db.rows(`SELECT follows_lead, schedule_start FROM mit_ticket_techs WHERE ticket_id = ${made.ticketId} AND user_id = 2`), 'the helper on their own time')
+        .toEqual([{ follows_lead: '0', schedule_start: `${day} 11:00:00` }]);
+    expect(db.value(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${made.ticketId}`), "the lead's booking stays").toBe(`${day} 09:00:00`);
+    // Back with the lead for the tests after this one
+    db.run(`UPDATE mit_ticket_techs SET follows_lead = 1, schedule_start = NULL, schedule_end = NULL WHERE ticket_id = ${made.ticketId} AND user_id = 2`);
     await expectClean(page, errors);
 });
 
@@ -79,6 +92,8 @@ test('helpers: the technician sees it as theirs ("Mine", Helping badge)', async 
         const row = page.locator('tr', { has: page.locator(`a[href*="ticket_id=${made.ticketId}"]`) }).first();
         await expect(row, 'in the helper\'s own tickets').toBeVisible();
         await expect(row.locator('.badge', { hasText: 'Helping' }), 'with the Helping badge').toHaveCount(1);
+        await visit(page, `agent/tickets.php?view=kanban&show=mine&q=${encodeURIComponent(made.ref.replace(/^\D+/, ''))}`);
+        await expect(page.locator(`article[data-ticket-id="${made.ticketId}"] .badge:has(.fa-user-friends)`), 'and on the kanban card').toHaveCount(1);
     } finally {
         await context.close();
     }
@@ -133,6 +148,62 @@ test('helpers: a client move takes off a helper who cannot see the new client', 
         made.clientId = made.client2Id;
     } finally {
         db.run(`DELETE FROM user_client_permissions WHERE user_id = 2 AND client_id = ${made.client2Id}`);
+    }
+});
+
+test('helpers: a booked ticket given a new lead in the Schedule window - the old lead\'s invite is cancelled', async ({ page }) => {
+    test.skip(!made.ticketId, 'no ticket');
+    // The technician leads (their Outlook is not synced, so the cancellation comes by email), then the admin takes over
+    const day = tomorrow();
+    db.run(`UPDATE tickets SET ticket_assigned_to = 2 WHERE ticket_id = ${made.ticketId}`);
+    await visit(page, ticketPage());
+    let modal = await openModal(page, `modals/ticket/ticket_edit_schedule.php?ticket_id=${made.ticketId}`);
+    await fillForm(modal, { scheduled_date_time: `${day}T15:00`, schedule_minutes: '60', onsite: '0' });
+    await submit(modal, 'edit_ticket_schedule');
+    const before = mails('tech@test.test', `Ticket Schedule Cancelled - [${made.ref}]%`).length;
+    modal = await openModal(page, `modals/ticket/ticket_edit_schedule.php?ticket_id=${made.ticketId}`);
+    await fillForm(modal, { schedule_tech: '1', scheduled_date_time: `${day}T15:00`, schedule_minutes: '60', onsite: '0' });
+    await submit(modal, 'edit_ticket_schedule');
+    expect(db.value(`SELECT ticket_assigned_to FROM tickets WHERE ticket_id = ${made.ticketId}`), await flash(page)).toBe('1');
+    expect(mails('tech@test.test', `Ticket Schedule Cancelled - [${made.ref}]%`).length, "the old lead's invite cancelled").toBe(before + 1);
+});
+
+test("helpers: the contact's reply in the portal is copied to the helper", async ({ page, browser }) => {
+    test.skip(!made.ticketId, 'no ticket');
+    const contactId = db.value(`SELECT contact_id FROM contacts WHERE contact_client_id = ${made.clientId} LIMIT 1`);
+    const email = db.value(`SELECT contact_email FROM contacts WHERE contact_id = ${contactId}`);
+    const password = 'Smoke-Helper-portal-6620';
+    await visit(page, `agent/contacts.php?client_id=${made.clientId}`);
+    let modal = await openModal(page, `modals/contact/contact_edit.php?id=${contactId}`, 'lg');
+    test.skip(await modal.locator('select[name=auth_method]').count() === 0, 'the client portal is off on this install');
+    await fillForm(modal, { auth_method: 'local', contact_password: password });
+    await submit(modal, 'edit_contact');
+    db.run(`UPDATE tickets SET ticket_contact_id = ${contactId}, ticket_assigned_to = 1 WHERE ticket_id = ${made.ticketId}`);
+    await visit(page, ticketPage());
+    modal = await openModal(page, `modals/ticket/mit_ticket_tech.php?ticket_id=${made.ticketId}`);
+    await fillForm(modal, { user_id: '2', tech_mode: 'none' });
+    await submit(modal, 'mit_save_ticket_tech');
+    expect(db.value(`SELECT COUNT(*) FROM mit_ticket_techs WHERE ticket_id = ${made.ticketId} AND user_id = 2`), await flash(page)).toBe('1');
+
+    const use = test.info().project.use;
+    const context = await browser.newContext({ baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors, storageState: { cookies: [], origins: [] } });
+    try {
+        const portal = await context.newPage();
+        await portal.goto('login.php');
+        await portal.fill('input[name=email]', email);
+        await portal.fill('input[name=password]', password);
+        await Promise.all([portal.waitForNavigation(), portal.click('button[name=login]')]);
+        await portal.goto(`client/ticket.php?id=${made.ticketId}`);
+        const before = mails('tech@test.test', `%[${made.ref}]%`).length;
+        const csrf = await portal.locator('input[name=csrf_token]').first().inputValue();
+        await portal.evaluate(async (body) => {
+            await fetch('/client/post.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(body) });
+        }, { add_ticket_comment: '1', csrf_token: csrf, ticket_id: String(made.ticketId), comment: '<p>Smoke helper portal reply</p>' });
+        expect(db.value(`SELECT COUNT(*) FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketId} AND ticket_reply LIKE '%Smoke helper portal reply%'`), 'the reply was added').toBe('1');
+        expect(mails('tech@test.test', `%[${made.ref}]%`).length, 'a copy to the helper').toBe(before + 1);
+    } finally {
+        await context.close();
+        db.run(`DELETE u FROM users u JOIN contacts c ON c.contact_user_id = u.user_id WHERE c.contact_id = ${contactId}`);
     }
 });
 

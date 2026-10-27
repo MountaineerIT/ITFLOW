@@ -7,13 +7,15 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, getJson, expectClean } = require('./helpers');
+const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, getJson, expectClean, csrf } = require('./helpers');
+const db = require('./mitdb');
 
 const techState = path.join(__dirname, '.auth', 'tech.json');
 test.skip(!fs.existsSync(techState), 'no ITFLOW_TECH_EMAIL / ITFLOW_TECH_PASSWORD given');
 test.describe.configure({ mode: 'serial' });
 
-const made = { clientName: smokeName('client'), clientId: 0, roleId: 0, restore: null, hidden: 0, shown: 0, tickets: {} };
+const made = { clientName: smokeName('client'), clientId: 0, roleId: 0, restore: null, hidden: 0, shown: 0, tickets: {}, newRole: smokeName('role') };
+const m034 = () => db.val("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mit_role_board_access'") === '1';
 
 async function techPage(browser) {
     const use = test.info().project.use;
@@ -73,7 +75,8 @@ test('board roles: limit the Technician role to one board', async ({ page }) => 
     expect(made.roleId).toBeGreaterThan(0);
 
     const { values } = await roleBoards(page, made.roleId);
-    test.skip(!values.present, 'needs database update M034');
+    test.skip(!m034(), 'needs database update M034');
+    expect(values.present, 'the Service boards section on Admin > Roles > Edit').toBe(true);
     made.restore = values;
     await setRoleBoards(page, made.roleId, false, [made.shown]);
     const after = (await roleBoards(page, made.roleId)).values;
@@ -96,6 +99,9 @@ test('board roles: limit the Technician role to one board', async ({ page }) => 
     made.tickets.plain = await addTicket(page, 'ticket hidden', { mit_board: made.hidden });
     made.tickets.assigned = await addTicket(page, 'ticket assigned', { mit_board: made.hidden, assigned_to: userId });
     made.tickets.escalated = await addTicket(page, 'ticket escalated', { mit_board: made.shown });
+    // One on the hidden board assigned to someone else (the admin) - not on the technician's To schedule list either
+    const admin = Number(db.val(`SELECT user_id FROM users WHERE user_id <> ${userId} AND user_type = 1 AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_id LIMIT 1`));
+    made.tickets.othersHidden = await addTicket(page, 'ticket others hidden', { mit_board: made.hidden, assigned_to: String(admin) });
     await expectClean(page, errors);
 });
 
@@ -123,6 +129,12 @@ test('board roles: the technician sees only their boards and their own tickets',
     await visit(page, `agent/tickets.php?board=${made.hidden}&client_id=${made.clientId}`, errors);
     expect(await listed(), 'asking for the hidden board by address does not show it').not.toContain(ids.plain);
 
+    // The calendar's To schedule list on Everyone (agent/ajax.php calendar_unscheduled)
+    const unscheduled = await getJson(page, `/agent/ajax.php?calendar_unscheduled&user_id=0&client_id=${made.clientId}`);
+    const toSchedule = (unscheduled.tickets || []).map((t) => Number(t.ticket_id || t.id));
+    expect(toSchedule, 'their own assigned ticket is on To schedule').toContain(ids.assigned);
+    expect(toSchedule, "someone else's on a hidden board is not").not.toContain(ids.othersHidden);
+
     await visit(page, `agent/global_search.php?query=${encodeURIComponent(smokeName('ticket hidden').replace(/ \d+$/, ''))}`, errors);
     found = await listed();
     expect(found, 'not in global search').not.toContain(ids.plain);
@@ -149,7 +161,29 @@ test('board roles: the technician sees only their boards and their own tickets',
     expect(await adminPage.locator(`a[href*="ticket_id=${ids.plain}"]`).count(), 'the admin still sees the hidden board').toBeGreaterThan(0);
 });
 
+test('board roles: a new role is saved with the boards ticked on Admin > Roles > New', async ({ page }) => {
+    test.skip(!made.shown || !m034(), 'not set up');
+    const errors = watch(page);
+    await visit(page, 'admin/roles.php', errors);
+    const modal = await openModal(page, 'modals/role/role_add.php', 'lg');
+    await expect(modal.locator('[name=mit_boards_present]'), 'the Service boards section on New role').toHaveCount(1);
+    await fillForm(modal, { name: made.newRole, description: 'Smoke test' });
+    await modal.evaluate((root, shown) => {
+        const s = root.querySelector('[name=mit_boards_all]');
+        s.checked = false;
+        s.dispatchEvent(new Event('change'));
+        root.querySelectorAll('[name="mit_boards[]"]').forEach((c) => { c.checked = c.value === shown; });
+    }, String(made.shown));
+    await submit(modal, 'add_role');
+    const role = Number(db.val(`SELECT role_id FROM user_roles WHERE role_name = ${db.q(made.newRole)}`) || 0);
+    expect(role, `the role was added (${await flash(page)})`).toBeGreaterThan(0);
+    expect(db.val(`SELECT limited FROM mit_role_board_access WHERE role_id = ${role}`), 'saved as limited').toBe('1');
+    expect(db.rows(`SELECT board_id FROM mit_role_boards WHERE role_id = ${role}`).map((r) => Number(r.board_id)), 'with the one board').toEqual([Number(made.shown)]);
+    await expectClean(page, errors);
+});
+
 test.afterAll(async ({ browser }) => {
+    db.exec(`DELETE FROM user_roles WHERE role_name = ${db.q(made.newRole)}`);
     const use = test.info().project.use;
     const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
     const page = await context.newPage();
