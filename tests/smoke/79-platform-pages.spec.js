@@ -52,3 +52,11 @@ test('the calendar loads its script with a version in the address', async ({ pag
     const src = await page.locator('script[src*="/agent/js/calendar.js"]').getAttribute('src');
     expect(src, 'calendar.js?v=<file time>').toMatch(/calendar\.js\?v=\d+/);
 });
+
+test('our settings pages keep Admin > SETTINGS open, and Account has its Outlook calendar entry', async ({ page }) => {
+    const errors = watch(page);
+    await visit(page, 'admin/mit_boards.php', errors);
+    await expect(page.locator('.app-sidebar li.nav-item.menu-open:has(> a p:text("SETTINGS"))'), 'SETTINGS open on Admin > Settings > Boards').toHaveCount(1);
+    await visit(page, 'agent/user/user_details.php', errors);
+    await expect(page.locator('a[href="/agent/user/mit_outlook.php"]'), 'Account > Outlook calendar').toHaveCount(1);
+});

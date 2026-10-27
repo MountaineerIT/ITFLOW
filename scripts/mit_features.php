@@ -143,7 +143,7 @@ return [
     'ticket_techs' => [
         'name' => 'Additional techs (helpers) on tickets',
         'files' => ['functions/mit_ticket_techs.php', 'agent/modals/ticket/mit_ticket_tech.php', 'agent/post/mit_ticket_techs.php'],
-        'tests' => ['tests/smoke/42-helpers.spec.js', 'tests/scenarios/scenario-helpers.php', 'tests/scenarios/scenario-parser-boards.php'],
+        'tests' => ['tests/smoke/42-helpers.spec.js', 'tests/scenarios/scenario-helpers.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/scenarios/scenario-helper-views.php'],
         'assumes' => [
             'tickets.ticket_assigned_to is the one lead; ticketChangeAssignee changes it (four paths, none hooked - mitTicketTechsTidy on read).',
             'Assignee reply copies hang off ticketMailAssigneeReplied (parser, client/post.php).',

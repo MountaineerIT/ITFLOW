@@ -234,7 +234,8 @@ test('calendar: the 7 days view moves a day at a time, so a weekend can be cross
     // style (is-daygrid) means the view is not seen as a time grid (agent/js/calendar.js checks the name starts with timeGrid)
     expect(await page.locator('.itflow-cal-event.is-daygrid').evaluateAll((els) => els.filter((e) => /\d:\d\d/.test(e.textContent)).length),
         'timed entries drawn as time-grid blocks').toBe(0);
-    // Remembered like the other views: back on 7 dated days (from today)
+    // Remembered like the other views: back on 7 dated days (from today) - once the account has it (saved 0.8 s after a change)
+    await page.waitForResponse((r) => r.url().includes('ajax.php') && r.request().method() === 'POST' && (r.request().postData() || '').includes('mit_calendar_state'), { timeout: 5000 }).catch(() => {});
     await page.reload();
     await expect.poll(async () => (await days()).length, 'still 7 days after a reload').toBe(7);
     expect((await days())[0], 'dated days, not month names').toMatch(/\d/);

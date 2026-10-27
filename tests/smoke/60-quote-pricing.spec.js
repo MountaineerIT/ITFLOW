@@ -139,6 +139,12 @@ test('quote -> invoice: "Send to procurement" orders a tracked product with none
     // The invoice page shows the line as waiting to order
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
     await expect(page.locator('body')).toContainText('Waiting to order');
+    // Once neither can be edited (the quote accepted, the invoice sent), staff still see our notes on the lines
+    db.exec(`UPDATE invoices SET invoice_status = 'Sent' WHERE invoice_id = ${invoiceId}`);
+    await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
+    await expect(page.locator('body'), 'a sent invoice still shows the line waiting to order').toContainText('Waiting to order');
+    await visit(page, quotePage(), errors);
+    await expect(page.locator('[data-mit-line-cost]').first(), 'an accepted quote still shows our cost to staff').toBeVisible();
 });
 
 test('product picture: uploaded on the product, copied onto a new quote line from it, removed with it', async ({ page }) => {

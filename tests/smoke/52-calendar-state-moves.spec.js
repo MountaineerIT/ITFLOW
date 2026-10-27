@@ -70,6 +70,9 @@ test('calendar: 7 days, Whose and a source are saved to the account and come bac
     await expect(ev).toHaveCount(1);
     await expect(ev.locator('.mit-cal-agent')).toHaveText(techFirst);
     expect(await ev.getAttribute('data-mit-agent'), 'agent colour bar').not.toBeNull();
+    await expect(ev.locator('.mit-tech-dot'), 'a block has the bar, not a dot as well').toHaveCount(0);
+    // Whose: each agent with their calendar colour (functions/mit_calendar.php mitAgentColor)
+    expect(await page.locator(`#calendarAgent option[value="${techId}"]`).getAttribute('data-color'), 'the tech\'s colour in Whose').toMatch(/^#[0-9a-f]{3,8}$/i);
     expect(today).toBeTruthy();
     await expectClean(page, errors);
 });

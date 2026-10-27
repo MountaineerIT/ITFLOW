@@ -35,7 +35,8 @@ test('Admin > Mail: our app card, its certificate marker kept on save, Connect a
 
     // Test receiving: through Microsoft Graph, the way the mail parser reads the mailbox (not ITFlow's IMAP test)
     const imap = await db.pagePost(page, '/admin/post.php', { csrf_token: token, tab: 'oauth', test_email_imap: '1' });
-    expect(imap.text, 'the mailbox test went through Graph').toContain('Microsoft Graph');
+    // (the page's own app card also names Microsoft Graph, so look for the test's message itself)
+    expect(imap.text, 'the mailbox test went through Graph').toMatch(/Connected through Microsoft Graph to|Microsoft Graph mailbox test failed/);
     // Test the token: ITFlow's own refresh, signed with our certificate (the stand-in refuses the placeholder secret)
     const usesStandIn = db.php("echo defined('MICROSOFT_OAUTH_BASE_URL') && strpos(MICROSOFT_OAUTH_BASE_URL, '127.0.0.1') !== false ? 1 : 0;").trim() === '1';
     if (usesStandIn) {

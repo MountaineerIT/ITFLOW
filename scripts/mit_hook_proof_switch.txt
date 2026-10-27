@@ -28,7 +28,6 @@ agent/user/includes/user_side_nav.php | 'mit_outlook.php' => ['fa-calendar-alt',
 api/v1/enforce_api_rbac.php | 'mit_usage'     => 'module_sales', | (nothing)
 api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products WHERE | "SELECT * FROM products WHERE
 api/v1/products/read.php | "SELECT " . mitProductApiColumns() . " FROM products ORDER BY | "SELECT * FROM products ORDER BY
-client/includes/footer.php | <script src="/js/mit_portal_tables.js"></script> | (nothing)
 cron/nightly_tasks.php | recurring_ticket_start_date" . mitRecurringTicketByDayColumn() . " -- | recurring_ticket_start_date --
 functions/app.php | 'end' => mitTicketScheduleEnd($datetime, $end), | 'end' => $end ?: date('Y-m-d H:i:s', strtotime($datetime) + 3600),
 functions/calendar.php | $text .= ' on ' . mitByDayText($row['event_repeat_by_day']) | $text .= ''

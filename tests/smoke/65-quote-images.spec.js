@@ -182,3 +182,25 @@ test('a client deleted (from ITFlow or through the API) takes its quotes\' pictu
     expect(Number(db.val(`SELECT COUNT(*) FROM clients WHERE client_id = ${viaApi}`)), `client deleted through the API (${answer.status} ${answer.text.slice(0, 200)})`).toBe(0);
     expect(exists(apiImage), "its quote's picture went").toBe(false);
 });
+
+test('the products API never gives out our cost', async ({ page }) => {
+    const id = product(null);
+    db.exec(`UPDATE products SET product_cost = 123.45 WHERE product_id = ${id}`);
+    const secret = crypto.randomBytes(16).toString('hex');
+    const key = db.insert(`INSERT INTO api_keys SET api_key_name = ${db.q(made.name + ' api')}, api_key_secret = ${db.q(secret)}, api_key_decrypt_hash = '',
+        api_key_expire = DATE_ADD(CURDATE(), INTERVAL 1 DAY), api_key_user_id = 1`);
+    try {
+        await visit(page, 'agent/products.php');
+        const answers = await page.evaluate(async ({ secret, id }) => {
+            const get = (q) => fetch(`/api/v1/products/read.php?${q}`, { headers: { 'X-API-Key': secret } }).then((r) => r.text());
+            return [await get(`product_id=${id}`), await get('limit=1000')];
+        }, { secret, id });
+        for (const text of answers) {
+            expect(text, 'the product is in the answer').toContain(made.name);
+            expect(text, 'no cost field').not.toContain('product_cost');
+            expect(text, 'no cost value').not.toContain('123.45');
+        }
+    } finally {
+        db.exec(`DELETE FROM api_keys WHERE api_key_id = ${key}`);
+    }
+});

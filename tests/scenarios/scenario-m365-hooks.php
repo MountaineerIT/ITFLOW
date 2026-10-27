@@ -23,6 +23,14 @@ scenarioCheck('httpFormPost: the certificate signs the token request (' . substr
 // 2. The calendar's sources include Outlook busy times
 scenarioCheck('calendarSources offers Outlook busy times', array_key_exists('outlook_busy', calendarSources()), true);
 
+// 2b. The calendar's Outlook busy times source reads what the sync copied
+$busy_day = date('Y-m-d', strtotime('+2 days'));
+mysqli_query($mysqli, "INSERT INTO mit_outlook_busy SET user_id = 1, starts_at = '$busy_day 09:00:00', ends_at = '$busy_day 10:00:00', subject = 'ZZ busy', show_as = 'busy'");
+$busy_id = mysqli_insert_id($mysqli);
+$busy = calendarSourceItems('outlook_busy', "$busy_day 00:00:00", "$busy_day 23:59:59", ['user_id' => 1]);
+scenarioCheck('the Outlook busy times source shows the copied busy time', count($busy) >= 1, true);
+mysqli_query($mysqli, "DELETE FROM mit_outlook_busy WHERE busy_id = $busy_id");
+
 // 3. A booking email to an agent whose Outlook is synced carries no .ics
 $synced = '';
 foreach (scenarioColumn("SELECT user_email FROM users WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL") as $email) {

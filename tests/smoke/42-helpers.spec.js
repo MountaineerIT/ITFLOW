@@ -92,6 +92,9 @@ test('helpers: the technician sees it as theirs ("Mine", Helping badge)', async 
         const row = page.locator('tr', { has: page.locator(`a[href*="ticket_id=${made.ticketId}"]`) }).first();
         await expect(row, 'in the helper\'s own tickets').toBeVisible();
         await expect(row.locator('.badge', { hasText: 'Helping' }), 'with the Helping badge').toHaveCount(1);
+        // ... and on the Tickets list's "Assigned to" filter for them
+        await visit(page, `agent/tickets.php?assigned=2&q=${encodeURIComponent(made.ref.replace(/^\D+/, ''))}`);
+        await expect(page.locator(`a[href*="ticket_id=${made.ticketId}"]`).first(), 'listed under Assigned to the helper').toBeVisible();
         await visit(page, `agent/tickets.php?view=kanban&show=mine&q=${encodeURIComponent(made.ref.replace(/^\D+/, ''))}`);
         await expect(page.locator(`article[data-ticket-id="${made.ticketId}"] .badge:has(.fa-user-friends)`), 'and on the kanban card').toHaveCount(1);
     } finally {
@@ -166,6 +169,25 @@ test('helpers: a booked ticket given a new lead in the Schedule window - the old
     await submit(modal, 'edit_ticket_schedule');
     expect(db.value(`SELECT ticket_assigned_to FROM tickets WHERE ticket_id = ${made.ticketId}`), await flash(page)).toBe('1');
     expect(mails('tech@test.test', `Ticket Schedule Cancelled - [${made.ref}]%`).length, "the old lead's invite cancelled").toBe(before + 1);
+});
+
+test('the Schedule window: an agent who cannot see the client is not offered, nor taken if sent', async ({ page }) => {
+    test.skip(!made.ticketId, 'no ticket');
+    db.run(`UPDATE tickets SET ticket_assigned_to = 1 WHERE ticket_id = ${made.ticketId}`);
+    db.run(`INSERT INTO user_client_permissions SET user_id = 2, client_id = ${made.clientId}, permission_type = 'deny'`);
+    try {
+        await visit(page, ticketPage());
+        const modal = await openModal(page, `modals/ticket/ticket_edit_schedule.php?ticket_id=${made.ticketId}`);
+        await expect(modal.locator('select[name=schedule_tech] option[value="2"]'), 'the technician (no access to this client) not offered').toHaveCount(0);
+        await page.keyboard.press('Escape');
+        const csrf = await page.locator('input[name=csrf_token]').first().inputValue();
+        await page.evaluate(async (body) => {
+            await fetch('/agent/post.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(body) });
+        }, { edit_ticket_schedule: '1', csrf_token: csrf, ticket_id: String(made.ticketId), schedule_tech: '2', scheduled_date_time: `${tomorrow()}T16:00`, schedule_minutes: '60', onsite: '0' });
+        expect(db.value(`SELECT ticket_assigned_to FROM tickets WHERE ticket_id = ${made.ticketId}`), 'not given to them').toBe('1');
+    } finally {
+        db.run(`DELETE FROM user_client_permissions WHERE user_id = 2 AND client_id = ${made.clientId}`);
+    }
 });
 
 test("helpers: the contact's reply in the portal is copied to the helper", async ({ page, browser }) => {
