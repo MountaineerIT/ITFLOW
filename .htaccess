@@ -1,7 +1,7 @@
 # Prevent access to .git, .github, and config.php
 RedirectMatch 401 ^/(\.git|\.github|config\.php)
-# Mountaineer IT: our notes (CLAUDE.md, DEPLOYMENT.md, MIT_CHANGELOG.md) map the code - not served
-RedirectMatch 404 ^/(CLAUDE|DEPLOYMENT|MIT_CHANGELOG)\.md$
+# Mountaineer IT: our notes (CLAUDE.md, DEPLOYMENT.md, MIT_CHANGELOG.md, MIT_FEATURES.md) map the code - not served
+RedirectMatch 404 ^/(CLAUDE|DEPLOYMENT|MIT_CHANGELOG|MIT_FEATURES)\.md$
 # ... nor a PDF left in the top folder (e.g. a write-up of our changes) - ITFlow serves none from there
 RedirectMatch 404 ^/[^/]+\.pdf$
 # Mountaineer IT: security headers on every response - no type sniffing, the address kept to this site, no framing by

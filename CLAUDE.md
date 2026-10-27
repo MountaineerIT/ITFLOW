@@ -70,6 +70,18 @@ model: see DEPLOYMENT.md.
   Our cron jobs (`cron/mit_*.php`, all but mit_consistency) stop quietly while `mitDbReady()` (mit_common: mit_settings and
   mit_database_updates exist) is false - the minutes after an install or a restore before our updates run - instead of failing
   ("Table mit_settings doesn't exist"); the consistency check FAILs if that lasts. A new cron job of ours gets the same guard.
+- **Feature map and early warning (Oct 27, 26.10.166 - after the Oct 25 merge cost 30 fix versions):** `scripts/mit_features.php` lists every
+  feature of ours - its files, tests, what it takes for granted about ITFlow (`assumes`), ITFlow strings it depends on (`watch`), hook names
+  no file of ours mentions (`claims`) and words for "ITFlow does this too" (`overlap`). `php scripts/mit_feature_map.php` works out the rest
+  from the code (`scripts/mit_feature_lib.php`: ITFlow functions each feature calls, tables / columns it names, ITFlow files carrying its hooks,
+  page ids / itflow- / app- classes its scripts and styles use) and writes `MIT_FEATURES.md` - commit it with the change; `--check` (in
+  mit_verify.sh) fails when a file of ours is in no feature, a test glob finds nothing, a watched string left ITFlow or the file is stale. A
+  new file of ours goes into the map in the same change. `php scripts/mit_upstream_impact.php [--fetch] [--to=<tag|upstream/develop>]
+  [--out=file.md]` (read only; trial merge by `git merge-tree`) says per feature what an ITFlow update touches: functions it calls removed /
+  re-signed / changed, its tables / columns changed, its hooked files changed or conflicting, watched strings / page ids gone, ITFlow's new
+  names that overlap it (ours-or-theirs decision) and **name clashes** - a new ITFlow column / table named like one our database updates use
+  (`mfOurSchemaNames`, as 2.9.4's product_cost). Run it weekly on upstream/develop (early warning - report to the user, merge nothing) and
+  before every merge; `tests/scenarios/scenario-impact-report.php` proves it still catches the Oct 25 problems.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
@@ -82,6 +94,8 @@ model: see DEPLOYMENT.md.
   (`getRepoBranch`), `admin/update.php` (release-branch badge), `setup/index.php` and
   `scripts/setup_cli.php` (default `$repo_branch`).
 - `scripts/mit_ai_wall_check.php` (the AI helper's password wall - see Rules) - ours.
+- `scripts/mit_features.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_upstream_impact.php`, `MIT_FEATURES.md`
+  (feature map and early warning - see Rules) - ours; `.htaccess`'s 404 line also covers MIT_FEATURES.md.
 - `scripts/mit_hook_check.php` + `scripts/mit_hooks.txt`, `scripts/mit_consistency_check.php` + `functions/mit_consistency.php` +
   `cron/mit_consistency.php` (one entry in `includes/cron_jobs.php`), `scripts/mit_verify.sh` - ours (see Rules, Cross-checks).
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
@@ -1367,11 +1381,14 @@ model: see DEPLOYMENT.md.
    (procurement), mileage pay-back (reimbursements) and Unbilled Time (next to Unbilled Parts). A trial merge then
    had 24 conflicting files. Upstream also rebuilt parts of its API (roles, API keys): re-apply `mitProductApiColumns()` in
    `api/v1/products/read.php` and recheck the API against our features (our cost never in it).
-3. Summarise for the user: version, notable features/fixes, new files in
-   `admin/database_updates/` (DB version change), anything touching our deviations above.
+3. `php scripts/mit_upstream_impact.php --to=<tag> --out=<scratchpad>/impact.md` and summarise for the user: version, notable
+   features/fixes, new files in `admin/database_updates/` (DB version change), every name clash (plan the move before merging), every
+   overlap (agree ours or theirs with the user before merging), and per feature what it touches. Each "Act on" line gets a decision
+   or a fix; each feature it names gets its tests run and is used end to end after the merge (the functional pass).
 4. On `develop`, `git merge <tag>`, resolve conflicts keeping our deviations, run `php scripts/mit_hook_check.php` (put back any
-   hook it reports gone), update the test install's database, then `sh scripts/mit_verify.sh` (syntax, hooks, consistency,
-   portability, smoke tests), then ask the user before pushing to `develop`.
+   hook it reports gone), update the test install's database, then `sh scripts/mit_verify.sh` (syntax, hooks, feature map,
+   consistency, portability, scenarios, smoke tests), then the functional pass for the features the report named, then ask the
+   user before pushing to `develop`.
 
 ## "Promote to production"
 Open a PR `develop` → `MountaineerIT` listing what's included and any DB updates, plus the

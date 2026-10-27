@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.166 - 2026-10-27
+- Feature map (MIT_FEATURES.md): every feature of ours with the tests that prove it, what it takes for granted about ITFlow, and what it uses of ITFlow's code (functions, tables and columns, the ITFlow files carrying its hooks, page elements its scripts use) - worked out from the code and checked on every verify run.
+- Early-warning report for ITFlow updates (scripts/mit_upstream_impact.php): before anything is merged, it says which of our features an ITFlow update touches and how - functions we call that changed, columns we use, hooked files that changed or won't merge, page elements that are gone, ITFlow adding something we already do, and new ITFlow columns named like ours (the "Duplicate column" that stuck beta on Oct 25). Run on the Oct 25 update, it names the product cost clash, ITFlow's reimbursements, stock tracking and markup.
+
 ## 26.10.165 - 2026-10-26
 - Emails: the company logo now travels inside each email instead of being linked from the server, so it shows in every mail app - it showed as a broken image wherever the reader couldn't reach the ITFlow server (a test server, one behind a VPN or without HTTPS) or images from the web were blocked. Calendar invitations keep the link (they can't carry the image and still open as a meeting).
 - Purchase order PDFs find the logo by its file, so it is there when a PO is emailed from a scheduled job too.

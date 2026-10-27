@@ -2,6 +2,7 @@
 # Our names in ITFlow's files (file, name, times used) and our own files. Update it after a deliberate change, never to
 # make a failing check pass after a merge without finding out why the hook went.
 hook	.htaccess	MIT_CHANGELOG	2
+hook	.htaccess	MIT_FEATURES	2
 hook	admin/backup.php	mitRestoreRowButton	3
 hook	admin/backup.php	mit_restore_card	1
 hook	admin/cron.php	mit_cron_card	1
@@ -659,5 +660,9 @@ ours	mit_health.php
 ours	scripts/mit_ai_embed_worker.php
 ours	scripts/mit_ai_wall_check.php
 ours	scripts/mit_consistency_check.php
+ours	scripts/mit_feature_lib.php
+ours	scripts/mit_feature_map.php
+ours	scripts/mit_features.php
 ours	scripts/mit_hook_check.php
 ours	scripts/mit_portability_check.php
+ours	scripts/mit_upstream_impact.php
