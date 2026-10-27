@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.178 - 2026-10-27
+- ITFlow's latest work pulled in (database 3.4.9): new asset types - NAS, UPS, PDU, Modem/ONT and NVR/DVR - each with its own details (a switch's ports, a UPS's battery...), and "Do it later" / "Skip all" on the Get started checklist.
+- Every check passed after it; nothing of ours needed changing.
+
 ## 26.10.177 - 2026-10-27
 - Admin > Settings > Mail: with Microsoft 365 picked for sending or receiving, our Microsoft 365 app is now the OAuth tab's "The app" section, right above "Connecting the mailbox" - no client ID, secret or tenant to type, and no redirect address to register. "Use your own app with a client secret instead" still brings ITFlow's own fields back. With Google picked the page is ITFlow's as before.
 

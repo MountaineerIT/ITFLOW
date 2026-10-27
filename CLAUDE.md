@@ -1363,6 +1363,8 @@ model: see DEPLOYMENT.md.
   pickers now close on a click into an iframe (`itflowDismissPopups`) - our To / Notify script's frame-focus close is kept (harmless).
   Security sweep conflicts (API asset / contact models, link_contact_to_asset) taken as ITFlow's (`assetClientOwnedId` - a vendor must be
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
+- Upstream develop merged again (Oct 27, 26.10.178 - 2 commits, ITFlow DB 3.4.8 -> 3.4.9: `asset_specs` + `functions/asset_type.php` asset
+  types registry, Get started skip buttons). Impact report: 0 to act on, no clash; clean merge, all hooks kept, mit_verify.sh passed.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
