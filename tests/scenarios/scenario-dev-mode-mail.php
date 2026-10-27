@@ -118,7 +118,13 @@ try {
                 $unread = empty($m['isRead']);
             }
         }
-        scenarioCheck("the mail parser reads nothing ($out)", $unread, true);
+        // (development mode also stops the parser marking mail read, so what counts is that no ticket was made from it)
+        $made = scenarioColumn("SELECT ticket_id FROM tickets WHERE ticket_subject = '" . escapeSql("$tag parser") . "'");
+        foreach ($made as $made_id) {
+            $GLOBALS['scenario_tickets'][] = intval($made_id);
+        }
+        scenarioCheck("the mail parser takes nothing in ($out)", count($made), 0);
+        scenarioCheck('... and the email is still unread', $unread, true);
         $edit(function ($s) use ($id) {
             $s['mail'] = array_values(array_filter($s['mail'] ?? [], function ($m) use ($id) { return $m['id'] !== $id; }));
             return $s;

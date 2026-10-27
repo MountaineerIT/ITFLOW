@@ -333,7 +333,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Attendee agents (calendar_event_attendees.attendee_user_id) are an entry's assignment.
 - Holidays are business_holidays (Admin > SLA closure days).
 
-**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`
+**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`
 
 **Hooks in ITFlow's files**
 

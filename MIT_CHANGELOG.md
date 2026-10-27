@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.169 - 2026-10-27
+- More checks that our parts of ITFlow's pages and functions really work: Microsoft 365 mail sign-in and Admin > Mail with our app, Outlook busy times on the calendar, booking emails without the invite for agents whose Outlook is synced, development mode keeping the mail parser, AI triage, log forwarding and custom actions off, service boards by role on the client overview, dashboard and search, "the 2nd Tuesday" rules on the client overview and dashboard (and after moving recurring tickets' next run in bulk), the notification switches, the NinjaOne and MSP Align buttons in an asset's window, and the QuickBooks lock on deleting a client through the API.
+- No change to how ITFlow works.
+
 ## 26.10.168 - 2026-10-27
 - Fixed: in a recurring ticket or calendar entry, choosing "On the 15th" (the same date each month) again after a weekday rule like "the third Wednesday" jumped straight back to the weekday rule.
 - New checks that a part of ours on ITFlow's pages is really there and working: quote and product pictures (kept, copied, removed with their line, quote, product or client), the Procurement and Billing menus and a project's Purchase orders card, parts returned to the shelf when a client is deleted, service board tags, Escalate, the role form's boards and the calendar's To schedule list, the portal ending other sign-ins after a password or two-step change, the version and release notes on Admin > Update, the modern look's settings and sign-in screens, the cron warning, helper techs (moves, the old lead's invite cancelled, portal replies copied), projects moving tickets in and out, and every remaining way to change an invoice waiting in a QuickBooks batch.
