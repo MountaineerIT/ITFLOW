@@ -139,10 +139,10 @@ test('quote -> invoice: "Send to procurement" orders a tracked product with none
     // The invoice page shows the line as waiting to order
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
     await expect(page.locator(`#line-${line.item_id}`), 'on the line itself').toContainText('Waiting to order');
-    // Once neither can be edited (the quote accepted, the invoice sent), staff still see our notes on the lines
-    db.exec(`UPDATE invoices SET invoice_status = 'Sent' WHERE invoice_id = ${invoiceId}`);
+    // Once neither can be edited (the quote accepted, the invoice non-billable), staff still see our notes on the lines
+    db.exec(`UPDATE invoices SET invoice_status = 'Non-Billable' WHERE invoice_id = ${invoiceId}`); // lines locked (ITFlow's billingCanEditItems - Sent still edits)
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
-    await expect(page.locator(`#line-${line.item_id}`), 'a sent invoice still shows the line waiting to order').toContainText('Waiting to order');
+    await expect(page.locator(`#line-${line.item_id}`), 'a locked invoice still shows the line waiting to order').toContainText('Waiting to order');
     await visit(page, quotePage(), errors);
     await expect(page.locator('[data-mit-line-cost]').first(), 'an accepted quote still shows our cost to staff').toBeVisible();
 });
