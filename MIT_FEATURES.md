@@ -433,7 +433,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_name, client_id, client_name, company_id, config_enable_cron, config_mail_oauth_access_token, config_mail_oauth_access_token_expires_at, config_mail_oauth_client_id, config_mail_oauth_client_secret, config_mail_oauth_refresh_token, config_mail_oauth_tenant_id, contact_id, contact_location_id, contact_mobile, contact_name, contact_phone, event_id, location_address, location_city, location_id, location_name, location_state, location_zip, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_resolved_at, ticket_schedule, ticket_subject, user_archived_at, user_email, user_id, user_name, user_status
 
-**Watched in ITFlow's code** `httpFormPost` `XOAUTH2` `new Mailbox(` `createiCalStr` `config_mail_oauth_client_secret`
+**Watched in ITFlow's code** `httpFormPost` `XOAUTH2` `new Mailbox(` `createiCalStr` `config_mail_oauth_client_secret` `'oauth-app'` `ms_connect_group` `mailOauthRedirect` `tab-oauth` `oauth_connect_microsoft_mail` `settings:reset`
 
 **"ITFlow does this too" words** graph, outlook, m365, microsoft
 

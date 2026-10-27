@@ -4,7 +4,7 @@
 // consent. The OAuth settings are put back exactly as they were; the trip to Microsoft is stopped in the browser.
 
 const { test, expect } = require('@playwright/test');
-const { watch, visit, csrf } = require('./helpers');
+const { watch, visit, csrf, expectClean } = require('./helpers');
 const db = require('./mitdb');
 
 const COLS = ['config_mail_oauth_client_id', 'config_mail_oauth_client_secret', 'config_mail_oauth_tenant_id', 'config_mail_oauth_refresh_token',
@@ -57,4 +57,36 @@ test('Admin > Mail: our app card, its certificate marker kept on save, Connect a
     await page.locator('button[name=oauth_connect_microsoft_mail]').first().click();
     await expect.poll(() => authorize, { message: 'went to Microsoft' }).toContain('/oauth2/v2.0/authorize');
     expect(new URL(authorize).searchParams.get('prompt'), 'pick an account, not admin consent').toBe('select_account');
+});
+
+// Our app inside ITFlow's tabs (admin/includes/mit_m365_card.php): with Microsoft 365 picked it is the OAuth tab's "The app" section and
+// ITFlow's client ID / secret / tenant fields and redirect address step aside; "Use a different app instead" brings them back; with
+// Google picked (before saving) ITFlow's fields are back and our card returns to the top (the app still serves Outlook calendars).
+test('Admin > Mail: the app is the OAuth tab\'s first section with Microsoft 365, ITFlow\'s fields with Google', async ({ page }) => {
+    const errors = watch(page);
+    const app = db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'm365_client_id'");
+    test.skip(!app, 'no Microsoft 365 app here');
+    const row = db.one('SELECT config_smtp_provider, config_imap_provider, config_mail_oauth_client_id FROM settings WHERE company_id = 1');
+    test.skip(row.config_mail_oauth_client_id !== app || ![row.config_smtp_provider, row.config_imap_provider].includes('microsoft_oauth'), 'mail is not on our app here');
+
+    await visit(page, 'admin/settings_mail.php?tab=oauth', errors);
+    const ours = page.locator('#tab-oauth #section-mit-m365');
+    await expect(ours, 'our app is the OAuth tab\'s first section').toBeVisible();
+    await expect(ours).toContainText('Replace certificate');
+    await expect(page.locator('#section-oauth-app'), 'ITFlow\'s client ID / secret / tenant step aside').toBeHidden();
+    await expect(page.locator('#mailOauthRedirect'), 'and the redirect address (ours registers it)').toBeHidden();
+    await expect(page.locator('button[name=oauth_connect_microsoft_mail]'), 'Connect stays').toBeVisible();
+
+    await ours.locator('[data-mit-m365-own]').click();
+    await expect(page.locator('#section-oauth-app'), 'Use a different app: ITFlow\'s fields come back').toBeVisible();
+
+    await page.evaluate(() => ['smtp', 'imap'].forEach((s) => {
+        const select = document.getElementById(`config_${s}_provider`);
+        select.value = 'google_oauth';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }));
+    await expect(page.locator('#section-mit-m365'), 'Google: not in the OAuth tab').toHaveCount(0);
+    await expect(page.locator('#section-oauth-app'), 'ITFlow\'s fields for Google').toBeVisible();
+    expect(await page.locator('#mitM365').evaluate((el) => !el.hidden && !el.closest('#tab-oauth')), 'our card back on top (Outlook calendars)').toBe(true);
+    await expectClean(page, errors);
 });

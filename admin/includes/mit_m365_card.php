@@ -20,9 +20,13 @@ $mit_m365_graph_mail = $mit_m365_mailbox_connected && in_array('Mail.Send', $mit
 $mit_m365_graph_unknown = $mit_m365_mailbox_connected && !$mit_m365_graph_scopes;
 $mit_m365_needs_update = $mit_m365_app && intval($mit_m365_app['permissions_version']) < MIT_M365_PERMISSIONS_VERSION;
 $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' && strtotime($mit_m365_app['cert_expires']) < time();
+// Mail signs in with our app, or with an app someone registered by hand ITFlow's way (client secret)
+$mit_m365_mail_on_ours = $mit_m365_app && ($config_mail_oauth_client_id ?? '') === $mit_m365_app['client_id'];
+$mit_m365_mail_on_other = !$mit_m365_mail_on_ours && !empty($config_mail_oauth_client_id);
 ?>
 
-<div class="card card-dark mb-3" id="mitM365">
+<div id="mitM365Home" hidden></div>
+<div class="card card-dark mb-3" id="mitM365" data-mit-app="<?= $mit_m365_app ? '1' : '0' ?>" data-mit-ours="<?= $mit_m365_mail_on_ours ? '1' : '0' ?>" data-mit-other="<?= $mit_m365_mail_on_other ? '1' : '0' ?>">
     <div class="card-header py-3 d-flex align-items-center">
         <h3 class="card-title mb-0"><i class="fab fa-fw fa-microsoft me-2"></i>Microsoft 365</h3>
         <?php if ($mit_m365_app) { ?>
@@ -122,13 +126,17 @@ $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' &
                 </div>
             <?php } ?>
 
+            <?php if ($mit_m365_mail_on_ours) { ?>
+                <div class="small text-body-secondary mb-2" data-mit-m365-ours-note><i class="fas fa-key me-2"></i>Mail signs in with this app - its ID, tenant and
+                    certificate are filled in for you, nothing to copy. <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-mit-m365-own>Use a different app instead</button></div>
+            <?php } ?>
             <?php if ($mit_m365_mailbox_connected) { ?>
                 <?php if ($mit_m365_graph_unknown) { ?>
                     <div class="text-success"><i class="fas fa-check-circle me-2"></i>Mailbox connected - ITFlow checks which way mail goes the next time it sends or receives
                         (or use <strong>Test IMAP</strong> on the <a href="?tab=tests">Tests</a> tab now).</div>
                 <?php } elseif ($mit_m365_graph_mail) { ?>
                     <div class="text-success"><i class="fas fa-check-circle me-2"></i>Mailbox connected - mail is sent and received through Microsoft Graph.
-                        To use a different mailbox, click Connect Microsoft 365 on the <a href="?tab=oauth">OAuth</a> tab again.</div>
+                        To use a different mailbox, click Connect Microsoft 365 under <em>Connecting the mailbox</em> again.</div>
                 <?php } else { ?>
                     <div class="text-success"><i class="fas fa-check-circle me-2"></i>Mailbox connected - mail still goes through SMTP and IMAP, because the app does not have the Mail permissions
                         (<strong>Update permissions</strong> when it is offered above, or add them to the app in Entra).</div>
@@ -139,7 +147,7 @@ $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' &
                     <?php if (!$mit_m365_mail_uses_ms) { ?>
                         On the <a href="?tab=sending">Sending</a> and/or <a href="?tab=receiving">Receiving</a> tab, set the provider to <em>Microsoft 365 (OAuth)</em> and save. Then
                     <?php } ?>
-                    click <strong>Connect Microsoft 365</strong> on the <a href="?tab=oauth">OAuth</a> tab and sign in as that mailbox (for example service@).
+                    click <strong>Connect Microsoft 365</strong> under <em>Connecting the mailbox</em> on the <a href="?tab=oauth">OAuth</a> tab and sign in as that mailbox (for example service@).
                 </div>
             <?php } ?>
 
@@ -151,6 +159,11 @@ $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' &
             </p>
             <button type="button" class="btn btn-primary js-mit-m365-start" data-purpose="create"><i class="fab fa-microsoft me-2"></i>Set up automatically</button>
             <button type="button" class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#mitM365Manual">Set up by hand instead</button>
+            <button type="button" class="btn btn-link" data-mit-m365-own>Use your own app with a client secret instead</button>
+            <?php if ($mit_m365_mail_on_other) { ?>
+                <div class="small text-body-secondary mt-2" data-mit-m365-other-note><i class="fas fa-info-circle me-1"></i>Mail signs in with an app registered by hand
+                    (client ID <code><?= escapeHtml($config_mail_oauth_client_id) ?></code>, below). Setting up automatically replaces it with ITFlow's own app.</div>
+            <?php } ?>
 
             <div class="collapse mt-3" id="mitM365Manual">
                 <div class="border rounded p-3">
@@ -287,6 +300,98 @@ $mit_m365_cert_expired = $mit_m365_app && $mit_m365_app['cert_expires'] !== '' &
                     });
                 }); });
             })();
+            </script>
+
+            <script>
+            // Where the card sits (Admin > Settings > Mail is ITFlow's tabbed settings page): with Microsoft 365 picked for sending or
+            // receiving it is the OAuth tab's first section and stands in for ITFlow's "The app" fields (our app fills them in - its
+            // redirect address is registered too); otherwise it stays on top while the app exists (Outlook calendars use it) and is
+            // hidden when there is none. "Use your own app" brings ITFlow's fields back. Follows the provider pickers before saving.
+            // The card is printed above ITFlow's tabs, so this waits for the page
+            document.addEventListener('DOMContentLoaded', function () {
+                const card = document.getElementById('mitM365');
+                const home = document.getElementById('mitM365Home');
+                const pane = document.getElementById('tab-oauth');
+                if (!card || !home || !pane) {
+                    return;
+                }
+                const form = pane.querySelector('form[data-settings-form]');
+                const appSection = document.getElementById('section-oauth-app');
+                const connect = document.getElementById('ms_connect_group');
+                const redirect = document.getElementById('mailOauthRedirect');
+                const redirectParts = redirect ? [connect && connect.querySelector('label[for="mailOauthRedirect"]'), redirect.closest('.input-group'),
+                    redirect.closest('.input-group') && redirect.closest('.input-group').nextElementSibling] : [];
+                const hasApp = card.dataset.mitApp === '1';
+                const ours = card.dataset.mitOurs === '1';
+                const other = card.dataset.mitOther === '1';
+                let ownApp = false;
+
+                // In the OAuth tab the card's contents go into a section built like ITFlow's own (title and words on the left)
+                const body = card.querySelector(':scope > .card-body');
+                const badge = card.querySelector(':scope > .card-header .badge');
+                const section = document.createElement('section');
+                section.className = 'itflow-settings-section border-bottom';
+                section.id = 'section-mit-m365';
+                section.innerHTML = '<div class="row g-3 g-lg-4"><div class="col-lg-4 itflow-settings-section-about">'
+                    + '<h2 class="h6 fw-semibold mb-1"><i class="fab fa-fw fa-microsoft me-1"></i>The app</h2>'
+                    + '<p class="small text-body-secondary mb-2">ITFlow\'s own app in your Microsoft 365 signs in to the mailbox with a certificate it renews itself - '
+                    + 'no client secret to copy or replace. Staff Outlook calendars connect through it too.</p></div><div class="col-lg-8" data-mit-m365-slot></div></div>';
+                if (badge) {
+                    section.querySelector('.itflow-settings-section-about').appendChild(badge.cloneNode(true)).classList.remove('ms-auto');
+                }
+                const slot = section.querySelector('[data-mit-m365-slot]');
+
+                function picked(server) {
+                    const select = document.getElementById('config_' + server + '_provider');
+                    return select ? select.value : '';
+                }
+                function place() {
+                    const ms = picked('smtp') === 'microsoft_oauth' || picked('imap') === 'microsoft_oauth';
+                    if (ms) {
+                        if (section.parentNode !== pane) {
+                            pane.insertBefore(section, form || pane.firstChild);
+                        }
+                        slot.appendChild(body);
+                        card.hidden = true;
+                    } else {
+                        section.remove();
+                        card.appendChild(body);
+                        card.hidden = !hasApp;
+                    }
+                    // ITFlow's own app fields: shown for Google, for an app registered by hand, or when asked for
+                    const itflowApp = !ms || ownApp || (other && !ours);
+                    if (appSection) {
+                        appSection.hidden = !itflowApp;
+                    }
+                    // The redirect address is for an app registered by hand - ours registers it itself
+                    redirectParts.forEach(function (el) {
+                        if (el) {
+                            el.hidden = !itflowApp;
+                        }
+                    });
+                }
+                card.querySelectorAll('[data-mit-m365-own]').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        ownApp = true;
+                        place();
+                        if (appSection) {
+                            appSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                });
+                ['smtp', 'imap'].forEach(function (server) {
+                    const select = document.getElementById('config_' + server + '_provider');
+                    if (select) {
+                        select.addEventListener('change', place);
+                    }
+                });
+                document.querySelectorAll('form[data-settings-form]').forEach(function (f) {
+                    f.addEventListener('settings:reset', function () {
+                        setTimeout(place, 0);
+                    });
+                });
+                place();
+            });
             </script>
     </div>
 </div>

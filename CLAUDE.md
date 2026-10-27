@@ -265,6 +265,12 @@ model: see DEPLOYMENT.md.
   `admin/post/settings_mail.php` (token test; Connect `prompt` via `mitM365ConnectPrompt` so a
   non-admin mailbox is not sent to the consent screen), `admin/oauth_microsoft_mail_callback.php`. UI:
   `admin/includes/mit_m365_card.php` required at the top of `admin/settings_mail.php`;
+  in ITFlow's tabbed settings page (26.10.177) the card's script (after DOMContentLoaded - it is printed above the tabs) moves its body
+  into a section built like ITFlow's ("The app", `#section-mit-m365`) at the top of `#tab-oauth` whenever Sending or Receiving is set to
+  Microsoft 365 (follows the pickers before saving and `settings:reset`), hiding ITFlow's `#section-oauth-app` (client ID / secret / tenant)
+  and the redirect address in `#ms_connect_group` - "Use your own app with a client secret instead" / "Use a different app instead"
+  (`[data-mit-m365-own]`) brings them back, and they show anyway for an app registered by hand ITFlow's way (`data-mit-other`). Google or
+  no OAuth: the card stays on top while our app exists (Outlook calendars), hidden when there is none. Smoke: second test of `82-m365-mail-settings.spec.js`;
   handlers in `admin/post/mit_m365.php`. Re-apply the hooks if an upstream merge drops them.
   Mail goes through Microsoft Graph (not SMTP/IMAP) once the app has the Mail permissions
   (`MIT_M365_PERMISSIONS_VERSION` 2; older apps get "Update permissions" on the card). Hooks:

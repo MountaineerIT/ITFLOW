@@ -137,7 +137,8 @@ return [
             'cron/mail_queue.php sends one PHPMailer message per email; cron/ticket_email_parser.php reads mail through ImapEngine\'s Mailbox.',
             'Ticket invites are iCal with UID ticket-<id>@ (createiCalStr).',
         ],
-        'watch' => ['httpFormPost', 'XOAUTH2', 'new Mailbox(', 'createiCalStr', 'config_mail_oauth_client_secret'],
+        'watch' => ['httpFormPost', 'XOAUTH2', 'new Mailbox(', 'createiCalStr', 'config_mail_oauth_client_secret',
+            "'oauth-app'", 'ms_connect_group', 'mailOauthRedirect', 'tab-oauth', 'oauth_connect_microsoft_mail', 'settings:reset'],
         'overlap' => ['graph', 'outlook', 'm365', 'microsoft'],
     ],
     'ticket_techs' => [

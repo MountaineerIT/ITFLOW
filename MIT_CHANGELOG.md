@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.177 - 2026-10-27
+- Admin > Settings > Mail: with Microsoft 365 picked for sending or receiving, our Microsoft 365 app is now the OAuth tab's "The app" section, right above "Connecting the mailbox" - no client ID, secret or tenant to type, and no redirect address to register. "Use your own app with a client secret instead" still brings ITFlow's own fields back. With Google picked the page is ITFlow's as before.
+
 ## 26.10.176 - 2026-10-27
 - New: Bugs & ideas - a bug button in the top bar. Anyone sends a bug report or a feature request (with a screenshot pasted or picked); the page it came from and the version are added on their own. Everyone sees the list; admins mark items done with a note, reopen or delete them. Admins' bell rings for a new one, the sender's when it is done.
 
