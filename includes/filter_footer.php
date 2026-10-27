@@ -81,6 +81,9 @@ if ($total_found_rows > 5) {
                 if (($total_pages <= 10000) && ($total_pages > 1000)) {
                     $pages_split = 1000;
                 }
+                if ($total_pages > 10000) {
+                    $pages_split = 10000;
+                }
                 if ($page > 1) {
                     $prev_class = "";
                 } else {
