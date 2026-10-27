@@ -125,7 +125,7 @@ $out = !empty($opts['out']) && $opts['out'] !== true ? $opts['out'] : '';
 $repo = MIT_FEATURE_ROOT;
 // Each copy runs the smoke tests from a folder of its own - Playwright keeps its sign-in (.auth) and results in the folder, and
 // two runs against different copies from one folder sign each other out
-$smoke = sys_get_temp_dir() . "/mit_hook_proof_smoke_t$n";
+$smoke = "$repo/tests/.smoke_t$n"; // beside tests/smoke, so its ../scenarios and ../../scripts paths still work (git ignores it)
 shell_exec('rsync -a --delete --exclude node_modules --exclude .auth --exclude report --exclude test-results '
     . escapeshellarg("$repo/tests/smoke/") . ' ' . escapeshellarg("$smoke/") . ' && ln -sfn ' . escapeshellarg("$repo/tests/smoke/node_modules") . ' '
     . escapeshellarg("$smoke/node_modules"));

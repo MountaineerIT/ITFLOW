@@ -42,7 +42,7 @@ return [
     'checks' => [
         'name' => 'Our checks (hooks, consistency, portability, AI wall, verify, feature map)',
         'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
-            'MIT_FEATURES.md', 'tests/smoke/*', 'tests/scenarios/*'],
+            'MIT_FEATURES.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
         'tests' => ['tests/smoke/30-checks.spec.js'],
         'assumes' => ['ITFlow\'s cron dispatcher (includes/cron_jobs.php) runs our jobs.'],
         'watch' => [],

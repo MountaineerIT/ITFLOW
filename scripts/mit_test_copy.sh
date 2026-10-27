@@ -3,7 +3,7 @@
 # pass): database itflow_tN + files /var/www/itflow_tN, served as itflow-tN.test (vhost zz-itflow-tN.conf, made the first time).
 #   sh scripts/mit_test_copy.sh 1 [2 3 4]       (as root, on the test server only - never production)
 # The copy gets the test install's database and files as they are now, and its config.php with only $database and
-# $config_base_url changed (the stand-in addresses stay). Smoke tests run against it with
+# $config_base_url changed (stand-ins at 127.0.0.1 stay; one at the install's own address follows it). Smoke tests run against it with
 #   ITFLOW_URL=http://itflow-tN.test ITFLOW_DB=itflow_tN ITFLOW_ROOT=/var/www/itflow_tN ITFLOW_PHP_LOG=/var/log/apache2/itflow-tN-error.log
 set -e
 SRC_ROOT="${MIT_COPY_FROM:-/var/www/itflow}"
@@ -19,7 +19,9 @@ for N in "$@"; do
     mysqldump --single-transaction --routines --triggers "$SRC_DB" | mysql "$DB"
     mkdir -p "$ROOT"
     rsync -a --delete --exclude config.php "$SRC_ROOT/" "$ROOT/"
-    sed -e "s/^\$database = .*/\$database = '$DB';/" -e "s/^\$config_base_url = .*/\$config_base_url = '$HOST';/" "$SRC_ROOT/config.php" > "$ROOT/config.php"
+    # Only the database and the address change - also where the address appears in a stand-in's URL (QuickBooks sign-in)
+    sed -e "s/^\$database = .*/\$database = '$DB';/" -e "s/^\$config_base_url = .*/\$config_base_url = '$HOST';/" \
+        -e "s#//$SRC_URL/#//$HOST/#g" "$SRC_ROOT/config.php" > "$ROOT/config.php"
     chown -R www-data:www-data "$ROOT"
     if [ ! -f "/etc/apache2/sites-available/zz-itflow-t$N.conf" ]; then
         cat > "/etc/apache2/sites-available/zz-itflow-t$N.conf" <<EOF
