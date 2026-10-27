@@ -94,6 +94,11 @@ hook	agent/dashboard.php	mitBoardDashLinks	2
 hook	agent/dashboard.php	mitBoardDashPicker	2
 hook	agent/dashboard.php	mitCtDashCard	2
 hook	agent/dashboard.php	mit_align_dash	3
+hook	agent/includes/client_side_nav.php	mitToBillPartsCount	2
+hook	agent/includes/client_side_nav.php	mit_client_parts	3
+hook	agent/includes/get_side_nav_counts.php	mitNavCachedCount	2
+hook	agent/includes/get_side_nav_counts.php	mitToBillPartsCount	2
+hook	agent/includes/get_side_nav_counts.php	mit_to_bill	1
 hook	agent/includes/inc_client_top_head.php	mitAlignClientButton	2
 hook	agent/includes/inc_client_top_head.php	mitClientHeadMeta	2
 hook	agent/includes/side_nav.php	mitBrandLogoAttrs	2
@@ -104,6 +109,7 @@ hook	agent/includes/side_nav.php	mit_dispatch_nav	1
 hook	agent/includes/side_nav.php	mit_logo_only	2
 hook	agent/includes/side_nav.php	mit_procurement_nav	1
 hook	agent/includes/side_nav.php	mit_timesheet_nav	1
+hook	agent/includes/side_nav.php	mit_to_bill	1
 hook	agent/invoice.php	mitPaperLineExtras	1
 hook	agent/invoice.php	mitProcInvoiceMenuItem	1
 hook	agent/invoice.php	mitProcInvoiceSummary	1
@@ -149,6 +155,9 @@ hook	agent/post/billing.php	mitQboGuardInvoice	10
 hook	agent/post/billing.php	mitQboInvoiceLock	2
 hook	agent/post/billing.php	mitQuoteItemDelete	2
 hook	agent/post/billing.php	mitQuoteItemSave	2
+hook	agent/post/billing.php	mitToBillAfter	4
+hook	agent/post/billing.php	mitToBillFlash	4
+hook	agent/post/billing.php	mitToBillMerge	2
 hook	agent/post/client.php	mitQboGuardClientDelete	2
 hook	agent/post/client.php	mitQuoteImagesDelete	1
 hook	agent/post/client.php	mitTicketPartsDeleting	1
@@ -235,6 +244,16 @@ hook	agent/tickets.php	mitClientTiles	2
 hook	agent/tickets.php	mitListViewResetButton	2
 hook	agent/tickets.php	mitListViewRestore	2
 hook	agent/tickets.php	mitProjectTicketsShows	2
+hook	agent/unbilled_time.php	mitToBillCard	2
+hook	agent/unbilled_time.php	mitToBillCell	2
+hook	agent/unbilled_time.php	mitToBillHead	2
+hook	agent/unbilled_time.php	mitToBillMerge	2
+hook	agent/unbilled_time.php	mitToBillRowAttrs	2
+hook	agent/unbilled_time.php	mitToBillScript	2
+hook	agent/unbilled_time.php	mitToBillStatNote	2
+hook	agent/unbilled_time.php	mitToBillTotals	2
+hook	agent/unbilled_time.php	mit_part_value	1
+hook	agent/unbilled_time.php	mit_to_bill	9
 hook	agent/user/includes/user_side_nav.php	mit_outlook	1
 hook	agent/user/post/profile.php	mitSaveAgentColor	1
 hook	agent/user/post/profile.php	mitSessionRestamp	1
@@ -414,6 +433,9 @@ hook	includes/stripe_init.php	mitDevBlockStripe	2
 hook	includes/top_nav.php	mit_cron_nav	1
 hook	includes/top_nav.php	mit_timers_nav	1
 hook	js/quick_pick.js	mit_ticket_picks	1
+hook	js/unbilled_time.js	MountaineerIT	1
+hook	js/unbilled_time.js	mitToBillParts	2
+hook	js/unbilled_time.js	mit_to_bill	1
 hook	login.php	mitBrandScreenLogo	2
 hook	login.php	mitLoginHead	2
 hook	scripts/restore_cli.php	mitRestoreItflowUpdates	1
@@ -649,6 +671,7 @@ ours	functions/mit_ticket_picks.php
 ours	functions/mit_ticket_techs.php
 ours	functions/mit_timesheet_view.php
 ours	functions/mit_timesheets.php
+ours	functions/mit_to_bill.php
 ours	functions/mit_ts_california.php
 ours	functions/mit_ts_holidays.php
 ours	functions/mit_usage.php
@@ -662,6 +685,7 @@ ours	js/mit_repeat_on.js
 ours	js/mit_theme.js
 ours	js/mit_time_inputs.js
 ours	js/mit_timers.js
+ours	js/mit_to_bill.js
 ours	mit_health.php
 ours	scripts/mit_ai_embed_worker.php
 ours	scripts/mit_ai_wall_check.php

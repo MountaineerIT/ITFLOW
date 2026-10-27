@@ -346,8 +346,8 @@ function mitTicketPartBillable(array $part) {
     return !intval($part['invoice_id']) && !($part['source'] === 'order' && $part['proc_status'] === 'cancelled');
 }
 
-/** How many parts are not billed yet (side menu badge). */
-function mitUnbilledPartsCount() {
+/** How many parts are not billed yet (side menu badge) - $client_id: one client's. */
+function mitUnbilledPartsCount($client_id = 0) {
     global $mysqli;
     if (!mitProcReady() || !mitTicketPartsReady()) {
         return 0;
@@ -356,7 +356,8 @@ function mitUnbilledPartsCount() {
         LEFT JOIN tickets ON tickets.ticket_id = parts.ticket_id
         LEFT JOIN invoices ON invoices.invoice_id = parts.invoice_id AND parts.invoice_id > 0
         LEFT JOIN mit_procurement_items proc ON proc.item_id = parts.proc_item_id AND parts.proc_item_id > 0
-        WHERE (parts.invoice_id = 0 OR invoices.invoice_id IS NULL) AND " . MIT_PART_BILLABLE_SQL . clientScopeSql(MIT_PART_CLIENT_SQL)))[0] ?? 0);
+        WHERE (parts.invoice_id = 0 OR invoices.invoice_id IS NULL) AND " . MIT_PART_BILLABLE_SQL . (intval($client_id) ? " AND " . MIT_PART_CLIENT_SQL . " = " . intval($client_id) : '')
+        . clientScopeSql(MIT_PART_CLIENT_SQL)))[0] ?? 0);
 }
 
 /** Parts matching a WHERE (on parts / invoices), with where each one is and its ticket and client. */
@@ -648,56 +649,92 @@ function mitTicketPartRemove(array $ticket, $part_id) {
  * [part_id => price] (the window's edits). Returns [invoice_id, message] (invoice_id 0 on failure).
  */
 function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invoice_id, $date, $category_id) {
-    global $mysqli, $config_invoice_prefix, $config_default_net_terms, $session_company_currency, $session_user_id;
-    $ticket_id = intval($ticket['ticket_id']);
     $client_id = intval($ticket['ticket_client_id']);
     if (!$client_id) {
         return [0, 'Move the ticket to a client before billing it.'];
     }
-    $parts = array_filter(mitTicketParts($ticket_id), function ($part) use ($part_ids) {
+    $parts = array_filter(mitTicketParts(intval($ticket['ticket_id'])), function ($part) use ($part_ids) {
         return in_array(intval($part['part_id']), array_map('intval', $part_ids), true) && mitTicketPartBillable($part);
     });
-    if (!$parts) {
-        return [0, 'Tick the parts to bill.'];
+    $billed = mitPartsBill($client_id, $parts, $prices, $invoice_id, ['date' => $date, 'category_id' => $category_id,
+        'scope' => 'Parts for ticket ' . ticketReference($ticket), 'by' => mitProcWho() . ' from the parts on ticket ' . ticketReference($ticket)]);
+    if (!$billed['invoice_id']) {
+        return [0, $billed['error']];
+    }
+    return [$billed['invoice_id'], $billed['count'] . ' part' . ($billed['count'] === 1 ? '' : 's') . ' billed on ' . escapeHtml($billed['reference'])];
+}
+
+/**
+ * Bill parts - rows of mitTicketPartsWhere(), billable, all the client's - onto $invoice_id (one of the client's drafts) or a
+ * new draft. $opts: date, category_id, scope (a new draft's), by (its history line), tax_id (one rate for every line - null or
+ * TAX_USUAL for each part's own), with_ticket (the ticket's reference in each line's description - To Bill, where they share
+ * an invoice with other tickets). $prices = [part_id => price] (typed edits; the part's price otherwise). Every line is worked
+ * out and checked before anything is written; each ticket gets an internal note. Returns ['invoice_id' (0 on failure),
+ * 'reference', 'count', 'amount' (before tax), 'new', 'error'].
+ */
+function mitPartsBill($client_id, array $parts, array $prices, $invoice_id, array $opts = []) {
+    global $mysqli, $config_invoice_prefix, $config_default_net_terms, $session_company_currency, $session_user_id;
+    $client_id = intval($client_id);
+    $fail = function ($error) {
+        return ['invoice_id' => 0, 'reference' => '', 'count' => 0, 'amount' => 0.0, 'new' => false, 'error' => $error];
+    };
+    $parts = array_filter($parts, function ($part) use ($client_id) {
+        return intval($part['client_id']) === $client_id && mitTicketPartBillable($part);
+    });
+    if (!$client_id || !$parts) {
+        return $fail('Tick the parts to bill.');
     }
     $invoice_id = intval($invoice_id);
     if ($invoice_id) {
         $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_prefix, invoice_number FROM invoices WHERE invoice_id = $invoice_id AND invoice_client_id = $client_id AND invoice_status = 'Draft'"));
         if (!$invoice) {
-            return [0, "That invoice isn't one of this client's drafts."];
+            return $fail("That invoice isn't one of this client's drafts.");
         }
         if (function_exists('mitQboInvoiceLock') && ($why = mitQboInvoiceLock($invoice_id)) !== '') {
-            return [0, $why];
+            return $fail($why);
         }
+    }
+    // One rate for every line, when one was picked
+    $tax_choice = $opts['tax_id'] ?? null;
+    $one_tax = $tax_choice === null || (defined('TAX_USUAL') && intval($tax_choice) === TAX_USUAL) ? null : max(0, intval($tax_choice));
+    if ($one_tax && !mysqli_num_rows(mysqli_query($mysqli, "SELECT tax_id FROM taxes WHERE tax_id = $one_tax"))) {
+        return $fail('That tax no longer exists.');
     }
     // Every line worked out and checked before anything is written, so a refusal never leaves a half-made invoice
     $lines = [];
+    $amount = 0.0;
     foreach ($parts as $part_id => $part) {
         $posted = str_replace([',', '$'], '', trim((string) ($prices[$part_id] ?? '')));
         $price = $posted !== '' && is_numeric($posted) ? round((float) $posted, 2) : (float) $part['unit_price'];
         $qty = (float) $part['quantity'];
+        $tax_id = $one_tax ?? intval($part['tax_id']);
         if (function_exists('billingLineTax')) {
-            [$subtotal, $tax] = billingLineTax($qty, $price, intval($part['tax_id'])); // ITFlow 26.11's tax engine
+            [$subtotal, $tax] = billingLineTax($qty, $price, $tax_id); // ITFlow 26.11's tax engine
         } else {
             $subtotal = round($price * $qty, 2);
-            $tax_percent = intval($part['tax_id']) ? (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT tax_percent FROM taxes WHERE tax_id = " . intval($part['tax_id'])))[0] ?? 0) : 0;
+            $tax_percent = $tax_id ? (float) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT tax_percent FROM taxes WHERE tax_id = $tax_id"))[0] ?? 0) : 0;
             $tax = round($subtotal * $tax_percent / 100, 2);
         }
         // invoice_items money columns are decimal(15,2)
         if ($price < 0 || abs($subtotal + $tax) >= 1e12) {
-            return [0, 'Check the price of ' . $part['name'] . ' - it is below zero or too large.'];
+            return $fail('Check the price of ' . $part['name'] . ' - it is below zero or too large.');
         }
-        $lines[$part_id] = ['part' => $part, 'price' => $price, 'qty' => $qty, 'subtotal' => $subtotal, 'tax' => $tax];
+        $description = (string) $part['description'];
+        if (!empty($opts['with_ticket']) && $part['ticket_number'] !== null) {
+            $description = trim('Ticket ' . ticketReference($part) . "\n" . $description);
+        }
+        $lines[$part_id] = ['part' => $part, 'price' => $price, 'qty' => $qty, 'subtotal' => $subtotal, 'tax' => $tax, 'tax_id' => $tax_id, 'description' => $description];
+        $amount += $subtotal;
     }
 
+    $new = !$invoice_id;
     mysqli_begin_transaction($mysqli);
     try {
-        if (!$invoice_id) {
-            $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date) ? $date : date('Y-m-d');
-        }
+        $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($opts['date'] ?? '')) ? (string) $opts['date'] : date('Y-m-d');
+        $scope = (string) ($opts['scope'] ?? '') !== '' ? (string) $opts['scope'] : 'Parts';
         if (!$invoice_id && function_exists('billingInvoiceCreate')) {
             // ITFlow's own new draft (its numbering, the contract's net terms, its history line)
-            $invoice_id = billingInvoiceCreate($client_id, $date, intval($category_id), 'Parts for ticket ' . ticketReference($ticket), mitProcWho() . ' from the parts on ticket ' . ticketReference($ticket));
+            $invoice_id = billingInvoiceCreate($client_id, $date, intval($opts['category_id'] ?? 0), $scope, (string) ($opts['by'] ?? mitProcWho()));
             $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_prefix, invoice_number FROM invoices WHERE invoice_id = " . intval($invoice_id)));
         }
         if (!$invoice_id) {
@@ -705,20 +742,20 @@ function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invo
             // The same numbering ITFlow uses (agent/post/ticket.php add_invoice_from_ticket)
             mysqli_query($mysqli, "UPDATE settings SET config_invoice_next_number = LAST_INSERT_ID(config_invoice_next_number), config_invoice_next_number = config_invoice_next_number + 1 WHERE company_id = 1");
             $number = mysqli_insert_id($mysqli);
-            mysqli_query($mysqli, "INSERT INTO invoices SET invoice_prefix = '" . escapeSql($config_invoice_prefix) . "', invoice_number = $number, invoice_scope = '" . escapeSql('Parts for ticket ' . ticketReference($ticket)) . "',
+            mysqli_query($mysqli, "INSERT INTO invoices SET invoice_prefix = '" . escapeSql($config_invoice_prefix) . "', invoice_number = $number, invoice_scope = '" . escapeSql($scope) . "',
                 invoice_date = '$date', invoice_due = DATE_ADD('$date', INTERVAL $net_terms day), invoice_currency_code = '" . escapeSql($session_company_currency) . "',
-                invoice_category_id = " . intval($category_id) . ", invoice_status = 'Draft', invoice_url_key = '" . randomString(32) . "', invoice_client_id = $client_id");
+                invoice_category_id = " . intval($opts['category_id'] ?? 0) . ", invoice_status = 'Draft', invoice_url_key = '" . randomString(32) . "', invoice_client_id = $client_id");
             $invoice_id = mysqli_insert_id($mysqli);
             $invoice = ['invoice_prefix' => $config_invoice_prefix, 'invoice_number' => $number];
-            mysqli_query($mysqli, "INSERT INTO history SET history_status = 'Draft', history_description = '" . escapeSql('Invoice created from the parts on ticket ' . ticketReference($ticket)) . "', history_invoice_id = $invoice_id");
+            mysqli_query($mysqli, "INSERT INTO history SET history_status = 'Draft', history_description = '" . escapeSql('Invoice created ' . (string) ($opts['by'] ?? 'from parts')) . "', history_invoice_id = $invoice_id");
         }
         $order = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(MAX(item_order), 0) FROM invoice_items WHERE item_invoice_id = $invoice_id"))[0]);
         foreach ($lines as $part_id => $line) {
             $part = $line['part'];
             // No item_product_id: stock was already taken when the part was used. The name is at most 200 (item_name's size).
-            mysqli_query($mysqli, "INSERT INTO invoice_items SET item_name = '" . escapeSql(mb_substr($part['name'], 0, 200)) . "', item_description = '" . escapeSql((string) $part['description']) . "',
+            mysqli_query($mysqli, "INSERT INTO invoice_items SET item_name = '" . escapeSql(mb_substr($part['name'], 0, 200)) . "', item_description = '" . escapeSql($line['description']) . "',
                 item_quantity = {$line['qty']}, item_price = {$line['price']}, item_subtotal = {$line['subtotal']}, item_tax = {$line['tax']}, item_total = " . ($line['subtotal'] + $line['tax']) . ", item_order = " . (++$order) . ",
-                item_tax_id = " . intval($part['tax_id']) . ", item_invoice_id = $invoice_id");
+                item_tax_id = " . intval($line['tax_id']) . ", item_invoice_id = $invoice_id");
             mysqli_query($mysqli, "UPDATE mit_ticket_parts SET invoice_id = $invoice_id, invoice_item_id = " . mysqli_insert_id($mysqli) . ", unit_price = {$line['price']}, billed_at = NOW() WHERE part_id = " . intval($part_id));
         }
         // The invoice's amount: ITFlow's own sums (taxes with the discount, the total), else its lines less its discount
@@ -728,14 +765,25 @@ function mitTicketPartsBill(array $ticket, array $part_ids, array $prices, $invo
         mysqli_commit($mysqli);
     } catch (Throwable $e) {
         mysqli_rollback($mysqli);
-        error_log('mitTicketPartsBill: ' . $e->getMessage());
-        return [0, 'The parts could not be billed - nothing was changed.'];
+        error_log('mitPartsBill: ' . $e->getMessage());
+        return $fail('The parts could not be billed - nothing was changed.');
     }
     $reference = $invoice['invoice_prefix'] . $invoice['invoice_number'];
-    mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . mitSqlHtml('Billed ' . count($parts) . ' part' . (count($parts) === 1 ? '' : 's') . ' on <a href="invoice.php?invoice_id=' . $invoice_id . '">' . escapeHtml($reference) . '</a>.') . "',
-        ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = $ticket_id");
-    logAudit('Invoice', 'Edit', escapeSql(mitProcWho() . ' billed ' . count($parts) . ' part(s) from ticket ' . ticketReference($ticket) . " on $reference"), $client_id, $invoice_id);
-    return [$invoice_id, count($parts) . ' part' . (count($parts) === 1 ? '' : 's') . ' billed on ' . escapeHtml($reference)];
+    // A note on each ticket they came from
+    $by_ticket = [];
+    foreach ($lines as $line) {
+        $by_ticket[intval($line['part']['ticket_id'])][] = $line['part'];
+    }
+    foreach ($by_ticket as $ticket_id => $ticket_parts) {
+        if (!$ticket_id) {
+            continue;
+        }
+        $n = count($ticket_parts);
+        mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . mitSqlHtml('Billed ' . $n . ' part' . ($n === 1 ? '' : 's') . ' on <a href="invoice.php?invoice_id=' . $invoice_id . '">' . escapeHtml($reference) . '</a>.') . "',
+            ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = $ticket_id");
+        logAudit('Invoice', 'Edit', escapeSql(mitProcWho() . ' billed ' . $n . ' part(s) from ticket ' . ticketReference($ticket_parts[0]) . " on $reference"), $client_id, $invoice_id);
+    }
+    return ['invoice_id' => intval($invoice_id), 'reference' => $reference, 'count' => count($lines), 'amount' => round($amount, 2), 'new' => $new, 'error' => ''];
 }
 
 /*

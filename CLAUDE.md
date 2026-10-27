@@ -422,6 +422,19 @@ model: see DEPLOYMENT.md.
   side-menu link with a count in `agent/includes/mit_billing_nav.php`, one require in `agent/includes/side_nav.php` BILLING after
   Products): every part not on an invoice, by client and ticket, with Bill parts (`mitUnbilledParts` / `mitUnbilledPartsCount`, sharing `mitTicketPartsWhere` with `mitTicketParts`). Project pickers (item modal, from-invoice, quote convert) use `mitProcProjectField` - the client's open
   projects (client 0 = projects without a client), with a note when there are none; the item modal's list follows its client.
+  To Bill (26.10.182, the user's choice - one menu entry, fully merged): Billing > Unbilled Parts is gone; parts not billed yet are on
+  ITFlow's Unbilled Time page, called "To Bill" in both menus (`agent/includes/side_nav.php`, `client_side_nav.php` - label + badge with
+  `$num_unbilled_parts` from `get_side_nav_counts.php` / `mitToBillPartsCount`) and in its two card titles. `functions/mit_to_bill.php` (ours,
+  required from mit_procurement.php) + `js/mit_to_bill.js`: `mitToBillMerge` adds `mit_parts` / `mit_part_value` to ITFlow's clients (and
+  parts-only clients, built like expenseUnbilledMerge's); hooks in `agent/unbilled_time.php` (merge, `$mit_to_bill` totals, To bill stat +
+  Waiting longest, Parts column / cell / row attrs, Amount, `mitToBillCard` before Travel, script), `js/unbilled_time.js` update()
+  (`window.mitToBillParts` - amount, "N parts" in the summary, button), `agent/post/billing.php` (`mitToBillAfter` after expenseBillWithTime in
+  unbilled_invoice / unbilled_invoice_clients - the parts go on the same invoice, or alone on the draft picked / a new one; `mitToBillMerge` on
+  `$by_client`; `mitToBillFlash` after the flash). Parts are billed by `mitPartsBill` (functions/mit_procurement_parts.php - the core the
+  ticket's Bill parts window shares through mitTicketPartsBill): the form's tax (Each line's usual = the part's own), the ticket in each
+  line's description, a note per ticket. Billing parts still needs Sales edit + Support edit (`mitToBillCanBill`); the part boxes carry
+  ITFlow's data-unbilled-expense-pick / -price too, so ITFlow's script recounts on them. `agent/mit_unbilled_parts.php` redirects (?client=
+  -> ?client_id=). Other ITFlow pages still say "Unbilled Time" in passing. Smoke `85-to-bill.spec.js`.
   Product vendor: `mitProductVendorField`
   appended to the product modals' pricing hook line, saved from `mitProductSave`.
   Part 3: `functions/mit_procurement_extras.php` (ours, required from mit_procurement.php), M011

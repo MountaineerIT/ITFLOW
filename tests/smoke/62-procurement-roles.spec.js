@@ -155,7 +155,7 @@ test('client-limited agent: Acme\'s items and POs are out of sight and out of re
     const body = await page.locator('body').innerText();
     expect(body, 'own client\'s item listed').toContain(`${tag} beta printer`);
     expect(body, 'Acme\'s items hidden').not.toContain(`${tag} keyboard`);
-    for (const url of ['agent/mit_purchase_orders.php', 'agent/mit_receiving.php', 'agent/mit_unbilled_parts.php']) {
+    for (const url of ['agent/mit_purchase_orders.php', 'agent/mit_receiving.php', 'agent/unbilled_time.php']) {
         await visit(page, url, errors);
         expect(await page.locator('body').innerText(), `${url} hides Acme's`).not.toContain(`${tag} server`);
     }

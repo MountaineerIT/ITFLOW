@@ -358,9 +358,10 @@
                                 <a href="/agent/unbilled_time.php?client_id=<?= $client_id ?>" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "unbilled_time.php") { echo "active"; } ?>">
                                     <i class="nav-icon fas fa-user-clock"></i>
                                     <p>
-                                        Unbilled Time
-                                        <?php if ($num_unbilled_tickets || !empty($num_unbilled_expenses) || !empty($num_unbilled_trips)) { ?>
-                                            <span class="right badge text-light"><?= $num_unbilled_tickets + intval($num_unbilled_expenses ?? 0) + intval($num_unbilled_trips ?? 0) ?></span>
+                                        To Bill
+                                        <?php $mit_client_parts = $config_module_enable_accounting == 1 && function_exists('mitToBillPartsCount') ? mitToBillPartsCount($client_id) : 0; // Mountaineer IT: the client's parts on tickets ?>
+                                        <?php if ($num_unbilled_tickets || !empty($num_unbilled_expenses) || !empty($num_unbilled_trips) || $mit_client_parts) { ?>
+                                            <span class="right badge text-light"><?= $num_unbilled_tickets + intval($num_unbilled_expenses ?? 0) + intval($num_unbilled_trips ?? 0) + $mit_client_parts ?></span>
                                         <?php } ?>
                                     </p>
                                 </a>

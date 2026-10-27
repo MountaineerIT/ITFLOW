@@ -20,10 +20,11 @@ test('admin menus: our settings and integration pages', async ({ page }) => {
     await expectClean(page, errors);
 });
 
-test('Billing menu: Unbilled Parts', async ({ page }) => {
+test('Billing menu: To Bill (ITFlow\'s Unbilled Time with parts), no separate Unbilled Parts', async ({ page }) => {
     const errors = watch(page);
     await visit(page, 'agent/invoices.php', errors);
-    await expect(page.locator('.app-sidebar a[href="/agent/mit_unbilled_parts.php"]'), 'Billing > Unbilled Parts').toHaveCount(1);
+    await expect(page.locator('.app-sidebar a[href="/agent/unbilled_time.php"]'), 'Billing > To Bill').toContainText('To Bill');
+    await expect(page.locator('.app-sidebar a[href="/agent/mit_unbilled_parts.php"]'), 'the old entry is gone').toHaveCount(0);
 });
 
 test('Admin > Update and the admin footer: our version, ITFlow\'s under it, our release notes', async ({ page }) => {

@@ -142,11 +142,13 @@ function itflowUnbilledTime(options) {
             tripAll.indeterminate = tripPicked > 0 && tripPicked < tripRows.length;
         }
 
+        var mit = typeof window.mitToBillParts === 'function' ? window.mitToBillParts(form, mode) : { amount: 0, count: 0, picked: 0 }; // MountaineerIT: parts to bill (js/mit_to_bill.js)
+        amount += mit.amount;
         var taxed = amount + Math.round(amount * percent) / 100;
         hours = Math.round(hours * 100) / 100;
         if (summary) {
             var parts = mode === 'client' ? [] : [plural(picked, 'client')];
-            if (tickets || (!expenses && !trips)) {
+            if (tickets || (!expenses && !trips && !mit.count)) {
                 parts.push(plural(tickets, 'ticket'), hours + ' h');
             }
             if (expenses) {
@@ -154,6 +156,9 @@ function itflowUnbilledTime(options) {
             }
             if (trips) {
                 parts.push(plural(trips, 'trip'));
+            }
+            if (mit.count) {
+                parts.push(plural(mit.count, 'part'));
             }
             summary.textContent = parts.join(' · ') + (percent ? ' · with tax' : '');
         }
@@ -164,7 +169,7 @@ function itflowUnbilledTime(options) {
             picked += expensePicked + tripPicked;
         }
         if (submit) {
-            submit.disabled = picked === 0;
+            submit.disabled = picked === 0 && !mit.picked;
         }
         if (submitLabel) {
             if (mode === 'client') {

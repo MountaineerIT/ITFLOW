@@ -805,3 +805,4 @@ function mitPoEmail(array $po, $to) {
 
 require_once __DIR__ . '/mit_procurement_parts.php';
 require_once __DIR__ . '/mit_procurement_extras.php';
+require_once __DIR__ . '/mit_to_bill.php';
