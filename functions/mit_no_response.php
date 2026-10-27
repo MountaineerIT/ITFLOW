@@ -92,6 +92,9 @@ function mitNoResponseResolve(array $row, $message) {
         ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = $ticket_id");
     $reply_id = intval(mysqli_insert_id($mysqli));
 
+    // Resolved first, so the email's ticket details say Resolved (ticketResolve sends nothing itself)
+    ticketResolve($row, ' - no response from the client');
+
     // ITFlow's "resolved" email (26.11's emailHtml look: reply line, company details, the conversation), its words ours
     $mailed = 0;
     $ticket = ticketRow($ticket_id);
@@ -110,7 +113,6 @@ function mitNoResponseResolve(array $row, $message) {
         ticketReplyEmailed($reply_id, $mailed > 0);
     }
 
-    ticketResolve($row, ' - no response from the client');
     $resolved_at = mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_resolved_at FROM tickets WHERE ticket_id = $ticket_id"))[0] ?? null;
     mysqli_query($mysqli, "INSERT INTO mit_ticket_no_response SET ticket_id = $ticket_id, resolved_at = " . ($resolved_at ? "'" . escapeSql($resolved_at) . "'" : 'NULL')
         . ", user_id = " . intval($session_user_id) . " ON DUPLICATE KEY UPDATE resolved_at = VALUES(resolved_at), user_id = VALUES(user_id), created_at = NOW()");
@@ -177,8 +179,26 @@ function mitResolvedMailContent(array $row, $note, array $content) {
     return ticketEmailPreview($content);
 }
 
-/** Plain text in paragraphs for emailHtml's intro - blank lines split them, single line breaks are kept as spaces. */
+/**
+ * Plain text in paragraphs for emailHtml's intro - blank lines split them, a single line break stays one ("Thanks,\nChris" -
+ * emailHtml writes each paragraph with nl2br). A first paragraph that is only a greeting ("Hi Zed," / "Hello [First Name],") is
+ * left out: ITFlow's email greets each person itself ("Hello Zed Contact," for the contact, "Hello," for a watcher), so it said
+ * hello twice and greeted watchers with the contact's name.
+ */
 function mitTextParagraphs($text) {
     $paragraphs = preg_split('/\n\s*\n/', str_replace("\r", '', trim((string) $text)));
-    return array_values(array_filter(array_map(function ($p) { return trim(preg_replace('/\s*\n\s*/', ' ', $p)); }, $paragraphs), 'strlen'));
+    $paragraphs = array_values(array_filter(array_map(function ($p) {
+        return implode("\n", array_filter(array_map('trim', explode("\n", $p)), 'strlen'));
+    }, $paragraphs), 'strlen'));
+    if ($paragraphs && mitIsGreeting($paragraphs[0])) {
+        array_shift($paragraphs);
+    }
+    return $paragraphs;
+}
+
+/** Is this line just a greeting - "Hi Zed,", "Hello there!", "Dear Ann Lee,", "Good morning,"? */
+function mitIsGreeting($line) {
+    $line = trim((string) $line);
+    return strpos($line, "\n") === false && mb_strlen($line) <= 60
+        && (bool) preg_match('/^(hi|hello|hey|dear|greetings|good (morning|afternoon|evening))\b[^.?\n]*[,!:]?$/iu', $line);
 }

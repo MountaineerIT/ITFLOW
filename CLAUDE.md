@@ -1335,6 +1335,14 @@ model: see DEPLOYMENT.md.
   pickers now close on a click into an iframe (`itflowDismissPopups`) - our To / Notify script's frame-focus close is kept (harmless).
   Security sweep conflicts (API asset / contact models, link_contact_to_asset) taken as ITFlow's (`assetClientOwnedId` - a vendor must be
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
+- Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
+  reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
+  redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
+  (the Graph path already sends inline parts); skipped when `$mail->Ical` is set (PHPMailer's alt_inline leaves the calendar part out). PO PDF
+  logo by file path (TCPDF puts DOCUMENT_ROOT in front of a web path, none from cron). Resolved / no-response wording: `mitTextParagraphs` keeps
+  single line breaks and drops a first paragraph that is only a greeting (`mitIsGreeting` - ITFlow greets each recipient itself);
+  `mitNoResponseResolve` resolves before it builds the email. Scenario `scenario-mail-logo.php` (also end to end through the mail queue and the
+  Microsoft 365 stand-in); scenario-no-response checks one greeting and Resolved.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

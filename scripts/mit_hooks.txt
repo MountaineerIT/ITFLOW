@@ -263,6 +263,8 @@ hook	cron/ai_triage.php	mitDevMode	2
 hook	cron/mail_queue.php	mitDevMailRedirect	2
 hook	cron/mail_queue.php	mitM365GraphSendMail	1
 hook	cron/mail_queue.php	mitM365GraphSendReady	2
+hook	cron/mail_queue.php	mitMailInlineImages	2
+hook	cron/mail_queue.php	mit_common	1
 hook	cron/mail_queue.php	mit_dev_mode	1
 hook	cron/mail_queue.php	mit_graph	3
 hook	cron/nightly_tasks.php	mitQboSendsReminders	2

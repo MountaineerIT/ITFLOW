@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.165 - 2026-10-26
+- Emails: the company logo now travels inside each email instead of being linked from the server, so it shows in every mail app - it showed as a broken image wherever the reader couldn't reach the ITFlow server (a test server, one behind a VPN or without HTTPS) or images from the web were blocked. Calendar invitations keep the link (they can't carry the image and still open as a meeting).
+- Purchase order PDFs find the logo by its file, so it is there when a PO is emailed from a scheduled job too.
+- "Ticket resolved" (your own wording) and "Resolve - no response" emails in ITFlow's new email layout: no more double greeting - ITFlow greets each person by name, so a "Hi [First Name]," line at the top of yours is left out (watchers were greeted with the contact's name); single line breaks are kept ("Thanks," and your name on two lines); the no-response email's ticket details now say Resolved (they showed the status before).
+
 ## 26.10.164 - 2026-10-26
 - ITFlow's latest updates merged in (upstream develop, database 3.4.7 -> 3.4.8): each ticket reply now shows whether it was emailed and who to, with each email's state from the mail queue (sent, waiting, failed and why); after sending, the confirmation says how many people it went to. Also ITFlow's security sweep (API and client-limited agents), pickers that close when you click into the reply box, and response-only standard SLAs in Get started.
 - Replies sent through our "To" line and "Resolve - no response" notes get the same "Email reply" label and list of who it went to as ITFlow's own sends.

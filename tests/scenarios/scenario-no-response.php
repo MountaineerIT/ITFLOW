@@ -33,6 +33,9 @@ try {
     $row = ticketRow($t1);
     $mailed = mitNoResponseResolve($row, "Hello Zed,\n\nNo answer - closing. [Agent]");
     scenarioCheck('emailed to the contact', [$mailed, $queued($t1)], [1, ['zz-contact-' . $client_id . '@example.invalid']]);
+    $mail = $content($t1);
+    scenarioCheck('one greeting (ITFlow\'s), not ours as well', [substr_count($mail, 'Hello Zed'), substr_count($mail, 'Hello ')], [1, 1]);
+    scenarioCheck('the email\'s ticket details say Resolved', (bool) preg_match('~>Status<.*?>Resolved<~s', $mail), true);
     scenarioCheck('resolved, marked with its resolved_at', scenarioValue("SELECT nr.resolved_at = t.ticket_resolved_at FROM tickets t JOIN mit_ticket_no_response nr USING (ticket_id) WHERE t.ticket_id = $t1"), '1');
     // ITFlow 3.4.8 keeps on the note who it was emailed to - our send records it too
     if (function_exists('ticketReplyEmailReady') && ticketReplyEmailReady()) {
@@ -77,12 +80,13 @@ try {
     }
 
     echo "resolved wording\n";
-    mitSetSetting('resolved_message', "Hi [First Name], [Ticket] is [Status]. From [Agent].\n\n[Note]\n\nReopen: [Ticket Link]");
+    mitSetSetting('resolved_message', "Hi [First Name],\n\n[Ticket] is [Status]. From [Agent].\n\n[Note]\n\nReopen: [Ticket Link]");
     $t3 = scenarioMakeTicket($client_id, $contact_id);
     ticketResolve(ticketRow($t3));
     ticketMailResolved($t3, '<p>Fixed the printer</p>');
     $body = $content($t3);
     scenarioCheck('our wording used', strpos($body, 'Reopen: the button below') !== false, true);
+    scenarioCheck('our "Hi [First Name]," left out - ITFlow greets each person', [strpos($body, 'Hi Zed') === false, substr_count($body, 'Hello ')], [true, 1]);
     scenarioCheck('[Status] filled in', strpos($body, 'is Resolved.') !== false, true);
     scenarioCheck('the note is kept', strpos($body, 'Fixed the printer') !== false, true);
     scenarioCheck('[Agent] as written in the email', strpos($body, 'From Pat O&#039;Neil.') !== false || strpos($body, "From Pat O'Neil.") !== false, true);

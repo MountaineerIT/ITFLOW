@@ -23,6 +23,41 @@ function mitSqlHtml($html) {
     return mysqli_real_escape_string($mysqli, (string) $html);
 }
 
+/**
+ * From cron/mail_queue.php just before a message goes: images of ITFlow's own uploads/settings folder (the company logo and
+ * the like - ITFlow's email look links them as https://<base url>/uploads/settings/<file>) are put inside the message
+ * (cid:) instead of linked, so they show whether or not the reader's mail app can reach this server (a test server, a
+ * server behind a VPN or without HTTPS, images from unknown senders blocked). Only files that are there and are images.
+ * Not for a calendar invitation sent as its own part ($mail->Ical) - PHPMailer leaves that part out of a message with
+ * inline images, so those keep the link. Returns how many were put in.
+ */
+function mitMailInlineImages($mail) {
+    if (!empty($mail->Ical) || stripos((string) $mail->Body, '/uploads/settings/') === false) {
+        return 0;
+    }
+    $folder = realpath(dirname(__DIR__) . '/uploads/settings');
+    if ($folder === false) {
+        return 0;
+    }
+    $cids = [];
+    $mail->Body = preg_replace_callback('~(<img\b[^>]*?\bsrc\s*=\s*)(["\'])(?:https?://[^"\'/]+)?/uploads/settings/([^"\'/?#]+)\2~i', function ($m) use ($mail, $folder, &$cids) {
+        $name = basename(rawurldecode(html_entity_decode($m[3], ENT_QUOTES)));
+        $path = realpath($folder . '/' . $name);
+        if ($path === false || dirname($path) !== $folder || !is_file($path) || !preg_match('/\.(png|jpe?g|gif)$/i', $name) || @getimagesize($path) === false) {
+            return $m[0];
+        }
+        if (!isset($cids[$path])) {
+            $cid = 'mit-img-' . count($cids) . '@itflow';
+            if (!$mail->addEmbeddedImage($path, $cid, $name)) {
+                return $m[0];
+            }
+            $cids[$path] = $cid;
+        }
+        return $m[1] . $m[2] . 'cid:' . $cids[$path] . $m[2];
+    }, (string) $mail->Body);
+    return count($cids);
+}
+
 /** Is this product a tangible one (ITFlow keeps stock only for those)? */
 function mitProductIsTangible($product_id) {
     return intval($product_id) > 0 && getFieldById('products', intval($product_id), 'product_type') === 'product';

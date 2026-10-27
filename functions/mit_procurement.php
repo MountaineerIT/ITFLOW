@@ -726,8 +726,9 @@ function mitPoPdf(array $po, $dest = 'I') {
     };
     $logo = '';
     if (!empty($company['company_logo']) && is_file(__DIR__ . '/../uploads/settings/' . $company['company_logo'])) {
-        // A web-root path, as ITFlow's own PDFs use (agent/post/quote.php) - TCPDF puts the document root in front
-        $logo = '<img src="/uploads/settings/' . $h($company['company_logo']) . '" width="110">';
+        // The file's own path, as ITFlow's PDFs now use (functions/billing_pdf.php) - a web-root path needed the web
+        // server's document root, so it went missing when made from cron or with another document root
+        $logo = '<img src="' . $h(realpath(__DIR__ . '/../uploads/settings/' . basename($company['company_logo']))) . '" width="110">';
     }
     $approved = in_array($po['status'], ['approved', 'ordered', 'partial', 'received'], true);
     $html = '<table width="100%" cellpadding="2"><tr><td width="50%">' . $logo . '<br><strong>' . $h($company['company_name']) . '</strong><br>'

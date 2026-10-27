@@ -25,7 +25,8 @@ $mit_placeholder_list = function (array $tags) {
                 <h6 class="mb-1">Ticket resolved email</h6>
                 <p class="small text-body-secondary">Sent to the contact and watchers when a ticket is resolved (with client notifications on).
                     <?= mitResolvedTemplateSaved() === '' ? 'This is ITFlow\'s standard wording - change it to use your own.' : 'Your own wording is in use - empty the box to go back to ITFlow\'s.' ?>
-                    The "type your reply above this line" marker and your company signature are added around it.</p>
+                    It goes out in ITFlow's email layout: your logo, a "Hello &lt;name&gt;," for each person (so a greeting line at the top of
+                    yours is left out), the ticket's details and a "View or reopen it" button. Where [Note] is, the agent's note is quoted.</p>
                 <textarea class="form-control" name="mit_resolved_message" id="mitResolvedTemplate" rows="10" maxlength="5000" data-mit-resolved-template><?= escapeHtml(mitResolvedTemplate()) ?></textarea>
                 <div class="form-text mb-4">Filled in for the ticket: <?= $mit_placeholder_list(mitResolvedPlaceholders()) ?></div>
 
