@@ -298,6 +298,11 @@ if (isset($_POST['mit_po_details'])) {
     }
     $order_date = (string) ($_POST['order_date'] ?? '');
     $set[] = 'order_date = ' . (preg_match('/^\d{4}-\d{2}-\d{2}$/', $order_date) ? "'$order_date'" : 'NULL');
+    // Ship to an office (functions/mit_offices.php): 'office' = the main one, 'office:<id>', 'other' = typed
+    if (isset($_POST['ship_to_office'])) {
+        $ship_office = (string) $_POST['ship_to_office'];
+        $set[] = "ship_to = '" . ($ship_office === 'other' || !mitOffice(intval($ship_office)) ? 'other' : (intval($ship_office) ? 'office:' . intval($ship_office) : 'office')) . "'";
+    }
     foreach (['vendor_order_number' => 100, 'ship_to_address' => 2000, 'note' => 5000] as $field => $max) {
         $value = trim((string) ($_POST[$field] ?? ''));
         $set[] = "$field = " . ($value === '' ? 'NULL' : "'" . escapeSql(mb_substr($value, 0, $max)) . "'");

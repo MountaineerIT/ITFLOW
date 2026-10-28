@@ -25,10 +25,11 @@ function mitLookOn() {
     return $on;
 }
 
-/** For includes/header.php: the time-field script (everyone), and the modern look's stylesheet and script (not for Classic or nobody signed in). */
+/** For includes/header.php: the time-field and menu-folding scripts (everyone), and the modern look's stylesheet and script (not for Classic or nobody signed in). */
 function mitThemeHead() {
     // Time fields (clock icon = now, AM / PM from now) - for every look
-    $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>';
+    $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>'
+        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '"></script>'; // the side menu's sections fold - not deferred: it folds them as the menu is built (no flicker)
     if (!mitLookOn()) {
         return $time;
     }
@@ -107,23 +108,29 @@ function mitBrandLogoAttrs() {
 /** The switches under the logo on Company Details (inside ITFlow's form, saved by mitBrandLogoSave). */
 function mitBrandLogoField() {
     $app = mitBrandAppLogo();
-    return '<div class="mb-3 text-start" data-mit-brand-app-logo><hr>'
-        . '<label>Logo for ITFlow\'s screens</label>'
-        . ($app !== '' ? '<img class="img-thumbnail d-block mx-auto my-2" style="background: #1e293b" src="../uploads/settings/' . escapeHtml(rawurlencode($app)) . '" alt="App logo">'
-            . '<div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="mit_app_logo_remove" value="1" id="mitAppLogoRemove">'
-            . '<label class="form-check-label" for="mitAppLogoRemove">Remove it (use the company logo)</label></div>' : '')
-        . '<input type="file" class="form-control" name="mit_app_logo" accept=".jpg, .jpeg, .png">'
-        . '<div class="form-text">The side menu and the sign-in page show this one. The company logo above stays on quotes, invoices, '
-        . 'purchase orders and their PDFs. Leave it empty to use the company logo everywhere.</div></div>'
-        . '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-only>'
-        . '<input type="hidden" name="mit_brand_logo_present" value="1">'
-        . '<input class="form-check-input" type="checkbox" role="switch" name="mit_brand_logo_only" value="1" id="mitBrandLogoOnly"' . (mitBrandLogoOnly() ? ' checked' : '') . '>'
-        . '<label class="form-check-label" for="mitBrandLogoOnly">The logo shows the company name</label>'
-        . '<div class="form-text">The side menu then shows the logo on its own, without the name beside it.</div></div>'
-        . '<div class="form-check form-switch text-start mb-3" data-mit-brand-logo-plain>'
-        . '<input class="form-check-input" type="checkbox" role="switch" name="mit_brand_logo_plain" value="1" id="mitBrandLogoPlain"' . (mitBrandLogoPlain() ? ' checked' : '') . '>'
-        . '<label class="form-check-label" for="mitBrandLogoPlain">No light tile behind the logo</label>'
-        . '<div class="form-text">In the side menu and on the sign-in page - for a logo drawn for a dark background.</div></div>';
+    $url = $app !== '' ? '../uploads/settings/' . rawurlencode($app) : '';
+    // Built with ITFlow's settings page pieces (functions/settings.php): two sections under its Logo section
+    $html = settingsSectionStart('mit-app-logo', 'Logo on ITFlow\'s screens', 'The side menu and the sign-in page show this one, on the dark menu. '
+        . 'The company logo above stays on quotes, invoices, purchase orders, their PDFs and the client portal. Leave it empty to use the company logo everywhere.');
+    $html .= '<div class="row g-3 align-items-center" data-mit-brand-app-logo>'
+        . '<div class="col-sm-4"><div class="itflow-settings-picture" style="background: #1e293b">'
+        . '<img id="mitAppLogoPreview" alt="Logo on ITFlow\'s screens"' . ($url !== '' ? ' src="' . escapeHtml($url) . '"' : ' hidden') . '>'
+        . ($url === '' ? '<span class="small text-white-50" data-settings-preview-empty>Same as the company logo</span>' : '')
+        . '</div></div><div class="col-sm-8">'
+        . settingsInput('mit_app_logo', '', ['icon' => 'fa-image', 'type' => 'file', 'label' => $app !== '' ? 'Replace it' : 'Add one', 'accept' => 'image/png,image/jpeg',
+            'data' => ['settings-preview' => 'mitAppLogoPreview'], 'help' => 'A PNG or JPG drawn for a dark background.'])
+        . ($app !== '' ? '<div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="mit_app_logo_remove" value="1" id="mitAppLogoRemove">'
+            . '<label class="form-check-label" for="mitAppLogoRemove">Take it off - use the company logo</label></div>' : '')
+        . '</div></div>';
+    $html .= settingsSectionEnd();
+    $html .= settingsSectionStart('mit-side-menu-logo', 'In the side menu', 'How the logo sits at the top of the side menu (and on the sign-in page).');
+    $html .= '<input type="hidden" name="mit_brand_logo_present" value="1">'
+        . '<div data-mit-brand-logo-only>' . settingsSwitch('mit_brand_logo_only', mitBrandLogoOnly(), ['id' => 'mitBrandLogoOnly', 'label' => 'The logo shows the company name',
+            'help' => 'The side menu then shows the logo on its own, without the name beside it.']) . '</div>'
+        . '<div data-mit-brand-logo-plain>' . settingsSwitch('mit_brand_logo_plain', mitBrandLogoPlain(), ['id' => 'mitBrandLogoPlain', 'label' => 'No light tile behind the logo',
+            'help' => 'For a logo drawn for a dark background.']) . '</div>';
+    $html .= settingsSectionEnd();
+    return $html;
 }
 
 /** Hook in edit_company (admin/post/settings_company.php): save the switch when the form had it. */

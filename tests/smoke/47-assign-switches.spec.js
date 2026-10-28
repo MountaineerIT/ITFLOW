@@ -63,7 +63,7 @@ test('assign switches: on - every way of assigning tells the technician', async 
         setSwitch(key, true);
     }
     const name = smokeName('t1 assign client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     const r = await everyPath(page);
     expect(r, 'a bell and an email each way').toEqual({ newTicket: [1, 1], editTicket: [1, 1], picker: [1, 1], bulk: [1, 1] });

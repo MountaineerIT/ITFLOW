@@ -129,7 +129,7 @@ test('procurement: item to order, PO, approve, order, receive', async ({ page })
     await expectClean(page, errors);
 });
 
-test('ticket part shows in the Parts box and on Unbilled Parts', async ({ page }) => {
+test('ticket part shows in the Parts box and on To Bill', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     await visit(page, ticketUrl());
     test.skip(await box(page, 'fa-microchip').count() === 0, 'Parts box not shown (Procurement off?)');
@@ -142,9 +142,9 @@ test('ticket part shows in the Parts box and on Unbilled Parts', async ({ page }
     await page.waitForTimeout(500); // the layout script moves the boxes
     await expect(box(page, 'fa-microchip')).toContainText(`3 × ${name}`);
 
-    await visit(page, `agent/mit_unbilled_parts.php?client=${made.clientId}`);
-    const row = page.locator('tr', { hasText: `3 × ${name}` });
-    await expect(row, 'the part on Unbilled Parts').toHaveCount(1);
+    await visit(page, `agent/unbilled_time.php?client_id=${made.clientId}`);
+    const row = page.locator('[data-mit-part-row]', { hasText: name });
+    await expect(row, 'the part on To Bill').toHaveCount(1);
     await expect(row).toContainText(made.ticketName);
 });
 

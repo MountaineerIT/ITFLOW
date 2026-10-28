@@ -86,6 +86,7 @@ test('client menu pages', async ({ page }) => {
 });
 
 test('admin menu pages', async ({ page }) => {
+    test.setTimeout(180000); // the Settings menu lists every settings page (ITFlow's and ours) - 40 and more pages
     const urls = await menuLinks(page, 'admin/users.php');
     expect(urls.length, 'links in the admin menu').toBeGreaterThan(5);
     expect(await crawl(page, urls)).toEqual([]);

@@ -101,7 +101,8 @@ Update shows both, with the release notes.
 **Quotes, procurement and billing**
 - Quote pricing from cost (markup, margin or set price), a profit box, and images on lines and products
 - Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts
-- Parts on tickets and an Unbilled Parts list
+- Several offices - each agent's trips start from their office, their ticket emails show its address and phone, and POs ship to any office
+- Parts on tickets, billed from To Bill on the same invoice as the ticket's time, expenses and travel
 - QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back
 - Usage billing - recurring lines billed by a count (manual, API, tags, NinjaOne, Bitwarden, Ingram Micro)
 
@@ -112,7 +113,7 @@ Update shows both, with the release notes.
 
 **Running it**
 - One-line Debian installer, restore from Admin > Backup (large backups too) and a development mode for test copies
-- Cron health warnings and alert emails, consistency checks, a modern look (optional), bug and idea reports from the top bar
+- Cron health warnings and alert emails, consistency checks, a modern look (optional), bug and idea reports from the top bar (switched on in Admin > Debug)
 
 The full list, with where each piece lives in the code, is in [MIT_FEATURES.md](MIT_FEATURES.md). Release notes for every
 version are in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) (ITFlow's own are in [CHANGELOG.md](CHANGELOG.md)).
@@ -153,7 +154,7 @@ working after such a move is listed in [DEPLOYMENT.md](DEPLOYMENT.md) ("Moving t
 ## Support
 
 This build is maintained for Mountaineer IT's own use and is provided without support. Bugs and ideas can be opened as
-[issues](https://github.com/MountaineerIT/ITFLOW/issues); signed-in users can also send them from the bug button in the top bar.
+[issues](https://github.com/MountaineerIT/ITFLOW/issues); signed-in users can also send them from the bug button in the top bar, once an admin turns it on in Admin > Debug.
 
 ## Security
 

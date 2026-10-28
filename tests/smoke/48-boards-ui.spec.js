@@ -54,7 +54,7 @@ test('boards: archiving a board moves its tickets to the default and drops its r
     expect(made.boardId, await flash(page)).toBeGreaterThan(0);
 
     const client = smokeName('t1 board client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(client)}, client_currency_code = 'USD', client_net_terms = 30`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(client)}, client_currency_code = 'USD'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(client)}`));
     // A client rule for the new board, then a ticket opened with Automatic routing lands on it
     await visit(page, 'admin/mit_boards.php?tab=routing', errors);

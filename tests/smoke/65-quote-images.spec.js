@@ -48,7 +48,7 @@ function product(image) {
     return id;
 }
 function archivedClient() {
-    const id = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.name + ' client ' + (made.clients.length + 1))}, client_currency_code = 'USD', client_net_terms = 30, client_archived_at = NOW()`);
+    const id = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.name + ' client ' + (made.clients.length + 1))}, client_currency_code = 'USD', client_archived_at = NOW()`);
     made.clients.push(id);
     return id;
 }

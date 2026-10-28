@@ -201,7 +201,7 @@ test('deleting a client (in ITFlow or through the API) puts its tickets\' unbill
     try {
         for (const via of ['page', 'api']) {
             const cpu = product(`Smoke 63 CPU ${via}`, 5);
-            const client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 63 client ${via} ${Date.now()}', client_currency_code = 'USD', client_net_terms = 30`);
+            const client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 63 client ${via} ${Date.now()}', client_currency_code = 'USD'`);
             const n = Number(db.val('SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets'));
             const ticket = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${n}, ticket_subject = 'Smoke 63 client delete', ticket_details = 'x',
                 ticket_priority = 'Low', ticket_status = 1, ticket_client_id = ${client}, ticket_created_by = 1`);

@@ -60,7 +60,7 @@ test('the sign-in screens load the backdrop', async ({ browser }) => {
 test("a client's Assets and Licenses pages open with their tiles", async ({ page }) => {
     const errors = watch(page);
     const name = smokeName('theme tiles client');
-    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
     db.exec(`INSERT INTO assets SET asset_type = 'Desktop', asset_name = 'Tiles PC 1', asset_make = 'Smoke', asset_client_id = ${made.clientId},
         asset_warranty_expire = CURDATE() - INTERVAL 10 DAY;
         INSERT INTO assets SET asset_type = 'Desktop', asset_name = 'Tiles PC 2', asset_make = 'Smoke', asset_client_id = ${made.clientId},

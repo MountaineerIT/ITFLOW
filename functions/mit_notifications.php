@@ -1,11 +1,11 @@
 <?php
 
 /*
- * Mountaineer IT - more rows on Admin > Settings > Notifications: switches for the emails and app notices that scheduling,
- * assigning and our own features send, in ITFlow's own table (App / Tech email / Client email columns). `mit_settings` notify_<key>
- * ('0' = off; no row = on, so nothing changes until a box is unticked). Rows: one line in `admin/settings_notification.php` before
- * </tbody> (`mitNotificationRows`), saved by one line in `admin/post/settings_notification.php` (`mitNotificationsSave`, only when
- * the rows were on the page). Checked by `mitNotifyOn($key)` - guarded lines in functions/ticket.php ticketMailSchedule and
+ * Mountaineer IT - more on Admin > Settings > Notifications: switches for the emails and app notices that scheduling,
+ * assigning and our own features send, as sections of ITFlow's settings page. `mit_settings` notify_<key>
+ * ('0' = off; no row = on, so nothing changes until a box is unticked). Sections: one line in `admin/settings_notification.php` after
+ * "Emails to clients" (`mitNotificationSections`), saved by one line in `admin/post/settings_notification.php` (`mitNotificationsSave`,
+ * only when they were on the page). Checked by `mitNotifyOn($key)` - guarded lines in functions/ticket.php ticketMailSchedule and
  * functions/ticket_fields.php (ticket / recurring ticket assigned), and inside our own senders.
  */
 
@@ -29,36 +29,49 @@ function mitNotifyOn($key) {
     return function_exists('mitSetting') ? (string) mitSetting("notify_$key", '1') !== '0' : true;
 }
 
-/** The rows for ITFlow's Notifications table (5 columns: Notification / App / Tech email / Client email / Create Ticket). */
-function mitNotificationRows() {
+/**
+ * Our switches as sections of ITFlow's settings page (26.10.189 - built like its own: settingsSectionStart, a field per notice with
+ * "In the bell" / "By email" switches), after its "Emails to clients" (one line in admin/settings_notification.php).
+ */
+function mitNotificationSections() {
+    if (!function_exists('settingsSectionStart')) {
+        return '';
+    }
+    $about = [
+        'Assigning' => 'What a tech hears when a ticket is handed to them or lands on a board they are on.',
+        'Ticket replies' => 'Copies of what clients write, for the other techs on a ticket.',
+        'Procurement' => 'What approvers hear when a purchase order is waiting for them.',
+        'Timesheets' => 'What people hear about their own timesheet.',
+    ];
     $rows = [];
     foreach (mitNotificationSwitches() as $key => [$section, $label, $help, $column]) {
         $rows[$section][$label][$column] = [$key, $help];
     }
-    $icons = ['Scheduling' => 'calendar-alt', 'Assigning' => 'user-check', 'Ticket replies' => 'reply', 'Procurement' => 'shopping-cart', 'Timesheets' => 'business-time'];
-    $html = '<input type="hidden" name="mit_notify_present" value="1">' . mitScheduleNotifyRows();
+    $html = '<input type="hidden" name="mit_notify_present" value="1">'
+        . settingsSectionStart('mit-scheduling', 'Ticket scheduled, moved or cancelled', 'Who is emailed, with a calendar invite. These are the defaults - the Schedule window and Dispatch show them as ticks to change for one booking. Everyone but the tech also needs "Email clients about their tickets" above. Techs whose Outlook calendar is synced get the booking there either way.')
+        . '<div class="itflow-settings-field" data-setting="mit_schedule" data-mit-notify-section="Scheduling">' . mitScheduleDefaultsTable() . '</div>'
+        . settingsSectionEnd();
     foreach ($rows as $section => $labels) {
-        $html .= '<tr data-mit-notify-section><th colspan=5>' . escapeHtml($section) . '</th></tr>';
+        $html .= settingsSectionStart('mit-' . strtolower(preg_replace('/[^A-Za-z]+/', '-', $section)), $section, escapeHtml($about[$section] ?? ''))
+            . '<div data-mit-notify-section="' . escapeHtml($section) . '">';
         foreach ($labels as $label => $columns) {
             $help = implode(' ', array_map(function ($c) { return $c[1]; }, $columns));
-            $html .= '<tr><th><div><i class="fas fa-fw fa-' . ($icons[$section] ?? 'bell') . ' me-2"></i>' . escapeHtml($label) . '</div>'
-                . '<small class="text-secondary">' . escapeHtml($help) . '</small></th>';
-            foreach (['app', 'tech', 'client'] as $column) {
-                $html .= '<td>';
+            $first = reset($columns)[0];
+            $html .= '<div class="itflow-settings-field" data-setting="mit_notify_' . escapeHtml($first) . '"><div class="form-label">' . escapeHtml($label) . '</div><div class="d-flex flex-wrap gap-4">';
+            foreach (['app' => 'In the bell', 'tech' => 'By email'] as $column => $what) {
                 if (isset($columns[$column])) {
                     $key = $columns[$column][0];
-                    $html .= '<div class="form-check text-center"><input type="checkbox" class="form-check-input" name="mit_notify[' . $key . ']" value="1" id="mitNotify_' . $key
-                        . '" data-mit-notify="' . $key . '"' . (mitNotifyOn($key) ? ' checked' : '') . '><label class="form-check-label" for="mitNotify_' . $key . '"></label></div>';
+                    $html .= '<div class="form-check form-switch mb-0"><input type="checkbox" class="form-check-input" role="switch" name="mit_notify[' . $key . ']" value="1" id="mitNotify_' . $key
+                        . '" data-mit-notify="' . $key . '"' . (mitNotifyOn($key) ? ' checked' : '') . '><label class="form-check-label" for="mitNotify_' . $key . '">' . $what . '</label></div>';
                 }
-                $html .= '</td>';
             }
-            $html .= '<td></td></tr>';
+            $html .= '</div><div class="form-text">' . escapeHtml($help) . '</div></div>';
         }
+        $html .= '</div>' . settingsSectionEnd();
     }
-    $html .= '<tr><th colspan=5 class="small text-secondary fw-normal">Set elsewhere: new-ticket and SLA alert addresses (Settings > Ticket and SLA),'
-        . ' Customer Thermometer surveys (Integrations), cron problem alerts (Maintenance > Cron), timesheet reminder days (Admin > Timesheets),'
-        . ' and each board member\'s own notices (Settings > Boards).</th></tr>';
-    return $html;
+    return $html . '<p class="small text-body-secondary mt-3 mb-0" data-mit-notify-elsewhere>Set elsewhere: new-ticket and SLA alert addresses (Settings &gt; Tickets and SLAs),'
+        . ' Customer Thermometer surveys (Integrations), cron problem alerts (Maintenance &gt; Cron), timesheet reminder days (Admin &gt; Timesheets),'
+        . ' and each board member\'s own notices (Settings &gt; Boards).</p>';
 }
 
 /** Save the switches (from the Notifications form). */
@@ -270,14 +283,10 @@ function mitScheduleExtraRecipients(array $row, $contact_sent, $watchers_sent) {
     return $out;
 }
 
-/** Notifications page: the defaults table for scheduled visits. */
-function mitScheduleNotifyRows() {
+/** Who is emailed for remote and onsite bookings - the defaults' table (Notifications page). */
+function mitScheduleDefaultsTable() {
     $defaults = ['remote' => mitScheduleDefaults(false), 'onsite' => mitScheduleDefaults(true)];
-    $html = '<tr data-mit-notify-section><th colspan=5>Scheduling</th></tr><tr><th colspan=5 class="fw-normal">'
-        . '<div class="mb-2"><i class="fas fa-fw fa-calendar-alt me-2"></i><strong>Ticket scheduled, moved or cancelled</strong> - who is emailed, with a calendar invite.'
-        . ' These are the defaults; the Schedule window and Dispatch show them as ticks to change for one booking. Everyone but the tech also needs'
-        . ' "Email clients about their tickets" on. Techs whose Outlook calendar is synced get the booking there either way.</div>'
-        . '<table class="table table-sm table-bordered mb-0 small" data-mit-schedule-defaults style="max-width: 40rem"><thead><tr><th>Who</th>'
+    $html = '<table class="table table-sm table-bordered mb-0 small" data-mit-schedule-defaults style="max-width: 40rem"><thead><tr><th>Who</th>'
         . '<th class="text-center"><i class="fas fa-headset me-1"></i>Remote</th><th class="text-center"><i class="fas fa-car me-1"></i>Onsite</th></tr></thead><tbody>';
     foreach (MIT_SCHEDULE_WHO as $who => $label) {
         $html .= '<tr><td>' . escapeHtml($label) . '</td>';
@@ -292,7 +301,7 @@ function mitScheduleNotifyRows() {
         $html .= '<td><input type="text" class="form-control form-control-sm" name="mit_schedule[' . $mode . '][extra]" maxlength="1000" data-mit-schedule="' . $mode
             . '-extra" value="' . escapeHtml(implode(', ', $defaults[$mode]['extra'])) . '" placeholder="none"></td>';
     }
-    return $html . '</tr></tbody></table></th></tr>';
+    return $html . '</tr></tbody></table>';
 }
 
 /** The Schedule window: the ticks for this booking, switching to the onsite / remote defaults as the visit changes (agent/js/mit_schedule_notify.js). */

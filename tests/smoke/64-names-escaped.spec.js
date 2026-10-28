@@ -26,7 +26,7 @@ test.afterAll(() => {
 });
 
 for (const url of ['agent/mit_procurement.php', 'agent/mit_purchase_orders.php', 'agent/mit_purchase_order.php?po_id=PO', 'agent/mit_receiving.php',
-    'agent/mit_unbilled_parts.php', 'agent/ticket.php?ticket_id=TICKET', 'agent/mit_qbo_batches.php', 'agent/mit_qbo_batch.php?batch_id=BATCH', 'agent/client_overview.php?client_id=1']) {
+    'agent/unbilled_time.php?client_id=1', 'agent/ticket.php?ticket_id=TICKET', 'agent/mit_qbo_batches.php', 'agent/mit_qbo_batch.php?batch_id=BATCH', 'agent/client_overview.php?client_id=1']) {
     test(`escaped on ${url.replace(/\?.*/, '')}`, async ({ page }) => {
         const errors = watch(page);
         await visit(page, url.replace('PO', made.po).replace('TICKET', made.ticket).replace('BATCH', made.batch), errors);

@@ -46,6 +46,7 @@ $can_bill_expenses = $can_edit && lookupUserPermission('module_financial') >= 2;
 $rules = billingTimeRules();
 $clients = $ready && $with_time ? billingUnbilledByClient($client_view ? $client_id : 0) : [];
 $clients = $ready && $with_expenses ? tripUnbilledMerge(expenseUnbilledMerge($clients, $client_view ? $client_id : 0), $client_view ? $client_id : 0) : $clients;
+$clients = $ready && function_exists('mitToBillMerge') ? mitToBillMerge($clients, $client_view ? $client_id : 0) : $clients; // Mountaineer IT: parts on tickets to bill (functions/mit_to_bill.php)
 $currency = (string) $session_company_currency;
 $money = function ($amount) use ($currency) {
     return escapeHtml(billingMoney($amount, $currency));
@@ -71,6 +72,7 @@ foreach ($clients as $c) {
 // Expenses and trips together, where they share a column
 $total['extras'] = $total['expenses'] + $total['trips'];
 $total['extra_value'] = $total['expense_value'] + $total['trip_value'];
+$mit_to_bill = function_exists('mitToBillTotals') ? mitToBillTotals($clients) : ['parts' => 0, 'value' => 0.0]; // Mountaineer IT: the parts in it
 $extras_text = function ($expenses, $trips) {
     $parts = [];
     if ($expenses) {
@@ -111,10 +113,10 @@ $hours_text = function ($hours) {
     <div class="col-sm-6 col-xl-3">
         <div class="itflow-billing-stat">
             <div class="itflow-billing-stat-label"><i class="fas fa-file-invoice-dollar me-1"></i>To bill</div>
-            <div class="itflow-billing-stat-value <?= $total['value'] + $total['extra_value'] > 0 ? 'text-info-emphasis' : '' ?>"><?= $money($total['value'] + $total['extra_value']) ?></div>
+            <div class="itflow-billing-stat-value <?= $total['value'] + $total['extra_value'] + $mit_to_bill['value'] > 0 ? 'text-info-emphasis' : '' ?>"><?= $money($total['value'] + $total['extra_value'] + $mit_to_bill['value']) ?></div>
             <div class="itflow-billing-stat-note">
-                <?php if ($total['extras']) { ?>
-                    <?= $money($total['value']) ?> of time<?= $total['expenses'] ? ' &middot; ' . $money($total['expense_value']) . ' of expenses' : '' ?><?= $total['trips'] ? ' &middot; ' . $money($total['trip_value']) . ' of travel' : '' ?>
+                <?php if ($total['extras'] || $mit_to_bill['parts']) { ?>
+                    <?= $money($total['value']) ?> of time<?= $total['expenses'] ? ' &middot; ' . $money($total['expense_value']) . ' of expenses' : '' ?><?= $total['trips'] ? ' &middot; ' . $money($total['trip_value']) . ' of travel' : '' ?><?= function_exists('mitToBillStatNote') ? mitToBillStatNote($mit_to_bill, $money) : '' ?>
                 <?php } else { ?>
                     <?= $client_view ? (!$one_rate ? "At each ticket's rate" : 'At ' . ($this_client && $this_client['rate'] > 0 ? $money($this_client['rate']) . ' an hour' . (in_array($this_client['rate_source'] ?? '', ['contract', 'after_hours'], true) ? ', ' . escapeHtml($this_client['rate_note']) : '') : 'no rate set')) : 'At each client\'s hourly rate' ?>
                 <?php } ?>
@@ -141,7 +143,7 @@ $hours_text = function ($hours) {
     <div class="col-sm-6 col-xl-3">
         <div class="itflow-billing-stat">
             <div class="itflow-billing-stat-label"><i class="fas fa-hourglass-half me-1"></i>Waiting longest</div>
-            <div class="itflow-billing-stat-value <?= $total['oldest'] > 30 ? 'text-danger-emphasis' : '' ?>"><?= $total['tickets'] || $total['extras'] ? $total['oldest'] . ' day' . ($total['oldest'] === 1 ? '' : 's') : '-' ?></div>
+            <div class="itflow-billing-stat-value <?= $total['oldest'] > 30 ? 'text-danger-emphasis' : '' ?>"><?= $total['tickets'] || $total['extras'] || $mit_to_bill['parts'] ? $total['oldest'] . ' day' . ($total['oldest'] === 1 ? '' : 's') : '-' ?></div>
             <div class="itflow-billing-stat-note"><?= $total['extras'] ? 'Since the ticket was done' . ($total['expenses'] ? ', the expense paid' : '') . ($total['trips'] ? ', the trip driven' : '') : 'Since the ticket was done' ?></div>
         </div>
     </div>
@@ -157,7 +159,7 @@ $hours_text = function ($hours) {
 <?php } elseif (!$clients) { ?>
     <div class="card">
         <div class="card-header bg-dark py-2">
-            <h3 class="card-title mt-2"><i class="fas fa-fw fa-user-clock me-2"></i>Unbilled Time</h3>
+            <h3 class="card-title mt-2"><i class="fas fa-fw fa-user-clock me-2"></i>To Bill</h3>
         </div>
         <div class="itflow-asset-empty py-5">
             <i class="fas fa-check-circle fa-2x mb-2 opacity-50"></i>
@@ -241,6 +243,8 @@ $hours_text = function ($hours) {
                     </div>
                 </div>
             <?php } ?>
+
+            <?= $client_view && function_exists('mitToBillCard') ? mitToBillCard($this_client, $money, $waiting_pill) : '' // Mountaineer IT: parts to bill ?>
 
             <?php if ($client_view && !empty($this_client['trips'])) { ?>
                 <!-- The driving out to them, to bill -->
@@ -327,7 +331,7 @@ $hours_text = function ($hours) {
 
             <div class="card">
                 <div class="card-header bg-dark py-2 d-flex align-items-center">
-                    <h3 class="card-title mt-2 me-auto"><i class="fas fa-fw fa-user-clock me-2"></i>Unbilled Time<?= $client_view ? '' : ' by client' ?></h3>
+                    <h3 class="card-title mt-2 me-auto"><i class="fas fa-fw fa-user-clock me-2"></i><?= $client_view ? 'Time to bill' : 'To bill by client' ?></h3>
                     <?php if ($client_view) { ?>
                         <a class="btn btn-dark btn-sm me-1" href="unbilled_time.php" title="Every client's unbilled time"><i class="fas fa-users me-1"></i>All clients</a>
                     <?php } ?>
@@ -366,6 +370,7 @@ $hours_text = function ($hours) {
                                 <?php if ($with_expenses) { ?>
                                     <th class="text-end <?= $with_time ? 'd-none d-md-table-cell' : '' ?>"><?= $total['trips'] ? ($total['expenses'] ? 'Expenses &amp; travel' : 'Travel') : 'Expenses' ?></th>
                                 <?php } ?>
+                                <?= function_exists('mitToBillHead') ? mitToBillHead($mit_to_bill) : '' // Mountaineer IT: parts ?>
                                 <th class="text-end">Amount</th>
                                 <th class="d-none d-md-table-cell">Oldest</th>
                                 <th class="d-none d-sm-table-cell"></th>
@@ -390,7 +395,7 @@ $hours_text = function ($hours) {
                                             <?php if (intval($ticket['ticket_onsite'])) { ?>
                                                 <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis fw-normal ms-1"><i class="fas fa-car-side me-1"></i>Onsite</span>
                                             <?php } ?>
-                                            <?php if (($ticket['rate_source'] ?? '') === 'after_hours') { ?>
+                                            <?php if (in_array($ticket['rate_source'] ?? '', ['after_hours', 'default_after_hours'], true)) { ?>
                                                 <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis fw-normal ms-1" title="<?= escapeHtml(ucfirst($ticket['rate_note'])) ?>" data-unbilled-after-hours><i class="fas fa-moon me-1"></i>After hours <?= $money($ticket['rate']) ?></span>
                                             <?php } elseif (!$one_rate) { ?>
                                                 <span class="ms-1" title="<?= escapeHtml(ucfirst($ticket['rate_note'])) ?>"><?= $money($ticket['rate']) ?>/hr</span>
@@ -420,7 +425,7 @@ $hours_text = function ($hours) {
                         } else {
                             foreach ($clients as $id => $c) {
                                 $draft = $c['drafts'] ? reset($c['drafts']) : null; ?>
-                                <tr data-unbilled-row data-value="<?= round($c['value'] + ($c['expense_value'] ?? 0) + ($c['trip_value'] ?? 0), 2) ?>" data-hours="<?= round($c['hours'], 2) ?>" data-tickets="<?= count($c['tickets']) ?>" data-expenses="<?= count($c['expenses'] ?? []) ?>" data-trips="<?= count($c['trips'] ?? []) ?>">
+                                <tr data-unbilled-row data-value="<?= round($c['value'] + ($c['expense_value'] ?? 0) + ($c['trip_value'] ?? 0), 2) ?>" data-hours="<?= round($c['hours'], 2) ?>" data-tickets="<?= count($c['tickets']) ?>" data-expenses="<?= count($c['expenses'] ?? []) ?>" data-trips="<?= count($c['trips'] ?? []) ?>"<?= function_exists('mitToBillRowAttrs') ? mitToBillRowAttrs($c) : '' ?>>
                                     <?php if ($can_edit) { ?>
                                         <td class="checkbox-column border-end">
                                             <div class="form-check">
@@ -449,11 +454,11 @@ $hours_text = function ($hours) {
                                             <?php if (!$c['tickets']) { ?>
                                                 <span class="text-body-secondary">-</span>
                                             <?php } elseif (count($c['rates'] ?? []) > 1) { ?>
-                                                <span class="small" title="A contract's after-hours rate, or a change of contract - each ticket bills at its own">Each its own</span>
+                                                <span class="small" title="An after-hours rate, or a change of contract - each ticket bills at its own">Each its own</span>
                                             <?php } elseif ($c['rate'] > 0) { ?>
-                                                <?= $money($c['rate']) ?><?= $c['default_rate'] ? '<div class="small text-body-tertiary" title="The client has no rate of its own">default</div>' : (in_array($c['rate_source'] ?? '', ['contract', 'after_hours'], true) ? '<div class="small text-body-tertiary" title="' . escapeHtml(ucfirst($c['rate_note'])) . '">contract</div>' : '') ?>
+                                                <?= $money($c['rate']) ?><?= $c['default_rate'] ? '<div class="small text-body-tertiary" title="No contract in force sets a rate - the default in Admin > Settings > Defaults">default</div>' : (in_array($c['rate_source'] ?? '', ['contract', 'after_hours'], true) ? '<div class="small text-body-tertiary" title="' . escapeHtml(ucfirst($c['rate_note'])) . '">contract</div>' : '') ?>
                                             <?php } else { ?>
-                                                <span class="small text-warning-emphasis" title="Set an hourly rate on the client, or a default in Admin > Settings > Defaults">No rate</span>
+                                                <span class="small text-warning-emphasis" title="Give the client's contract an hourly rate, or set a default in Admin > Settings > Defaults">No rate</span>
                                             <?php } ?>
                                         </td>
                                     <?php } ?>
@@ -467,7 +472,8 @@ $hours_text = function ($hours) {
                                             <?php } ?>
                                         </td>
                                     <?php } ?>
-                                    <td class="text-end text-nowrap fw-semibold"><?= $money($c['value'] + ($c['expense_value'] ?? 0) + ($c['trip_value'] ?? 0)) ?></td>
+                                    <?= function_exists('mitToBillCell') ? mitToBillCell($c, $mit_to_bill, $money) : '' // Mountaineer IT: parts ?>
+                                    <td class="text-end text-nowrap fw-semibold"><?= $money($c['value'] + ($c['expense_value'] ?? 0) + ($c['trip_value'] ?? 0) + ($c['mit_part_value'] ?? 0)) ?></td>
                                     <td class="text-nowrap d-none d-md-table-cell"><?= $waiting_pill($c['oldest']) ?></td>
                                     <td class="text-end d-none d-sm-table-cell">
                                         <a class="btn btn-sm btn-outline-secondary text-nowrap" href="unbilled_time.php?client_id=<?= $id ?>">Review</a>
@@ -625,6 +631,7 @@ $hours_text = function ($hours) {
 
 <script src="/js/billing_items.js"></script>
 <script src="/js/unbilled_time.js"></script>
+<?= function_exists('mitToBillScript') ? mitToBillScript() : '' // Mountaineer IT: the parts in the total ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     itflowUnbilledTime({

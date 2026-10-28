@@ -46,7 +46,7 @@ async function emailReply(page, text, pick) {
 
 test('reply recipients: setup - two clients, contacts, a ticket with a watcher', async ({ page }) => {
     for (const [key, name] of [['clientId', smokeName('t1 reply client')], ['client2Id', smokeName('t1 reply other')]]) {
-        db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+        db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
         made[key] = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     }
     db.run(`INSERT INTO contacts SET contact_name = 'Cara Contact', contact_email = '${cara}', contact_primary = 1, contact_client_id = ${made.clientId}`);

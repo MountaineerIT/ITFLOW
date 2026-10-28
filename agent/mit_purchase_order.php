@@ -282,7 +282,7 @@ $at = $order[$status] ?? 0;
                     <dt class="col-5 fw-normal text-muted">Ordered</dt>
                     <dd class="col-7"><?= $po['order_date'] ? escapeHtml($po['order_date']) : '<span class="text-muted">Not yet</span>' ?></dd>
                     <dt class="col-5 fw-normal text-muted">Ship to</dt>
-                    <dd class="col-7"><?= nl2br(escapeHtml($po['ship_to_address'] ?: '-')) ?></dd>
+                    <dd class="col-7"><?php $ship_office_id = function_exists('mitOfficeFromShipTo') && mitOffices() ? mitOfficeFromShipTo($po['ship_to']) : null; $ship_office = $ship_office_id !== null ? mitOffice($ship_office_id, true) : null; ?><?= $ship_office ? '<div class="fw-semibold" data-mit-po-ship-office-name>' . escapeHtml($ship_office['name']) . '</div>' : '' ?><?= nl2br(escapeHtml($po['ship_to_address'] ?: '-')) ?></dd>
                     <dt class="col-5 fw-normal text-muted">Created by</dt>
                     <dd class="col-7"><?= escapeHtml($po['created_by_name'] ?: '-') ?> <span class="text-muted"><?= escapeHtml(date('M j, Y', strtotime($po['created_at']))) ?></span></dd>
                     <?php if ($po['approved_at']) { ?>

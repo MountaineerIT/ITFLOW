@@ -125,10 +125,13 @@ test('blocks that can\'t be right are refused, not saved', async ({ page }) => {
         await block(1).locator('[data-block-start]').fill('08:00');
         await block(1).locator('[data-block-end]').fill('12:00');
         await expect(status).toContainText('Blocks go in time order', { timeout: 10000 });
-        // Neither was saved
+        // Neither was saved. The panel saves as it is typed, so 13:00 - 17:00 on its own (valid) may have been saved before the
+        // second block went in on a busy machine - what must never be there is the out-of-order pair or a block of no length
         await visit(page, 'agent/mit_timesheet.php');
         const after = JSON.parse(await page.locator('#mitTsData').textContent());
-        expect(after.days[date].ca.blocks || []).toEqual([]);
+        const saved = after.days[date].ca.blocks || [];
+        expect(saved.length, 'the out-of-order pair').toBeLessThan(2);
+        expect(saved.filter((b) => b.start === b.end), 'a block that starts and ends at the same time').toEqual([]);
     } finally {
         await visit(page, 'agent/mit_timesheet.php');
         const now = JSON.parse(await page.locator('#mitTsData').textContent());

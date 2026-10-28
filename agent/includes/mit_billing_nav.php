@@ -2,24 +2,10 @@
 /*
  * Mountaineer IT - our entries in the agent side menu's BILLING section, required from agent/includes/side_nav.php after
  * Products (the section already needs Sales View):
- * - Unbilled Parts (agent/mit_unbilled_parts.php, functions/mit_procurement_parts.php) - needs the Procurement module, which keeps parts.
+ * (Parts on tickets to bill are in ITFlow's Unbilled Time - "To Bill" - since 26.10.182: functions/mit_to_bill.php.)
  * - Usage Review (functions/mit_usage.php) - once a recurring invoice has a usage line.
  * - Invoice Approvals and QuickBooks Batches (functions/mit_qbo_billing.php) - once QuickBooks Online is set up (Admin > Integrations).
  */
-
-if (function_exists('mitUnbilledPartsCount') && mitProcOn() && mitTicketPartsReady()) {
-    $mit_unbilled = mitNavCachedCount('unbilled_parts:' . clientScopeSql(defined('MIT_PART_CLIENT_SQL') ? MIT_PART_CLIENT_SQL : 'client_id'), 'mitUnbilledPartsCount',
-        basename($_SERVER['PHP_SELF']) === 'mit_unbilled_parts.php'); ?>
-    <li class="nav-item">
-        <a href="/agent/mit_unbilled_parts.php" class="nav-link <?= basename($_SERVER['PHP_SELF']) === 'mit_unbilled_parts.php' ? 'active' : '' ?>">
-            <i class="nav-icon fas fa-file-invoice-dollar"></i>
-            <p>
-                Unbilled Parts
-                <?php if ($mit_unbilled) { ?><span class="right badge text-light" data-bs-toggle="tooltip" title="Parts on tickets not billed yet"><?= $mit_unbilled ?></span><?php } ?>
-            </p>
-        </a>
-    </li>
-<?php }
 
 if (function_exists('mitUsageReady') && mitUsageReady() && mysqli_num_rows(mysqli_query($mysqli, "SELECT 1 FROM mit_usage_lines LIMIT 1"))) {
     $mit_usage_count = mitNavCachedCount('usage:' . clientScopeSql('invoices.invoice_client_id'), 'mitUsageNavCount', basename($_SERVER['PHP_SELF']) === 'mit_usage_review.php'); ?>

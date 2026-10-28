@@ -413,12 +413,14 @@ if (isset($_POST['unbilled_invoice'])) {
         'combine' => ($_POST['lines'] ?? '') === 'one',
         'by' => stripslashes($session_name),
     ], $error, $trip_prices);
+    if (function_exists('mitToBillAfter')) { $result = mitToBillAfter($client_id, $result, $error, $hours || $prices || $trip_prices); } // Mountaineer IT: the ticked parts on it too
     if (!$result) {
         flashAlert(escapeHtml($error), 'error');
         redirect();
     }
 
     flashAlert(unbilledBothText($result, $session_company_currency), $result['error'] !== '' ? 'warning' : 'success');
+    if (function_exists('mitToBillFlash')) { mitToBillFlash(); } // Mountaineer IT: and what the parts came to
     redirect("invoice.php?invoice_id={$result['invoice_id']}");
 
 }
@@ -440,6 +442,7 @@ if (isset($_POST['unbilled_invoice_clients'])) {
     $with_expenses = lookupUserPermission('module_financial') >= 2;
     $by_client = intval($config_module_enable_ticketing) === 1 ? billingUnbilledByClient() : [];
     $by_client = $with_expenses ? tripUnbilledMerge(expenseUnbilledMerge($by_client)) : $by_client;
+    $by_client = function_exists('mitToBillMerge') ? mitToBillMerge($by_client) : $by_client; // Mountaineer IT: their parts too
     $made = [];
     $failed = [];
     foreach (array_unique(array_map('intval', (array) ($_POST['client_ids'] ?? []))) as $bill_client_id) {
@@ -457,6 +460,7 @@ if (isset($_POST['unbilled_invoice_clients'])) {
             'combine' => ($_POST['lines'] ?? '') === 'one',
             'by' => stripslashes($session_name),
         ], $error, array_fill_keys(array_keys($c['trips'] ?? []), null));
+        if (function_exists('mitToBillAfter')) { $result = mitToBillAfter($bill_client_id, $result, $error, $c['tickets'] || !empty($c['expenses']) || !empty($c['trips']), $c); } // Mountaineer IT: their parts on it too
         if ($result) {
             $made[] = $result;
             if ($result['error'] !== '') {
@@ -490,6 +494,7 @@ if (isset($_POST['unbilled_invoice_clients'])) {
     flashAlert('<strong>' . count($made) . ' invoice' . (count($made) === 1 ? '' : 's') . '</strong> ' . (array_filter(array_column($made, 'new')) ? 'made or added to' : 'added to') . ' - '
         . implode(' and ', $what) . ': ' . escapeHtml(implode(', ', array_slice($numbers, 0, 12)) . (count($numbers) > 12 ? ' and more' : ''))
         . ($failed ? '. Not billed: ' . escapeHtml(implode(' ', $failed)) : ''), $failed ? 'warning' : 'success');
+    if (function_exists('mitToBillFlash')) { mitToBillFlash(); } // Mountaineer IT: and what the parts came to
     redirect('invoices.php?status=Draft');
 
 }

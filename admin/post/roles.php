@@ -54,7 +54,7 @@ if (isset($_POST['edit_role'])) {
 
     $changes = roleChangeText($row, $fields);
     roleSave($fields, $role_id);
-    if (function_exists('mitBoardRoleSave')) { mitBoardRoleSave($role_id, $_POST); } // Mountaineer IT: service boards this role sees
+    if (function_exists('mitBoardRoleSave') && ($mit_boards_changed = mitBoardRoleSave($role_id, $_POST)) !== '') { $changes .= ($changes !== '' ? ', ' : '') . $mit_boards_changed; } // Mountaineer IT: service boards this role sees - counted as a change
 
     if ($changes !== '') {
         logAudit("User Role", "Edit", "$session_name edited role " . escapeSql($fields['name']) . " - " . escapeSql($changes), 0, $role_id);

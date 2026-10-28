@@ -36,6 +36,9 @@ $num_unbilled_tickets = $config_module_enable_accounting == 1 && $config_module_
 $num_unbilled_expenses = $config_module_enable_accounting == 1 && lookupUserPermission('module_sales') >= 1 && lookupUserPermission('module_financial') >= 1 ? expenseUnbilledCount()['count'] : 0;
 // ...and trips to bill
 $num_unbilled_trips = $config_module_enable_accounting == 1 && lookupUserPermission('module_sales') >= 1 && lookupUserPermission('module_financial') >= 1 ? tripUnbilledCount()['count'] : 0;
+// ...and parts put on tickets (Mountaineer IT - functions/mit_to_bill.php)
+$num_unbilled_parts = $config_module_enable_accounting == 1 && function_exists('mitToBillPartsCount') && function_exists('mitNavCachedCount')
+    ? mitNavCachedCount('unbilled_parts:' . clientScopeSql('client_id'), 'mitToBillPartsCount', basename($_SERVER['PHP_SELF']) === 'unbilled_time.php') : 0;
 
 // Products whose stock is at or under the reorder level, or out
 $num_products_reorder = $config_module_enable_accounting == 1 && lookupUserPermission('module_sales') >= 1 ? productReorderCount() : 0;

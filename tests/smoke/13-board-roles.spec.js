@@ -79,6 +79,7 @@ test('board roles: limit the Technician role to one board', async ({ page }) => 
     expect(values.present, 'the Service boards section on Admin > Roles > Edit').toBe(true);
     made.restore = values;
     await setRoleBoards(page, made.roleId, false, [made.shown]);
+    expect(await flash(page), 'a change to its boards alone is a change (not "unchanged")').toMatch(/saved/);
     const after = (await roleBoards(page, made.roleId)).values;
     expect(after.mit_boards_all, 'saved as limited').toBe(false);
     expect(after['mit_boards[]'], 'only the one board ticked').toEqual([made.shown]);

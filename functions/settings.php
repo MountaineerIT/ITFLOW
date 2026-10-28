@@ -42,7 +42,7 @@ function settingsPages() {
         'theme' => ['group' => 'company', 'title' => 'Theme', 'icon' => 'fa-paint-brush', 'url' => 'settings_theme.php',
             'about' => 'The colour of the top bar, links, buttons and highlights, and the icon on the browser tab.'],
         'default' => ['group' => 'work', 'title' => 'Defaults', 'icon' => 'fa-cogs', 'url' => 'settings_default.php',
-            'about' => 'Where ITFlow opens, and what new payments, expenses, transfers and clients start with.'],
+            'about' => 'Where ITFlow opens, what a client is billed on without a contract, and what new payments, expenses and transfers start with.'],
         'ticket' => ['group' => 'work', 'title' => 'Tickets', 'icon' => 'fa-life-ring', 'url' => 'settings_ticket.php', 'module' => 'ticketing',
             'about' => 'How tickets are numbered, made from email, timed, billed and closed.'],
         'project' => ['group' => 'work', 'title' => 'Projects', 'icon' => 'fa-project-diagram', 'url' => 'settings_project.php', 'module' => 'ticketing',
@@ -67,7 +67,7 @@ function settingsPages() {
             'about' => 'How long the audit log and app logs are kept, and sending them on to a syslog server or SIEM.'],
         'telemetry' => ['group' => 'system', 'title' => 'Telemetry', 'icon' => 'fa-satellite-dish', 'url' => 'settings_telemetry.php',
             'about' => 'Whether ITFlow tells the ITFlow project, each night, how it is being used.'],
-    ];
+    ] + (function_exists('mitSettingsPages') ? mitSettingsPages() : []); // Mountaineer IT: our settings pages (functions/mit_settings_index.php)
 }
 
 /* Whether a page's module is in use - a page for one that is off is hidden from the menu, and shown faded on the overview. */
@@ -137,9 +137,10 @@ function settingsFields() {
         'config_start_page' => ['page' => 'default', 'section' => 'Opening ITFlow', 'label' => 'Start page', 'kind' => 'select', 'options' => 'start_pages',
             'words' => 'home dashboard landing start page'],
         'config_default_calendar' => ['page' => 'default', 'section' => 'Opening ITFlow', 'label' => 'Calendar', 'kind' => 'calendar', 'words' => 'default calendar events'],
-        'config_default_net_terms' => ['page' => 'default', 'section' => 'New clients', 'label' => 'Net terms', 'kind' => 'select', 'options' => 'net_terms',
-            'words' => 'payment terms due days net 30'],
-        'config_default_hourly_rate' => ['page' => 'default', 'section' => 'New clients', 'label' => 'Hourly rate', 'words' => 'rate per hour labour labor billing'],
+        'config_default_net_terms' => ['page' => 'default', 'section' => 'Rates and terms', 'label' => 'Net terms', 'kind' => 'select', 'options' => 'net_terms',
+            'words' => 'payment terms due days net 30 client contract'],
+        'config_default_hourly_rate' => ['page' => 'default', 'section' => 'Rates and terms', 'label' => 'Hourly rate', 'words' => 'rate per hour labour labor billing client contract'],
+        'config_default_after_hours_rate' => ['page' => 'default', 'section' => 'Rates and terms', 'label' => 'After-hours rate', 'words' => 'after hours rate evening weekend overtime out of hours billing contract'],
         'config_default_payment_account' => ['page' => 'default', 'section' => 'Accounts', 'label' => 'Payments go into', 'kind' => 'account', 'words' => 'payment account bank deposit'],
         'config_default_payment_method' => ['page' => 'default', 'section' => 'Accounts', 'label' => 'Payment method', 'words' => 'payment method check card cash'],
         'config_default_expense_account' => ['page' => 'default', 'section' => 'Accounts', 'label' => 'Expenses come out of', 'kind' => 'account', 'words' => 'expense account'],
@@ -279,6 +280,7 @@ function settingsFields() {
         // Telemetry
         'config_telemetry' => ['page' => 'telemetry', 'section' => 'Nightly report', 'label' => 'Send the ITFlow project a nightly report', 'words' => 'telemetry statistics usage data privacy'] + $on_off,
     ];
+    $fields += function_exists('mitSettingsFields') ? mitSettingsFields() : []; // Mountaineer IT: the settings on our cards, for Find a setting
     return $fields;
 }
 
@@ -965,7 +967,7 @@ function settingsMailEncryption() {
     return ['' => 'none', 'tls' => 'STARTTLS', 'ssl' => 'SSL/TLS'];
 }
 
-/* The net terms a client can have, as days => name. */
+/* The net terms a contract or the default can be, as days => name. */
 function settingsNetTerms() {
     return [0 => 'On receipt', 7 => '7 days', 10 => '10 days', 15 => '15 days', 30 => '30 days', 45 => '45 days', 60 => '60 days', 90 => '90 days'];
 }

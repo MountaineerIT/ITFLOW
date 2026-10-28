@@ -515,6 +515,10 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
     $sla = (string) ($post['detail_sla'] ?? $old_sla_id);
     $sla_name = 'None';
     if ($sla !== 'auto' && intval($sla) && intval($sla) !== $old_sla_id) {
+        // A project ticket has no SLA (functions/mit_projects.php) - refused, as the ticket's SLA picker does, rather than "set" one that does not stick
+        if (intval($row['ticket_project_id'] ?? 0) && function_exists('mitProjectTicketsApart') && mitProjectTicketsApart()) {
+            return [false, 'This ticket is in a project - project tickets have no SLA. Take it out of the project first.'];
+        }
         $sla_name = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT sla_name FROM slas WHERE sla_id = " . intval($sla) . " AND sla_archived_at IS NULL"))[0] ?? '');
         if ($sla_name === '') {
             return [false, 'That SLA plan is not available.'];
@@ -588,7 +592,7 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
         }
     }
 
-    // SLA: the dialog starts on the ticket's own. "Automatic" works it out from the client and priority; a different
+    // SLA: the dialog starts on the ticket's own. "Automatic" works it out from the client's contract (ITFlow 3.5.0) and priority; a different
     // one pins it; left as it was, a new client works it out again (a new priority already did, above)
     if ($sla === 'auto') {
         applyTicketSla($ticket_id);

@@ -309,6 +309,8 @@ $action_link = function (array $item, $class) {
     </div>
 </div>
 
+<?php require_once "includes/mit_feedback_card.php"; // Mountaineer IT - the Bugs & ideas switch ?>
+
 <script>
     // Show every table, not just the ten biggest
     document.querySelectorAll('[data-debug-show-tables]').forEach(function (button) {

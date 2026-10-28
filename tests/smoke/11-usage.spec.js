@@ -124,6 +124,14 @@ test('the API reports a count; a bad one is refused', async ({ page }) => {
     const line = (read.data || []).find((l) => l.metric === made.metric);
     expect(line, 'the API line in read.php').toBeTruthy();
     expect(Number(line.latest_quantity)).toBe(7);
+    // A body that is not JSON (a form post) is answered with ITFlow's JSON refusal - it was an empty 500
+    // (count(null) in api/v1/*_output.php once the key came from the header)
+    const form = await page.evaluate(async ({ key }) => {
+        const response = await fetch('/api/v1/clients/delete.php', { method: 'POST', headers: { 'X-API-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'client_id=0' });
+        return { status: response.status, text: await response.text() };
+    }, { key: made.apiKey });
+    expect(form.status, 'a form post').toBeLessThan(500);
+    expect(() => JSON.parse(form.text), 'answered in JSON').not.toThrow();
 });
 
 test('Force: quantities follow the counts, the invoice stays a Draft, Usage Review flags it, override and approve', async ({ page }) => {

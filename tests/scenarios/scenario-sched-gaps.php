@@ -24,8 +24,8 @@ $one = function ($sql) use ($mysqli) {
 $general = $one("SELECT config_ticket_client_general_notifications FROM settings WHERE company_id = 1");
 mysqli_query($mysqli, "UPDATE settings SET config_ticket_client_general_notifications = 1 WHERE company_id = 1");
 $config_ticket_client_general_notifications = 1;
-$client = $q("INSERT INTO clients SET client_name = '$tag client', client_currency_code = 'USD', client_net_terms = 30");
-$client2 = $q("INSERT INTO clients SET client_name = '$tag hidden', client_currency_code = 'USD', client_net_terms = 30");
+$client = $q("INSERT INTO clients SET client_name = '$tag client', client_currency_code = 'USD'");
+$client2 = $q("INSERT INTO clients SET client_name = '$tag hidden', client_currency_code = 'USD'");
 $contact = $q("INSERT INTO contacts SET contact_name = 'Cara Contact', contact_email = '" . strtolower($tag) . "-contact@example.invalid', contact_client_id = $client");
 $tickets = [];
 $new_ticket = function ($subject, $assigned) use (&$tickets, $q, $client, $contact, $session_user_id) {

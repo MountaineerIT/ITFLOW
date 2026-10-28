@@ -860,9 +860,7 @@ CREATE TABLE `clients` (
   `client_type` varchar(200) DEFAULT NULL,
   `client_website` varchar(200) DEFAULT NULL,
   `client_referral` varchar(200) DEFAULT NULL,
-  `client_rate` decimal(15,2) DEFAULT NULL,
   `client_currency_code` varchar(200) NOT NULL,
-  `client_net_terms` int(10) NOT NULL,
   `client_reminders` tinyint(1) NOT NULL DEFAULT 1,
   `client_portal_signup` tinyint(1) NOT NULL DEFAULT 0,
   `client_tax_id_number` varchar(255) DEFAULT NULL,
@@ -3060,6 +3058,7 @@ CREATE TABLE `settings` (
   `config_default_calendar` int(11) DEFAULT NULL,
   `config_default_net_terms` int(11) DEFAULT NULL,
   `config_default_hourly_rate` decimal(15,2) NOT NULL DEFAULT 0.00,
+  `config_default_after_hours_rate` decimal(15,2) DEFAULT NULL,
   `config_time_increment` int(11) NOT NULL DEFAULT 15,
   `config_time_rounding` varchar(10) NOT NULL DEFAULT 'nearest',
   `config_time_minimum` int(11) NOT NULL DEFAULT 0,
@@ -4050,6 +4049,37 @@ CREATE TABLE `user_client_permissions` (
   `client_id` int(11) NOT NULL,
   `permission_type` enum('allow','deny') NOT NULL DEFAULT 'allow',
   PRIMARY KEY (`user_id`,`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user_invites`
+--
+
+DROP TABLE IF EXISTS `user_invites`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_invites` (
+  `invite_id` int(11) NOT NULL AUTO_INCREMENT,
+  `invite_email` varchar(200) NOT NULL,
+  `invite_name` varchar(200) NOT NULL,
+  `invite_role_id` int(11) NOT NULL DEFAULT 0,
+  `invite_force_mfa` tinyint(1) NOT NULL DEFAULT 0,
+  `invite_client_access` text DEFAULT NULL,
+  `invite_avatar` varchar(200) DEFAULT NULL,
+  `invite_token_hash` char(64) NOT NULL DEFAULT '',
+  `invite_vault` varchar(255) NOT NULL DEFAULT '',
+  `invite_expires_at` datetime NOT NULL,
+  `invite_sent_at` datetime DEFAULT NULL,
+  `invite_sent_count` int(11) NOT NULL DEFAULT 0,
+  `invite_created_by` int(11) NOT NULL DEFAULT 0,
+  `invite_created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `invite_accepted_at` datetime DEFAULT NULL,
+  `invite_user_id` int(11) NOT NULL DEFAULT 0,
+  `invite_cancelled_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`invite_id`),
+  KEY `invite_email` (`invite_email`),
+  KEY `invite_user_id` (`invite_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

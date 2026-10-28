@@ -29,7 +29,7 @@ function state(id) {
 
 /** A client with a billing contact, and a draft invoice with one taxed line - locked (approved, in a batch waiting to send) or not. */
 function invoice(locked) {
-    const client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 66 ${stamp} ${made.clients.length + 1}', client_net_terms = 30, client_currency_code = 'USD'`);
+    const client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 66 ${stamp} ${made.clients.length + 1}', client_currency_code = 'USD'`);
     made.clients.push(client);
     db.exec(`INSERT INTO contacts SET contact_name = 'Smoke 66 billing', contact_email = 'smoke66-${client}@example.invalid', contact_billing = 1, contact_primary = 1, contact_client_id = ${client}`);
     const out = db.php(`

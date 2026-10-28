@@ -139,7 +139,7 @@ model: see DEPLOYMENT.md.
   autopay includes Partial invoices (`cron/nightly_tasks.php`); `api/v1/clients/delete.php` uploads path.
   Audit B (Oct 20, 26.10.73): `.htaccess` security headers (nosniff, Referrer-Policy same-origin, CSP frame-ancestors 'self',
   HSTS on HTTPS); `api/v1/validate_api_key.php` takes the key from `X-API-Key` / `Authorization: Bearer` (getallheaders
-  fallback) or the POST body and refuses `?api_key=` (var_dump gone); trips need Financial edit and an active agent
+  fallback) or the POST body and refuses `?api_key=` (var_dump gone; a body that is not JSON = no fields, `?: []` - 26.10.191, was a 500 in the *_output.php files); trips need Financial edit and an active agent
   (`agent/post/trip.php`, `trip_model.php`); `bulk_edit_expense_client` checks each expense's current client; portal
   `client/includes/check_login.php` ends sessions of archived clients / contacts and when the portal is off;
   `client/login_microsoft.php` (portal on, contact not archived, curl timeouts, tenant hook); saved-card payment
@@ -392,8 +392,8 @@ model: see DEPLOYMENT.md.
   `agent/modals/mit_procurement/`; handlers `agent/post/mit_procurement.php`. Hooks: one require of
   `agent/includes/mit_procurement_nav.php` in `agent/includes/side_nav.php` (before FINANCE),
   Admin > Settings > Procurement page `admin/mit_procurement_settings.php` (card
-  `admin/includes/mit_procurement_card.php`, handler `admin/post/mit_procurement_settings.php`; menu via
-  `admin/includes/mit_admin_nav.php`), `functions.php` (require). Side-menu counts (`agent/includes/mit_procurement_nav.php`): To Order
+  `admin/includes/mit_procurement_card.php`, handler `admin/post/mit_procurement_settings.php`; on ITFlow's Settings
+  menu / overview through `mitSettingsPages()` - see "Settings overview"), `functions.php` (require). Side-menu counts (`agent/includes/mit_procurement_nav.php`): To Order
   = waiting items, Purchase Orders = waiting for approval, Receiving = PO lines still to arrive (not POs). PO numbers are unique (M015); a PO
   needs approval when over the limit or when a line has no cost - unless approval is switched off (`procurement_approval_on`) -
   approvers are Full Procurement access + admins (roles - `mitPoApprovers`); nobody approves their own PO unless
@@ -422,6 +422,19 @@ model: see DEPLOYMENT.md.
   side-menu link with a count in `agent/includes/mit_billing_nav.php`, one require in `agent/includes/side_nav.php` BILLING after
   Products): every part not on an invoice, by client and ticket, with Bill parts (`mitUnbilledParts` / `mitUnbilledPartsCount`, sharing `mitTicketPartsWhere` with `mitTicketParts`). Project pickers (item modal, from-invoice, quote convert) use `mitProcProjectField` - the client's open
   projects (client 0 = projects without a client), with a note when there are none; the item modal's list follows its client.
+  To Bill (26.10.182, the user's choice - one menu entry, fully merged): Billing > Unbilled Parts is gone; parts not billed yet are on
+  ITFlow's Unbilled Time page, called "To Bill" in both menus (`agent/includes/side_nav.php`, `client_side_nav.php` - label + badge with
+  `$num_unbilled_parts` from `get_side_nav_counts.php` / `mitToBillPartsCount`) and in its two card titles. `functions/mit_to_bill.php` (ours,
+  required from mit_procurement.php) + `js/mit_to_bill.js`: `mitToBillMerge` adds `mit_parts` / `mit_part_value` to ITFlow's clients (and
+  parts-only clients, built like expenseUnbilledMerge's); hooks in `agent/unbilled_time.php` (merge, `$mit_to_bill` totals, To bill stat +
+  Waiting longest, Parts column / cell / row attrs, Amount, `mitToBillCard` before Travel, script), `js/unbilled_time.js` update()
+  (`window.mitToBillParts` - amount, "N parts" in the summary, button), `agent/post/billing.php` (`mitToBillAfter` after expenseBillWithTime in
+  unbilled_invoice / unbilled_invoice_clients - the parts go on the same invoice, or alone on the draft picked / a new one; `mitToBillMerge` on
+  `$by_client`; `mitToBillFlash` after the flash). Parts are billed by `mitPartsBill` (functions/mit_procurement_parts.php - the core the
+  ticket's Bill parts window shares through mitTicketPartsBill): the form's tax (Each line's usual = the part's own), the ticket in each
+  line's description, a note per ticket. Billing parts still needs Sales edit + Support edit (`mitToBillCanBill`); the part boxes carry
+  ITFlow's data-unbilled-expense-pick / -price too, so ITFlow's script recounts on them. `agent/mit_unbilled_parts.php` redirects (?client=
+  -> ?client_id=). Other ITFlow pages still say "Unbilled Time" in passing. Smoke `85-to-bill.spec.js`.
   Product vendor: `mitProductVendorField`
   appended to the product modals' pricing hook line, saved from `mitProductSave`.
   Part 3: `functions/mit_procurement_extras.php` (ours, required from mit_procurement.php), M011
@@ -588,8 +601,7 @@ model: see DEPLOYMENT.md.
   and People tab (`person_leave.php`: rates, adjustments, history); "<bank> left" columns in the payroll report. Hooks: one line in `functions/reports.php`
   reportCatalog (`'mit_payroll' => mitTsReportEntry()` after time_by_tech), require of
   `agent/includes/mit_timesheet_nav.php` in `agent/includes/side_nav.php` (its own TIME section, before TOOLS),
-  require of `admin/includes/mit_admin_nav.php` in `admin/includes/side_nav.php` (inside SETTINGS after Ticket,
-  plus `array_merge(..., mitAdminSettingsPages())` on the SETTINGS menu-open line), Account > Preferences
+  Admin > Timesheets on ITFlow's Settings menu / overview (`mitSettingsPages()` - see "Settings overview"), Account > Preferences
   (`mitTsPreferenceFields` in `agent/user/user_preferences.php`, `mitTsSavePreferences` in
   `agent/user/post/profile.php`), `functions.php` (require).
 - Dispatch (Oct 2026): `functions/mit_dispatch.php` (ours) - page `agent/mit_dispatch.php`, script
@@ -794,7 +806,7 @@ model: see DEPLOYMENT.md.
   form of `agent/tickets.php`; `board` remembered by `mit_list_views.php`), a board tag per row (`mitBoardListTag($id, $page_ids)` - one query per page - in
   `agent/ticket_list.php` / `ticket_kanban.php`). Admin > Settings > Boards `admin/mit_boards.php` (tabs Boards / Routing, "Place
   open tickets by category"), modal `admin/modals/mit_boards/board.php`, handlers `admin/post/mit_boards.php` (archiving moves
-  its tickets to the default and drops its rules); menu in `admin/includes/mit_admin_nav.php`. Dispatch: board picker (All / My
+  its tickets to the default and drops its rules); on ITFlow's Settings menu / overview through `mitSettingsPages()`. Dispatch: board picker (All / My
   boards - the default when the agent is on one - / each; `mitDispatchBoardChoice`, saved in dispatch.state with `board_techs`),
   queue / Workload / This week filtered (`mitDispatchBoardWhere`), board tag on queue cards, Board field in the Schedule dialog
   (`detail_board` -> `mitBoardMove`), "Only the board's members" in the Agents list (a board with nobody on it shows everyone),
@@ -858,7 +870,9 @@ model: see DEPLOYMENT.md.
   one-line tile; others, like the client overview's Financial strip `.itflow-ov-stats`, stay stacked), `.itflow-client-switcher`, `btn-outline-dark`
   / `-info` reply-type toggles.
   Logo on its own (26.10.120, every look): `mitBrandLogoOnly` / `mitBrandLogoField` / `mitBrandLogoSave` in `functions/mit_theme.php`,
-  `mit_settings` brand_logo_only - one line under the upload field in `admin/settings_company.php`, one in `admin/post/settings_company.php`
+  `mit_settings` brand_logo_only - one line after ITFlow's Logo section in `admin/settings_company.php` (26.10.184: two sections of
+  ITFlow's settings page of their own, built with its settingsSectionStart / settingsInput / settingsSwitch - "Logo on ITFlow's screens" `#section-mit-app-logo`
+  with a dark preview tile, "In the side menu" `#section-mit-side-menu-logo`; inside ITFlow's Logo row they pushed its preview off centre), one in `admin/post/settings_company.php`
   edit_company, and in `agent/includes/side_nav.php` `$mit_logo_only` (the logo tile gets `data-mit-logo-only` + an inline style to take
   the width, the name span is left out). Smoke `21-brand-logo.spec.js`.
   26.10.134: `mitBrandLogoAttrs()` now writes those attributes (the side_nav line calls it) and adds `data-mit-logo-plain` + an inline
@@ -868,6 +882,11 @@ model: see DEPLOYMENT.md.
   removed in `mitBrandLogoField` / `mitBrandAppLogoSave`): `mitBrandScreenLogo($company_logo)` - one guarded line each in
   `agent/includes/side_nav.php` ($brand_logo) and `login.php` (after $company_logo). The company logo stays ITFlow's for quotes,
   invoices, POs, PDFs, guest pages and the light pages - client portal, MFA set-up (`agent/user/mfa_enforcement.php` has no dark style).
+  Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
+  MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
+  each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage
+  `mit.nav.folded` per menu (agent / admin / client); the section holding `.nav-link.active` always shows. Enter / Space toggle (the keydown
+  stops propagating - ITFlow turns Enter on a focused element into a click further up, which folded it straight back). Smoke `87-nav-sections.spec.js`.
   Sign-in screens (for everyone, not per agent): `css/mit_login.css` + `css/mit_login_nodes.svg` (a file - login.php sends
   `Content-Security-Policy: default-src 'self'`, which refuses data: images), loaded by `mitLoginHead()` - one line after
   itflow_custom.css in `login.php` and `client/login_reset.php`. Only `.login-box` / the "Powered by" line are lifted over the
@@ -994,8 +1013,10 @@ model: see DEPLOYMENT.md.
   ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
   the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
   ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
-- Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - rows added to ITFlow's
-  Admin > Settings > Notifications table (`mitNotificationRows` - one line before `</tbody>` in `admin/settings_notification.php`; saved by
+- Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
+  Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
+  section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),
+  then Assigning / Ticket replies / Procurement / Timesheets with "In the bell" / "By email" switches; the old table rows are gone; saved by
   `mitNotificationsSave($_POST)` - one line in `admin/post/settings_notification.php`, only when `mit_notify_present` is posted). `mit_settings`
   notify_<key> ('0' off, no row = on); `mitNotifyOn($key)`. Scheduling: defaults per visit kind (`mitScheduleNotifyRows` - a Remote / Onsite table
   at the top of our rows; `mit_settings` notify_schedule_{remote|onsite}_{tech|contact|watchers|site|primary} '0'/'1' - tech, contact, watchers on by
@@ -1074,7 +1095,7 @@ model: see DEPLOYMENT.md.
 - Review fixes (Oct 2026): `functions/mit_common.php` (ours, required first in `functions.php`) - shared
   helpers: `mitMailBody` / `mitSqlHtml` (HTML for SQL without escapeSql's strip_tags), `mitProductIsTangible`,
   module switches (`mitModuleOn`, `mitModuleRequire` for pages/modals, `mitModuleGuard` for handler files,
-  `mitModulesSave`), `mitAdminSettingsPages`, `mitNavCachedCount` (side-menu counts kept a minute in the session, fresh on
+  `mitModulesSave`), `mitNavCachedCount` (side-menu counts kept a minute in the session, fresh on
   their own page - `agent/includes/mit_dispatch_nav.php`, `mit_billing_nav.php`, `mit_procurement_nav.php`), `mitAsset` (our script tags get `?v=<file time>` so browsers
   fetch them again after an update). Module switches on Admin > Settings > Modules: require of
   `admin/includes/mit_modules_fields.php` in `admin/settings_module.php` (inside ITFlow's form) and
@@ -1105,6 +1126,10 @@ model: see DEPLOYMENT.md.
   stand-ins). M041 adds tickets (invoice + billable + archived for ITFlow's every-page unbilled count; category), logs (type; action).
   Left as ITFlow has them: global search (1.5 s), Audit logs' SQL_CALC_FOUND_ROWS list (0.8 s), Ticket Summary (1.1 s), the kanban
   (7 MB of card markup for 1,570 open tickets), the closed list (0.4 s).
+  Review after the 3.5.1 merge (Oct 28, 26.10.191): M050 `mit_ticket_replies_worked` (created + time worked + author - mitTsUsersWithActivity
+  10 -> 1.4 ms; payroll report 121 -> 84 ms). Everything else in line once two test-server effects are taken out: opcache was full (seven
+  copies of the app under Apache - pages about 90 ms slower until `apache2ctl` restart; production runs one) and the container was slower
+  per query than on Oct 25 (ITFlow's unchanged Ticket Summary sum 462 -> 820 ms). Compare with ITFlow's own unchanged pages, not old numbers.
 - Upstream develop merged again (Oct 25, 26.10.135 - 98 commits, ITFlow DB 2.8.9 -> 3.4.7; APP_VERSION still 26.10). Where things
   moved - this supersedes the file names above where they differ:
   - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). Two lines in
@@ -1204,8 +1229,17 @@ model: see DEPLOYMENT.md.
     _product_id); usage and parts invoices use billingLineTax / billingRecalc / billingInvoiceCreate; the quote profit box is per billing
     frequency; the convert window lists one-time lines only; module / company settings report our changes to settingsSaid; mileage rate
     read-only when ITFlow's is set; client tile seats = softwareSeatsUsedSql. Smoke `28-post-merge.spec.js`.
-  - Left for later: our settings pages are not on ITFlow's Settings overview (`settingsPages()`), our notification rows sit in their own
-    table on the new page, roles / company say "unchanged" when only our fields change. ITFlow 26.11 also bills per user / device seats on
+  - Settings overview (26.10.189): `functions/mit_settings_index.php` (ours, required from mit_common.php) - `mitSettingsPages()` (Procurement /
+    Timesheets / Boards, group "work", left out while their module of ours is off) joins ITFlow's `settingsPages()` (one `+` at its end in
+    `functions/settings.php`), so they are overview tiles, Settings menu entries (the old `admin/includes/mit_admin_nav.php` and the
+    `mitAdminSettingsPages` menu-open line are gone) and Find a setting results; `mitSettingsSummaries()` gives their "set now" line (one line
+    after `$summaries` in `admin/settings.php`); `mitSettingsFields()` adds the settings on our cards inside ITFlow's pages (quote pricing, usage,
+    project tickets, resolving messages, calendar colour, logo / offices, notifications, our modules) to `settingsFields()` (one line before its
+    return) for Find a setting - a result opens the page at the field (js/settings.js finds `[data-setting]` or the field's name). Roles:
+    `mitBoardRoleSave` returns what changed and `admin/post/roles.php` edit_role adds it to ITFlow's `$changes`, so a change to a role's boards
+    alone says "saved" (and is in the audit log); Company Details already counted ours (`mitBrandLogoSave` lines). Smoke `88-settings-overview.spec.js`,
+    and the flash check in `13-board-roles.spec.js`.
+  - Left for later: ITFlow 26.11 also bills per user / device seats on
     recurring lines (close to our usage by tag) and has its own product margin (beside our quote profit box).
 - Deep dive (Oct 26, 26.10.150 - timesheets / payroll, projects / procurement, invoices / QuickBooks; 3 reviewers, findings verified):
   Procurement: `mitProcQuoteConvertGroups` (one guarded line at the start of ITFlow's `quoteConvert` in `functions/billing.php`, after
@@ -1373,6 +1407,16 @@ model: see DEPLOYMENT.md.
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
 - Upstream develop merged again (Oct 27, 26.10.178 - 2 commits, ITFlow DB 3.4.8 -> 3.4.9: `asset_specs` + `functions/asset_type.php` asset
   types registry, Get started skip buttons). Impact report: 0 to act on, no clash; clean merge, all hooks kept, mit_verify.sh passed.
+- Upstream develop merged again (Oct 28, 26.10.190 - 5 commits, ITFlow DB 3.4.9 -> 3.5.1; APP_VERSION still 26.10). 3.5.0: a client's hourly rate,
+  net terms and SLAs come from its contract in force, else the defaults (`functions/contract_billing.php` - `contractTicketRate`,
+  `contractClientRate`, `contractNetTerms`); `clients.client_rate` / `client_net_terms` are dropped (clients that differed got a "Standard terms"
+  contract). Ours: `mitPartsBill`'s fallback invoice uses `contractNetTerms()` (To Bill already used contractClientRate); tests no longer insert
+  those columns, and `85-to-bill.spec.js` reads the hour's rate from `contractTicketRate`. 3.5.1: agent invites (`functions/user_invite.php`,
+  `user_invites`, `join.php`) - New User invites by default and the login is made only when the link is accepted, so our New User fields ride on the
+  invite: `functions/mit_invites.php` (ours, required from functions.php), M049 `mit_invite_extras` (invite_id PK FK user_invites CASCADE, extras JSON
+  of `mit_pay_type` / `mit_office_id`): `mitInviteExtrasSave($invite_id, $_POST)` - one line in `admin/post/users.php` add_user's invite branch -
+  and `mitInviteExtrasApply($invite_id, $user_id)` - one line in `userInviteAccept` before the audit line. The user form's conflict: ITFlow removed
+  the "Email them their sign in details" block (ours had the smtp_provider fix in it) - taken as theirs. Smoke: invite test in `86-offices.spec.js`.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
@@ -1392,6 +1436,44 @@ model: see DEPLOYMENT.md.
   handler to signed-in agents only. Text is kept as typed (`mitFeedbackSql`, not escapeSql) and drawn as text by the script. A new report
   rings the admins' bell, a closed one the sender's (`notification_type` 'Feedback', link `dashboard.php?mit_feedback=<id>` opens the panel
   on it). Smoke `84-feedback.spec.js`.
+  Off by default (26.10.185, the user's choice): `mit_settings` feedback_enabled ('1' = on, `mitFeedbackOn`, part of `mitFeedbackCan`), switched in
+  Admin > Debug - card `admin/includes/mit_feedback_card.php` (one require in `admin/debug.php` before its script), handler
+  `admin/post/mit_feedback_settings.php`. Off: no button, the handler answers 403; reports are kept.
+- Offices (Oct 28, 26.10.186 - contact details only, the user's choice; everyone is in one time zone, so no per-office hours / zones):
+  `functions/mit_offices.php` (ours, required from `functions.php`). Tables M048 `mit_offices` (name, address, city, state, zip, country,
+  phone + country code, email, archived) and `mit_user_offices` (user_id PK FK users CASCADE, office_id FK mit_offices CASCADE). The main office
+  is ITFlow's companies row (office 0 - `mitOfficeMain` from billingCompany); agents with no row belong to it. UI: "Offices" section on
+  Admin > Settings > Company Details (`mitOfficesSection` - one line after ITFlow's Contact section in `admin/settings_company.php`), window
+  `admin/modals/mit_offices/office.php` (people picker moves agents in / back to the main office; Remove archives), handlers
+  `admin/post/mit_offices.php`; Office picker in Admin > Users (`mitOfficeUserField` - one line in `admin/modals/user/user_form.php` after
+  Employment; `mitOfficeUserSave` - one line each in `admin/post/users.php` add_user / edit_user; shown only once another office exists).
+  Trips: `agent/modals/trip/trip_form.php` - the default From is `mitOfficeTripStart($form_driver)` (the driver's office when not the main
+  one, then ITFlow's last start / company), and `mitOfficeTripScript` after the From box adds every office to its datalist and, on a new trip,
+  moves an untouched From to the new driver's office. Ticket emails: the four `'contact' => ticketEmailContactLine()` lines in
+  `functions/ticket.php` also carry `'mit_office' => mitOfficeForTicket($row)` (assigned agent, else the agent sending; null = main), and one
+  line in `functions/email.php` emailHtml (`mitOfficeEmailCompany`) swaps that office's address and contact line (phone, office email or the
+  ticket From address, company website) into the foot. Invoices, quotes, contracts, PDFs, the portal and auto-replies keep the main company
+  (the user's choice). Purchase orders: `ship_to` = 'office' (main) / 'office:<id>' / 'other'; `mitPoCreateNow` ships to the maker's office
+  (`mitOfficeShipTo` - the main one is Procurement's Ship to setting); po_action.php details has an office picker that fills the address;
+  the PO page names the office. Smoke `86-offices.spec.js`.
+- Quick ticket (Oct 28, 26.10.192 - the user's request): `functions/mit_quick_ticket.php` (ours, required from `functions.php`), no tables. A +
+  button in the top bar (`mitQuickTicketNav`, echoed from our `includes/mit_timers_nav.php`) opens a Bootstrap modal (`#mitQuickTicket`, moved to
+  <body> by `agent/js/mit_quick_ticket.js`, hidden until then): client (starts on the page's `client_id`), contact (the client's primary, unless
+  switched off; phone / email as search words), "What is the issue?" (subject), More detail (sent as escaped HTML with <br>), priority, an
+  "Assign it to ..." switch. Picking the contact lists their tickets not resolved / closed (`mitQuickTicketOpenTickets` via ITFlow's ticketRows)
+  with "Work on this one" (goes there, its timer started). Requests: `agent/mit_quick_ticket_ajax.php` (clients / contacts as <option>s with
+  ITFlow's selectOption* markup, open tickets JSON; Support edit). Make ticket posts ITFlow's own add_ticket (`agent/post.php`) with
+  `mit_quick_ticket` - two lines there: `mitQuickTicketAfterCreate($ticket_id, $_POST)` after the board line (status via ticketChangeStatus,
+  history "raised it with Quick ticket", the timer start in `$_SESSION['mit_quick_timer']`) and `mitQuickTicketMailsClient($_POST)` on ITFlow's
+  "Ticket created" email condition. The timer: the posted start (this browser's ms - Make ticket pressed, or the window opened) is written to
+  ITFlow's `<id>-startTime` / `ticket-timer-running-<id>` by `mitQuickTicketTimerScript` (printed with `mitTicketLayoutHtml`, before
+  `agent/js/ticket_time_tracking.js` reads them; once - never over a timer already there). Defaults: "Quick tickets" section on Admin > Settings >
+  Tickets (`mitQuickTicketSection` - one line before the save bar in `admin/settings_ticket.php`; `mitQuickTicketSettingsSave` - one line in
+  `admin/post/settings_ticket.php`, its lines passed to settingsSave as `$also_changed`), `mit_settings` quick_ticket_on / _board / _assign
+  (me | nobody | user id) / _status (0 = ITFlow's) / _priority / _category / _billable ('' = ITFlow's default) / _timer (make | open | off) /
+  _primary / _open_tickets / _email_client; in Find a setting (`mitSettingsFields`). Smoke `89-quick-ticket.spec.js`.
+  The <form> is the `.modal-content` itself (26.10.193): `modal-dialog-scrollable` needs header / body / footer straight inside it - wrapped in a
+  form the body never scrolled and a contact with several open tickets pushed Make ticket off the screen (smoke: short-screen test in 89).
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

@@ -34,8 +34,8 @@ $general = $one("SELECT config_ticket_client_general_notifications FROM settings
 mysqli_query($mysqli, "UPDATE settings SET config_ticket_client_general_notifications = 1 WHERE company_id = 1");
 $config_ticket_client_general_notifications = 1;
 
-$client = $q("INSERT INTO clients SET client_name = '$tag client', client_currency_code = 'USD', client_net_terms = 30");
-$client2 = $q("INSERT INTO clients SET client_name = '$tag other', client_currency_code = 'USD', client_net_terms = 30");
+$client = $q("INSERT INTO clients SET client_name = '$tag client', client_currency_code = 'USD'");
+$client2 = $q("INSERT INTO clients SET client_name = '$tag other', client_currency_code = 'USD'");
 $primary = $q("INSERT INTO contacts SET contact_name = 'Pat Primary', contact_email = '$tag-primary@example.invalid', contact_primary = 1, contact_client_id = $client");
 $site = $q("INSERT INTO contacts SET contact_name = 'Sam Site', contact_email = '$tag-site@example.invalid', contact_client_id = $client");
 $location = $q("INSERT INTO locations SET location_name = 'HQ', location_address = '1 Main St', location_contact_id = $site, location_client_id = $client");

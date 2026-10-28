@@ -165,6 +165,7 @@ if (isset($_POST['add_ticket'])) {
     $ticket_id = mysqli_insert_id($mysqli);
     applyTicketSla($ticket_id);
     if (function_exists('mitBoardAfterCreate')) { mitBoardAfterCreate($ticket_id, $_POST['mit_board'] ?? ''); } // Mountaineer IT: service boards
+    if (function_exists('mitQuickTicketAfterCreate')) { mitQuickTicketAfterCreate($ticket_id, $_POST); } // Mountaineer IT: Quick ticket - status, history, timer
 
     // Tasks come from the editable rows in the modal, which the template pre-fills.
     // Fall back to copying the template directly for a form without that section.
@@ -197,7 +198,7 @@ if (isset($_POST['add_ticket'])) {
     }
 
     // E-mail the client and the watchers
-    if (intval($config_ticket_client_general_notifications) === 1) {
+    if (intval($config_ticket_client_general_notifications) === 1 && (!function_exists('mitQuickTicketMailsClient') || mitQuickTicketMailsClient($_POST))) { // Mountaineer IT: Quick ticket's setting
         ticketMailCreated($ticket_id, 'Ticket Created', $emailable_attachments['send']);
         ticketMailColleaguesNew($ticket_id);
     }

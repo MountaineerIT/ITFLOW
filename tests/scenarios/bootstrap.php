@@ -43,7 +43,7 @@ function scenarioClient() {
 function scenarioMakeClient($name) {
     global $mysqli;
     $n = escapeSql($name);
-    mysqli_query($mysqli, "INSERT INTO clients SET client_name = '$n', client_currency_code = 'USD', client_net_terms = 30");
+    mysqli_query($mysqli, "INSERT INTO clients SET client_name = '$n', client_currency_code = 'USD'");
     $client_id = mysqli_insert_id($mysqli);
     $email = 'zz-contact-' . $client_id . '@example.invalid';
     mysqli_query($mysqli, "INSERT INTO contacts SET contact_name = 'Zed Contact', contact_email = '$email', contact_primary = 1, contact_client_id = $client_id");

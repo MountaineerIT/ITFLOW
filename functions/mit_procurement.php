@@ -311,6 +311,10 @@ function mitPoCreateNow(array $item_ids, $vendor_id) {
         return 0;
     }
     $settings = mitProcSettings();
+    // Ships to the maker's office (functions/mit_offices.php) - the main one is the Ship to setting
+    $ship_office = function_exists('mitOfficeIdForUser') ? mitOfficeIdForUser($session_user_id) : 0;
+    $ship_to = $ship_office ? 'office:' . $ship_office : 'office';
+    $ship_to_address = $ship_office ? mitOfficeShipTo($ship_office) : $settings['ship_to'];
     $clients = array_unique(array_filter(array_map('intval', array_column($items, 'client_id'))));
     $projects = array_unique(array_filter(array_map('intval', array_column($items, 'project_id'))));
     // The number is unique (database update M015): two POs made at the same moment - the second takes the next one
@@ -319,7 +323,7 @@ function mitPoCreateNow(array $item_ids, $vendor_id) {
         $number = mitPoNextNumber();
         try {
             mysqli_query($mysqli, "INSERT INTO mit_purchase_orders SET po_prefix = '" . escapeSql($settings['prefix']) . "', po_number = $number,
-                vendor_id = $vendor_id, status = 'draft', ship_to = 'office', ship_to_address = '" . escapeSql($settings['ship_to']) . "',
+                vendor_id = $vendor_id, status = 'draft', ship_to = '$ship_to', ship_to_address = '" . escapeSql($ship_to_address) . "',
                 created_by = " . intval($session_user_id));
             $po_id = mysqli_insert_id($mysqli);
         } catch (mysqli_sql_exception $e) {
@@ -805,3 +809,4 @@ function mitPoEmail(array $po, $to) {
 
 require_once __DIR__ . '/mit_procurement_parts.php';
 require_once __DIR__ . '/mit_procurement_extras.php';
+require_once __DIR__ . '/mit_to_bill.php';

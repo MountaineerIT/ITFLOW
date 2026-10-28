@@ -1,7 +1,7 @@
 <?php
 /*
  * Details box pickers (functions/mit_ticket_picks.php) on a project ticket (functions/mit_projects.php): picking an SLA there
- * must not claim it was set while the project keeps the ticket without one. Category and board picks still work on it.
+ * must not claim it was set while the project keeps the ticket without one - nor may Dispatch's Schedule dialog. Category and board picks still work on it.
  */
 require __DIR__ . '/bootstrap.php';
 $stamp = date('His');
@@ -25,6 +25,12 @@ try {
     $history = (string) scenarioValue("SELECT ticket_history_description FROM ticket_history WHERE ticket_history_ticket_id = $t ORDER BY ticket_history_id DESC LIMIT 1");
     echo "  (code $code, message: " . ($out['message'] ?? $out['error'] ?? '') . ", ticket_sla_id now $now, history: $history)\n";
     scenarioCheck('SLA picked on a project ticket: what it says matches what it did', $now === $sla || ($code !== 200) || strpos($history, 'changed SLA') === false, true);
+
+    // Dispatch's Schedule dialog (mitDispatchSaveDetails) pinning an SLA: refused the same way, nothing written
+    $history_count = intval(scenarioValue("SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = $t"));
+    [$ok, $message] = mitDispatchSaveDetails($t, ['detail_client_id' => $client_id, 'detail_sla' => (string) $sla]);
+    scenarioCheck('Dispatch: an SLA on a project ticket is refused', [$ok, (bool) preg_match('/project/i', $message)], [false, true]);
+    scenarioCheck('Dispatch: nothing written', [intval(scenarioValue("SELECT ticket_sla_id FROM tickets WHERE ticket_id = $t")), intval(scenarioValue("SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = $t"))], [0, $history_count]);
 } finally {
     scenarioCleanup();
     mysqli_query($mysqli, "DELETE FROM projects WHERE project_id = $project");

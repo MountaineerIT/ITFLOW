@@ -63,7 +63,9 @@ function mitTicketLayoutHtml() {
         'ticketId' => intval($ticket_id ?? 0),
         'read' => mitTicketIsRead($session_user_id, intval($ticket_id ?? 0), (string) ($ticket['ticket_details'] ?? '')),
     ];
-    return '<script>window.mitTicketLayout = ' . json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>'
+    // A quick ticket's timer - written before ITFlow's timer script reads it (functions/mit_quick_ticket.php)
+    $quick_timer = function_exists('mitQuickTicketTimerScript') ? mitQuickTicketTimerScript(intval($ticket_id ?? 0)) : '';
+    return $quick_timer . '<script>window.mitTicketLayout = ' . json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';</script>'
         . '<script src="' . mitAsset('/agent/js/mit_ticket_layout.js') . '"></script>'
         // NinjaOne buttons beside the ticket's assets (functions/mit_ninjaone.php)
         . (function_exists('mitNinjaPageScript') ? mitNinjaPageScript() : '');

@@ -4,6 +4,53 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.193 - 2026-10-28
+- Quick ticket: the window scrolls when a contact has several open tickets - its title and Make ticket stay on screen (it ran off the bottom with no scrollbar).
+
+## 26.10.192 - 2026-10-28
+- Quick ticket: a + button in the top bar opens a small window - client, contact and the issue - for a call or a walk-up. It starts on the client of the page you are on and the client's primary contact, and lists that contact's tickets still open (not resolved or closed), with "Work on this one" to go to one instead of raising the same problem twice. Make ticket goes through ITFlow's own New Ticket, so SLA, board, emails and history are as usual, and the ticket's timer is already running when it opens.
+- Its defaults are on Admin > Settings > Tickets, "Quick tickets": the board it lands on, who it is assigned to (the agent making it, nobody, or a set agent), the status it starts in, priority, category, billable, when the timer counts from (pressing Make ticket, or opening the window - the start of the call - or not at all), starting on the primary contact, showing the open tickets, and whether the contact gets ITFlow's "Ticket created" email.
+
+## 26.10.191 - 2026-10-28
+- Checked end to end with ITFlow's latest (four areas on separate copies - billing, tickets and scheduling, time and payroll, admin and integrations - plus every automatic check): our features work with contract-based rates, terms and SLAs and with agent invites.
+- Dispatch's Schedule window refuses an SLA on a project ticket (it said "Updated" but project tickets keep none), as the ticket's SLA picker already did; its Automatic choice now says the SLA comes from the client's contract.
+- The API answers a request whose body is not JSON with a proper refusal instead of an empty error.
+- Timesheets, the team list and the payroll report find who had ticket time faster (a new index on ticket notes).
+
+## 26.10.190 - 2026-10-28
+- ITFlow's latest work merged (database 3.5.1): a client's hourly rate, net terms and SLAs now come from its contract, else the defaults (clients whose own differed get a "Standard terms" contract when the update runs); contracts can be started from New / Edit Client, and the Clients list shows each client's contract and billed rate; New User now emails an invite so the agent sets their own password (Set a password stays as the other choice).
+- New User by invite keeps our Employment and Office choices and puts them on the login when the invite is accepted.
+- Parts billed onto a new invoice are due on the client's contract terms.
+
+## 26.10.189 - 2026-10-28
+- Admin > Settings: Procurement, Timesheets and Boards are tiles on the Settings overview (with how they are set now) and entries in its menu, and Find a setting (and the top bar's search) finds them - and the settings on our cards inside ITFlow's pages (quote pricing, usage billing, project tickets, resolving messages, logo options, offices, notifications, our modules); a result opens the page at the setting.
+- Admin > Settings > Notifications: our switches are sections of ITFlow's page (Ticket scheduled, Assigning, Ticket replies, Procurement, Timesheets) with "In the bell" / "By email" switches, instead of a separate table at the bottom.
+- Admin > Roles: changing only a role's service boards now says "saved" (and is in the audit log) instead of "unchanged".
+
+## 26.10.188 - 2026-10-28
+- Side menu: folded sections no longer flash open for a moment on every page - they are folded while the menu is built.
+
+## 26.10.187 - 2026-10-28
+- Side menu: each section (Support, Billing, Finance, Tools ... - and Admin's Access, Lists, Integrations ...) folds away when you click its heading, and opens again with another click. Your browser remembers which are folded; the section of the page you are on always shows.
+
+## 26.10.186 - 2026-10-28
+- Offices: Admin > Settings > Company Details has an "Offices" section. The company address above stays the main office; add other offices (name, address, phone, email) and pick who works at each. An agent's office can also be set in Admin > Users > Edit.
+- Trips: a new trip starts From the driver's office; the From list offers every office, and changing the driver moves From to their office.
+- Ticket emails: the foot shows the address, phone and email of the assigned agent's office (or of the agent sending it, when nobody is assigned). Agents in the main office keep the company's foot. Invoices, quotes and contracts keep the main company address.
+- Purchase orders: Ship to has an office picker (or "Somewhere else" to type an address); a new PO ships to its maker's office, and the PO page names the office.
+
+## 26.10.185 - 2026-10-27
+- Bugs & ideas is now off until an admin turns it on: Admin > Debug has a "Bugs & ideas" card with the switch. While it is off the top bar's bug button is gone and nothing can be sent; reports already sent are kept.
+
+## 26.10.184 - 2026-10-27
+- Admin > Settings > Company Details: the logo for ITFlow's screens and the side-menu switches are two sections of ITFlow's new settings page ("Logo on ITFlow's screens" with a dark preview, "In the side menu") instead of being squeezed into ITFlow's Logo section. Saving the page without touching them keeps them as they were (now tested).
+
+## 26.10.183 - 2026-10-27
+- Tests: To Bill's smoke test also checks the menu badges, the "of parts" note, the Parts column and the message after Make Invoices - every procurement hook is now caught by a test when it breaks.
+
+## 26.10.182 - 2026-10-27
+- Billing: Unbilled Time and Unbilled Parts are one menu entry, "To Bill". Each client's parts on tickets show beside their tickets, expenses and travel, count in the totals and the menu badge, and Make Invoice puts them on the same invoice (each part with its ticket in the description). A client with only parts gets its own invoice. The old Unbilled Parts address opens To Bill.
+
 ## 26.10.181 - 2026-10-27
 - Calendar: a short booking (half an hour or less) keeps its text inside its block - it ran out above and below it, in white over the calendar.
 - GitHub page: a banner, and screenshots of the dashboard (light and dark), Dispatch, the calendar, a ticket, a timesheet and the tickets list, taken from made-up demo data.

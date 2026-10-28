@@ -36,7 +36,7 @@ async function note(page, text, date, start, end) {
 test('note time locks: setup - a ticket, and a submitted timesheet for an earlier period', async () => {
     test.skip(db.value("SELECT setting_value FROM mit_settings WHERE setting_name = 'module_timesheets'") === '0', 'timesheets switched off');
     const name = smokeName('t1 locks client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     const number = Number(db.value('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
     db.run('UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1');

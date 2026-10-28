@@ -34,7 +34,7 @@ test('AI helper: library, test search, passwords taken out, rebuild', async ({ p
     }
 
     // A resolved ticket: the fix in an internal note, a password in another
-    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD', client_net_terms = 30`);
+    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD'`);
     const number = Number(db.val('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
     db.exec(`UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1`);
     made.ticketId = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${number}, ticket_subject = ${db.q(made.clientName + ' label printer prints off the edge')},

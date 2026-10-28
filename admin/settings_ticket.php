@@ -65,6 +65,8 @@ echo settingsPageStart('ticket');
                 <?= settingsSwitch('config_ticket_moving_columns', $config_ticket_moving_columns, ['help' => 'The board\'s columns are dragged into another order.']) ?>
             <?= settingsSectionEnd() ?>
 
+            <?= function_exists('mitQuickTicketSection') ? mitQuickTicketSection() : '' // Mountaineer IT: Quick ticket defaults ?>
+
             <?= settingsSaveBar('edit_ticket_settings') ?>
         </div>
     </div>

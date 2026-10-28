@@ -2,7 +2,8 @@
 // build and picture are kept, the picture only through the handler (the folder is closed to the web) and drawn as text where people
 // typed; the technician sees it but can't close or delete it, sends a feature request (the admins' bell rings); the admin marks it
 // done with a note (the technician's bell rings), it moves to Done, and reopens; the technician deletes their own open one only.
-// Everything it makes is removed afterwards.
+// It is off until an admin turns it on in Admin > Debug: off, there is no button and the handler refuses. Everything it makes is
+// removed afterwards and the switch put back as it was.
 
 const path = require('path');
 const fs = require('fs');
@@ -21,6 +22,9 @@ const PNG = Buffer.from(db.php('$i = imagecreatetruecolor(40, 30); imagefill($i,
 test.describe.configure({ mode: 'serial' });
 
 test.afterAll(() => {
+    if (made.wasOn !== undefined) {
+        db.exec(`INSERT INTO mit_settings SET setting_name = 'feedback_enabled', setting_value = ${db.q(made.wasOn)} ON DUPLICATE KEY UPDATE setting_value = ${db.q(made.wasOn)}`);
+    }
     const rows = db.rows(`SELECT feedback_id, image FROM mit_feedback WHERE title IN (${db.q(bugTitle)}, ${db.q(ideaTitle)})`);
     for (const row of rows) {
         if (row.image) {
@@ -37,6 +41,29 @@ async function openPanel(page) {
     await expect(panel).toBeVisible();
     return panel;
 }
+
+test('off by default; an admin turns it on in Admin > Debug', async ({ page }) => {
+    test.skip(!db.val("SHOW TABLES LIKE 'mit_feedback'"), 'Bugs & ideas is not set up here (M047)');
+    made.wasOn = db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'feedback_enabled'") || '0';
+    db.exec("DELETE FROM mit_settings WHERE setting_name = 'feedback_enabled'");
+    const errors = watch(page);
+    await visit(page, 'agent/tickets.php', errors);
+    await expect(page.locator('[data-mit-feedback-open]'), 'no button while it is off (the default)').toHaveCount(0);
+    // fetch from the page (the browser knows the test host; Playwright's own request client does not)
+    const refused = await page.evaluate(() => fetch('/agent/mit_feedback_ajax.php?list=open').then((r) => r.status));
+    expect(refused, 'and the handler refuses').toBe(403);
+
+    await visit(page, 'admin/debug.php', errors);
+    const card = page.locator('[data-mit-feedback-card]');
+    await expect(card, 'the switch on Admin > Debug').toBeVisible();
+    await expect(card.locator('[data-mit-feedback-enabled]')).not.toBeChecked();
+    await card.locator('[data-mit-feedback-enabled]').check();
+    await Promise.all([page.waitForLoadState('load'), card.locator('button[name=mit_feedback_settings]').click()]);
+    await expect(page.locator('[data-mit-feedback-card] [data-mit-feedback-enabled]')).toBeChecked();
+    expect(db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'feedback_enabled'"), 'saved').toBe('1');
+    await expect(page.locator('[data-mit-feedback-open]'), 'the button is back').toHaveCount(1);
+    await expectClean(page, errors);
+});
 
 test('admin: a bug with a screenshot, from the page it was on', async ({ page }) => {
     const errors = watch(page);
