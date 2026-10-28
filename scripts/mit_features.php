@@ -345,7 +345,7 @@ return [
         'name' => 'Customer Thermometer surveys',
         'files' => ['functions/mit_ct.php', 'admin/mit_customer_thermometer.php', 'admin/post/mit_customer_thermometer.php', 'agent/mit_ct_reviews.php',
             'cron/mit_customer_thermometer.php'],
-        'tests' => ['tests/smoke/18-customer-thermometer.spec.js'],
+        'tests' => ['tests/smoke/18-customer-thermometer.spec.js', 'tests/scenarios/scenario-ct-responses.php'],
         'assumes' => ['Resolved / closed tickets by ticket_resolved_at / ticket_closed_at; ticketMergeInto writes "merged this ticket into" history.'],
         'watch' => ['merged this ticket into'],
         'overlap' => ['survey', 'feedback', 'csat', 'satisfaction', 'rating'],

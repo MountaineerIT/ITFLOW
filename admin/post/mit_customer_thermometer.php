@@ -84,3 +84,13 @@ if (isset($_POST['mit_ct_run'])) {
     }
     redirect('mit_customer_thermometer.php');
 }
+
+if (isset($_POST['mit_ct_retry'])) {
+
+    validateCSRFToken();
+
+    $count = mitCtRetryFailed();
+    logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . " put $count refused Customer Thermometer survey(s) back to be sent"));
+    flashAlert($count ? "$count refused survey" . ($count === 1 ? '' : 's') . ' will be sent again on the next run (if still from the start date and a ticked board).' : 'There were no refused surveys.');
+    redirect('mit_customer_thermometer.php');
+}

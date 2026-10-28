@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.194 - 2026-10-28
+- Customer Thermometer: every response is read back - Customer Thermometer gives at most 200 results a request (the newest), so responses older than the newest 200 were never picked up; they are now read a week at a time (a full week again a day at a time).
+- Customer Thermometer: when a send is refused (out of send credits, a sending limit or the address unsubscribed) the run stops there instead of using up every waiting ticket, says so plainly, and Admin > Integrations > Customer Thermometer offers "Send the refused ones again" once it is sorted out (before, a refused survey was never sent).
+
 ## 26.10.193 - 2026-10-28
 - Quick ticket: the window scrolls when a contact has several open tickets - its title and Make ticket stay on screen (it ran off the bottom with no scrollbar).
 

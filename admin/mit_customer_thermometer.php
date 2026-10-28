@@ -24,6 +24,7 @@ $missing = mitCtMissing();
 $counts = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(*) AS total, SUM(status = 'sent') AS sent, SUM(status != 'sent') AS other,
     SUM(temperature IS NOT NULL) AS answered FROM mit_ct_surveys"));
 $recent = mysqli_query($mysqli, "SELECT s.*, cl.client_name FROM mit_ct_surveys s LEFT JOIN clients cl ON cl.client_id = s.client_id ORDER BY s.survey_id DESC LIMIT 25");
+$failed = mitCtFailedCount();
 $due = $settings['enabled'] && $missing === '' ? count(mitCtDueTickets(100)) : 0;
 
 ?>
@@ -49,6 +50,14 @@ $due = $settings['enabled'] && $missing === '' ? count(mitCtDueTickets(100)) : 0
         <?php if ($settings['last_run']) { ?>
             <div class="small mb-3 <?= strpos($settings['last_result'], 'Failed') === 0 ? 'text-danger' : 'text-muted' ?>" data-mit-ct-last>
                 Last run <?= escapeHtml($settings['last_run']) ?>: <?= escapeHtml($settings['last_result']) ?></div>
+        <?php } ?>
+        <?php if ($failed) { ?>
+            <form action="post.php" method="post" class="alert alert-warning small d-flex flex-wrap align-items-center gap-2" data-mit-ct-refused="<?= $failed ?>">
+                <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                <span class="me-auto"><i class="fas fa-exclamation-triangle me-2"></i><?= $failed ?> survey<?= $failed === 1 ? ' was' : 's were' ?> refused by Customer
+                    Thermometer (out of send credits, a sending limit, or the address unsubscribed). Once that is sorted out, send them again.</span>
+                <button type="submit" name="mit_ct_retry" class="btn btn-sm btn-outline-dark"><i class="fas fa-redo me-2"></i>Send the refused ones again</button>
+            </form>
         <?php } ?>
 
         <h6 class="mt-2">1. Connection</h6>

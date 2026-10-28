@@ -1,7 +1,8 @@
 // Customer Thermometer (functions/mit_ct.php) against the test install's stand-in (ct-mock - never a real account): connect and
 // read the thermometers and lists, then for a resolved ticket: no survey before the start date, none when its board is not
 // ticked, one when it is (carrying the tech, ticket number and subject) and never a second; a Gold response with a comment comes
-// back and shows on the client overview, the dashboard and the reviews list. Surveys are switched off again and the client and
+// back and shows on the client overview, the dashboard and the reviews list; a send refused (out of credits) is kept and goes again
+// with "Send the refused ones again". Surveys are switched off again and the client and
 // ticket ("Smoke test ...") removed at the end, even when a step fails. Skipped when the stand-in is not installed.
 
 const { test, expect } = require('@playwright/test');
@@ -96,8 +97,17 @@ test('customer thermometer: only from the start date, only the ticked boards, on
         expect(await sentFor(page), 'nothing from a board that is not ticked').toHaveLength(0);
     }
 
-    // Its board ticked, from yesterday
+    // Its board ticked, from yesterday - with the account out of send credits first: refused, kept, and sent again from the admin page
     expect(await settings(page, { start: day(-1), boards: [made.boardId] })).toContain('surveys go out for tickets resolved from');
+    await mock(page, '/_credits?on=0');
+    expect(await runNow(page)).toContain('refused by Customer Thermometer');
+    await visit(page, 'admin/mit_customer_thermometer.php');
+    const refused = page.locator('form[data-mit-ct-refused]');
+    await expect(refused, 'the refused ones on the admin page').toHaveCount(1);
+    await mock(page, '/_credits?on=1');
+    await submit(refused, 'mit_ct_retry');
+    expect(await flash(page)).toMatch(/refused surveys? will be sent again/);
+    await expect(page.locator('form[data-mit-ct-refused]'), 'none left').toHaveCount(0);
     expect(await runNow(page)).toMatch(/[1-9]\d* surveys? sent/);
     const sent = await sentFor(page);
     expect(sent, 'one survey for the ticket').toHaveLength(1);
