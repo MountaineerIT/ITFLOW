@@ -62,7 +62,8 @@ if (isset($_POST['edit_ticket_settings'])) {
         settingsRefuse('ticket', $errors);
     }
 
-    settingsSave('ticket', $before, $after);
+    $mit_changed = function_exists('mitQuickTicketSettingsSave') ? (array) mitQuickTicketSettingsSave($_POST) : []; // Mountaineer IT: Quick ticket defaults, counted in the message
+    settingsSave('ticket', $before, $after, 'settings', $mit_changed);
 
     redirect();
 

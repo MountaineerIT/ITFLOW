@@ -274,6 +274,19 @@ return [
         'watch' => ['billingCompany', 'ticketEmailContactLine', 'tripLastStart', 'tripOfficeAddress', 'data-trip-from', 'data-trip-driver', 'userInviteSave', 'userInviteAccept'],
         'overlap' => ['office', 'branch', 'site_location', 'company_location'],
     ],
+    'quick_ticket' => [
+        'name' => 'Quick ticket (top-bar window: client, contact, issue; the contact\'s open tickets; timer started)',
+        'files' => ['functions/mit_quick_ticket.php', 'agent/mit_quick_ticket_ajax.php', 'agent/js/mit_quick_ticket.js'],
+        'tests' => ['tests/smoke/89-quick-ticket.spec.js'],
+        'assumes' => [
+            'Make ticket posts ITFlow\'s own New Ticket form: agent/post/ticket.php add_ticket (client_id, contact_id, subject, details as HTML, priority, category_id, assigned_to, billable, mit_board) - it redirects to ticket.php?client_id=&ticket_id=.',
+            'ITFlow\'s ticket timer lives in the browser: agent/js/ticket_time_tracking.js reads <id>-startTime / <id>-pausedTime / ticket-timer-running-<id> on DOMContentLoaded; our start is written by an inline script printed with mitTicketLayoutHtml, before that script runs.',
+            'Admin > Settings > Tickets is ITFlow\'s settings frame (settingsSectionStart, settingsSelect, settingsSwitch); edit_ticket_settings saves through settingsSave with $also_changed.',
+            'ticketPickableStatuses / ticketChangeStatus set a status other than New / Resolved / Closed; ticketRows lists tickets with their status and assignee.',
+        ],
+        'watch' => ['ticket_time_tracking.js', 'getLocalStorageKey("startTime")', 'ticket-timer-running-', 'ticketPickableStatuses', 'ticketChangeStatus', 'edit_ticket_settings', 'selectOptionContact'],
+        'overlap' => ['quick_ticket', 'quickticket', 'quick_add', 'fast_ticket'],
+    ],
     'timesheets' => [
         'name' => 'Timesheets, payroll, leave, California rules, holidays, reimbursements',
         'files' => ['functions/mit_timesheet*.php', 'functions/mit_ts_*.php', 'functions/mit_leave.php', 'functions/mit_reimbursements.php',

@@ -31,6 +31,8 @@ hook	admin/post/settings_module.php	mitModulesSave	2
 hook	admin/post/settings_module.php	mit_lines	2
 hook	admin/post/settings_notification.php	mitNotificationsSave	2
 hook	admin/post/settings_notification.php	mit_changed	2
+hook	admin/post/settings_ticket.php	mitQuickTicketSettingsSave	2
+hook	admin/post/settings_ticket.php	mit_changed	2
 hook	admin/post/users.php	mitInviteExtrasSave	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
@@ -45,6 +47,7 @@ hook	admin/settings_notification.php	mitNotificationSections	2
 hook	admin/settings_project.php	mit_project_card	1
 hook	admin/settings_quote.php	mit_quote_card	1
 hook	admin/settings_ticket.php	mitNoResponseReady	1
+hook	admin/settings_ticket.php	mitQuickTicketSection	2
 hook	admin/settings_ticket.php	mitServiceTicketColor	1
 hook	admin/settings_ticket.php	mit_calendar_card	1
 hook	admin/settings_ticket.php	mit_no_response_card	1
@@ -192,6 +195,8 @@ hook	agent/post/ticket.php	mitInternalNoteNotify	2
 hook	agent/post/ticket.php	mitNotifyOn	6
 hook	agent/post/ticket.php	mitProjectTicketMoved	4
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
+hook	agent/post/ticket.php	mitQuickTicketAfterCreate	2
+hook	agent/post/ticket.php	mitQuickTicketMailsClient	2
 hook	agent/post/ticket.php	mitReplyRecipientsMail	1
 hook	agent/post/ticket.php	mitReplyRecipientsReady	2
 hook	agent/post/ticket.php	mitReplyTimesFlash	2
@@ -322,6 +327,7 @@ hook	functions.php	mit_offices	1
 hook	functions.php	mit_procurement	1
 hook	functions.php	mit_projects	1
 hook	functions.php	mit_qbo	1
+hook	functions.php	mit_quick_ticket	1
 hook	functions.php	mit_quotes	1
 hook	functions.php	mit_reply_recipients	1
 hook	functions.php	mit_theme	1
@@ -515,6 +521,7 @@ ours	admin/database_updates/mountaineerit/M046.php
 ours	admin/database_updates/mountaineerit/M047.php
 ours	admin/database_updates/mountaineerit/M048.php
 ours	admin/database_updates/mountaineerit/M049.php
+ours	admin/database_updates/mountaineerit/M050.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -575,6 +582,7 @@ ours	agent/js/mit_dispatch.js
 ours	agent/js/mit_feedback.js
 ours	agent/js/mit_left_behind.js
 ours	agent/js/mit_ninjaone.js
+ours	agent/js/mit_quick_ticket.js
 ours	agent/js/mit_reply_recipients.js
 ours	agent/js/mit_reply_times.js
 ours	agent/js/mit_schedule_notify.js
@@ -592,6 +600,7 @@ ours	agent/mit_purchase_order.php
 ours	agent/mit_purchase_orders.php
 ours	agent/mit_qbo_batch.php
 ours	agent/mit_qbo_batches.php
+ours	agent/mit_quick_ticket_ajax.php
 ours	agent/mit_receipt.php
 ours	agent/mit_receiving.php
 ours	agent/mit_timesheet.php
@@ -682,6 +691,7 @@ ours	functions/mit_procurement_parts.php
 ours	functions/mit_projects.php
 ours	functions/mit_qbo.php
 ours	functions/mit_qbo_billing.php
+ours	functions/mit_quick_ticket.php
 ours	functions/mit_quotes.php
 ours	functions/mit_recurring.php
 ours	functions/mit_reimbursements.php

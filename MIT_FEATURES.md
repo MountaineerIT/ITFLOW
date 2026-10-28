@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 60 | 11 | 7 | 28 | 69 | 33 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 158 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 159 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -26,6 +26,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 7 | 29 | 26 | 148 | 18 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
+| [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
@@ -675,7 +676,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ticket.php`: mitNoResponseButton, mitTicketLayoutHtml, mit_ticket_layout
 - `agent/tickets.php`: mitListViewResetButton, mitListViewRestore
 - `cron/mail_queue.php`: mit_dev_mode
-- `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_ticket_layout
+- `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
 - `functions/backup.php`: mit_feedback
 - `functions/ticket.php`: mitResolvedMailContent
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
@@ -936,6 +937,48 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** office, branch, site_location, company_location
 
 **Our files** `functions/mit_offices.php`, `admin/modals/mit_offices/office.php`, `admin/post/mit_offices.php`, `functions/mit_invites.php`
+
+<a id="quick_ticket"></a>
+## Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started) (`quick_ticket`)
+
+**Takes for granted**
+
+- Make ticket posts ITFlow's own New Ticket form: agent/post/ticket.php add_ticket (client_id, contact_id, subject, details as HTML, priority, category_id, assigned_to, billable, mit_board) - it redirects to ticket.php?client_id=&ticket_id=.
+- ITFlow's ticket timer lives in the browser: agent/js/ticket_time_tracking.js reads <id>-startTime / <id>-pausedTime / ticket-timer-running-<id> on DOMContentLoaded; our start is written by an inline script printed with mitTicketLayoutHtml, before that script runs.
+- Admin > Settings > Tickets is ITFlow's settings frame (settingsSectionStart, settingsSelect, settingsSwitch); edit_ticket_settings saves through settingsSave with $also_changed.
+- ticketPickableStatuses / ticketChangeStatus set a status other than New / Resolved / Closed; ticketRows lists tickets with their status and assignee.
+
+**Tests** `tests/smoke/89-quick-ticket.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `admin/post/settings_ticket.php`: mitQuickTicketSettingsSave, mit_changed
+- `admin/settings_ticket.php`: mitQuickTicketSection
+- `agent/post/ticket.php`: mitQuickTicketAfterCreate, mitQuickTicketMailsClient, mit_board
+- `functions.php`: mit_quick_ticket
+- `includes/top_nav.php`: mit_timers_nav
+
+**ITFlow functions it calls**
+
+- `functions/app.php`: getFieldById
+- `functions/auth.php`: clientScopeSql, hasClientAccess, lookupUserPermission
+- `functions/categories.php`: categoryOptionsHtml
+- `functions/format.php`: selectOptionClient, selectOptionContact, timeAgo
+- `functions/logging.php`: logTicketHistory
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/settings.php`: settingsSectionEnd, settingsSectionStart, settingsSelect, settingsSwitch
+- `functions/ticket.php`: ticketAgentId, ticketCategoryId, ticketClientOwnedId, ticketReference, ticketRow, ticketRows, ticketUrl
+- `functions/ticket_fields.php`: ticketChangeStatus, ticketPickableStatuses, ticketStatusHtml
+
+**ITFlow tables** clients, contacts, credentials, tickets, users
+
+**ITFlow columns** category_id, client_abbreviation, client_archived_at, client_id, client_lead, client_name, config_module_enable_ticketing, config_ticket_client_general_notifications, config_ticket_default_billable, contact_archived_at, contact_client_id, contact_email, contact_id, contact_mobile, contact_name, contact_phone, contact_photo, contact_primary, contact_title, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_id, ticket_resolved_at, ticket_status, ticket_status_color, ticket_status_name, ticket_subject, ticket_updated_at, user_archived_at, user_id, user_name, user_status, user_type
+
+**Watched in ITFlow's code** `ticket_time_tracking.js` `getLocalStorageKey("startTime")` `ticket-timer-running-` `ticketPickableStatuses` `ticketChangeStatus` `edit_ticket_settings` `selectOptionContact`
+
+**"ITFlow does this too" words** quick_ticket, quickticket, quick_add, fast_ticket
+
+**Our files** `functions/mit_quick_ticket.php`, `agent/mit_quick_ticket_ajax.php`, `agent/js/mit_quick_ticket.js`
 
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)

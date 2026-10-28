@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.192 - 2026-10-28
+- Quick ticket: a + button in the top bar opens a small window - client, contact and the issue - for a call or a walk-up. It starts on the client of the page you are on and the client's primary contact, and lists that contact's tickets still open (not resolved or closed), with "Work on this one" to go to one instead of raising the same problem twice. Make ticket goes through ITFlow's own New Ticket, so SLA, board, emails and history are as usual, and the ticket's timer is already running when it opens.
+- Its defaults are on Admin > Settings > Tickets, "Quick tickets": the board it lands on, who it is assigned to (the agent making it, nobody, or a set agent), the status it starts in, priority, category, billable, when the timer counts from (pressing Make ticket, or opening the window - the start of the call - or not at all), starting on the primary contact, showing the open tickets, and whether the contact gets ITFlow's "Ticket created" email.
+
 ## 26.10.191 - 2026-10-28
 - Checked end to end with ITFlow's latest (four areas on separate copies - billing, tickets and scheduling, time and payroll, admin and integrations - plus every automatic check): our features work with contract-based rates, terms and SLAs and with agent invites.
 - Dispatch's Schedule window refuses an SLA on a project ticket (it said "Updated" but project tickets keep none), as the ticket's SLA picker already did; its Automatic choice now says the SLA comes from the client's contract.

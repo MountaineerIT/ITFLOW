@@ -1456,6 +1456,22 @@ model: see DEPLOYMENT.md.
   (the user's choice). Purchase orders: `ship_to` = 'office' (main) / 'office:<id>' / 'other'; `mitPoCreateNow` ships to the maker's office
   (`mitOfficeShipTo` - the main one is Procurement's Ship to setting); po_action.php details has an office picker that fills the address;
   the PO page names the office. Smoke `86-offices.spec.js`.
+- Quick ticket (Oct 28, 26.10.192 - the user's request): `functions/mit_quick_ticket.php` (ours, required from `functions.php`), no tables. A +
+  button in the top bar (`mitQuickTicketNav`, echoed from our `includes/mit_timers_nav.php`) opens a Bootstrap modal (`#mitQuickTicket`, moved to
+  <body> by `agent/js/mit_quick_ticket.js`, hidden until then): client (starts on the page's `client_id`), contact (the client's primary, unless
+  switched off; phone / email as search words), "What is the issue?" (subject), More detail (sent as escaped HTML with <br>), priority, an
+  "Assign it to ..." switch. Picking the contact lists their tickets not resolved / closed (`mitQuickTicketOpenTickets` via ITFlow's ticketRows)
+  with "Work on this one" (goes there, its timer started). Requests: `agent/mit_quick_ticket_ajax.php` (clients / contacts as <option>s with
+  ITFlow's selectOption* markup, open tickets JSON; Support edit). Make ticket posts ITFlow's own add_ticket (`agent/post.php`) with
+  `mit_quick_ticket` - two lines there: `mitQuickTicketAfterCreate($ticket_id, $_POST)` after the board line (status via ticketChangeStatus,
+  history "raised it with Quick ticket", the timer start in `$_SESSION['mit_quick_timer']`) and `mitQuickTicketMailsClient($_POST)` on ITFlow's
+  "Ticket created" email condition. The timer: the posted start (this browser's ms - Make ticket pressed, or the window opened) is written to
+  ITFlow's `<id>-startTime` / `ticket-timer-running-<id>` by `mitQuickTicketTimerScript` (printed with `mitTicketLayoutHtml`, before
+  `agent/js/ticket_time_tracking.js` reads them; once - never over a timer already there). Defaults: "Quick tickets" section on Admin > Settings >
+  Tickets (`mitQuickTicketSection` - one line before the save bar in `admin/settings_ticket.php`; `mitQuickTicketSettingsSave` - one line in
+  `admin/post/settings_ticket.php`, its lines passed to settingsSave as `$also_changed`), `mit_settings` quick_ticket_on / _board / _assign
+  (me | nobody | user id) / _status (0 = ITFlow's) / _priority / _category / _billable ('' = ITFlow's default) / _timer (make | open | off) /
+  _primary / _open_tickets / _email_client; in Find a setting (`mitSettingsFields`). Smoke `89-quick-ticket.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
