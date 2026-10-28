@@ -29,7 +29,12 @@ function mitFeedbackReady() {
 
 /** A signed-in agent (not a portal contact) on an install that has the table. */
 function mitFeedbackCan() {
-    return mitFeedbackReady() && !empty($GLOBALS['session_user_id']) && empty($_SESSION['client_logged_in']);
+    return mitFeedbackReady() && mitFeedbackOn() && !empty($GLOBALS['session_user_id']) && empty($_SESSION['client_logged_in']);
+}
+
+/** Switched on in Admin > Debug (mit_settings feedback_enabled) - off until an admin turns it on. */
+function mitFeedbackOn() {
+    return mitSetting('feedback_enabled', '0') === '1';
 }
 
 function mitFeedbackIsAdmin() {

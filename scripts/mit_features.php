@@ -343,10 +343,12 @@ return [
     ],
     'feedback' => [
         'name' => 'Bugs & ideas (bug reports and feature requests in the top bar)',
-        'files' => ['functions/mit_feedback.php', 'agent/mit_feedback_ajax.php', 'agent/js/mit_feedback.js'],
+        'files' => ['functions/mit_feedback.php', 'agent/mit_feedback_ajax.php', 'agent/js/mit_feedback.js', 'admin/includes/mit_feedback_card.php',
+            'admin/post/mit_feedback_settings.php'],
         'tests' => ['tests/smoke/84-feedback.spec.js'],
         'assumes' => [
             'The top bar is includes/top_nav.php, which requires our includes/mit_timers_nav.php (it echoes mitFeedbackNav).',
+            'Admin > Debug is admin/debug.php (one require of our switch card before its script).',
             'ITFlow\'s notifications table (notification_type / notification / notification_action / notification_user_id / notification_entity_id) is the bell.',
             'Admins are users whose role has role_is_admin = 1 ($session_is_admin).',
         ],

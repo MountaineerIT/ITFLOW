@@ -8,6 +8,7 @@ hook	admin/backup.php	mit_restore_card	1
 hook	admin/cron.php	mit_cron_card	1
 hook	admin/database_updates.php	mitBeforeItflowUpdate	2
 hook	admin/database_updates.php	mit_db_upgrade	3
+hook	admin/debug.php	mit_feedback_card	1
 hook	admin/includes/side_nav.php	mitAdminSettingsPages	1
 hook	admin/includes/side_nav.php	mit_admin_nav	1
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
@@ -503,6 +504,7 @@ ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
 ours	admin/includes/mit_cron_card.php
+ours	admin/includes/mit_feedback_card.php
 ours	admin/includes/mit_integrations_nav.php
 ours	admin/includes/mit_m365_card.php
 ours	admin/includes/mit_modules_fields.php
@@ -536,6 +538,7 @@ ours	admin/post/mit_boards.php
 ours	admin/post/mit_calendar_settings.php
 ours	admin/post/mit_cron_health.php
 ours	admin/post/mit_customer_thermometer.php
+ours	admin/post/mit_feedback_settings.php
 ours	admin/post/mit_m365.php
 ours	admin/post/mit_ninjaone.php
 ours	admin/post/mit_no_response_settings.php

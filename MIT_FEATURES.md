@@ -32,7 +32,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 1 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
-| [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 3 | 1 | 3 | 4 | 12 | 4 |
+| [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -1212,6 +1212,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Takes for granted**
 
 - The top bar is includes/top_nav.php, which requires our includes/mit_timers_nav.php (it echoes mitFeedbackNav).
+- Admin > Debug is admin/debug.php (one require of our switch card before its script).
 - ITFlow's notifications table (notification_type / notification / notification_action / notification_user_id / notification_entity_id) is the bell.
 - Admins are users whose role has role_is_admin = 1 ($session_is_admin).
 
@@ -1219,6 +1220,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
+- `admin/debug.php`: mit_feedback_card
 - `cron/mail_queue.php`: mit_common
 - `functions.php`: mit_common
 - `functions/backup.php`: mit_feedback
@@ -1227,6 +1229,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **ITFlow functions it calls**
 
 - `functions/logging.php`: logAudit
+- `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml
 - `functions/security.php`: validateCSRFToken
 
@@ -1238,4 +1241,4 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** feedback, feature_request, bug_report, suggestion
 
-**Our files** `functions/mit_feedback.php`, `agent/mit_feedback_ajax.php`, `agent/js/mit_feedback.js`
+**Our files** `functions/mit_feedback.php`, `agent/mit_feedback_ajax.php`, `agent/js/mit_feedback.js`, `admin/includes/mit_feedback_card.php`, `admin/post/mit_feedback_settings.php`

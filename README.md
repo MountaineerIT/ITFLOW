@@ -112,7 +112,7 @@ Update shows both, with the release notes.
 
 **Running it**
 - One-line Debian installer, restore from Admin > Backup (large backups too) and a development mode for test copies
-- Cron health warnings and alert emails, consistency checks, a modern look (optional), bug and idea reports from the top bar
+- Cron health warnings and alert emails, consistency checks, a modern look (optional), bug and idea reports from the top bar (switched on in Admin > Debug)
 
 The full list, with where each piece lives in the code, is in [MIT_FEATURES.md](MIT_FEATURES.md). Release notes for every
 version are in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) (ITFlow's own are in [CHANGELOG.md](CHANGELOG.md)).
@@ -153,7 +153,7 @@ working after such a move is listed in [DEPLOYMENT.md](DEPLOYMENT.md) ("Moving t
 ## Support
 
 This build is maintained for Mountaineer IT's own use and is provided without support. Bugs and ideas can be opened as
-[issues](https://github.com/MountaineerIT/ITFLOW/issues); signed-in users can also send them from the bug button in the top bar.
+[issues](https://github.com/MountaineerIT/ITFLOW/issues); signed-in users can also send them from the bug button in the top bar, once an admin turns it on in Admin > Debug.
 
 ## Security
 

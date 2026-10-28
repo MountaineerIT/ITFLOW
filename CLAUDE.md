@@ -1407,6 +1407,9 @@ model: see DEPLOYMENT.md.
   handler to signed-in agents only. Text is kept as typed (`mitFeedbackSql`, not escapeSql) and drawn as text by the script. A new report
   rings the admins' bell, a closed one the sender's (`notification_type` 'Feedback', link `dashboard.php?mit_feedback=<id>` opens the panel
   on it). Smoke `84-feedback.spec.js`.
+  Off by default (26.10.185, the user's choice): `mit_settings` feedback_enabled ('1' = on, `mitFeedbackOn`, part of `mitFeedbackCan`), switched in
+  Admin > Debug - card `admin/includes/mit_feedback_card.php` (one require in `admin/debug.php` before its script), handler
+  `admin/post/mit_feedback_settings.php`. Off: no button, the handler answers 403; reports are kept.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
