@@ -194,7 +194,7 @@ function mitOfficesSection() {
             . '</td></tr>';
     }
     return settingsSectionStart('mit-offices', 'Offices', 'Other places you work from. Each agent belongs to one - their trips start there and their ticket emails show its address and phone. Purchase orders can ship to any of them. Invoices, quotes and contracts keep the main address above.')
-        . '<div class="table-responsive"><table class="table table-sm align-middle mb-2" data-mit-offices><thead><tr><th>Office</th><th>Who works there</th><th></th></tr></thead><tbody>' . $rows . '</tbody></table></div>'
+        . '<div class="table-responsive" data-setting="mit_offices"><table class="table table-sm align-middle mb-2" data-mit-offices><thead><tr><th>Office</th><th>Who works there</th><th></th></tr></thead><tbody>' . $rows . '</tbody></table></div>'
         . '<button type="button" class="btn btn-sm btn-outline-primary ajax-modal" data-modal-url="modals/mit_offices/office.php" data-mit-office-add><i class="fas fa-plus me-2"></i>Add an office</button>'
         . '<div class="form-text">Agents not put in another office belong to the main one. An agent\'s office can also be set in Admin &gt; Users.</div>'
         . settingsSectionEnd();

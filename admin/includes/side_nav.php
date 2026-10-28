@@ -245,8 +245,7 @@
                 <?php
                 $settings_nav_pages = settingsPages();
                 $settings_nav_current = basename($_SERVER['PHP_SELF']);
-                $settings_nav_open = $settings_nav_current === 'settings.php' || in_array($settings_nav_current, array_column($settings_nav_pages, 'url'), true)
-                    || in_array($settings_nav_current, mitAdminSettingsPages(), true); // Mountaineer IT: + our settings pages
+                $settings_nav_open = $settings_nav_current === 'settings.php' || in_array($settings_nav_current, array_column($settings_nav_pages, 'url'), true);
                 ?>
                 <li class="nav-item mt-2 <?= $settings_nav_open ? 'menu-open' : '' ?>">
                     <a href="#" class="nav-link">
@@ -273,7 +272,6 @@
                                 </a>
                             </li>
                         <?php } ?>
-                        <?php require __DIR__ . '/mit_admin_nav.php'; // Mountaineer IT ?>
                     </ul>
                 </li>
 

@@ -67,7 +67,7 @@ function settingsPages() {
             'about' => 'How long the audit log and app logs are kept, and sending them on to a syslog server or SIEM.'],
         'telemetry' => ['group' => 'system', 'title' => 'Telemetry', 'icon' => 'fa-satellite-dish', 'url' => 'settings_telemetry.php',
             'about' => 'Whether ITFlow tells the ITFlow project, each night, how it is being used.'],
-    ];
+    ] + (function_exists('mitSettingsPages') ? mitSettingsPages() : []); // Mountaineer IT: our settings pages (functions/mit_settings_index.php)
 }
 
 /* Whether a page's module is in use - a page for one that is off is hidden from the menu, and shown faded on the overview. */
@@ -279,6 +279,7 @@ function settingsFields() {
         // Telemetry
         'config_telemetry' => ['page' => 'telemetry', 'section' => 'Nightly report', 'label' => 'Send the ITFlow project a nightly report', 'words' => 'telemetry statistics usage data privacy'] + $on_off,
     ];
+    $fields += function_exists('mitSettingsFields') ? mitSettingsFields() : []; // Mountaineer IT: the settings on our cards, for Find a setting
     return $fields;
 }
 

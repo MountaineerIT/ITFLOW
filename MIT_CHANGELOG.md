@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.189 - 2026-10-28
+- Admin > Settings: Procurement, Timesheets and Boards are tiles on the Settings overview (with how they are set now) and entries in its menu, and Find a setting (and the top bar's search) finds them - and the settings on our cards inside ITFlow's pages (quote pricing, usage billing, project tickets, resolving messages, logo options, offices, notifications, our modules); a result opens the page at the setting.
+- Admin > Settings > Notifications: our switches are sections of ITFlow's page (Ticket scheduled, Assigning, Ticket replies, Procurement, Timesheets) with "In the bell" / "By email" switches, instead of a separate table at the bottom.
+- Admin > Roles: changing only a role's service boards now says "saved" (and is in the audit log) instead of "unchanged".
+
 ## 26.10.188 - 2026-10-28
 - Side menu: folded sections no longer flash open for a moment on every page - they are folded while the menu is built.
 

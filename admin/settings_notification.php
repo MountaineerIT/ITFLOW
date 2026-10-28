@@ -43,14 +43,7 @@ echo settingsPageStart('notification');
                 <?php } ?>
             <?= settingsSectionEnd() ?>
 
-            <?php if (function_exists('mitNotificationRows')) { // Mountaineer IT: scheduling, assigning and our features ?>
-                <div class="table-responsive mt-4" data-mit-notifications>
-                    <table class="table table-bordered">
-                        <thead><tr><th>Notification</th><th>App Notify</th><th>Tech Email Notify</th><th>Client Email Notify</th><th></th></tr></thead>
-                        <tbody><?= mitNotificationRows() ?></tbody>
-                    </table>
-                </div>
-            <?php } ?>
+            <?= function_exists('mitNotificationSections') ? mitNotificationSections() : '' // Mountaineer IT: scheduling, assigning and our features, as sections ?>
 
             <?= settingsSaveBar('edit_notification_settings') ?>
         </div>

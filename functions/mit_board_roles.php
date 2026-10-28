@@ -132,13 +132,16 @@ function mitBoardRoleField($role_id = 0, $is_admin = false) {
     return $html;
 }
 
-/** admin/post/roles.php add / edit (one line each): save the role's boards from the form. */
+/** admin/post/roles.php add / edit (one line each): save the role's boards from the form. Returns what changed, in words ('' = nothing). */
 function mitBoardRoleSave($role_id, array $post) {
     global $mysqli, $session_user_id;
     $role_id = intval($role_id);
     if (!mitBoardRolesReady() || !$role_id || !array_key_exists('mit_boards_present', $post)) {
-        return;
+        return '';
     }
+    // Before, to say what changed (for ITFlow's "saved" / "unchanged" and its audit line)
+    $was_limited = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT limited FROM mit_role_board_access WHERE role_id = $role_id"))[0] ?? 0);
+    $was_boards = array_map('intval', array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT board_id FROM mit_role_boards WHERE role_id = $role_id ORDER BY board_id")), 0));
     $limited = empty($post['mit_boards_all']) ? 1 : 0;
     mysqli_query($mysqli, "INSERT INTO mit_role_board_access SET role_id = $role_id, limited = $limited, updated_by = " . intval($session_user_id) . ", updated_at = NOW()
         ON DUPLICATE KEY UPDATE limited = $limited, updated_by = " . intval($session_user_id) . ", updated_at = NOW()");
@@ -150,6 +153,17 @@ function mitBoardRoleSave($role_id, array $post) {
             }
         }
     }
+    $now_boards = $limited ? array_map('intval', array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT board_id FROM mit_role_boards WHERE role_id = $role_id ORDER BY board_id")), 0)) : [];
+    if ($limited === $was_limited && (!$limited || $now_boards === $was_boards)) {
+        return '';
+    }
+    if (!$limited) {
+        return 'sees every service board';
+    }
+    $names = array_map(function ($board_id) {
+        return mitBoards(true)[$board_id]['board_name'] ?? '';
+    }, $now_boards);
+    return 'service boards: ' . ($names ? implode(', ', $names) : 'none');
 }
 
 /** Admin > Settings > Boards: the roles that see a board ("Everyone" when no role is limited). */

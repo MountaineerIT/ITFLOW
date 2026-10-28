@@ -7,13 +7,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 58 | 10 | 7 | 27 | 67 | 31 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 156 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 58 | 11 | 7 | 27 | 67 | 33 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 157 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 5 | 12 | 13 | 23 | 15 |
-| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 6 | 6 | 18 | 7 |
+| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 16 |
@@ -43,16 +43,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow runs admin/database_updates.php in version order and our runner after it (update_cli, setup, restores).
 - functions.php requires ours; mit_common.php first.
 - Module rows (module_*) and roleModuleInfo() are how permissions work; Admin > Settings > Modules form posts to settings_module.php.
-- Our menus hang off ITFlow's side_nav.php sections (SETTINGS, INTEGRATIONS, BILLING, SUPPORT).
+- Our menus hang off ITFlow's side_nav.php sections (INTEGRATIONS, BILLING, SUPPORT); our settings pages join settingsPages() / settingsFields() / the overview's $summaries (functions/settings.php, admin/settings.php), which feed the Settings menu, overview and Find a setting.
 
-**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
+**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
 
 **Hooks in ITFlow's files**
 
 - `.htaccess`: MIT_CHANGELOG
 - `admin/database_updates.php`: mitBeforeItflowUpdate, mit_db_upgrade
-- `admin/includes/side_nav.php`: mitAdminSettingsPages, mit_admin_nav, mit_integrations_nav
+- `admin/includes/side_nav.php`: mit_integrations_nav
 - `admin/post/settings_module.php`: mitModulesSave, mit_lines
+- `admin/settings.php`: mitSettingsSummaries
 - `admin/settings_module.php`: mit_modules_fields
 - `admin/update.php`: MIT_CHANGELOG, mitVersion, mit_changelog_card, MountaineerIT
 - `agent/calendar.php`: mitAsset
@@ -66,10 +67,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `client/login_microsoft.php`: mitPortalEntraTenant, mitPortalEntraTenantOk
 - `client/post.php`: mitSessionRestamp
 - `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
-- `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_qbo, mit_timesheets, mit_usage
+- `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_offices, mit_procurement, mit_qbo, mit_timesheets, mit_usage
 - `functions/backup.php`: mit_feedback
 - `functions/reports.php`: mit_boards, mit_timesheets
 - `functions/roles.php`: mitRoleModuleInfo
+- `functions/settings.php`: mitSettingsFields, mitSettingsPages, mit_settings_index
 - `functions/user.php`: mitSessionRestamp
 - `includes/cron_jobs.php`: mit_ai_helper, mit_align, mit_boards, mit_customer_thermometer, mit_ninjaone, mit_qbo_billing, mit_timesheets, mit_usage
 - `includes/footer.php`: mitVersion
@@ -93,11 +95,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_name, asset_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
 
-**Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave`
+**Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
 **"ITFlow does this too" words** module_
 
-**Our files** `functions/mit_common.php`, `functions/mit_db_upgrade.php`, `admin/database_updates_mountaineerit.php`, `includes/mit_version.php`, `MIT_CHANGELOG.md`, `admin/includes/mit_changelog_card.php`, `admin/includes/mit_admin_nav.php`, `admin/includes/mit_integrations_nav.php`, `admin/includes/mit_modules_fields.php`, `agent/includes/mit_billing_nav.php`
+**Our files** `functions/mit_common.php`, `functions/mit_db_upgrade.php`, `admin/database_updates_mountaineerit.php`, `includes/mit_version.php`, `MIT_CHANGELOG.md`, `admin/includes/mit_changelog_card.php`, `functions/mit_settings_index.php`, `admin/includes/mit_integrations_nav.php`, `admin/includes/mit_modules_fields.php`, `agent/includes/mit_billing_nav.php`
 
 <a id="checks"></a>
 ## Our checks (hooks, consistency, portability, AI wall, verify, feature map) (`checks`)
@@ -307,7 +309,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `admin/post/settings_notification.php`: mitNotificationsSave, mit_changed
-- `admin/settings_notification.php`: mitNotificationRows, data-mit-notifications
+- `admin/settings_notification.php`: mitNotificationSections
 - `agent/modals/ticket/ticket_edit_schedule.php`: mitScheduleNotifyField
 - `agent/post/ticket.php`: mitNotifyOn, mitScheduleNotifyFromPost
 - `functions.php`: mit_notifications
@@ -319,9 +321,10 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/billing.php`: billingCompany
 - `functions/email.php`: emailCapturing
 - `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/settings.php`: settingsSectionEnd, settingsSectionStart
 - `functions/ticket.php`: ticketColleagueRecipients, ticketWatcherEmails
 
-**ITFlow tables** clients, contacts, locations, notifications, ticket_watchers, tickets
+**ITFlow tables** clients, contacts, locations, notifications, settings, ticket_watchers, tickets
 
 **ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_location_id, contact_name, contact_primary, location_contact_id, location_id, ticket_client_id, ticket_contact_id, ticket_id, ticket_location_id, ticket_onsite, user_name, watcher_email, watcher_ticket_id
 
@@ -560,7 +563,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `admin/modals/role/role_add.php`: mitBoardRoleField
 - `admin/modals/role/role_edit.php`: mitBoardRoleField
-- `admin/post/roles.php`: mitBoardRoleSave
+- `admin/post/roles.php`: mitBoardRoleSave, mit_boards_changed
 - `agent/ajax.php`: mitBoardVisibleSql, mitTicketPickOptions, mitTicketPickSet, mit_ticket_techs, mit_options, mit_set
 - `agent/calendar.php`: mit_ticket_techs
 - `agent/dashboard.php`: mitBoardDashCard, mitBoardDashLinks, mitBoardDashPicker

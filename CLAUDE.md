@@ -392,8 +392,8 @@ model: see DEPLOYMENT.md.
   `agent/modals/mit_procurement/`; handlers `agent/post/mit_procurement.php`. Hooks: one require of
   `agent/includes/mit_procurement_nav.php` in `agent/includes/side_nav.php` (before FINANCE),
   Admin > Settings > Procurement page `admin/mit_procurement_settings.php` (card
-  `admin/includes/mit_procurement_card.php`, handler `admin/post/mit_procurement_settings.php`; menu via
-  `admin/includes/mit_admin_nav.php`), `functions.php` (require). Side-menu counts (`agent/includes/mit_procurement_nav.php`): To Order
+  `admin/includes/mit_procurement_card.php`, handler `admin/post/mit_procurement_settings.php`; on ITFlow's Settings
+  menu / overview through `mitSettingsPages()` - see "Settings overview"), `functions.php` (require). Side-menu counts (`agent/includes/mit_procurement_nav.php`): To Order
   = waiting items, Purchase Orders = waiting for approval, Receiving = PO lines still to arrive (not POs). PO numbers are unique (M015); a PO
   needs approval when over the limit or when a line has no cost - unless approval is switched off (`procurement_approval_on`) -
   approvers are Full Procurement access + admins (roles - `mitPoApprovers`); nobody approves their own PO unless
@@ -601,8 +601,7 @@ model: see DEPLOYMENT.md.
   and People tab (`person_leave.php`: rates, adjustments, history); "<bank> left" columns in the payroll report. Hooks: one line in `functions/reports.php`
   reportCatalog (`'mit_payroll' => mitTsReportEntry()` after time_by_tech), require of
   `agent/includes/mit_timesheet_nav.php` in `agent/includes/side_nav.php` (its own TIME section, before TOOLS),
-  require of `admin/includes/mit_admin_nav.php` in `admin/includes/side_nav.php` (inside SETTINGS after Ticket,
-  plus `array_merge(..., mitAdminSettingsPages())` on the SETTINGS menu-open line), Account > Preferences
+  Admin > Timesheets on ITFlow's Settings menu / overview (`mitSettingsPages()` - see "Settings overview"), Account > Preferences
   (`mitTsPreferenceFields` in `agent/user/user_preferences.php`, `mitTsSavePreferences` in
   `agent/user/post/profile.php`), `functions.php` (require).
 - Dispatch (Oct 2026): `functions/mit_dispatch.php` (ours) - page `agent/mit_dispatch.php`, script
@@ -807,7 +806,7 @@ model: see DEPLOYMENT.md.
   form of `agent/tickets.php`; `board` remembered by `mit_list_views.php`), a board tag per row (`mitBoardListTag($id, $page_ids)` - one query per page - in
   `agent/ticket_list.php` / `ticket_kanban.php`). Admin > Settings > Boards `admin/mit_boards.php` (tabs Boards / Routing, "Place
   open tickets by category"), modal `admin/modals/mit_boards/board.php`, handlers `admin/post/mit_boards.php` (archiving moves
-  its tickets to the default and drops its rules); menu in `admin/includes/mit_admin_nav.php`. Dispatch: board picker (All / My
+  its tickets to the default and drops its rules); on ITFlow's Settings menu / overview through `mitSettingsPages()`. Dispatch: board picker (All / My
   boards - the default when the agent is on one - / each; `mitDispatchBoardChoice`, saved in dispatch.state with `board_techs`),
   queue / Workload / This week filtered (`mitDispatchBoardWhere`), board tag on queue cards, Board field in the Schedule dialog
   (`detail_board` -> `mitBoardMove`), "Only the board's members" in the Agents list (a board with nobody on it shows everyone),
@@ -1014,8 +1013,10 @@ model: see DEPLOYMENT.md.
   ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
   the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
   ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
-- Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - rows added to ITFlow's
-  Admin > Settings > Notifications table (`mitNotificationRows` - one line before `</tbody>` in `admin/settings_notification.php`; saved by
+- Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
+  Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
+  section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),
+  then Assigning / Ticket replies / Procurement / Timesheets with "In the bell" / "By email" switches; the old table rows are gone; saved by
   `mitNotificationsSave($_POST)` - one line in `admin/post/settings_notification.php`, only when `mit_notify_present` is posted). `mit_settings`
   notify_<key> ('0' off, no row = on); `mitNotifyOn($key)`. Scheduling: defaults per visit kind (`mitScheduleNotifyRows` - a Remote / Onsite table
   at the top of our rows; `mit_settings` notify_schedule_{remote|onsite}_{tech|contact|watchers|site|primary} '0'/'1' - tech, contact, watchers on by
@@ -1094,7 +1095,7 @@ model: see DEPLOYMENT.md.
 - Review fixes (Oct 2026): `functions/mit_common.php` (ours, required first in `functions.php`) - shared
   helpers: `mitMailBody` / `mitSqlHtml` (HTML for SQL without escapeSql's strip_tags), `mitProductIsTangible`,
   module switches (`mitModuleOn`, `mitModuleRequire` for pages/modals, `mitModuleGuard` for handler files,
-  `mitModulesSave`), `mitAdminSettingsPages`, `mitNavCachedCount` (side-menu counts kept a minute in the session, fresh on
+  `mitModulesSave`), `mitNavCachedCount` (side-menu counts kept a minute in the session, fresh on
   their own page - `agent/includes/mit_dispatch_nav.php`, `mit_billing_nav.php`, `mit_procurement_nav.php`), `mitAsset` (our script tags get `?v=<file time>` so browsers
   fetch them again after an update). Module switches on Admin > Settings > Modules: require of
   `admin/includes/mit_modules_fields.php` in `admin/settings_module.php` (inside ITFlow's form) and
@@ -1224,8 +1225,17 @@ model: see DEPLOYMENT.md.
     _product_id); usage and parts invoices use billingLineTax / billingRecalc / billingInvoiceCreate; the quote profit box is per billing
     frequency; the convert window lists one-time lines only; module / company settings report our changes to settingsSaid; mileage rate
     read-only when ITFlow's is set; client tile seats = softwareSeatsUsedSql. Smoke `28-post-merge.spec.js`.
-  - Left for later: our settings pages are not on ITFlow's Settings overview (`settingsPages()`), our notification rows sit in their own
-    table on the new page, roles / company say "unchanged" when only our fields change. ITFlow 26.11 also bills per user / device seats on
+  - Settings overview (26.10.189): `functions/mit_settings_index.php` (ours, required from mit_common.php) - `mitSettingsPages()` (Procurement /
+    Timesheets / Boards, group "work", left out while their module of ours is off) joins ITFlow's `settingsPages()` (one `+` at its end in
+    `functions/settings.php`), so they are overview tiles, Settings menu entries (the old `admin/includes/mit_admin_nav.php` and the
+    `mitAdminSettingsPages` menu-open line are gone) and Find a setting results; `mitSettingsSummaries()` gives their "set now" line (one line
+    after `$summaries` in `admin/settings.php`); `mitSettingsFields()` adds the settings on our cards inside ITFlow's pages (quote pricing, usage,
+    project tickets, resolving messages, calendar colour, logo / offices, notifications, our modules) to `settingsFields()` (one line before its
+    return) for Find a setting - a result opens the page at the field (js/settings.js finds `[data-setting]` or the field's name). Roles:
+    `mitBoardRoleSave` returns what changed and `admin/post/roles.php` edit_role adds it to ITFlow's `$changes`, so a change to a role's boards
+    alone says "saved" (and is in the audit log); Company Details already counted ours (`mitBrandLogoSave` lines). Smoke `88-settings-overview.spec.js`,
+    and the flash check in `13-board-roles.spec.js`.
+  - Left for later: ITFlow 26.11 also bills per user / device seats on
     recurring lines (close to our usage by tag) and has its own product margin (beside our quote profit box).
 - Deep dive (Oct 26, 26.10.150 - timesheets / payroll, projects / procurement, invoices / QuickBooks; 3 reviewers, findings verified):
   Procurement: `mitProcQuoteConvertGroups` (one guarded line at the start of ITFlow's `quoteConvert` in `functions/billing.php`, after

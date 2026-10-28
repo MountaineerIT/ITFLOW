@@ -194,9 +194,6 @@ function mitModuleGuard($name, array $prefixes) {
 }
 
 /** Our admin settings pages, so ITFlow's SETTINGS menu opens on them (admin/includes/side_nav.php). */
-function mitAdminSettingsPages() {
-    return ['mit_procurement_settings.php', 'mit_timesheets.php', 'mit_boards.php'];
-}
 
 /** Save our module switches from Admin > Settings > Modules (hook in admin/post/settings_module.php). */
 function mitModulesSave(array $post) {
@@ -430,3 +427,4 @@ function mitNavCachedCount($key, callable $compute, $fresh = false) {
 require_once __DIR__ . '/mit_backup_restore.php'; // Admin > Backup: restore on a running install
 require_once __DIR__ . '/mit_dev_mode.php'; // development mode (config.php) - nothing reaches the outside world
 require_once __DIR__ . '/mit_feedback.php'; // bug reports and feature requests (the top bar's Bugs & ideas)
+require_once __DIR__ . '/mit_settings_index.php'; // our settings pages and fields on ITFlow's Admin > Settings

@@ -52,6 +52,7 @@ $summaries = [
     'logs' => 'Audit log ' . ($retention['audit'] ? 'kept ' . $days($retention['audit']) : 'kept forever') . ' · ' . ($forward['enabled'] ? 'sent to ' . escapeHtml($forward['host']) : 'not sent on'),
     'telemetry' => $config_telemetry ? 'Nightly report on' : 'Off',
 ];
+$summaries += function_exists('mitSettingsSummaries') ? mitSettingsSummaries() : []; // Mountaineer IT: our settings pages' lines
 
 // What needs looking at
 $attention = [];

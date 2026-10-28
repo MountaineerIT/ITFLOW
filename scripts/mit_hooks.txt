@@ -9,8 +9,6 @@ hook	admin/cron.php	mit_cron_card	1
 hook	admin/database_updates.php	mitBeforeItflowUpdate	2
 hook	admin/database_updates.php	mit_db_upgrade	3
 hook	admin/debug.php	mit_feedback_card	1
-hook	admin/includes/side_nav.php	mitAdminSettingsPages	1
-hook	admin/includes/side_nav.php	mit_admin_nav	1
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
@@ -20,6 +18,7 @@ hook	admin/modals/user/user_form.php	mitTsPayTypeField	1
 hook	admin/oauth_microsoft_mail_callback.php	mitMicrosoftTokenFields	1
 hook	admin/oauth_microsoft_mail_callback.php	mit_m365	1
 hook	admin/post/roles.php	mitBoardRoleSave	4
+hook	admin/post/roles.php	mit_boards_changed	2
 hook	admin/post/settings_company.php	mitBrandLogoSave	2
 hook	admin/post/settings_company.php	mit_lines	2
 hook	admin/post/settings_mail.php	mitM365ConnectPrompt	2
@@ -35,13 +34,13 @@ hook	admin/post/settings_notification.php	mit_changed	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
 hook	admin/post/users.php	mitTsSavePayType	2
+hook	admin/settings.php	mitSettingsSummaries	2
 hook	admin/settings_company.php	mitBrandLogoField	2
 hook	admin/settings_company.php	mitOfficesSection	2
 hook	admin/settings_invoice.php	mit_usage_card	1
 hook	admin/settings_mail.php	mit_m365_card	1
 hook	admin/settings_module.php	mit_modules_fields	1
-hook	admin/settings_notification.php	data-mit-notifications	1
-hook	admin/settings_notification.php	mitNotificationRows	2
+hook	admin/settings_notification.php	mitNotificationSections	2
 hook	admin/settings_project.php	mit_project_card	1
 hook	admin/settings_quote.php	mit_quote_card	1
 hook	admin/settings_ticket.php	mitNoResponseReady	1
@@ -380,6 +379,9 @@ hook	functions/request.php	mitMicrosoftTokenFields	2
 hook	functions/request.php	mit_m365	1
 hook	functions/roles.php	mitRoleModuleInfo	2
 hook	functions/search.php	mitBoardVisibleSql	4
+hook	functions/settings.php	mitSettingsFields	2
+hook	functions/settings.php	mitSettingsPages	2
+hook	functions/settings.php	mit_settings_index	1
 hook	functions/sla.php	mitProjectSlaOff	2
 hook	functions/sla.php	mitProjectSlaStart	2
 hook	functions/sla.php	mit_projects	1
@@ -510,7 +512,6 @@ ours	admin/database_updates/mountaineerit/M046.php
 ours	admin/database_updates/mountaineerit/M047.php
 ours	admin/database_updates/mountaineerit/M048.php
 ours	admin/database_updates_mountaineerit.php
-ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
 ours	admin/includes/mit_cron_card.php
@@ -681,6 +682,7 @@ ours	functions/mit_recurring.php
 ours	functions/mit_reimbursements.php
 ours	functions/mit_reply_recipients.php
 ours	functions/mit_reply_times.php
+ours	functions/mit_settings_index.php
 ours	functions/mit_theme.php
 ours	functions/mit_ticket_layout.php
 ours	functions/mit_ticket_picks.php
@@ -695,6 +697,7 @@ ours	functions/mit_usage_connectors.php
 ours	includes/mit_cron_nav.php
 ours	includes/mit_timers_nav.php
 ours	includes/mit_version.php
+ours	js/mit_nav_sections.js
 ours	js/mit_portal_tables.js
 ours	js/mit_quote_pricing.js
 ours	js/mit_repeat_on.js
