@@ -10,7 +10,7 @@ const db = require('./db');
 
 test.describe.configure({ mode: 'serial' });
 
-const made = { clientId: 0, projectId: 0, ticketId: 0, slaRow: 0 };
+const made = { clientId: 0, projectId: 0, ticketId: 0, contractId: 0 };
 const ticketPage = () => `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`;
 const sla = () => db.rows(`SELECT ticket_sla_id, ticket_response_due_at, ticket_created_at, NOW() AS now FROM tickets WHERE ticket_id = ${made.ticketId}`)[0];
 const listed = async (page, query) => {
@@ -26,11 +26,15 @@ function tomorrow() {
 test('project tickets: opened in a project - no SLA, kept off the service views', async ({ page }) => {
     test.skip(db.value("SELECT setting_value FROM mit_settings WHERE setting_name = 'project_tickets_apart'") === '0', 'kept apart is switched off');
     const name = smokeName('t1 project client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     db.run(`INSERT INTO contacts SET contact_name = 'Pam Project', contact_primary = 1, contact_client_id = ${made.clientId}`);
-    db.run(`INSERT INTO sla_assignments SET sla_assignment_client_id = ${made.clientId}, sla_assignment_priority = 'Low', sla_assignment_sla_id = 1`);
-    made.slaRow = Number(db.value(`SELECT MAX(sla_assignment_id) FROM sla_assignments WHERE sla_assignment_client_id = ${made.clientId}`));
+    // The client's SLA for Low tickets - from its contract (ITFlow 3.5.0: clients have no SLAs of their own)
+    db.run(`INSERT INTO contracts SET contract_name = 'Smoke 44 terms', contract_status = 'Active', contract_type = 'Fully Managed', contract_client_id = ${made.clientId},
+        contract_start_date = CURDATE() - INTERVAL 30 DAY, contract_term_months = 12, contract_auto_renew = 1, contract_notice_days = 0, contract_sla_low_id = 1, contract_sla_medium_id = 0,
+        contract_sla_high_id = 0, contract_sla_urgent_id = 0, contract_template_id = 0, contract_contact_id = 0, contract_owner_id = 0, contract_created_by = 1, contract_monthly_hours = 0,
+        contract_hours_alert = 0, contract_created_at = NOW()`);
+    made.contractId = Number(db.value(`SELECT MAX(contract_id) FROM contracts WHERE contract_client_id = ${made.clientId}`));
     db.run(`INSERT INTO projects SET project_prefix = 'PRJ-', project_number = 9${String(Date.now()).slice(-4)}, project_name = ${db.q(smokeName('t1 project'))}, project_client_id = ${made.clientId}`);
     made.projectId = Number(db.value(`SELECT MAX(project_id) FROM projects WHERE project_client_id = ${made.clientId}`));
 
@@ -129,8 +133,8 @@ test.afterAll(async ({ browser }) => {
     if (made.ticketId) {
         await action(page, `delete_ticket=${made.ticketId}`, ticketPage()).catch(() => {});
     }
-    if (made.slaRow) {
-        db.run(`DELETE FROM sla_assignments WHERE sla_assignment_id = ${made.slaRow}`);
+    if (made.contractId) {
+        db.run(`DELETE FROM contracts WHERE contract_id = ${made.contractId}`);
     }
     if (made.projectId) {
         db.run(`DELETE FROM projects WHERE project_id = ${made.projectId}`);

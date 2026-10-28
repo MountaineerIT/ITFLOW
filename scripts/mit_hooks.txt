@@ -31,6 +31,7 @@ hook	admin/post/settings_module.php	mitModulesSave	2
 hook	admin/post/settings_module.php	mit_lines	2
 hook	admin/post/settings_notification.php	mitNotificationsSave	2
 hook	admin/post/settings_notification.php	mit_changed	2
+hook	admin/post/users.php	mitInviteExtrasSave	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
 hook	admin/post/users.php	mitTsSavePayType	2
@@ -311,6 +312,7 @@ hook	functions.php	mit_common	1
 hook	functions.php	mit_cron_health	1
 hook	functions.php	mit_ct	1
 hook	functions.php	mit_dispatch	1
+hook	functions.php	mit_invites	1
 hook	functions.php	mit_list_views	1
 hook	functions.php	mit_m365	1
 hook	functions.php	mit_ninjaone	1
@@ -411,6 +413,7 @@ hook	functions/ticket.php	mit_ticket_techs	1
 hook	functions/ticket.php	mit_watchers	4
 hook	functions/ticket_fields.php	mitNotifyOn	8
 hook	functions/user.php	mitSessionRestamp	2
+hook	functions/user_invite.php	mitInviteExtrasApply	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
 hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
 hook	includes/billing_paper.php	mitPaperAddFields	2
@@ -511,6 +514,7 @@ ours	admin/database_updates/mountaineerit/M045.php
 ours	admin/database_updates/mountaineerit/M046.php
 ours	admin/database_updates/mountaineerit/M047.php
 ours	admin/database_updates/mountaineerit/M048.php
+ours	admin/database_updates/mountaineerit/M049.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -661,6 +665,7 @@ ours	functions/mit_dispatch.php
 ours	functions/mit_dispatch_workload.php
 ours	functions/mit_event_agents.php
 ours	functions/mit_feedback.php
+ours	functions/mit_invites.php
 ours	functions/mit_leave.php
 ours	functions/mit_left_behind.php
 ours	functions/mit_list_views.php

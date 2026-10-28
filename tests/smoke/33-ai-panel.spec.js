@@ -47,7 +47,7 @@ test.beforeAll(async ({ request }) => {
     set('ai_helper_embed_model', 'mock-embed');
     set('ai_helper_monthly_tokens', '0');
     set('ai_helper_name', '');
-    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD', client_net_terms = 30`);
+    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD'`);
     made.fixed = ticket(made.clientName + ' scanner will not send to email', '<p>The copier scanner stopped sending scans to email.</p>', true);
     db.exec(`INSERT INTO ticket_replies SET ticket_reply = '<p>Fixed: the SMTP relay connector needed the copier IP added. Scan to email works.</p>', ticket_reply_type = 'Internal', ticket_reply_by = 1, ticket_reply_ticket_id = ${made.fixed.id};
         INSERT INTO ticket_replies SET ticket_reply = '<p>Copier admin password is ${SECRET}</p>', ticket_reply_type = 'Internal', ticket_reply_by = 1, ticket_reply_ticket_id = ${made.fixed.id}`);

@@ -1403,6 +1403,16 @@ model: see DEPLOYMENT.md.
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
 - Upstream develop merged again (Oct 27, 26.10.178 - 2 commits, ITFlow DB 3.4.8 -> 3.4.9: `asset_specs` + `functions/asset_type.php` asset
   types registry, Get started skip buttons). Impact report: 0 to act on, no clash; clean merge, all hooks kept, mit_verify.sh passed.
+- Upstream develop merged again (Oct 28, 26.10.190 - 5 commits, ITFlow DB 3.4.9 -> 3.5.1; APP_VERSION still 26.10). 3.5.0: a client's hourly rate,
+  net terms and SLAs come from its contract in force, else the defaults (`functions/contract_billing.php` - `contractTicketRate`,
+  `contractClientRate`, `contractNetTerms`); `clients.client_rate` / `client_net_terms` are dropped (clients that differed got a "Standard terms"
+  contract). Ours: `mitPartsBill`'s fallback invoice uses `contractNetTerms()` (To Bill already used contractClientRate); tests no longer insert
+  those columns, and `85-to-bill.spec.js` reads the hour's rate from `contractTicketRate`. 3.5.1: agent invites (`functions/user_invite.php`,
+  `user_invites`, `join.php`) - New User invites by default and the login is made only when the link is accepted, so our New User fields ride on the
+  invite: `functions/mit_invites.php` (ours, required from functions.php), M049 `mit_invite_extras` (invite_id PK FK user_invites CASCADE, extras JSON
+  of `mit_pay_type` / `mit_office_id`): `mitInviteExtrasSave($invite_id, $_POST)` - one line in `admin/post/users.php` add_user's invite branch -
+  and `mitInviteExtrasApply($invite_id, $user_id)` - one line in `userInviteAccept` before the audit line. The user form's conflict: ITFlow removed
+  the "Email them their sign in details" block (ours had the smtp_provider fix in it) - taken as theirs. Smoke: invite test in `86-offices.spec.js`.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

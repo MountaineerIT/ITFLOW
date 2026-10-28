@@ -24,7 +24,7 @@ test.beforeAll(async () => {
     made.wasConnected = db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'qbo_refresh_token'") ? true : false;
     const mock = await fetch('http://127.0.0.1/qbo-mock/index.php/_reset').catch(() => null);
     test.skip(!mock || !mock.ok, 'no QuickBooks stand-in');
-    made.client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 61 QBO client ${Date.now()}', client_net_terms = 30, client_currency_code = 'USD'`);
+    made.client = db.insert(`INSERT INTO clients SET client_name = 'Smoke 61 QBO client ${Date.now()}', client_currency_code = 'USD'`);
     db.exec(`INSERT INTO contacts SET contact_name = 'Smoke 61 billing', contact_email = 'smoke61@example.invalid', contact_billing = 1, contact_primary = 1, contact_client_id = ${made.client}`);
     const out = db.php(`
         if (mitDecryptSecret((string) mitSetting('qbo_client_secret', '')) !== 'qbo-secret') { mitSetSetting('qbo_client_id', 'qbo-client'); mitSetSetting('qbo_client_secret', mitEncryptSecret('qbo-secret')); }

@@ -32,7 +32,7 @@ test.beforeAll(() => {
     test.skip(!db.val("SHOW TABLES LIKE 'mit_ticket_parts'"), 'no parts table (Procurement, M010)');
     made.category = db.insert(`INSERT INTO categories SET category_name = ${db.q(smokeName('income'))}, category_type = 'Income', category_color = '#2f6fde', category_created_at = NOW()`);
     // A client with a done ticket (an hour logged) and two parts on it
-    made.a = db.insert(`INSERT INTO clients SET client_name = ${db.q(N.a)}, client_currency_code = 'USD', client_net_terms = 30, client_rate = 100, client_created_at = NOW()`);
+    made.a = db.insert(`INSERT INTO clients SET client_name = ${db.q(N.a)}, client_currency_code = 'USD', client_created_at = NOW()`);
     made.clients.push(made.a);
     made.ticketA = ticket(made.a, smokeName('fixed the server'), true);
     db.exec(`INSERT INTO ticket_replies SET ticket_reply = 'Done', ticket_reply_type = 'Internal', ticket_reply_time_worked = '01:00:00', ticket_reply_created_at = NOW() - INTERVAL 2 DAY,
@@ -40,7 +40,7 @@ test.beforeAll(() => {
     made.ssd = part(made.ticketA, made.a, N.ssd, 2, 120);
     made.cable = part(made.ticketA, made.a, N.cable, 1, 15);
     // A client with only a part, on a ticket still open
-    made.b = db.insert(`INSERT INTO clients SET client_name = ${db.q(N.b)}, client_currency_code = 'USD', client_net_terms = 30, client_rate = 100, client_created_at = NOW()`);
+    made.b = db.insert(`INSERT INTO clients SET client_name = ${db.q(N.b)}, client_currency_code = 'USD', client_created_at = NOW()`);
     made.clients.push(made.b);
     made.ticketB = ticket(made.b, smokeName('new router'), false);
     made.router = part(made.ticketB, made.b, N.router, 1, 199.5);
@@ -76,8 +76,9 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
     await expect(card, 'a Parts to bill card').toBeVisible();
     await expect(card.locator('[data-mit-part-row]')).toHaveCount(2);
     const total = page.locator('[data-unbilled-total]');
-    // An hour at 100 + 2 x 120 + 15
-    await expect.poll(async () => money(await total.textContent()), 'the total counts the parts').toBe(355);
+    // An hour at the client's rate (ITFlow 3.5.0: its contract's, else the default) + 2 x 120 + 15
+    const hour = Number(db.php(`echo contractTicketRate(ticketRow(${made.ticketA}))['rate'];`).trim());
+    await expect.poll(async () => money(await total.textContent()), 'the total counts the parts').toBeCloseTo(hour + 255, 2);
     await expect(page.locator('[data-unbilled-summary]')).toContainText('2 parts');
     await expect(page.locator('.itflow-billing-stat', { hasText: 'To bill' }), 'the To bill figure says what is parts').toContainText('$255.00 of parts');
     // The client's menu: To Bill's badge counts the ticket and its two parts
@@ -89,7 +90,7 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
     const ssd = card.locator('[data-mit-part-row]', { hasText: N.ssd });
     await ssd.locator('[data-mit-part-price]').fill('110');
     await expect(ssd.locator('[data-mit-part-line]'), 'the line follows the price').toContainText('220.00');
-    await expect.poll(async () => money(await total.textContent()), 'and the total').toBe(320);
+    await expect.poll(async () => money(await total.textContent()), 'and the total').toBeCloseTo(hour + 220, 2);
     await expect(page.locator('[data-unbilled-summary]')).toContainText('1 part');
 
     await page.locator('select[name=category]').selectOption(String(made.category));
@@ -105,7 +106,7 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
     expect(Number(db.val(`SELECT invoice_id FROM mit_ticket_parts WHERE part_id = ${made.ssd}`)), 'the part knows its invoice').toBe(invoice);
     expect(Number(db.val(`SELECT invoice_id FROM mit_ticket_parts WHERE part_id = ${made.cable}`)), 'the cable waits').toBe(0);
     expect(Number(db.val(`SELECT COUNT(*) FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketA} AND ticket_reply LIKE 'Billed 1 part%'`)), 'a note on the ticket').toBe(1);
-    expect(Number(db.val(`SELECT invoice_amount FROM invoices WHERE invoice_id = ${invoice}`)), "the invoice's amount: 100 + 220").toBe(320);
+    expect(Number(db.val(`SELECT invoice_amount FROM invoices WHERE invoice_id = ${invoice}`)), "the invoice's amount: the hour + 220").toBeCloseTo(hour + 220, 2);
     await expectClean(page, errors);
 });
 

@@ -28,6 +28,13 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
+    for (const user of [made.invitedUser].filter(Boolean)) {
+        db.exec(`DELETE FROM mit_timesheet_people WHERE user_id = ${user}; DELETE FROM user_settings WHERE user_id = ${user}; DELETE FROM logs WHERE log_user_id = ${user};
+            DELETE FROM notifications WHERE notification_entity_id = ${user} AND notification_type = 'User'; UPDATE user_invites SET invite_user_id = 0 WHERE invite_user_id = ${user}; DELETE FROM users WHERE user_id = ${user}`);
+    }
+    if (made.inviteEmail) {
+        db.exec(`DELETE FROM user_invites WHERE invite_email = ${db.q(made.inviteEmail)}`);
+    }
     if (made.newUser) {
         db.exec(`DELETE FROM user_settings WHERE user_id = ${made.newUser}; DELETE FROM logs WHERE log_user_id = ${made.newUser}; DELETE FROM users WHERE user_id = ${made.newUser}`);
     }
@@ -94,11 +101,49 @@ test('Company Details: add an office with its people; Admin > Users moves an age
     made.newEmail = `smoke86-${Date.now()}@example.com`;
     const add = await openModal(page, 'modals/user/user_add.php', 'lg');
     const role = await add.locator('[name="role"] option').evaluateAll((options) => (options.find((o) => o.value && o.value !== '0') || {}).value);
-    await fillForm(add, { name: 'Smoke 86 new agent', email: made.newEmail, role, password: 'Smoke86-pass-2026!', send_email: false, mit_office_id: String(made.office) });
+    await fillForm(add, { name: 'Smoke 86 new agent', email: made.newEmail, role, sign_in: 'password', password: 'Smoke86-pass-2026!', mit_office_id: String(made.office) });
     await submit(add, 'add_user');
     made.newUser = Number(db.val(`SELECT user_id FROM users WHERE user_email = ${db.q(made.newEmail)}`));
     expect(made.newUser, 'the new login was made').toBeGreaterThan(0);
     expect(Number(db.val(`SELECT office_id FROM mit_user_offices WHERE user_id = ${made.newUser}`)), 'in the office picked').toBe(made.office);
+    await expectClean(page, errors);
+});
+
+test('New User by invite: the office and employment picked go on the login when they join (ITFlow 3.5.1 invites)', async ({ page, browser }) => {
+    test.skip(!db.val("SHOW TABLES LIKE 'mit_invite_extras'"), 'no agent invites here (ITFlow 3.5.1 / M049)');
+    const errors = watch(page);
+    await visit(page, 'admin/users.php', errors);
+    made.inviteEmail = `smoke86-invite-${Date.now()}@example.com`;
+    const add = await openModal(page, 'modals/user/user_add.php', 'lg');
+    const role = await add.locator('[name="role"] option').evaluateAll((options) => (options.find((o) => o.value && o.value !== '0') || {}).value);
+    const payType = await add.locator('[name="mit_pay_type"]').count() ? { mit_pay_type: 'contractor' } : {};
+    await fillForm(add, { name: 'Smoke 86 invited agent', email: made.inviteEmail, role, sign_in: 'invite', mit_office_id: String(made.office), ...payType });
+    await submit(add, 'add_user');
+    const invite = Number(db.val(`SELECT invite_id FROM user_invites WHERE invite_email = ${db.q(made.inviteEmail)} ORDER BY invite_id DESC LIMIT 1`));
+    expect(invite, 'an invite, not a login yet').toBeGreaterThan(0);
+    expect(Number(db.val(`SELECT COUNT(*) FROM users WHERE user_email = ${db.q(made.inviteEmail)}`))).toBe(0);
+    expect(db.val(`SELECT extras FROM mit_invite_extras WHERE invite_id = ${invite}`), 'our fields kept with it').toContain(`"mit_office_id":"${made.office}"`);
+
+    // The link from the invite email (or the one shown to pass on), opened signed out
+    const html = db.val(`SELECT REPLACE(email_content, '\\n', ' ') FROM email_queue WHERE email_recipient = ${db.q(made.inviteEmail)} ORDER BY email_id DESC LIMIT 1`) || '';
+    const link = (html.match(/join\.php\?invite=\d+&(?:amp;)?token=[A-Za-z0-9_%-]+/) || [''])[0].replace('&amp;', '&');
+    test.skip(!link, 'no invite email queued (mail not set up here)');
+    const use = test.info().project.use;
+    const context = await browser.newContext({ baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors, storageState: { cookies: [], origins: [] } });
+    const join = await context.newPage();
+    await join.goto(link);
+    await join.locator('[name="new_password"]').fill('Smoke86-join-2026!x');
+    await join.locator('[name="confirm_password"]').fill('Smoke86-join-2026!x');
+    await Promise.all([join.waitForLoadState('load'), join.getByRole('button', { name: 'Join' }).click()]);
+    await context.close();
+    made.invitedUser = Number(db.val(`SELECT user_id FROM users WHERE user_email = ${db.q(made.inviteEmail)}`));
+    expect(made.invitedUser, 'they joined').toBeGreaterThan(0);
+    expect(Number(db.val(`SELECT office_id FROM mit_user_offices WHERE user_id = ${made.invitedUser}`)), 'in the office picked on New User').toBe(made.office);
+    if (payType.mit_pay_type) {
+        expect(db.val(`SELECT pay_type FROM mit_timesheet_people WHERE user_id = ${made.invitedUser}`), 'with the employment picked').toBe('contractor');
+    }
+    expect(Number(db.val(`SELECT COUNT(*) FROM mit_invite_extras WHERE invite_id = ${invite}`)), 'and what was kept is done with').toBe(0);
+    db.exec(`DELETE FROM email_queue WHERE email_recipient = ${db.q(made.inviteEmail)}`);
     await expectClean(page, errors);
 });
 

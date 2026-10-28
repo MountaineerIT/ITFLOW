@@ -738,7 +738,7 @@ function mitPartsBill($client_id, array $parts, array $prices, $invoice_id, arra
             $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_prefix, invoice_number FROM invoices WHERE invoice_id = " . intval($invoice_id)));
         }
         if (!$invoice_id) {
-            $net_terms = intval(getFieldById('clients', $client_id, 'client_net_terms')) ?: intval($config_default_net_terms);
+            $net_terms = function_exists('contractNetTerms') ? intval(contractNetTerms($client_id, $date)) : intval($config_default_net_terms); // ITFlow 3.5.0: terms come from the client's contract, else the default
             // The same numbering ITFlow uses (agent/post/ticket.php add_invoice_from_ticket)
             mysqli_query($mysqli, "UPDATE settings SET config_invoice_next_number = LAST_INSERT_ID(config_invoice_next_number), config_invoice_next_number = config_invoice_next_number + 1 WHERE company_id = 1");
             $number = mysqli_insert_id($mysqli);

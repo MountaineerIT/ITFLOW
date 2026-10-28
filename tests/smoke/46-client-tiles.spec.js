@@ -24,7 +24,7 @@ test('client tiles: the numbers match the client\'s tickets, and the header line
     const errors = watch(page);
     test.skip(db.value("SELECT value FROM mit_user_preferences WHERE user_id = 1 AND preference = 'ui.look'") === 'classic', 'the admin uses the classic look');
     const name = smokeName('t1 tiles client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30, client_website = 'tiles.example.invalid'`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_website = 'tiles.example.invalid'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     db.run(`INSERT INTO contacts SET contact_name = 'Tia Tiles', contact_title = 'Office manager', contact_email = 'tia@example.invalid', contact_phone = '3045550123', contact_primary = 1, contact_client_id = ${made.clientId}`);
     db.run(`INSERT INTO projects SET project_prefix = 'PRJ-', project_number = 8${String(Date.now()).slice(-4)}, project_name = 'Tiles project', project_client_id = ${made.clientId}`);

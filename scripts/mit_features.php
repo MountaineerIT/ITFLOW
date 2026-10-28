@@ -249,11 +249,12 @@ return [
             'cron/mit_procurement_tidy.php', 'functions/mit_to_bill.php', 'js/mit_to_bill.js'],
         'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js',
             'tests/smoke/85-to-bill.spec.js',
-            'tests/scenarios/scenario-procurement-*.php'],
+            'tests/scenarios/scenario-procurement-*.php', 'tests/scenarios/scenario-contract-terms.php'],
         'assumes' => [
             'Stock moves through ITFlow\'s productStockMove / product_stock (productStockShortfall, productStockReturnInvoice).',
             'Quotes become invoices by quoteConvert (quoteLineGroups); invoices by billingInvoiceCreate / billingRecalc / billingLineTax.',
             'Expenses by expenseSave; assets carry asset_invoice_id / _item_id / _product_id.',
+            'ITFlow 3.5.0: rates and net terms come from the client\'s contract (contractTicketRate / contractClientRate / contractNetTerms) - clients.client_rate / client_net_terms are gone.',
             'To Bill: ITFlow\'s Unbilled Time page builds its clients with billingUnbilledByClient / expenseUnbilledMerge / tripUnbilledMerge and bills them with expenseBillWithTime (agent/post/billing.php); js/unbilled_time.js\'s update() runs on changes to [data-unbilled-expense-pick] / [data-unbilled-expense-price].',
         ],
         'watch' => ['productStockMove', 'quoteConvert', 'quoteLineGroups', 'billingInvoiceCreate', 'expenseSave', 'productStockShortfall',
@@ -262,14 +263,15 @@ return [
     ],
     'offices' => [
         'name' => 'Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)',
-        'files' => ['functions/mit_offices.php', 'admin/modals/mit_offices/*.php', 'admin/post/mit_offices.php'],
+        'files' => ['functions/mit_offices.php', 'admin/modals/mit_offices/*.php', 'admin/post/mit_offices.php', 'functions/mit_invites.php'],
         'tests' => ['tests/smoke/86-offices.spec.js'],
         'assumes' => [
             'The company is ITFlow\'s companies row 1, read by billingCompany(); Admin > Settings > Company Details is ITFlow\'s settings frame (settingsSectionStart / settingsSectionEnd).',
             'Ticket emails are built by ticketEmailContent and friends with a \'contact\' line from ticketEmailContactLine(); emailHtml draws the foot from billingCompany().',
             'The trip form (agent/modals/trip/trip_form.php) has [data-trip-driver], [data-trip-from] and the <form_id>Places datalist; tripLastStart / tripOfficeAddress make the default.',
+            'ITFlow 3.5.1 agent invites: add_user\'s invite branch saves the invite (userInviteSave) and the login is made in userInviteAccept (join.php) - our New User fields (Office, Employment) ride on the invite (functions/mit_invites.php, M049).',
         ],
-        'watch' => ['billingCompany', 'ticketEmailContactLine', 'tripLastStart', 'tripOfficeAddress', 'data-trip-from', 'data-trip-driver'],
+        'watch' => ['billingCompany', 'ticketEmailContactLine', 'tripLastStart', 'tripOfficeAddress', 'data-trip-from', 'data-trip-driver', 'userInviteSave', 'userInviteAccept'],
         'overlap' => ['office', 'branch', 'site_location', 'company_location'],
     ],
     'timesheets' => [

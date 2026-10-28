@@ -36,7 +36,7 @@ test.beforeAll(async ({ request }) => {
         ai_helper_embed_model: 'mock-embed', ai_helper_monthly_tokens: '0' })) {
         set(name, value);
     }
-    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD', client_net_terms = 30`);
+    made.clientId = db.insert(`INSERT INTO clients SET client_name = ${db.q(made.clientName)}, client_currency_code = 'USD'`);
     const fixed = ticket(made.clientName + ' label printer prints blank', '<p>Labels come out blank.</p>', true);
     db.exec(`INSERT INTO ticket_replies SET ticket_reply = '<p>Fixed: the label stock was loaded upside down; turned the roll and calibrated.</p>', ticket_reply_type = 'Internal', ticket_reply_by = 1, ticket_reply_ticket_id = ${fixed}`);
     made.open = ticket(made.clientName + ' labels blank again', '<p>Blank labels again at shipping.</p>', false);

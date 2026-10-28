@@ -20,7 +20,7 @@ const pref = (user) => db.value(`SELECT value FROM mit_user_preferences WHERE us
 
 test('layout and timers: setup', async () => {
     const name = smokeName('t1 layout client');
-    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD', client_net_terms = 30`);
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
     made.clientId = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
     for (const n of [1, 2]) {
         const number = Number(db.value('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
