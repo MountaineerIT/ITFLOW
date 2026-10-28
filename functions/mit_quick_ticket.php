@@ -95,8 +95,10 @@ function mitQuickTicketNav() {
         . '<div class="modal fade" id="mitQuickTicket" tabindex="-1" aria-labelledby="mitQuickTicketTitle" aria-hidden="true" hidden'
         . ' data-endpoint="/agent/mit_quick_ticket_ajax.php" data-timer="' . escapeHtml($s['timer']) . '" data-primary="' . ($s['primary'] ? '1' : '0') . '"'
         . ' data-open-tickets="' . ($s['open_tickets'] ? '1' : '0') . '" data-assignee="' . $assignee . '" data-me="' . $me . '">'
-        . '<div class="modal-dialog modal-dialog-scrollable"><div class="modal-content">'
-        . '<form action="/agent/post.php" method="post" autocomplete="off" data-mit-quick-ticket-form>'
+        // The form is the .modal-content itself: the scrollable dialog needs header / body / footer straight inside it, so the body
+        // scrolls (a contact with several open tickets made the window taller than the screen, with no scrollbar)
+        . '<div class="modal-dialog modal-dialog-scrollable">'
+        . '<form class="modal-content" action="/agent/post.php" method="post" autocomplete="off" data-mit-quick-ticket-form>'
         . '<input type="hidden" name="csrf_token" value="' . escapeHtml($_SESSION['csrf_token'] ?? '') . '">'
         . '<input type="hidden" name="mit_quick_ticket" value="1">'
         . '<input type="hidden" name="mit_quick_timer" value="" data-mit-quick-timer>'
@@ -128,7 +130,7 @@ function mitQuickTicketNav() {
         . '</div>'
         . '<div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>'
         . '<button type="submit" name="add_ticket" value="1" class="btn btn-primary" data-mit-quick-make><i class="fas fa-check me-2"></i>Make ticket</button></div>'
-        . '</form></div></div></div>'
+        . '</form></div></div>'
         . '<script src="' . mitAsset('/agent/js/mit_quick_ticket.js') . '" defer></script>'
         . '</li>';
 }

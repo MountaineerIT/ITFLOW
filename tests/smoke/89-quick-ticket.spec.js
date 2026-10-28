@@ -12,7 +12,7 @@ const db = require('./mitdb');
 test.describe.configure({ mode: 'serial' });
 
 const N = { client: smokeName('quick client'), contact: smokeName('Quick Caller'), issue: smokeName('printer jams') };
-const made = { client: 0, contact: 0, open: 0, quick: 0, settings: [] };
+const made = { client: 0, contact: 0, open: 0, quick: 0, more: [], settings: [] };
 const email = `quick.caller.${Date.now()}@example.com`;
 
 // Set a select by value through the native element - ITFlow's picker draws itself from it
@@ -35,7 +35,7 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
-    for (const id of [made.quick, made.open].filter(Boolean)) {
+    for (const id of [made.quick, made.open, ...made.more].filter(Boolean)) {
         db.exec(`DELETE FROM email_queue WHERE email_recipient = ${db.q(email)}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${id};
             DELETE FROM mit_ticket_boards WHERE ticket_id = ${id}; DELETE FROM mit_board_moves WHERE ticket_id = ${id}; DELETE FROM notifications WHERE notification_entity_id = ${id};
             DELETE FROM tickets WHERE ticket_id = ${id}`);
@@ -128,6 +128,38 @@ test('Work on this one: to the open ticket, its timer started', async ({ page })
     await expectClean(page, errors);
     expect(Number(await page.evaluate((id) => localStorage.getItem(id + '-startTime'), String(made.open)))).toBeGreaterThan(0);
     await page.evaluate((id) => { localStorage.removeItem(id + '-startTime'); localStorage.removeItem('ticket-timer-running-' + id); }, String(made.open));
+});
+
+test('a contact with many open tickets on a short screen: the window keeps its title and Make ticket on screen, the middle scrolls', async ({ page }) => {
+    // Five more open tickets for the contact (the list shows up to 10)
+    for (let i = 0; i < 5; i++) {
+        const n = Number(db.val('SELECT COALESCE(MAX(ticket_number), 0) + 1 FROM tickets'));
+        made.more.push(db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${n}, ticket_subject = ${db.q(smokeName('also open ' + i))}, ticket_details = 'x',
+            ticket_priority = 'Low', ticket_status = 2, ticket_client_id = ${made.client}, ticket_contact_id = ${made.contact}, ticket_created_by = 1,
+            ticket_url_key = MD5(RAND()), ticket_created_at = NOW() - INTERVAL 1 DAY`));
+    }
+    await page.setViewportSize({ width: 1280, height: 640 });
+    const errors = watch(page);
+    await visit(page, `agent/client_overview.php?client_id=${made.client}`, errors);
+    await page.locator('[data-mit-quick-ticket-open]').click();
+    const modal = page.locator('#mitQuickTicket');
+    await expect(modal.locator('[data-mit-quick-open-list]')).toBeVisible();
+    expect(await modal.locator('[data-mit-quick-open-ticket]').count(), 'every open ticket listed').toBeGreaterThanOrEqual(made.more.length + 1);
+    const box = await page.evaluate(() => {
+        const m = document.getElementById('mitQuickTicket');
+        const rect = (el) => el.getBoundingClientRect();
+        const body = m.querySelector('.modal-body');
+        return { title: rect(m.querySelector('.modal-title')).top, make: rect(m.querySelector('[data-mit-quick-make]')).bottom, height: innerHeight,
+            scrolls: body.scrollHeight > body.clientHeight, overflow: getComputedStyle(body).overflowY };
+    });
+    expect(box.title, 'the title is on screen').toBeGreaterThanOrEqual(0);
+    expect(box.make, 'Make ticket is on screen').toBeLessThanOrEqual(box.height);
+    expect(box.scrolls, 'there is more than fits').toBe(true);
+    expect(box.overflow, 'and the middle scrolls').toBe('auto');
+    // The issue box at the bottom can be reached and typed in
+    await modal.locator('[data-mit-quick-subject]').scrollIntoViewIfNeeded();
+    await modal.locator('[data-mit-quick-subject]').fill('reachable');
+    await expect(modal.locator('[data-mit-quick-subject]')).toBeInViewport();
 });
 
 test('switched off: no button, and its requests refuse', async ({ page }) => {

@@ -1472,6 +1472,8 @@ model: see DEPLOYMENT.md.
   `admin/post/settings_ticket.php`, its lines passed to settingsSave as `$also_changed`), `mit_settings` quick_ticket_on / _board / _assign
   (me | nobody | user id) / _status (0 = ITFlow's) / _priority / _category / _billable ('' = ITFlow's default) / _timer (make | open | off) /
   _primary / _open_tickets / _email_client; in Find a setting (`mitSettingsFields`). Smoke `89-quick-ticket.spec.js`.
+  The <form> is the `.modal-content` itself (26.10.193): `modal-dialog-scrollable` needs header / body / footer straight inside it - wrapped in a
+  form the body never scrolled and a contact with several open tickets pushed Make ticket off the screen (smoke: short-screen test in 89).
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
