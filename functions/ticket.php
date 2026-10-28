@@ -1343,7 +1343,6 @@ function ticketMailResolved($ticket_id, $note = '', $reply_id = 0) {
         return 0;
     }
     $content = ticketEmailContent($row, 'resolved', ['message' => (string) $note, 'by' => stripslashes((string) ($session_name ?? ''))]);
-    $content = function_exists('mitResolvedMailContent') ? mitResolvedMailContent($row, $note, $content) : $content; // Mountaineer IT: the company's own wording
     $sent = ticketMailSend($row['ticket_id'], "Ticket resolved - [" . ticketReference($row) . "] - " . $row['ticket_subject'] . " | (pending closure)",
         $content, ['ticket_reply_id' => intval($reply_id)]);
     ticketReplyEmailed($reply_id, $sent > 0);

@@ -70,7 +70,6 @@ function mitSettingsFields() {
         'mit_quick_ticket_assign' => ['page' => 'ticket', 'section' => 'Quick tickets', 'label' => 'Quick ticket assigned to', 'words' => 'quick ticket assign tech'],
         'mit_quick_ticket_status' => ['page' => 'ticket', 'section' => 'Quick tickets', 'label' => 'Quick ticket starting status', 'words' => 'quick ticket status'],
         'mit_quick_ticket_timer' => ['page' => 'ticket', 'section' => 'Quick tickets', 'label' => 'Quick ticket timer', 'words' => 'quick ticket timer stopwatch time'],
-        'mit_resolved_message' => ['page' => 'ticket', 'section' => 'Messages when resolving', 'label' => '"Ticket resolved" email wording', 'words' => 'resolved email wording message'],
         'mit_quote_price_method' => ['page' => 'quote', 'section' => 'Quote pricing', 'label' => 'Price from cost - markup, margin or set price', 'words' => 'markup margin cost price profit'],
         'mit_quote_show_images' => ['page' => 'quote', 'section' => 'Quote pricing', 'label' => 'Images on quote lines', 'words' => 'image picture photo quote line'],
         'mit_usage_snapshot_day' => ['page' => 'invoice', 'section' => 'Usage billing', 'label' => 'Usage counts - day of the month', 'words' => 'usage count seats devices users snapshot recurring'],

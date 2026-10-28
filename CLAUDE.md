@@ -1013,11 +1013,9 @@ model: see DEPLOYMENT.md.
   (sends nothing), a client reply reopens it. Customer Thermometer skips it: `mitNoResponseNotSql('t')` in `mitCtDueTickets`
   (`resolved_at <=> ticket_resolved_at`, so a later normal resolution is surveyed). Card `admin/includes/mit_no_response_card.php` (one
   require at the end of `admin/settings_ticket.php`, "Messages when resolving"), handler `admin/post/mit_no_response_settings.php`.
-  The same card words ITFlow's "Ticket resolved" email: `mit_settings` resolved_message (empty = ITFlow's own; saving ITFlow's wording
-  unchanged keeps it empty), `mitResolvedMailBody($row, $note)` - one guarded line before the return in `functions/ticket.php`
-  ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
-  the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
-  ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
+  The "Ticket resolved" email is ITFlow's own (26.10.195, the user's choice): our wording for it (`mit_settings` resolved_message,
+  `mitResolvedMailContent` in ticketMailResolved) is gone - it only reached the Resolve button, not a reply resolving the ticket. A saved
+  resolved_message row is left unused. Smoke `24-no-response.spec.js`.
 - Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
   Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
   section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),
@@ -1166,8 +1164,7 @@ model: see DEPLOYMENT.md.
     `mitQboHandlesInvoiceMail`) and the auto-send condition starts `!$mit_hold &&`; usage matches lines in item_order (ITFlow's copy
     order). `mitQboInvoiceBar` hides the new page's controls (`#add-line`, `.itflow-paper-actions`, `[data-billing-ai]`, billing_item.php,
     invoice_add_*). Our old quote add-row cells (`mitQuoteAddCell*`, `mitQuoteHead*`) and the "document look" CSS are unused.
-  - Ticket emails are built by ITFlow (`ticketEmailContent` / `emailQueue`): `mitResolvedMailContent($row, $note, $content)` (replaces
-    mitResolvedMailBody - [Ticket Link] reads "the button below"), the no-response email goes through `ticketMailSend`,
+  - Ticket emails are built by ITFlow (`ticketEmailContent` / `emailQueue`): the no-response email goes through `ticketMailSend`,
     `mitScheduleExtraRecipients` (replaces mitScheduleExtraMail), `mitTicketTechsCopyReply` (replaces mitTicketTechsCopyMail - one
     guarded line after ITFlow's `ticketMailAssigneeReplied` in the parser and `client/post.php`), the assign_email switch is one line
     in `ticketMailAssigned` (not for previews). `mitReplyRecipientsMail` gets ITFlow's built email.
@@ -1406,7 +1403,7 @@ model: see DEPLOYMENT.md.
   `ticket_replies.ticket_reply_emailed` / `_emailed_to`, `email_queue.email_ticket_reply_id`, ITFlow's `ticketReplyEmailed($reply_id, $sent)`
   and `emailQueue(..., ['ticket_reply_id' => ...])`). Ours follows: `mitReplyRecipientsMail(..., $reply_id)` passes the reply id and records it
   (its return = `$emailed_to` for ITFlow's "emailed to N people" flash in add_ticket_reply; nobody picked -> "nobody was picked in To"),
-  `mitNoResponseResolve` the same for its note; ticketMailResolved keeps `mitResolvedMailContent` with ITFlow's reply id. ITFlow's own
+  `mitNoResponseResolve` the same for its note. ITFlow's own
   pickers now close on a click into an iframe (`itflowDismissPopups`) - our To / Notify script's frame-focus close is kept (harmless).
   Security sweep conflicts (API asset / contact models, link_contact_to_asset) taken as ITFlow's (`assetClientOwnedId` - a vendor must be
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
@@ -1426,7 +1423,7 @@ model: see DEPLOYMENT.md.
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
   (the Graph path already sends inline parts); skipped when `$mail->Ical` is set (PHPMailer's alt_inline leaves the calendar part out). PO PDF
-  logo by file path (TCPDF puts DOCUMENT_ROOT in front of a web path, none from cron). Resolved / no-response wording: `mitTextParagraphs` keeps
+  logo by file path (TCPDF puts DOCUMENT_ROOT in front of a web path, none from cron). No-response wording: `mitTextParagraphs` keeps
   single line breaks and drops a first paragraph that is only a greeting (`mitIsGreeting` - ITFlow greets each recipient itself);
   `mitNoResponseResolve` resolves before it builds the email. Scenario `scenario-mail-logo.php` (also end to end through the mail queue and the
   Microsoft 365 stand-in); scenario-no-response checks one greeting and Resolved.

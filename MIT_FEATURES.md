@@ -20,7 +20,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 11 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 10 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
 | [Email reply "To" line, internal-note Notify](#reply_recipients) | 2 | 1 | 12 | 8 | 29 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
@@ -678,23 +678,21 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/mail_queue.php`: mit_dev_mode
 - `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
 - `functions/backup.php`: mit_feedback
-- `functions/ticket.php`: mitResolvedMailContent
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
 
 **ITFlow functions it calls**
 
 - `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
-- `functions/email.php`: emailPlainText
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketForModal, ticketForRequest, ticketIsOpen, ticketMailSend, ticketOpenTaskCount, ticketReference, ticketReplyEmailed, ticketResolve, ticketRow
 
-**ITFlow tables** credentials, history, notifications, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
+**ITFlow tables** credentials, history, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
 
-**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status_name, ticket_subject, user_id, watcher_ticket_id
+**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, user_id, watcher_ticket_id
 
 **ITFlow page ids / classes its scripts and styles use** `#public_reply_type_opt1` `#replyAudience` `#replyComposer` `#replySubmitLabel` `#startStopTimer` `#ticket_add_reply` `.itflow-ticket-trips`
 

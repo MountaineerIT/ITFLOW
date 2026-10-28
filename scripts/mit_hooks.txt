@@ -400,7 +400,6 @@ hook	functions/ticket.php	mitNotifyOn	4
 hook	functions/ticket.php	mitOfficeForTicket	8
 hook	functions/ticket.php	mitOutlookSyncsEmail	2
 hook	functions/ticket.php	mitRecurringTicketByDay	3
-hook	functions/ticket.php	mitResolvedMailContent	2
 hook	functions/ticket.php	mitScheduleConflicts	1
 hook	functions/ticket.php	mitScheduleExtraRecipients	2
 hook	functions/ticket.php	mitScheduleNotify	6

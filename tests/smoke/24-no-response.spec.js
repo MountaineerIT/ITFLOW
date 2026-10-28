@@ -1,13 +1,13 @@
-// "Resolve - no response" and the "Ticket resolved" email's own wording (functions/mit_no_response.php): the arrow beside Resolve opens the message filled in
+// "Resolve - no response" (functions/mit_no_response.php): the arrow beside Resolve opens the message filled in
 // for the ticket; sending posts it as a public note, emails the contact, resolves the ticket, and no Customer Thermometer survey
 // goes out for it - while a ticket resolved the normal way next to it still gets one (the test install's ct-mock stand-in), and its
-// "Ticket resolved" email uses the wording set on Admin > Settings > Ticket. Both wordings are changed for the run and put back.
+// "Ticket resolved" email is ITFlow's own (Admin > Settings > Ticket has no wording of ours for it). The message is put back after.
 
 const { test, expect } = require('@playwright/test');
 const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean, getJson } = require('./helpers');
 
 const MOCK = 'http://127.0.0.1/ct-mock/index.php';
-const made = { clientName: smokeName('No reply client'), clientId: 0, tickets: [], refs: [], boardId: '', template: null, resolvedTemplate: '' };
+const made = { clientName: smokeName('No reply client'), clientId: 0, tickets: [], refs: [], boardId: '', template: null };
 const ticketPage = (id) => `agent/ticket.php?client_id=${made.clientId}&ticket_id=${id}`;
 const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().slice(0, 10);
 const mock = (page, path) => page.request.get(MOCK + path).then((r) => (r.ok() ? r.json() : null)).catch(() => null);
@@ -33,12 +33,10 @@ test('no response: resolves with the message, emails it, and sends no survey', a
     const card = page.locator('[data-mit-no-response-card]');
     await expect(card, 'the card on Admin > Settings > Ticket').toHaveCount(1);
     made.template = await card.locator('[data-mit-no-response-template]').inputValue();
-    made.resolvedTemplate = await card.locator('[data-mit-resolved-template]').inputValue();
-    expect(made.resolvedTemplate, 'the resolved email starts as ITFlow\'s wording').toContain('has been marked as solved and is pending closure');
+    await expect(card.locator('[data-mit-resolved-template]'), 'no wording of ours for the resolved email').toHaveCount(0);
     await card.locator('[data-mit-no-response-template]').fill('Hi [First Name], we tried several times about [Ticket] ([Subject]). Smoke no-response.');
-    await card.locator('[data-mit-resolved-template]').fill('Hi [First Name], [Ticket] is [Status].\n[Note]\nSmoke resolved wording. Re-open: [Ticket Link]');
     await submit(card.locator('form'), 'mit_edit_no_response');
-    expect(await flash(page)).toContain('Messages saved');
+    expect(await flash(page)).toContain('Message saved');
 
     // A client whose contact has an email address, and two tickets
     await visit(page, 'agent/clients.php', errors);
@@ -85,7 +83,7 @@ test('no response: resolves with the message, emails it, and sends no survey', a
     await visit(page, 'admin/mail_queue.php', errors);
     await expect(page.locator('table', { hasText: 'smoke-noreply@example.invalid' }).first()).toContainText(`Ticket resolved - [${made.refs[0]}]`);
 
-    // The second resolved the normal way: the "Ticket resolved" email in our own wording
+    // The second resolved the normal way: ITFlow's own "Ticket resolved" email
     await action(page, `resolve_ticket=${made.tickets[1]}`, ticketPage(made.tickets[1]));
     await visit(page, 'admin/mail_queue.php', errors);
     const row = page.locator('tr', { hasText: `Ticket resolved - [${made.refs[1]}]` }).filter({ hasText: 'smoke-noreply@example.invalid' }).first();
@@ -96,9 +94,8 @@ test('no response: resolves with the message, emails it, and sends no survey', a
     const frame = /srcdoc="([^"]*)"/.exec(String(json.content || ''));
     const decode = (html) => html.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&amp;/g, '&');
     const message = decode(decode(frame ? frame[1] : String(json.content || ''))).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    expect(message, 'the resolved email in our wording').toContain(`Hi Pat, ${made.refs[1]} is Resolved.`);
-    expect(message).toContain('Smoke resolved wording. Re-open: the button below');
-    expect(message, 'an empty note leaves nothing behind').not.toContain('[Note]');
+    expect(message, 'ITFlow\'s wording').toContain(`We have marked ticket ${made.refs[1]} resolved.`);
+    expect(message, 'not the no-response message').not.toContain('Smoke no-response');
 
     // Surveys run for the board: only the normal one gets one
     await surveys(page, { enabled: true, boards: [made.boardId] });
@@ -121,7 +118,6 @@ test.afterAll(async ({ browser }) => {
         await visit(page, 'admin/settings_ticket.php').catch(() => {});
         const card = page.locator('[data-mit-no-response-card]');
         await card.locator('[data-mit-no-response-template]').fill(made.template).catch(() => {});
-        await card.locator('[data-mit-resolved-template]').fill(made.resolvedTemplate).catch(() => {});
         await submit(card.locator('form'), 'mit_edit_no_response').catch(() => {});
     }
     for (const id of made.tickets) {
