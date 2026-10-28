@@ -18,7 +18,7 @@ require_once __DIR__ . "/../../includes/inc_set_timezone.php";
 header('Content-Type: application/json');
 
 // POST data
-$_POST = json_decode(file_get_contents('php://input'), true);
+$_POST = json_decode(file_get_contents('php://input'), true) ?: []; // not JSON (a form post, an empty body) = no fields, answered as such rather than a 500
 
 // Get IP & UA
 $ip = escapeSql(getIP());

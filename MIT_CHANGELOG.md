@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.191 - 2026-10-28
+- Checked end to end with ITFlow's latest (four areas on separate copies - billing, tickets and scheduling, time and payroll, admin and integrations - plus every automatic check): our features work with contract-based rates, terms and SLAs and with agent invites.
+- Dispatch's Schedule window refuses an SLA on a project ticket (it said "Updated" but project tickets keep none), as the ticket's SLA picker already did; its Automatic choice now says the SLA comes from the client's contract.
+- The API answers a request whose body is not JSON with a proper refusal instead of an empty error.
+- Timesheets, the team list and the payroll report find who had ticket time faster (a new index on ticket notes).
+
 ## 26.10.190 - 2026-10-28
 - ITFlow's latest work merged (database 3.5.1): a client's hourly rate, net terms and SLAs now come from its contract, else the defaults (clients whose own differed get a "Standard terms" contract when the update runs); contracts can be started from New / Edit Client, and the Clients list shows each client's contract and billed rate; New User now emails an invite so the agent sets their own password (Set a password stays as the other choice).
 - New User by invite keeps our Employment and Office choices and puts them on the login when the invite is accepted.

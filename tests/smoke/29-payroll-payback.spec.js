@@ -110,7 +110,8 @@ test('a trip and a purchase go to payroll: one box, the timesheet, approve pays 
 
     // Reopen: back to waiting for payroll
     await visit(page, 'agent/mit_timesheet.php', errors);
-    await page.goto(new URL(await page.locator('a[href*="mit_ts_reopen"]').getAttribute('href'), page.url()).href);
+    // The page's address as the Referer, so the handler sends us back here (none -> index.php, whose refresh raced the next visit)
+    await page.goto(new URL(await page.locator('a[href*="mit_ts_reopen"]').getAttribute('href'), page.url()).href, { referer: page.url() });
     await visit(page, 'agent/mit_timesheet.php', errors);
     await expect(line(made.purchase).locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');
     await expect(line('Smoke payroll client').locator('[data-mit-reimb-state]')).toHaveText('Goes to payroll');

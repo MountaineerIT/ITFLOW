@@ -139,7 +139,7 @@ model: see DEPLOYMENT.md.
   autopay includes Partial invoices (`cron/nightly_tasks.php`); `api/v1/clients/delete.php` uploads path.
   Audit B (Oct 20, 26.10.73): `.htaccess` security headers (nosniff, Referrer-Policy same-origin, CSP frame-ancestors 'self',
   HSTS on HTTPS); `api/v1/validate_api_key.php` takes the key from `X-API-Key` / `Authorization: Bearer` (getallheaders
-  fallback) or the POST body and refuses `?api_key=` (var_dump gone); trips need Financial edit and an active agent
+  fallback) or the POST body and refuses `?api_key=` (var_dump gone; a body that is not JSON = no fields, `?: []` - 26.10.191, was a 500 in the *_output.php files); trips need Financial edit and an active agent
   (`agent/post/trip.php`, `trip_model.php`); `bulk_edit_expense_client` checks each expense's current client; portal
   `client/includes/check_login.php` ends sessions of archived clients / contacts and when the portal is off;
   `client/login_microsoft.php` (portal on, contact not archived, curl timeouts, tenant hook); saved-card payment
@@ -1126,6 +1126,10 @@ model: see DEPLOYMENT.md.
   stand-ins). M041 adds tickets (invoice + billable + archived for ITFlow's every-page unbilled count; category), logs (type; action).
   Left as ITFlow has them: global search (1.5 s), Audit logs' SQL_CALC_FOUND_ROWS list (0.8 s), Ticket Summary (1.1 s), the kanban
   (7 MB of card markup for 1,570 open tickets), the closed list (0.4 s).
+  Review after the 3.5.1 merge (Oct 28, 26.10.191): M050 `mit_ticket_replies_worked` (created + time worked + author - mitTsUsersWithActivity
+  10 -> 1.4 ms; payroll report 121 -> 84 ms). Everything else in line once two test-server effects are taken out: opcache was full (seven
+  copies of the app under Apache - pages about 90 ms slower until `apache2ctl` restart; production runs one) and the container was slower
+  per query than on Oct 25 (ITFlow's unchanged Ticket Summary sum 462 -> 820 ms). Compare with ITFlow's own unchanged pages, not old numbers.
 - Upstream develop merged again (Oct 25, 26.10.135 - 98 commits, ITFlow DB 2.8.9 -> 3.4.7; APP_VERSION still 26.10). Where things
   moved - this supersedes the file names above where they differ:
   - Product columns: ITFlow 2.9.4 adds `products.product_cost` / `product_vendor_id` (ours from M007 / M010, same meaning). Two lines in

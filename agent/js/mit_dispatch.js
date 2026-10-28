@@ -207,7 +207,7 @@
             + (d.boards && d.boards.length ? '<div class="col-12"><label class="form-label mb-0" for="mdBoard">Board</label><select class="form-select form-select-sm" id="mdBoard">'
                 + options(d.boards, d.board) + '</select></div>' : '')
             + '<div class="col-12"><label class="form-label mb-0" for="mdSla">SLA</label><select class="form-select form-select-sm" id="mdSla">'
-            + '<option value="auto">Automatic - from the client and priority</option>'
+            + '<option value="auto">Automatic - from the client\'s contract and priority</option>'
             + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id) + '</select>'
             + '<div class="form-text mt-0" id="mdClientNote" hidden>Moving it to another client makes its public replies internal, and its SLA is worked out again unless you pick one.</div></div>';
     }

@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 59 | 11 | 7 | 28 | 68 | 33 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 60 | 11 | 7 | 28 | 69 | 33 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 158 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
@@ -17,7 +17,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 16 |
-| [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 10 |
+| [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 11 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 10 |
@@ -93,7 +93,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** assets, calendar_events, clients, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -517,11 +517,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/includes/side_nav.php`: mit_dispatch_nav
 - `agent/js/calendar.js`: data-mit-agent, mitAgent, mit_calendar, mit_event_agents
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
-- `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications
+- `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects
 - `functions/calendar.php`: mit_ticket_techs
 - `functions/reports.php`: mit_boards
+- `functions/sla.php`: mit_projects
 - `functions/ticket.php`: mit_schedule_skip_contact, mit_ticket_techs
-- `includes/cron_jobs.php`: mit_boards
+- `includes/cron_jobs.php`: mit_boards, mit_projects
 
 **ITFlow functions it calls**
 

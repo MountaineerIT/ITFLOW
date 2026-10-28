@@ -6,7 +6,7 @@
  * picked in New User are kept with the invite (M049 `mit_invite_extras`) and put on the new login then:
  *  - mitInviteExtrasSave($invite_id, $_POST) - one line in admin/post/users.php add_user's invite branch (after userInviteSave);
  *  - mitInviteExtrasApply($invite_id, $user_id) - one line in userInviteAccept, before it returns the new agent.
- * Sending the invite again (the same address) replaces what was kept; cancelling or removing it takes ours too (CASCADE).
+ * Sending the invite again (the same address) replaces what was kept; ours goes with the invite row (CASCADE) - a cancelled invite keeps it until ITFlow's nightly job removes the invite (90 days).
  */
 
 /** The posted fields of ours an invite keeps. */

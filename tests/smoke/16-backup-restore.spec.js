@@ -106,6 +106,7 @@ test('restore: a big backup goes up in pieces and is put back together', async (
 });
 
 test('restore: a backup, then the "Before restore" copy - the install ends as it started', async ({ page, browser }) => {
+    test.setTimeout(900000); // two restores of a minute or more each - cut short, the page left mid-restore and the next specs met a half-imported database
     test.skip(process.env.ITFLOW_SMOKE_RESTORE !== '1', 'set ITFLOW_SMOKE_RESTORE=1 to restore the test install for real');
     const list = await backups(page);
     test.skip(!list.length, 'no complete backup to restore');

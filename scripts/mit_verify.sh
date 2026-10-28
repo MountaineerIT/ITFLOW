@@ -2,7 +2,7 @@
 # Mountaineer IT - every check in one go: after an upstream merge, before "Promote to production", or any time.
 #   sh scripts/mit_verify.sh [install folder]      default /var/www/itflow (the test install - never production for the smoke tests)
 #   MIT_VERIFY_SKIP_SMOKE=1 sh scripts/mit_verify.sh /var/www/itflow    the read-only checks only (safe on production)
-# Runs: PHP syntax of every file but libs/, the hook check (our hooks in ITFlow's files), the feature map (every file of ours in a feature, MIT_FEATURES.md
+# Runs: PHP syntax of every file but libs/, JavaScript syntax of our scripts, the hook check (our hooks in ITFlow's files), the feature map (every file of ours in a feature, MIT_FEATURES.md
 # current, watched strings still in ITFlow), the AI helper's password wall, the consistency check and the stock
 # ITFlow portability check on the install, then the scenario checks and the smoke tests. Stops at the first failure.
 set -e
@@ -12,6 +12,17 @@ INSTALL="${1:-/var/www/itflow}"
 echo "== PHP syntax"
 find "$REPO" -name '*.php' -not -path '*/libs/*' -not -path '*/vendor/*' -not -path '*/node_modules/*' -print0 \
     | xargs -0 -n 50 -P 4 php -l 2>&1 | grep -v '^No syntax errors' | grep . && { echo "PHP syntax errors above"; exit 1; } || true
+
+echo "== JavaScript syntax (our scripts)"
+# A stray quote in one of our scripts stops the whole page's script (26.10.191: an apostrophe in Dispatch's option text) - caught here
+# before the smoke tests. Needs node (the smoke tests' own); skipped where there is none.
+if command -v node >/dev/null 2>&1; then
+    for f in "$REPO"/js/mit_*.js "$REPO"/agent/js/mit_*.js; do
+        node --check "$f" || { echo "JavaScript syntax error in $f"; exit 1; }
+    done
+else
+    echo "   (no node here - skipped)"
+fi
 
 echo "== Hook check"
 php "$REPO/scripts/mit_hook_check.php"

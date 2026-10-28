@@ -36,7 +36,7 @@ test.afterAll(() => {
         db.exec(`DELETE FROM user_invites WHERE invite_email = ${db.q(made.inviteEmail)}`);
     }
     if (made.newUser) {
-        db.exec(`DELETE FROM user_settings WHERE user_id = ${made.newUser}; DELETE FROM logs WHERE log_user_id = ${made.newUser}; DELETE FROM users WHERE user_id = ${made.newUser}`);
+        db.exec(`DELETE FROM mit_timesheet_people WHERE user_id = ${made.newUser}; DELETE FROM user_settings WHERE user_id = ${made.newUser}; DELETE FROM logs WHERE log_user_id = ${made.newUser}; DELETE FROM users WHERE user_id = ${made.newUser}`);
     }
     if (made.company && !made.company.company_address) {
         db.exec(`UPDATE companies SET company_address = ${db.q(made.company.company_address || '')}, company_city = ${db.q(made.company.company_city || '')},
