@@ -25,10 +25,11 @@ function mitLookOn() {
     return $on;
 }
 
-/** For includes/header.php: the time-field script (everyone), and the modern look's stylesheet and script (not for Classic or nobody signed in). */
+/** For includes/header.php: the time-field and menu-folding scripts (everyone), and the modern look's stylesheet and script (not for Classic or nobody signed in). */
 function mitThemeHead() {
     // Time fields (clock icon = now, AM / PM from now) - for every look
-    $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>';
+    $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>'
+        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '" defer></script>'; // the side menu's sections fold
     if (!mitLookOn()) {
         return $time;
     }

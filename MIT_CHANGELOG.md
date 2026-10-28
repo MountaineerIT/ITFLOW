@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.187 - 2026-10-28
+- Side menu: each section (Support, Billing, Finance, Tools ... - and Admin's Access, Lists, Integrations ...) folds away when you click its heading, and opens again with another click. Your browser remembers which are folded; the section of the page you are on always shows.
+
 ## 26.10.186 - 2026-10-28
 - Offices: Admin > Settings > Company Details has an "Offices" section. The company address above stays the main office; add other offices (name, address, phone, email) and pick who works at each. An agent's office can also be set in Admin > Users > Edit.
 - Trips: a new trip starts From the driver's office; the From list offers every office, and changing the driver moves From to their office.

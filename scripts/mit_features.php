@@ -83,10 +83,12 @@ return [
     ],
     'theme' => [
         'name' => 'Modern look, logo options, sign-in screen, client tiles, time fields, portal tables',
-        'files' => ['functions/mit_theme.php', 'css/mit_*.css', 'css/mit_login_nodes.svg', 'css/fonts/inter/*', 'js/mit_theme.js', 'js/mit_time_inputs.js',
+        'files' => ['functions/mit_theme.php', 'css/mit_*.css', 'css/mit_login_nodes.svg', 'css/fonts/inter/*', 'js/mit_theme.js', 'js/mit_time_inputs.js', 'js/mit_nav_sections.js',
             'js/mit_portal_tables.js', 'functions/mit_client_tiles.php'],
-        'tests' => ['tests/smoke/21-brand-logo.spec.js', 'tests/smoke/26-portal-phone.spec.js', 'tests/smoke/46-client-tiles.spec.js', 'tests/smoke/80-theme-look.spec.js'],
+        'tests' => ['tests/smoke/21-brand-logo.spec.js', 'tests/smoke/26-portal-phone.spec.js', 'tests/smoke/46-client-tiles.spec.js', 'tests/smoke/80-theme-look.spec.js',
+            'tests/smoke/87-nav-sections.spec.js'],
         'assumes' => [
+            'The side menu: li.nav-header headings with the section\'s li items after them in the same list (folded by js/mit_nav_sections.js).',
             'ITFlow\'s markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.',
             'Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.',
             'login.php / client pages send CSP default-src \'self\' - our files there must be files, not inline.',

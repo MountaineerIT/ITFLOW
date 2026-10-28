@@ -8,11 +8,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 58 | 10 | 7 | 27 | 67 | 31 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 155 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 156 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 12 | 4 | 12 | 12 | 23 | 15 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 5 | 12 | 12 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 6 | 6 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
@@ -245,11 +245,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Takes for granted**
 
+- The side menu: li.nav-header headings with the section's li items after them in the same list (folded by js/mit_nav_sections.js).
 - ITFlow's markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.
 - Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.
 - login.php / client pages send CSP default-src 'self' - our files there must be files, not inline.
 
-**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`
+**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`, `tests/smoke/87-nav-sections.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -289,7 +290,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** theme, dark_mode, logo
 
-**Our files** `functions/mit_theme.php`, `css/mit_login.css`, `css/mit_login_plain.css`, `css/mit_theme.css`, `css/mit_login_nodes.svg`, `css/fonts/inter/OFL.txt`, `css/fonts/inter/inter-latin-ext-wght-normal.woff2`, `css/fonts/inter/inter-latin-wght-normal.woff2`, `js/mit_theme.js`, `js/mit_time_inputs.js`, `js/mit_portal_tables.js`, `functions/mit_client_tiles.php`
+**Our files** `functions/mit_theme.php`, `css/mit_login.css`, `css/mit_login_plain.css`, `css/mit_theme.css`, `css/mit_login_nodes.svg`, `css/fonts/inter/OFL.txt`, `css/fonts/inter/inter-latin-ext-wght-normal.woff2`, `css/fonts/inter/inter-latin-wght-normal.woff2`, `js/mit_theme.js`, `js/mit_time_inputs.js`, `js/mit_nav_sections.js`, `js/mit_portal_tables.js`, `functions/mit_client_tiles.php`
 
 <a id="emails"></a>
 ## Email look: logo inside the message, resolved wording, notification switches (`emails`)
