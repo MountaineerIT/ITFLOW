@@ -29,7 +29,7 @@ function mitLookOn() {
 function mitThemeHead() {
     // Time fields (clock icon = now, AM / PM from now) - for every look
     $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>'
-        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '" defer></script>'; // the side menu's sections fold
+        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '"></script>'; // the side menu's sections fold - not deferred: it folds them as the menu is built (no flicker)
     if (!mitLookOn()) {
         return $time;
     }

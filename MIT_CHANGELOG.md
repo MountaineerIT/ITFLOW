@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.188 - 2026-10-28
+- Side menu: folded sections no longer flash open for a moment on every page - they are folded while the menu is built.
+
 ## 26.10.187 - 2026-10-28
 - Side menu: each section (Support, Billing, Finance, Tools ... - and Admin's Access, Lists, Integrations ...) folds away when you click its heading, and opens again with another click. Your browser remembers which are folded; the section of the page you are on always shows.
 

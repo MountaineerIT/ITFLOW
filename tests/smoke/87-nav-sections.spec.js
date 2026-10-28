@@ -19,8 +19,23 @@ test('side menu sections fold, are remembered, and the current one stays open', 
     await expect(quotes, 'its items are hidden').toBeHidden();
     await expect(page.locator('.app-sidebar a[href="/agent/tickets.php"]'), 'other sections stay as they were').toBeVisible();
 
+    // The next page: remembered - and never drawn open first (checked on every frame while the page is built)
+    await page.addInitScript(() => {
+        window.__mitNavFlash = 0;
+        const look = () => {
+            const link = document.querySelector('.app-sidebar a[href="/agent/quotes.php"]');
+            if (link && link.offsetParent !== null) {
+                window.__mitNavFlash++;
+            }
+            if (document.readyState !== 'complete') {
+                requestAnimationFrame(look);
+            }
+        };
+        requestAnimationFrame(look);
+    });
     await visit(page, 'agent/dashboard.php', errors);
     await expect(quotes, 'remembered on the next page').toBeHidden();
+    expect(await page.evaluate(() => window.__mitNavFlash), 'a folded section never shows for a moment').toBe(0);
 
     await visit(page, 'agent/invoices.php', errors);
     await expect(page.locator('.app-sidebar a[href="/agent/invoices.php"]'), 'the section of the page you are on shows anyway').toBeVisible();

@@ -883,7 +883,8 @@ model: see DEPLOYMENT.md.
   removed in `mitBrandLogoField` / `mitBrandAppLogoSave`): `mitBrandScreenLogo($company_logo)` - one guarded line each in
   `agent/includes/side_nav.php` ($brand_logo) and `login.php` (after $company_logo). The company logo stays ITFlow's for quotes,
   invoices, POs, PDFs, guest pages and the light pages - client portal, MFA set-up (`agent/user/mfa_enforcement.php` has no dark style).
-  Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()`, no new line in ITFlow's files) turns
+  Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
+  MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
   each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage
   `mit.nav.folded` per menu (agent / admin / client); the section holding `.nav-link.active` always shows. Enter / Space toggle (the keydown
   stops propagating - ITFlow turns Enter on a focused element into a click further up, which folded it straight back). Smoke `87-nav-sections.spec.js`.

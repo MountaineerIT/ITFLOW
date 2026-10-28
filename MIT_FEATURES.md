@@ -12,7 +12,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 5 | 12 | 12 | 23 | 15 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 5 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 6 | 6 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
@@ -280,7 +280,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/software.php`: softwareSeatsUsedSql
 - `functions/ticket.php`: ticketOverdueSql
 
-**ITFlow tables** assets, categories, invoices, quotes, settings, software, software_assets, software_contacts, tags, ticket_replies, tickets, users
+**ITFlow tables** assets, categories, invoices, quotes, records, settings, software, software_assets, software_contacts, tags, ticket_replies, tickets, users
 
 **ITFlow columns** asset_archived_at, asset_client_id, asset_id, asset_install_date, asset_purchase_date, asset_warranty_expire, client_id, contact_id, software_archived_at, software_client_id, software_expire, software_id, software_seats, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_id, ticket_project_id, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_resolved_at
 
