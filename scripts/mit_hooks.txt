@@ -15,6 +15,7 @@ hook	admin/includes/side_nav.php	mit_integrations_nav	1
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
 hook	admin/modals/user/user_form.php	mitCalendarColorField	1
+hook	admin/modals/user/user_form.php	mitOfficeUserField	2
 hook	admin/modals/user/user_form.php	mitTsPayTypeField	1
 hook	admin/oauth_microsoft_mail_callback.php	mitMicrosoftTokenFields	1
 hook	admin/oauth_microsoft_mail_callback.php	mit_m365	1
@@ -31,9 +32,11 @@ hook	admin/post/settings_module.php	mitModulesSave	2
 hook	admin/post/settings_module.php	mit_lines	2
 hook	admin/post/settings_notification.php	mitNotificationsSave	2
 hook	admin/post/settings_notification.php	mit_changed	2
+hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
 hook	admin/post/users.php	mitTsSavePayType	2
 hook	admin/settings_company.php	mitBrandLogoField	2
+hook	admin/settings_company.php	mitOfficesSection	2
 hook	admin/settings_invoice.php	mit_usage_card	1
 hook	admin/settings_mail.php	mit_m365_card	1
 hook	admin/settings_module.php	mit_modules_fields	1
@@ -151,6 +154,8 @@ hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleLengths	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitTicketScheduleMinutes	1
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
+hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
+hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
 hook	agent/post/billing.php	mitQboGuardInvoice	10
 hook	agent/post/billing.php	mitQboInvoiceLock	2
@@ -312,6 +317,7 @@ hook	functions.php	mit_m365	1
 hook	functions.php	mit_ninjaone	1
 hook	functions.php	mit_no_response	1
 hook	functions.php	mit_notifications	1
+hook	functions.php	mit_offices	1
 hook	functions.php	mit_procurement	1
 hook	functions.php	mit_projects	1
 hook	functions.php	mit_qbo	1
@@ -357,6 +363,7 @@ hook	functions/dashboard.php	mitBoardDashAnd	6
 hook	functions/dashboard.php	mitEventByDayColumn	2
 hook	functions/dashboard.php	mitServiceTicketsAnd	2
 hook	functions/dashboard.php	mitTicketTechDashboardItems	1
+hook	functions/email.php	mitOfficeEmailCompany	2
 hook	functions/expenses.php	mitReimbExpenseWhyLocked	4
 hook	functions/expenses.php	mitReimbReimbursementWhyLocked	2
 hook	functions/income_import.php	mitQboTakesPayments	4
@@ -380,6 +387,7 @@ hook	functions/ticket.php	mitByDayDate	1
 hook	functions/ticket.php	mitByDayRule	2
 hook	functions/ticket.php	mitByDayText	1
 hook	functions/ticket.php	mitNotifyOn	4
+hook	functions/ticket.php	mitOfficeForTicket	8
 hook	functions/ticket.php	mitOutlookSyncsEmail	2
 hook	functions/ticket.php	mitRecurringTicketByDay	3
 hook	functions/ticket.php	mitResolvedMailContent	2
@@ -394,6 +402,7 @@ hook	functions/ticket.php	mitTicketTechsLeadMoved	1
 hook	functions/ticket.php	mitTsDeleteGuard	2
 hook	functions/ticket.php	mit_contact	4
 hook	functions/ticket.php	mit_extra	3
+hook	functions/ticket.php	mit_office	4
 hook	functions/ticket.php	mit_recurring	1
 hook	functions/ticket.php	mit_schedule_skip_contact	1
 hook	functions/ticket.php	mit_ticket_techs	1
@@ -499,6 +508,7 @@ ours	admin/database_updates/mountaineerit/M044.php
 ours	admin/database_updates/mountaineerit/M045.php
 ours	admin/database_updates/mountaineerit/M046.php
 ours	admin/database_updates/mountaineerit/M047.php
+ours	admin/database_updates/mountaineerit/M048.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_admin_nav.php
 ours	admin/includes/mit_calendar_card.php
@@ -526,6 +536,7 @@ ours	admin/mit_timesheets.php
 ours	admin/mit_usage_connectors.php
 ours	admin/modals/mit_backup/restore.php
 ours	admin/modals/mit_boards/board.php
+ours	admin/modals/mit_offices/office.php
 ours	admin/modals/mit_timesheets/charge_code.php
 ours	admin/modals/mit_timesheets/holiday.php
 ours	admin/modals/mit_timesheets/leave_bank.php
@@ -542,6 +553,7 @@ ours	admin/post/mit_feedback_settings.php
 ours	admin/post/mit_m365.php
 ours	admin/post/mit_ninjaone.php
 ours	admin/post/mit_no_response_settings.php
+ours	admin/post/mit_offices.php
 ours	admin/post/mit_procurement_settings.php
 ours	admin/post/mit_project_settings.php
 ours	admin/post/mit_qbo.php
@@ -656,6 +668,7 @@ ours	functions/mit_m365_mailbox.php
 ours	functions/mit_ninjaone.php
 ours	functions/mit_no_response.php
 ours	functions/mit_notifications.php
+ours	functions/mit_offices.php
 ours	functions/mit_outlook.php
 ours	functions/mit_procurement.php
 ours	functions/mit_procurement_extras.php

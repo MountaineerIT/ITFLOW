@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.186 - 2026-10-28
+- Offices: Admin > Settings > Company Details has an "Offices" section. The company address above stays the main office; add other offices (name, address, phone, email) and pick who works at each. An agent's office can also be set in Admin > Users > Edit.
+- Trips: a new trip starts From the driver's office; the From list offers every office, and changing the driver moves From to their office.
+- Ticket emails: the foot shows the address, phone and email of the assigned agent's office (or of the agent sending it, when nobody is assigned). Agents in the main office keep the company's foot. Invoices, quotes and contracts keep the main company address.
+- Purchase orders: Ship to has an office picker (or "Somewhere else" to type an address); a new PO ships to its maker's office, and the PO page names the office.
+
 ## 26.10.185 - 2026-10-27
 - Bugs & ideas is now off until an admin turns it on: Admin > Debug has a "Bugs & ideas" card with the switch. While it is off the top bar's bug button is gone and nothing can be sent; reports already sent are kept.
 

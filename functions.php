@@ -110,6 +110,7 @@ require_once __DIR__ . '/functions/mit_usage.php';
 require_once __DIR__ . '/functions/mit_quotes.php';
 require_once __DIR__ . '/functions/mit_ticket_layout.php';
 require_once __DIR__ . '/functions/mit_procurement.php';
+require_once __DIR__ . '/functions/mit_offices.php';
 require_once __DIR__ . '/functions/mit_timesheets.php';
 require_once __DIR__ . '/functions/mit_dispatch.php';
 require_once __DIR__ . '/functions/mit_list_views.php';

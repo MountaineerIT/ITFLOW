@@ -114,6 +114,7 @@ $value = function ($key) use ($form) {
             <div class="form-text">What they can see and change. <a href="roles.php" target="_blank">Roles <i class="fas fa-external-link-alt small"></i></a></div>
         </div>
         <?= mitTsPayTypeField($form_user_id) // Mountaineer IT ?>
+        <?= function_exists('mitOfficeUserField') ? mitOfficeUserField($form_user_id) : '' // Mountaineer IT: office ?>
         <?= $is_new ? '' : mitCalendarColorField($form_user_id, 'col-12') // Mountaineer IT ?>
     </div>
 </div>

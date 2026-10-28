@@ -258,6 +258,18 @@ return [
             'expenseUnbilledMerge', 'tripUnbilledMerge', 'expenseBillWithTime', 'data-unbilled-expense-pick', 'itflowUnbilledTime'],
         'overlap' => ['purchase_order', 'purchase', 'procure', 'receiv', 'po_', 'stock', 'vendor', 'reorder', 'unbilled'],
     ],
+    'offices' => [
+        'name' => 'Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)',
+        'files' => ['functions/mit_offices.php', 'admin/modals/mit_offices/*.php', 'admin/post/mit_offices.php'],
+        'tests' => ['tests/smoke/86-offices.spec.js'],
+        'assumes' => [
+            'The company is ITFlow\'s companies row 1, read by billingCompany(); Admin > Settings > Company Details is ITFlow\'s settings frame (settingsSectionStart / settingsSectionEnd).',
+            'Ticket emails are built by ticketEmailContent and friends with a \'contact\' line from ticketEmailContactLine(); emailHtml draws the foot from billingCompany().',
+            'The trip form (agent/modals/trip/trip_form.php) has [data-trip-driver], [data-trip-from] and the <form_id>Places datalist; tripLastStart / tripOfficeAddress make the default.',
+        ],
+        'watch' => ['billingCompany', 'ticketEmailContactLine', 'tripLastStart', 'tripOfficeAddress', 'data-trip-from', 'data-trip-driver'],
+        'overlap' => ['office', 'branch', 'site_location', 'company_location'],
+    ],
     'timesheets' => [
         'name' => 'Timesheets, payroll, leave, California rules, holidays, reimbursements',
         'files' => ['functions/mit_timesheet*.php', 'functions/mit_ts_*.php', 'functions/mit_leave.php', 'functions/mit_reimbursements.php',

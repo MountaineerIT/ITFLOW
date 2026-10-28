@@ -61,6 +61,7 @@ function emailHtml(array $email) {
     $line = '#e5e7eb';
     $font = "font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
     $company = billingCompany();
+    $company = function_exists('mitOfficeEmailCompany') ? mitOfficeEmailCompany($company, $email) : $company; // Mountaineer IT: the agent's office in a ticket email's foot
     $company_name = (string) ($company['company_name'] ?? '');
     $paragraph = function ($text_value) use ($e, $text) {
         return '<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:' . $text . ';">' . nl2br($e($text_value)) . '</p>';

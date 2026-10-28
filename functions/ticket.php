@@ -466,7 +466,7 @@ function ticketEmailContent(array $row, $kind, array $opts = []) {
         'marker' => true,
         'preview' => "$reference - $subject",
         'tone' => 'primary',
-        'contact' => ticketEmailContactLine(),
+        'contact' => ticketEmailContactLine(), 'mit_office' => function_exists('mitOfficeForTicket') ? mitOfficeForTicket($row) : null, // Mountaineer IT: the agent's office
         'button' => ['label' => 'View the ticket', 'url' => $url],
     ];
 
@@ -681,7 +681,7 @@ function ticketMailColleaguesNew($ticket_id) {
             'message' => ['html' => $echo ? (string) $ticket['ticket_details'] : '', 'label' => 'Details'],
             'summary' => ['Ticket' => $reference, 'Subject' => (string) $ticket['ticket_subject'], 'Priority' => (string) $ticket['ticket_priority'], 'Raised by' => $raised_by === 'We' ? 'Us' : $raised_by],
             'button' => ['label' => $colleague['portal'] ? 'View it in the portal' : 'View the ticket', 'url' => $url],
-            'contact' => ticketEmailContactLine(),
+            'contact' => ticketEmailContactLine(), 'mit_office' => function_exists('mitOfficeForTicket') ? mitOfficeForTicket($ticket) : null, // Mountaineer IT: the agent's office
         ], ['from' => ticketEmailFrom()]));
     }
     return $sent;
@@ -1036,7 +1036,7 @@ function ticketMailTaskApproval($approval_id, $by) {
         'summary' => ['Task' => (string) $approval['task_name'], 'Ticket' => $reference, 'Subject' => (string) $row['ticket_subject'], 'Status' => (string) $row['ticket_status_name']],
         'button' => ['label' => 'Review and approve', 'url' => "https://$config_base_url/guest/guest_approve_ticket_task.php?task_approval_id=" . intval($approval['approval_id']) . '&url_key=' . rawurlencode((string) $approval['approval_url_key'])],
         'after' => ['Want to know more first? Just reply to this email.'],
-        'contact' => ticketEmailContactLine(),
+        'contact' => ticketEmailContactLine(), 'mit_office' => function_exists('mitOfficeForTicket') ? mitOfficeForTicket($row) : null, // Mountaineer IT: the agent's office
     ], ['from' => ticketEmailFrom()]));
 }
 
@@ -1055,7 +1055,7 @@ function ticketMailClosedReply($ticket_id, $from_email) {
         'title' => 'That ticket is closed',
         'intro' => ["You replied to ticket " . ticketReference($closed) . " - \"" . $closed['ticket_subject'] . "\" - which is closed, so your reply won't reach us.", "To raise a new ticket, send a new email to $support."],
         'button' => ['label' => 'Email us', 'url' => "mailto:$support"],
-        'contact' => ticketEmailContactLine(),
+        'contact' => ticketEmailContactLine(), 'mit_office' => function_exists('mitOfficeForTicket') ? mitOfficeForTicket($closed) : null, // Mountaineer IT: the agent's office
     ], ['from' => ticketEmailFrom()]));
 }
 

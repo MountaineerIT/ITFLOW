@@ -74,6 +74,8 @@ echo settingsPageStart('company');
                     'help' => 'Kept without its https://.']) ?>
             <?= settingsSectionEnd() ?>
 
+            <?= function_exists('mitOfficesSection') ? mitOfficesSection() : '' // Mountaineer IT: other offices ?>
+
             <?= settingsSectionStart('logo', 'Logo', 'On invoices, quotes and statements, the sign-in page, the sidebar and the client portal.') ?>
                 <div class="row g-3 align-items-center">
                     <div class="col-sm-4">

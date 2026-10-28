@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 57 | 10 | 7 | 27 | 67 | 31 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 154 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 58 | 10 | 7 | 27 | 67 | 31 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 155 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -25,6 +25,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 6 | 28 | 26 | 149 | 18 |
+| [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 3 | 1 | 14 | 5 | 16 | 7 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
@@ -854,7 +855,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ticket.php`: mitTicketPartsCard
 - `agent/unbilled_time.php`: mitToBillCard, mitToBillCell, mitToBillHead, mitToBillMerge, mitToBillRowAttrs, mitToBillScript, mitToBillStatNote, mitToBillTotals, mit_part_value, mit_to_bill
 - `api/v1/clients/delete.php`: mitTicketPartsDeleting
-- `functions.php`: mit_procurement, mit_quotes
+- `functions.php`: mit_offices, mit_procurement, mit_quotes
 - `functions/billing.php`: mitProcQuoteConvertGroups
 - `functions/ticket.php`: mitTicketPartsDeleting
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
@@ -885,6 +886,48 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** purchase_order, purchase, procure, receiv, po_, stock, vendor, reorder, unbilled
 
 **Our files** `functions/mit_procurement.php`, `functions/mit_procurement_extras.php`, `functions/mit_procurement_parts.php`, `agent/mit_procurement.php`, `agent/mit_purchase_order.php`, `agent/mit_purchase_orders.php`, `agent/mit_receiving.php`, `agent/mit_unbilled_parts.php`, `agent/modals/mit_procurement/from_invoice.php`, `agent/modals/mit_procurement/item.php`, `agent/modals/mit_procurement/part.php`, `agent/modals/mit_procurement/parts_bill.php`, `agent/modals/mit_procurement/po_action.php`, `agent/post/mit_procurement.php`, `agent/post/mit_procurement_parts.php`, `agent/includes/mit_procurement_nav.php`, `admin/mit_procurement_settings.php`, `admin/includes/mit_procurement_card.php`, `admin/post/mit_procurement_settings.php`, `cron/mit_procurement_tidy.php`, `functions/mit_to_bill.php`, `js/mit_to_bill.js`
+
+<a id="offices"></a>
+## Offices (other offices, who works where, trips From, ticket email foot, PO ship-to) (`offices`)
+
+**Takes for granted**
+
+- The company is ITFlow's companies row 1, read by billingCompany(); Admin > Settings > Company Details is ITFlow's settings frame (settingsSectionStart / settingsSectionEnd).
+- Ticket emails are built by ticketEmailContent and friends with a 'contact' line from ticketEmailContactLine(); emailHtml draws the foot from billingCompany().
+- The trip form (agent/modals/trip/trip_form.php) has [data-trip-driver], [data-trip-from] and the <form_id>Places datalist; tripLastStart / tripOfficeAddress make the default.
+
+**Tests** `tests/smoke/86-offices.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `admin/modals/user/user_form.php`: mitOfficeUserField
+- `admin/post/users.php`: mitOfficeUserSave
+- `admin/settings_company.php`: mitOfficesSection
+- `agent/modals/trip/trip_form.php`: mitOfficeTripScript, mitOfficeTripStart
+- `functions.php`: mit_offices, mit_procurement
+- `functions/email.php`: mitOfficeEmailCompany
+- `functions/ticket.php`: mitOfficeForTicket, mit_office
+
+**ITFlow functions it calls**
+
+- `functions/billing.php`: billingCompany
+- `functions/format.php`: formatAddress, formatPhoneNumber, selectOptionUser
+- `functions/logging.php`: logAudit
+- `functions/request.php`: flashAlert, redirect
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/security.php`: validateCSRFToken
+- `functions/settings.php`: settingsLocalizationArrays, settingsSectionEnd, settingsSectionStart
+- `functions/ticket.php`: ticketEmailFrom
+
+**ITFlow tables** contracts, quotes, tickets, trips, users
+
+**ITFlow columns** company_address, company_city, company_country, company_email, company_name, company_phone, company_phone_country_code, company_state, company_website, company_zip, ticket_assigned_to, user_archived_at, user_avatar, user_id, user_name, user_type
+
+**Watched in ITFlow's code** `billingCompany` `ticketEmailContactLine` `tripLastStart` `tripOfficeAddress` `data-trip-from` `data-trip-driver`
+
+**"ITFlow does this too" words** office, branch, site_location, company_location
+
+**Our files** `functions/mit_offices.php`, `admin/modals/mit_offices/office.php`, `admin/post/mit_offices.php`
 
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)

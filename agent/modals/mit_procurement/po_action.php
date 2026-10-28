@@ -124,10 +124,37 @@ ob_start();
                     <input type="date" class="form-control" name="order_date" value="<?= escapeHtml($po['order_date']) ?>">
                 </div>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" data-mit-po-ship>
                 <label class="form-label">Ship to</label>
-                <textarea class="form-control" name="ship_to_address" rows="3"><?= escapeHtml($po['ship_to_address']) ?></textarea>
-                <div class="form-text">Our office by default - type a client's site to have it drop-shipped.</div>
+                <?php
+                $ship_offices = function_exists('mitOfficesAll') && mitOfficesReady() ? mitOfficesAll() : [];
+                $ship_current = function_exists('mitOfficeFromShipTo') ? mitOfficeFromShipTo($po['ship_to']) : null;
+                if (count($ship_offices) > 1) { ?>
+                    <select class="form-select mb-2" name="ship_to_office" data-mit-po-ship-office>
+                        <?php foreach ($ship_offices as $ship_id => $ship_office) { ?>
+                            <option value="<?= $ship_id ?>" data-address="<?= escapeHtml(mitOfficeShipTo($ship_id)) ?>" <?= $ship_current === $ship_id ? 'selected' : '' ?>><?= escapeHtml($ship_office['name']) ?></option>
+                        <?php } ?>
+                        <option value="other" <?= $ship_current === null ? 'selected' : '' ?>>Somewhere else - typed below</option>
+                    </select>
+                <?php } ?>
+                <textarea class="form-control" name="ship_to_address" rows="3" data-mit-po-ship-address><?= escapeHtml($po['ship_to_address']) ?></textarea>
+                <div class="form-text"><?= count($ship_offices) > 1 ? 'Pick an office, or type a client\'s site to have it drop-shipped.' : 'Our office by default - type a client\'s site to have it drop-shipped.' ?></div>
+                <script>
+                    (function () {
+                        var box = document.currentScript.closest('[data-mit-po-ship]');
+                        var pick = box.querySelector('[data-mit-po-ship-office]'), text = box.querySelector('[data-mit-po-ship-address]');
+                        if (!pick) return;
+                        pick.addEventListener('change', function () {
+                            var option = pick.options[pick.selectedIndex];
+                            if (option.dataset.address !== undefined) text.value = option.dataset.address;
+                            else text.focus();
+                        });
+                        text.addEventListener('input', function () {
+                            var option = pick.options[pick.selectedIndex];
+                            if (option.dataset.address !== undefined && option.dataset.address !== text.value) pick.value = 'other';
+                        });
+                    })();
+                </script>
             </div>
             <div>
                 <label class="form-label">Note to the vendor <span class="text-muted small">(on the PDF)</span></label>

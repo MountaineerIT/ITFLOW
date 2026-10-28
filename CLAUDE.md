@@ -1410,6 +1410,23 @@ model: see DEPLOYMENT.md.
   Off by default (26.10.185, the user's choice): `mit_settings` feedback_enabled ('1' = on, `mitFeedbackOn`, part of `mitFeedbackCan`), switched in
   Admin > Debug - card `admin/includes/mit_feedback_card.php` (one require in `admin/debug.php` before its script), handler
   `admin/post/mit_feedback_settings.php`. Off: no button, the handler answers 403; reports are kept.
+- Offices (Oct 28, 26.10.186 - contact details only, the user's choice; everyone is in one time zone, so no per-office hours / zones):
+  `functions/mit_offices.php` (ours, required from `functions.php`). Tables M048 `mit_offices` (name, address, city, state, zip, country,
+  phone + country code, email, archived) and `mit_user_offices` (user_id PK FK users CASCADE, office_id FK mit_offices CASCADE). The main office
+  is ITFlow's companies row (office 0 - `mitOfficeMain` from billingCompany); agents with no row belong to it. UI: "Offices" section on
+  Admin > Settings > Company Details (`mitOfficesSection` - one line after ITFlow's Contact section in `admin/settings_company.php`), window
+  `admin/modals/mit_offices/office.php` (people picker moves agents in / back to the main office; Remove archives), handlers
+  `admin/post/mit_offices.php`; Office picker in Admin > Users (`mitOfficeUserField` - one line in `admin/modals/user/user_form.php` after
+  Employment; `mitOfficeUserSave` - one line each in `admin/post/users.php` add_user / edit_user; shown only once another office exists).
+  Trips: `agent/modals/trip/trip_form.php` - the default From is `mitOfficeTripStart($form_driver)` (the driver's office when not the main
+  one, then ITFlow's last start / company), and `mitOfficeTripScript` after the From box adds every office to its datalist and, on a new trip,
+  moves an untouched From to the new driver's office. Ticket emails: the four `'contact' => ticketEmailContactLine()` lines in
+  `functions/ticket.php` also carry `'mit_office' => mitOfficeForTicket($row)` (assigned agent, else the agent sending; null = main), and one
+  line in `functions/email.php` emailHtml (`mitOfficeEmailCompany`) swaps that office's address and contact line (phone, office email or the
+  ticket From address, company website) into the foot. Invoices, quotes, contracts, PDFs, the portal and auto-replies keep the main company
+  (the user's choice). Purchase orders: `ship_to` = 'office' (main) / 'office:<id>' / 'other'; `mitPoCreateNow` ships to the maker's office
+  (`mitOfficeShipTo` - the main one is Procurement's Ship to setting); po_action.php details has an office picker that fills the address;
+  the PO page names the office. Smoke `86-offices.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

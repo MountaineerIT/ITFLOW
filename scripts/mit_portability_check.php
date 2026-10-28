@@ -274,6 +274,9 @@ $n = $count("SELECT COUNT(*) FROM quote_items WHERE item_cost IS NOT NULL OR ite
 if ($n) {
     $after[] = "Quote pricing and images: $n quote lines / products have our cost or an image - stock ITFlow shows the customer prices only, without the images (the files stay in uploads/mit_images).";
 }
+if ($n = $count("SELECT COUNT(*) FROM mit_offices WHERE office_archived_at IS NULL")) {
+    $after[] = "Offices: $n other office" . ($n === 1 ? '' : 's') . " - stock ITFlow has the one company address: trips start from the agent's last start or the company again, ticket emails show the company's address and phone (the offices and who works where stay in mit_offices / mit_user_offices).";
+}
 if ($n = $count("SELECT COUNT(*) FROM mit_user_preferences")) {
     $after[] = "Per-person settings - look, calendar view, agent colors, ticket page layout, descriptions ticked Read, timesheet choices ($n saved) - are not used by stock ITFlow.";
 }

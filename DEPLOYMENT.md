@@ -298,6 +298,9 @@ break stock ITFlow, and lists what stops working after a move.
   (Draft, Summary, Triage, document drafts) keep working, and the top bar's Ask AI button, its conversations and Write up go (documents already written stay - they are ITFlow's). The library and
   conversations stay unused in `mit_ai_*` (passages and questions already cleaned of passwords - nothing from the password vault). The "This server (Ollama)"
   provider of local embeddings stays in AI Providers (an ordinary ITFlow provider), and Ollama keeps running until removed.
+- **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
+  `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
+  and phone, and purchase orders go with Procurement.
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
   email goes back to ITFlow's own wording.

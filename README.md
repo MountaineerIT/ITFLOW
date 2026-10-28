@@ -101,6 +101,7 @@ Update shows both, with the release notes.
 **Quotes, procurement and billing**
 - Quote pricing from cost (markup, margin or set price), a profit box, and images on lines and products
 - Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts
+- Several offices - each agent's trips start from their office, their ticket emails show its address and phone, and POs ship to any office
 - Parts on tickets, billed from To Bill on the same invoice as the ticket's time, expenses and travel
 - QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back
 - Usage billing - recurring lines billed by a count (manual, API, tags, NinjaOne, Bitwarden, Ingram Micro)

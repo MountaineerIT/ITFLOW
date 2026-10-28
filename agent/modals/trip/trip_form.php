@@ -35,7 +35,7 @@ $form_location = $form_row ? intval($form_row['trip_location_id']) : intval($for
 $form_ticket = $form_row ? intval($form_row['trip_ticket_id']) : intval($form_ticket_id ?? 0);
 $form_driver = $form_row && $form_edit ? intval($form_row['trip_user_id']) : intval($session_user_id);
 $form_date = $form_row && ($form_edit || $form_return) ? (string) $form_row['trip_date'] : date('Y-m-d');
-$form_source = $form_row ? (string) $form_row['trip_source'] : (tripLastStart() ?: tripOfficeAddress());
+$form_source = $form_row ? (string) $form_row['trip_source'] : ((function_exists('mitOfficeTripStart') ? mitOfficeTripStart($form_driver) : '') ?: tripLastStart() ?: tripOfficeAddress()); // Mountaineer IT: the driver's office first
 $form_destination = $form_row ? (string) $form_row['trip_destination'] : '';
 $form_round = $form_row ? intval($form_row['round_trip']) === 1 : true;
 $form_miles = $form_row ? tripOneWay($form_row) : null;
@@ -157,6 +157,7 @@ $unit = tripUnit();
                 <?php } ?>
             </datalist>
         </div>
+        <?= function_exists('mitOfficeTripScript') ? mitOfficeTripScript($form_id, array_keys($form_drivers), $form_mode === 'new') : '' // Mountaineer IT: offices in the list, From follows the driver ?>
     </div>
 
     <div class="col-md-6" data-trip-site-box hidden>
