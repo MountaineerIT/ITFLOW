@@ -5,6 +5,7 @@
     // $time_start = microtime(true);
 
 header("X-Frame-Options: DENY");
+if (function_exists('mitAssetStampStart')) { mitAssetStampStart(); } // Mountaineer IT: version stamps on scripts / styles, so updates reach browsers
 
 ?>
 

@@ -18,6 +18,7 @@ header("X-Frame-Options: DENY"); // Legacy
 // can still send them on with a real redirect - not the script fallback the
 // portal's policy blocks, which left the bare header on screen
 ob_start();
+if (function_exists('mitAssetStampStart')) { mitAssetStampStart(); } // Mountaineer IT: version stamps on scripts / styles, so updates reach browsers
 
 // A page that turned the policy on keeps it, with data: images allowed - the
 // arrows on drop-downs, ticks in checkboxes and the close crosses are data:

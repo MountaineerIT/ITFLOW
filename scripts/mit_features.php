@@ -29,7 +29,7 @@ return [
             'admin/database_updates/mountaineerit/*.php', 'includes/mit_version.php', 'MIT_CHANGELOG.md', 'admin/includes/mit_changelog_card.php',
             'functions/mit_settings_index.php', 'admin/includes/mit_integrations_nav.php', 'admin/includes/mit_modules_fields.php',
             'agent/includes/mit_billing_nav.php'],
-        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
+        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/90-asset-stamps.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
             'tests/smoke/79-platform-pages.spec.js', 'tests/smoke/88-settings-overview.spec.js', 'tests/scenarios/scenario-mail-logo.php', 'tests/scenarios/scenario-pager-many-pages.php', 'tests/smoke/83-contracts.spec.js', 'tests/smoke/99-php-log.spec.js'],
         'assumes' => [
             'ITFlow runs admin/database_updates.php in version order and our runner after it (update_cli, setup, restores).',

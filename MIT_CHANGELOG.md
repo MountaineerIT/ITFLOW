@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.197 - 2026-10-29
+- After an update, browsers now fetch ITFlow's changed scripts and styles by themselves - no more Ctrl+Shift+R before a new feature works (each one is linked with a version stamp).
+
 ## 26.10.196 - 2026-10-29
 - ITFlow's latest work merged (database 3.5.3): @mentions in internal notes - type @ and pick a teammate; they get a bell and an email, their name is highlighted on the ticket, and the tickets list has a "Mentioned me" view.
 - ITFlow's client onboarding: "Onboard a client" (under New Client's arrow and in the client menu) walks through company, locations, people, agreement, billing, IT basics and a kickoff project; the client overview shows "Finish onboarding" until it is done.

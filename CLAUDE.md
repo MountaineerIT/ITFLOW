@@ -114,6 +114,11 @@ model: see DEPLOYMENT.md.
   Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
   itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
+- Version stamps on ITFlow's scripts / styles (26.10.197, the user's choice - ITFlow links them with no version, so browsers kept the old
+  js/app.js after the 3.5.3 merge and @mentions did nothing until a hard refresh): `mitAssetStampStart()` / `mitAssetStamp()` in
+  `functions/mit_common.php` - an output filter (HTML only) adding `?v=<file time>` to every local src / href ending .js / .css without one.
+  One line each at the top of `includes/header.php` and `client/includes/header.php` (after ITFlow's own ob_start there); ITFlow's tags are
+  untouched. Not on login.php / modals loaded by ajax. Smoke `90-asset-stamps.spec.js`.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
   `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (Release
   shows it with "ITFlow <APP_VERSION>" under it, and requires `admin/includes/mit_changelog_card.php` under the version row).

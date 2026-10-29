@@ -280,6 +280,7 @@ hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
 hook	api/v1/products/read.php	mitProductApiColumns	2
 hook	client/includes/check_login.php	mitSessionCheck	2
 hook	client/includes/footer.php	mit_portal_tables	1
+hook	client/includes/header.php	mitAssetStampStart	2
 hook	client/login_microsoft.php	mitPortalEntraTenant	1
 hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
 hook	client/login_reset.php	mitLoginHead	2
@@ -445,6 +446,7 @@ hook	includes/cron_jobs.php	mit_qbo_sync	2
 hook	includes/cron_jobs.php	mit_timesheets	3
 hook	includes/cron_jobs.php	mit_usage	3
 hook	includes/footer.php	mitVersion	2
+hook	includes/header.php	mitAssetStampStart	2
 hook	includes/header.php	mitThemeHead	2
 hook	includes/load_user_session.php	mitSessionCheck	2
 hook	includes/stripe_init.php	mitDevBlockStripe	2

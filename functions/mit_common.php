@@ -381,6 +381,35 @@ function mitAsset($path) {
     return escapeHtml($path . (is_file($file) ? '?v=' . filemtime($file) : ''));
 }
 
+/**
+ * Version stamps on ITFlow's own scripts and styles (26.10.197, the user's choice): ITFlow links them with no version, so after an
+ * update a browser (or a cache in front of the server) kept the old file - a new feature in js/app.js did nothing until a hard
+ * refresh. One output filter, started at the top of the page shell (includes/header.php, client/includes/header.php), adds
+ * ?v=<file time> to every local src / href ending in .js / .css that has none, so ITFlow's tags are left as they are.
+ */
+function mitAssetStampStart() {
+    if (!headers_sent()) {
+        ob_start('mitAssetStamp');
+    }
+}
+
+/** The filter: HTML pages only; a path is stamped when it is a file of this install. */
+function mitAssetStamp($html) {
+    foreach (headers_list() as $header) {
+        if (stripos($header, 'Content-Type:') === 0 && stripos($header, 'text/html') === false) {
+            return $html;
+        }
+    }
+    $root = dirname(__DIR__);
+    return preg_replace_callback('#\b(src|href)=(["\'])(/[A-Za-z0-9_./-]+\.(?:js|css))\2#', function ($m) use ($root) {
+        $file = $root . $m[3];
+        if (strpos($m[3], '..') !== false || !is_file($file)) {
+            return $m[0];
+        }
+        return $m[1] . '=' . $m[2] . $m[3] . '?v=' . filemtime($file) . $m[2];
+    }, (string) $html) ?? $html;
+}
+
 require_once __DIR__ . '/mit_db_upgrade.php'; // before / after ITFlow's database updates
 require_once dirname(__DIR__) . '/includes/mit_version.php';
 
