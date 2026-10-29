@@ -207,7 +207,7 @@ return [
         'overlap' => ['ticket_layout', 'no_response', 'ticket_timer', 'time_tracking', 'list_view', 'saved_view'],
     ],
     'reply_recipients' => [
-        'name' => 'Email reply "To" line, internal-note Notify',
+        'name' => 'Email reply "To" line (internal notes use ITFlow\'s @mentions)',
         'files' => ['functions/mit_reply_recipients.php', 'agent/js/mit_reply_recipients.js'],
         'tests' => ['tests/smoke/40-reply-recipients.spec.js'],
         'assumes' => [

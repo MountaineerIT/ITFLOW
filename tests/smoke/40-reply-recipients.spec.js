@@ -1,7 +1,7 @@
-// Email reply recipients and the internal-note Notify line, checked in the data underneath (functions/mit_reply_recipients.php):
-// exactly who is queued an email, what is remembered per ticket (mit_ticket_mail_choices), the next reply starting from it, a
-// ticket moved to another client forgetting it (and the old client's watcher), and the Notify bell / email / history - also for an
-// agent whose name has an apostrophe (ITFlow keeps $session_name SQL-escaped). Two clients of its own, removed at the end.
+// Email reply recipients, checked in the data underneath (functions/mit_reply_recipients.php): exactly who is queued an email,
+// what is remembered per ticket (mit_ticket_mail_choices), the next reply starting from it, a ticket moved to another client
+// forgetting it (and the old client's watcher). Internal notes tell agents with ITFlow's own @mentions (26.10.196 - our Notify
+// line is gone): the mention, its bell and email, beside our reply box. Two clients of its own, removed at the end.
 
 const { test, expect } = require('@playwright/test');
 const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean } = require('./helpers');
@@ -154,33 +154,28 @@ test('reply recipients: a ticket moved to another client forgets the choices and
     await submit(back, 'change_client_ticket');
 });
 
-test('internal note Notify: bell, email and history - also for a name with an apostrophe', async ({ page }) => {
+test('internal note: ITFlow\'s @mention tells the technician (bell, email) - our Notify line is gone', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
-    made.adminName = db.value('SELECT user_name FROM users WHERE user_id = 1');
-    db.run(`UPDATE users SET user_name = ${db.q("Test O'Admin")} WHERE user_id = 1`);
-    try {
-        await visit(page, ticketPage());
-        await page.click('label[for=public_reply_type_opt0]');
-        await expect(page.locator('#mitNotify')).toBeVisible();
-        const offered = await page.locator('#mitNotify select option').evaluateAll((o) => o.map((x) => x.value));
-        expect(offered, 'the assigned technician is offered').toContain('2');
-        expect(offered, 'the accountant (Support view) is offered - can read it').toContain('6');
-        expect(offered, 'not yourself').not.toContain('1');
-        const form = page.locator('form:has(#replyComposer)');
-        await fillForm(form, { ticket_reply: `Smoke note for tech ${stamp}`, 'mit_notify[]': ['2'] });
-        await submit(form, 'add_ticket_reply');
-        const bell = db.value(`SELECT notification FROM notifications WHERE notification_user_id = 2 AND notification LIKE '%internal note on ticket ${made.number}%' ORDER BY notification_id DESC LIMIT 1`);
-        expect(bell, 'the technician gets a bell').toBeTruthy();
-        expect.soft(bell, 'the bell names the agent as written').toContain("Test O'Admin asked for you");
-        const mail = db.rows(`SELECT email_subject, email_content FROM email_queue WHERE email_recipient = 'tech@test.test' AND email_subject LIKE ${db.q(`Internal note for you - [${made.number}]%`)}`);
-        expect(mail.length, 'and one email').toBe(1);
-        expect(mail[0].email_content).toContain(`Smoke note for tech ${stamp}`);
-        expect.soft(mail[0].email_content, 'the email names the agent as written').toContain('Test O&#039;Admin added an internal note');
-        const history = db.column(`SELECT ticket_history_description FROM ticket_history WHERE ticket_history_ticket_id = ${made.ticketId}`).join(' | ');
-        expect(history, 'history names the agent as written').toContain("Test O'Admin notified Restricted Tech about an internal note");
-    } finally {
-        db.run(`UPDATE users SET user_name = ${db.q(made.adminName)} WHERE user_id = 1`);
-    }
+    await visit(page, ticketPage());
+    await page.click('label[for=public_reply_type_opt0]');
+    await expect(page.locator('#mitNotify'), 'no Notify line of ours').toHaveCount(0);
+    const offered = JSON.parse((await page.locator('#ticket_reply').getAttribute('data-mention-agents')) || '[]').map((a) => String(a.id));
+    expect(offered, 'the assigned technician can be mentioned').toContain('2');
+    const tech = db.value('SELECT user_name FROM users WHERE user_id = 2');
+    const body = page.frameLocator('#replyComposer iframe').first().locator('body');
+    await body.click();
+    await page.keyboard.type(`Smoke note for tech ${stamp} `);
+    await page.keyboard.type('@' + tech.slice(0, 4), { delay: 80 });
+    await expect(page.locator('.tox-collection__item', { hasText: tech }).first(), 'the @ list').toBeVisible();
+    await page.keyboard.press('Enter');
+    await expect(body.locator('.itflow-mention[data-mention="2"]')).toHaveCount(1);
+    await submit(page.locator('form:has(#replyComposer)'), 'add_ticket_reply');
+    const reply = db.value(`SELECT ticket_reply_id FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketId} AND ticket_reply LIKE ${db.q(`%Smoke note for tech ${stamp}%`)}`);
+    expect(reply, 'the note saved').toBeTruthy();
+    expect(db.column(`SELECT mention_user_id FROM ticket_reply_mentions WHERE mention_reply_id = ${reply}`), 'the mention kept with it').toEqual(['2']);
+    expect(db.value(`SELECT COUNT(*) FROM notifications WHERE notification_user_id = 2 AND notification LIKE '%mentioned you%${made.number}%'`), 'a bell').toBe('1');
+    expect(db.value(`SELECT COUNT(*) FROM email_queue WHERE email_recipient = 'tech@test.test' AND email_subject LIKE ${db.q(`%Mentioned on ticket [${made.number}]%`)}`), 'and an email').toBe('1');
+    expect(db.value(`SELECT COUNT(*) FROM email_queue WHERE email_subject LIKE ${db.q(`Internal note for you - [${made.number}]%`)}`), 'nothing from our old Notify').toBe('0');
 });
 
 test.afterAll(async ({ browser }) => {

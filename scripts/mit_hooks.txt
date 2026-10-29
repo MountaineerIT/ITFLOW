@@ -191,7 +191,6 @@ hook	agent/post/recurring_ticket.php	mitRecurringTicketSaveByDay	3
 hook	agent/post/ticket.php	mitAgentCanSeeClient	1
 hook	agent/post/ticket.php	mitBoardAfterCreate	2
 hook	agent/post/ticket.php	mitBoardRoute	2
-hook	agent/post/ticket.php	mitInternalNoteNotify	2
 hook	agent/post/ticket.php	mitNotifyOn	6
 hook	agent/post/ticket.php	mitProjectTicketMoved	4
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
@@ -210,7 +209,6 @@ hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
 hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
 hook	agent/post/ticket.php	mit_board	1
 hook	agent/post/ticket.php	mit_content	2
-hook	agent/post/ticket.php	mit_reply_recipients	1
 hook	agent/post/ticket.php	mit_resolved	4
 hook	agent/post/ticket.php	mit_row	4
 hook	agent/post/ticket.php	mit_send_to_present	2

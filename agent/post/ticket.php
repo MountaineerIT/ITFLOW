@@ -1205,11 +1205,6 @@ if (isset($_POST['add_ticket_reply'])) {
             ticketNotifyAgent($row['ticket_created_by'], $row, "$session_name updated Ticket " . ticketReference($row) . " - Subject: " . $row['ticket_subject'] . " that you opened");
         }
 
-        // Mountaineer IT: an internal note can notify techs (functions/mit_reply_recipients.php)
-        if ($ticket_reply_type === 'Internal' && function_exists('mitInternalNoteNotify')) {
-            mitInternalNoteNotify($row, $ticket_reply_id, $_POST);
-        }
-
         // Handle first response
         if (empty($row['ticket_first_response_at']) && $ticket_reply_type === 'Public') {
             setTicketFirstResponse($ticket_id);

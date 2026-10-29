@@ -773,13 +773,11 @@ model: see DEPLOYMENT.md.
   and in `agent/post/ticket.php` add_ticket_reply `mitReplyRecipientsMail` replaces `ticketMailContactAndWatchers` only when
   the form posted `mit_send_to_present` (API and other senders unchanged). "Email reply" still needs a contact with an address
   (ITFlow's `$can_email_reply`). `functions.php` (require).
-  Internal notes have a "Notify" line in the same file (`mitInternalNotifyField` / `mitInternalNoteNotify`): empty to start, any active
-  agent who can see the client (`mitAgentCanSeeClient`); each picked gets a bell notification and an email (ticket From address,
-  [TCK-n] subject - a reply from an active agent's own address is filed by the parser as an internal note by them, without the
-  mismatch banner, reopening or "ticket updated" mails: one branch in `cron/ticket_email_parser.php` addReply). The `agent/ticket.php`
-  hook now always calls `mitReplyRecipientsField($ticket_id, $can_email_reply)` (Notify needs no contact email); one guarded block in
-  `agent/post/ticket.php` add_ticket_reply after the agent notifications. The script closes both pickers when focus moves into a frame (TinyMCE) -
-  ITFlow's picker closes on outside mousedown, which a click inside the editor's iframe never fires.
+  Internal notes tell agents with ITFlow's own @mentions (3.5.3, `functions/ticket_mention.php`) - our "Notify" line
+  (`mitInternalNotifyField` / `mitInternalNoteNotify` and its add_ticket_reply block) was removed in 26.10.196 (the user's choice).
+  Kept: a reply from an active agent's own address is filed by the parser as an internal note by them, without the mismatch banner,
+  reopening or "ticket updated" mails (one branch in `cron/ticket_email_parser.php` addReply). The `agent/ticket.php` hook calls
+  `mitReplyRecipientsField($ticket_id, $can_email_reply)`. The script closes the To picker when focus moves into a frame (TinyMCE).
 - Remembered list views (Oct 2026): `functions/mit_list_views.php` (ours) - the Tickets list keeps each agent's
   pill, filters, sort and List / Board in `mit_user_preferences` `listview.tickets` (like the calendar) and puts
   them back when Tickets is opened with none; saved only when picked on the page itself (Referer), never q / page /
@@ -1419,6 +1417,11 @@ model: see DEPLOYMENT.md.
   of `mit_pay_type` / `mit_office_id`): `mitInviteExtrasSave($invite_id, $_POST)` - one line in `admin/post/users.php` add_user's invite branch -
   and `mitInviteExtrasApply($invite_id, $user_id)` - one line in `userInviteAccept` before the audit line. The user form's conflict: ITFlow removed
   the "Email them their sign in details" block (ours had the smtp_provider fix in it) - taken as theirs. Smoke: invite test in `86-offices.spec.js`.
+- Upstream develop merged again (Oct 29, 26.10.196 - 2 commits, ITFlow DB 3.5.1 -> 3.5.3): 3.5.2 client onboarding (`client_onboardings`,
+  Onboard a client, a "Finish onboarding" card on the client overview - placed before our MSP Align card / Needs attention in
+  `agent/client_overview.php`, the one conflict); 3.5.3 @mentions in internal notes (`ticket_reply_mentions`, "Mentioned me" view) - they
+  replace our Notify line (see Email reply recipients). Impact report's "board" / "started_at" overlaps were onboarding's names (false).
+  Smoke: 02 and 40 mention an agent through ITFlow's @ list beside our reply box.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

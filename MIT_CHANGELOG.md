@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.10.196 - 2026-10-29
+- ITFlow's latest work merged (database 3.5.3): @mentions in internal notes - type @ and pick a teammate; they get a bell and an email, their name is highlighted on the ticket, and the tickets list has a "Mentioned me" view.
+- ITFlow's client onboarding: "Onboard a client" (under New Client's arrow and in the client menu) walks through company, locations, people, agreement, billing, IT basics and a kickoff project; the client overview shows "Finish onboarding" until it is done.
+- Our "Notify" line on internal notes is gone - use @mentions instead.
+
 ## 26.10.195 - 2026-10-28
 - Resolving a ticket always sends ITFlow's own "Ticket resolved" email: our wording for it is removed from Admin > Settings > Tickets (it was only used by the Resolve button, not when a reply resolved the ticket, so the emails differed). "Resolve - no response" keeps its own message.
 

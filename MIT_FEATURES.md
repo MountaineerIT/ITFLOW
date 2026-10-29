@@ -21,7 +21,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
-| [Email reply "To" line, internal-note Notify](#reply_recipients) | 2 | 1 | 12 | 8 | 29 | 7 |
+| [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 7 | 29 | 26 | 148 | 18 |
@@ -703,7 +703,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Our files** `functions/mit_ticket_layout.php`, `agent/js/mit_ticket_layout.js`, `includes/mit_timers_nav.php`, `js/mit_timers.js`, `functions/mit_list_views.php`, `functions/mit_no_response.php`, `agent/modals/mit_no_response/no_response.php`, `agent/post/mit_no_response.php`, `admin/includes/mit_no_response_card.php`, `admin/post/mit_no_response_settings.php`
 
 <a id="reply_recipients"></a>
-## Email reply "To" line, internal-note Notify (`reply_recipients`)
+## Email reply "To" line (internal notes use ITFlow's @mentions) (`reply_recipients`)
 
 **Takes for granted**
 
@@ -717,7 +717,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `agent/ajax.php`: mit_ticket_techs
 - `agent/calendar.php`: mit_ticket_techs
-- `agent/post/ticket.php`: mitInternalNoteNotify, mitReplyRecipientsMail, mitReplyRecipientsReady, mitTicketClientMoved, mit_reply_recipients, mit_send_to_present, mit_content, mit_resolved, mit_row, mit_subject
+- `agent/post/ticket.php`: mitReplyRecipientsMail, mitReplyRecipientsReady, mitTicketClientMoved, mit_send_to_present, mit_content, mit_resolved, mit_row, mit_subject
 - `agent/ticket.php`: mitReplyRecipientsField
 - `functions.php`: mit_reply_recipients
 - `functions/calendar.php`: mit_ticket_techs
@@ -730,12 +730,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/email.php`: emailQueue
 - `functions/logging.php`: logTicketHistory
 - `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket.php`: ticketColleagueRecipients, ticketEmailFrom, ticketReference, ticketReplyEmailed, ticketUrl
-- `functions/user.php`: userClientAccess
+- `functions/ticket.php`: ticketColleagueRecipients, ticketEmailFrom, ticketReplyEmailed
 
-**ITFlow tables** contacts, notifications, tags, ticket_replies, ticket_watchers, tickets, user_roles, users
+**ITFlow tables** contacts, tags, ticket_watchers, tickets, users
 
-**ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_name, contact_primary, notification_action, notification_client_id, notification_type, notification_user_id, role_id, role_is_admin, ticket_assigned_to, ticket_client_id, ticket_contact_id, ticket_id, ticket_reply, ticket_reply_id, ticket_subject, user_archived_at, user_email, user_id, user_name, user_role_id, user_status, user_type, watcher_email, watcher_ticket_id
+**ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_name, contact_primary, ticket_assigned_to, ticket_client_id, ticket_contact_id, ticket_id, ticket_reply_id, user_archived_at, user_email, user_id, user_name, user_type, watcher_email, watcher_ticket_id
 
 **ITFlow page ids / classes its scripts and styles use** `#replyAudience` `#ticket_add_reply`
 
