@@ -28,6 +28,7 @@ const MIT_CT_SEND_BATCH = 25;          // surveys sent per run at most
 const MIT_CT_POLL_MINUTES = 15;        // how often responses are read
 const MIT_CT_CLIENT_COMMENTS = 3;      // comments shown on the client overview - the rest on the responses page
 const MIT_CT_SUMMARY_LENGTH = 100;     // custom3 (the ticket's subject) cut to this
+const MIT_CT_API_LIMIT = 200;          // results a getBlastResults / getComments call returns at most (the newest)
 
 /** Has M036 run? */
 function mitCtReady() {
@@ -265,9 +266,62 @@ function mitCtSend(array $ticket) {
     return $status;
 }
 
+/** Make refused surveys due again (tickets still there; the start date and boards still apply). Returns how many. */
+function mitCtRetryFailed() {
+    global $mysqli;
+    mysqli_query($mysqli, "DELETE FROM mit_ct_surveys WHERE status = 'failed' AND ticket_id IS NOT NULL");
+    return mysqli_affected_rows($mysqli);
+}
+
+/** Refused surveys that can be sent again */
+function mitCtFailedCount() {
+    global $mysqli;
+    return intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM mit_ct_surveys WHERE status = 'failed' AND ticket_id IS NOT NULL"))[0] ?? 0);
+}
+
 /*
  * ---------- responses ----------
  */
+
+/**
+ * getBlastResults / getComments over a date range, every record: the API returns at most MIT_CT_API_LIMIT a call (the newest), so the
+ * range is read a week at a time and a week that comes back full is read again a day at a time. Works whichever date fromDate /
+ * toDate filter on (Customer Thermometer does not say). The first answer is kept as ct_last_sample for checking field names.
+ */
+function mitCtFetchRange($method, $from, $to) {
+    $records = [];
+    $seen = [];
+    $add = function (array $batch) use (&$records, &$seen) {
+        foreach ($batch as $record) {
+            $key = md5(json_encode($record));
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $records[] = $record;
+            }
+        }
+    };
+    $read = function ($a, $b) use ($method) {
+        $xml = mitCtCall($method, ['fromDate' => $a, 'toDate' => $b, 'limit' => MIT_CT_API_LIMIT]);
+        if ($method === 'getBlastResults' && (string) mitSetting('ct_last_sample_at', '') !== date('Y-m-d H')) {
+            mitSetSetting('ct_last_sample', mb_substr($xml, 0, 4000));
+            mitSetSetting('ct_last_sample_at', date('Y-m-d H'));
+        }
+        return mitCtXmlRecords($xml);
+    };
+    for ($week = strtotime($from); $week <= strtotime($to); $week = strtotime('+7 days', $week)) {
+        $week_end = min(strtotime('+6 days', $week), strtotime($to));
+        $batch = $read(date('Y-m-d', $week), date('Y-m-d', $week_end));
+        if (count($batch) < MIT_CT_API_LIMIT) {
+            $add($batch);
+            continue;
+        }
+        // A full week - a day at a time (a day with more than the limit still gives its newest)
+        for ($day = $week; $day <= $week_end; $day = strtotime('+1 day', $day)) {
+            $add($read(date('Y-m-d', $day), date('Y-m-d', $day)));
+        }
+    }
+    return $records;
+}
 
 /** Read responses since the oldest unanswered survey (last 60 days) and record them. Returns how many were new. */
 function mitCtFetchResponses() {
@@ -278,17 +332,13 @@ function mitCtFetchResponses() {
         mitSetSetting('ct_last_poll', date('Y-m-d H:i:s'));
         return 0;
     }
-    $filter = ['fromDate' => date('Y-m-d', strtotime($oldest)), 'toDate' => date('Y-m-d', strtotime('+1 day')), 'limit' => 1000];
-    $xml = mitCtCall('getBlastResults', $filter);
-    mitSetSetting('ct_last_sample', mb_substr($xml, 0, 4000));
-    $responses = [];
-    foreach (mitCtXmlRecords($xml) as $record) {
-        $responses[] = $record;
-    }
+    $from = date('Y-m-d', strtotime($oldest));
+    $to = date('Y-m-d', strtotime('+1 day'));
+    $responses = mitCtFetchRange('getBlastResults', $from, $to);
     // Comments may only come with getComments - joined by blast
     $comments = [];
     try {
-        foreach (mitCtXmlRecords(mitCtCall('getComments', $filter)) as $record) {
+        foreach (mitCtFetchRange('getComments', $from, $to) as $record) {
             $blast = mitCtField($record, ['blastid', 'blast']);
             $text = mitCtField($record, ['comment', 'comments', 'commenttext', 'text']);
             if ($blast !== '' && $text !== '') {
@@ -339,7 +389,13 @@ function mitCtRun($poll_now = false) {
     try {
         $sent = ['sent' => 0, 'failed' => 0, 'skipped' => 0];
         foreach (mitCtDueTickets() as $ticket) {
-            $sent[mitCtSend($ticket)]++;
+            $status = mitCtSend($ticket);
+            $sent[$status]++;
+            // A refusal is usually the account (credits or a sending limit), so the rest wait for the next run rather than all being
+            // refused - each refused one is kept as failed and can be sent again from the admin page
+            if ($status === 'failed') {
+                break;
+            }
         }
         $responses = null;
         $last_poll = strtotime(mitCtSettings()['last_poll']) ?: 0;
@@ -347,7 +403,7 @@ function mitCtRun($poll_now = false) {
             $responses = mitCtFetchResponses();
         }
         $line = $sent['sent'] . ' survey' . ($sent['sent'] === 1 ? '' : 's') . ' sent'
-            . ($sent['failed'] ? ", {$sent['failed']} refused" : '') . ($sent['skipped'] ? ", {$sent['skipped']} skipped" : '')
+            . ($sent['failed'] ? ", 1 refused by Customer Thermometer (out of send credits, a sending limit or the address unsubscribed - the rest wait for the next run)" : '') . ($sent['skipped'] ? ", {$sent['skipped']} skipped" : '')
             . ($responses !== null ? ", $responses new response" . ($responses === 1 ? '' : 's') : '');
         mitSetSetting('ct_last_run', date('Y-m-d H:i:s'));
         mitSetSetting('ct_last_result', $line);

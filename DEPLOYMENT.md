@@ -411,10 +411,8 @@ to hard-refresh (Ctrl+F5) if a page looks or behaves oddly.
 Production only ever gets what beta has run. A release is: beta checklist → "Claude, promote develop to production" → you
 approve the PR → update production on a day you pick.
 
-**When.** Not before ITFlow releases 26.11: `develop` carries ITFlow's unreleased 26.11 work (merged early in October 2026 for
-the new ticket page), so promoting it earlier puts unreleased ITFlow code on production. Promote earlier only if you decide to
-accept that. After 26.11 is out and merged, any `develop` that has been on beta for a few working days and passed the beta
-checklist can go.
+**When.** ITFlow 26.11 was released on Oct 29 2026 and merged (26.11.1), so `develop` is on an ITFlow release again. Any
+`develop` that has been on beta for a few working days and passed the beta checklist can go.
 
 **What Claude does when asked to promote** (CLAUDE.md, "Promote to production"):
 - `sh scripts/mit_verify.sh` on the test install - syntax, hooks, feature map, consistency, portability, scenarios, smoke tests;

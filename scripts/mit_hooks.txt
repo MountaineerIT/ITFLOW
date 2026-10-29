@@ -191,7 +191,6 @@ hook	agent/post/recurring_ticket.php	mitRecurringTicketSaveByDay	3
 hook	agent/post/ticket.php	mitAgentCanSeeClient	1
 hook	agent/post/ticket.php	mitBoardAfterCreate	2
 hook	agent/post/ticket.php	mitBoardRoute	2
-hook	agent/post/ticket.php	mitInternalNoteNotify	2
 hook	agent/post/ticket.php	mitNotifyOn	6
 hook	agent/post/ticket.php	mitProjectTicketMoved	4
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
@@ -210,7 +209,6 @@ hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
 hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
 hook	agent/post/ticket.php	mit_board	1
 hook	agent/post/ticket.php	mit_content	2
-hook	agent/post/ticket.php	mit_reply_recipients	1
 hook	agent/post/ticket.php	mit_resolved	4
 hook	agent/post/ticket.php	mit_row	4
 hook	agent/post/ticket.php	mit_send_to_present	2
@@ -282,6 +280,7 @@ hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
 hook	api/v1/products/read.php	mitProductApiColumns	2
 hook	client/includes/check_login.php	mitSessionCheck	2
 hook	client/includes/footer.php	mit_portal_tables	1
+hook	client/includes/header.php	mitAssetStampStart	2
 hook	client/login_microsoft.php	mitPortalEntraTenant	1
 hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
 hook	client/login_reset.php	mitLoginHead	2
@@ -400,7 +399,6 @@ hook	functions/ticket.php	mitNotifyOn	4
 hook	functions/ticket.php	mitOfficeForTicket	8
 hook	functions/ticket.php	mitOutlookSyncsEmail	2
 hook	functions/ticket.php	mitRecurringTicketByDay	3
-hook	functions/ticket.php	mitResolvedMailContent	2
 hook	functions/ticket.php	mitScheduleConflicts	1
 hook	functions/ticket.php	mitScheduleExtraRecipients	2
 hook	functions/ticket.php	mitScheduleNotify	6
@@ -448,6 +446,7 @@ hook	includes/cron_jobs.php	mit_qbo_sync	2
 hook	includes/cron_jobs.php	mit_timesheets	3
 hook	includes/cron_jobs.php	mit_usage	3
 hook	includes/footer.php	mitVersion	2
+hook	includes/header.php	mitAssetStampStart	2
 hook	includes/header.php	mitThemeHead	2
 hook	includes/load_user_session.php	mitSessionCheck	2
 hook	includes/stripe_init.php	mitDevBlockStripe	2

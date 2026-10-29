@@ -114,6 +114,11 @@ model: see DEPLOYMENT.md.
   Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
   itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
+- Version stamps on ITFlow's scripts / styles (26.10.197, the user's choice - ITFlow links them with no version, so browsers kept the old
+  js/app.js after the 3.5.3 merge and @mentions did nothing until a hard refresh): `mitAssetStampStart()` / `mitAssetStamp()` in
+  `functions/mit_common.php` - an output filter (HTML only) adding `?v=<file time>` to every local src / href ending .js / .css without one.
+  One line each at the top of `includes/header.php` and `client/includes/header.php` (after ITFlow's own ob_start there); ITFlow's tags are
+  untouched. Not on login.php / modals loaded by ajax. Smoke `90-asset-stamps.spec.js`.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
   `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (Release
   shows it with "ITFlow <APP_VERSION>" under it, and requires `admin/includes/mit_changelog_card.php` under the version row).
@@ -773,13 +778,11 @@ model: see DEPLOYMENT.md.
   and in `agent/post/ticket.php` add_ticket_reply `mitReplyRecipientsMail` replaces `ticketMailContactAndWatchers` only when
   the form posted `mit_send_to_present` (API and other senders unchanged). "Email reply" still needs a contact with an address
   (ITFlow's `$can_email_reply`). `functions.php` (require).
-  Internal notes have a "Notify" line in the same file (`mitInternalNotifyField` / `mitInternalNoteNotify`): empty to start, any active
-  agent who can see the client (`mitAgentCanSeeClient`); each picked gets a bell notification and an email (ticket From address,
-  [TCK-n] subject - a reply from an active agent's own address is filed by the parser as an internal note by them, without the
-  mismatch banner, reopening or "ticket updated" mails: one branch in `cron/ticket_email_parser.php` addReply). The `agent/ticket.php`
-  hook now always calls `mitReplyRecipientsField($ticket_id, $can_email_reply)` (Notify needs no contact email); one guarded block in
-  `agent/post/ticket.php` add_ticket_reply after the agent notifications. The script closes both pickers when focus moves into a frame (TinyMCE) -
-  ITFlow's picker closes on outside mousedown, which a click inside the editor's iframe never fires.
+  Internal notes tell agents with ITFlow's own @mentions (3.5.3, `functions/ticket_mention.php`) - our "Notify" line
+  (`mitInternalNotifyField` / `mitInternalNoteNotify` and its add_ticket_reply block) was removed in 26.10.196 (the user's choice).
+  Kept: a reply from an active agent's own address is filed by the parser as an internal note by them, without the mismatch banner,
+  reopening or "ticket updated" mails (one branch in `cron/ticket_email_parser.php` addReply). The `agent/ticket.php` hook calls
+  `mitReplyRecipientsField($ticket_id, $can_email_reply)`. The script closes the To picker when focus moves into a frame (TinyMCE).
 - Remembered list views (Oct 2026): `functions/mit_list_views.php` (ours) - the Tickets list keeps each agent's
   pill, filters, sort and List / Board in `mit_user_preferences` `listview.tickets` (like the calendar) and puts
   them back when Tickets is opened with none; saved only when picked on the page itself (Referer), never q / page /
@@ -967,7 +970,12 @@ model: see DEPLOYMENT.md.
   each - `mitCtDashCard` in `agent/dashboard.php` (after mitBoardDashCard, last 90 days) and `mitCtClientCard` in
   `agent/client_overview.php` (before Technical, last 12 months + the newest `MIT_CT_CLIENT_COMMENTS` comments, then an "All N comments" link
   `[data-mit-ct-more]` - 26.10.129). The reviews page has a client picker (`[data-mit-ct-client-pick]`, clients with responses, 26.10.129). Ticket history gets "survey sent" / "rated".
-  Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by). Test install stand-in
+  Development mode: surveys go to the test inbox (sendEmail is a GET - the read-only gate would let it by).
+  26.10.194: getBlastResults / getComments return at most 200 (the newest) - `mitCtFetchRange` reads fromDate / toDate a week at a time,
+  a full week again a day at a time (`MIT_CT_API_LIMIT`). A sendEmail answer of 0 (credits, limit, unsubscribed) keeps that survey as
+  failed and stops the run; `mitCtRetryFailed` ("Send the refused ones again", `[data-mit-ct-refused]`, handler `mit_ct_retry`) deletes
+  failed rows so they are due again. The stand-in has `/_credits?on=0|1`, `date=` on /_respond and the 200 / date window; scenario
+  `scenario-ct-responses.php`. Test install stand-in
   `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
 - MSP Align, read only (Oct 25, 26.10.131): `functions/mit_align.php` (ours, required from `functions.php`) - the user's own self-hosted
   vCIO toolkit (github.com/MSP-ALIGN/MSP-ALIGN, API docs `docs/API.md` there, read at 2.25.0). MSP Align keeps ITFlow's ids on what it
@@ -1008,11 +1016,9 @@ model: see DEPLOYMENT.md.
   (sends nothing), a client reply reopens it. Customer Thermometer skips it: `mitNoResponseNotSql('t')` in `mitCtDueTickets`
   (`resolved_at <=> ticket_resolved_at`, so a later normal resolution is surveyed). Card `admin/includes/mit_no_response_card.php` (one
   require at the end of `admin/settings_ticket.php`, "Messages when resolving"), handler `admin/post/mit_no_response_settings.php`.
-  The same card words ITFlow's "Ticket resolved" email: `mit_settings` resolved_message (empty = ITFlow's own; saving ITFlow's wording
-  unchanged keeps it empty), `mitResolvedMailBody($row, $note)` - one guarded line before the return in `functions/ticket.php`
-  ticketMailResolved swaps the body (subject stays ITFlow's; reply marker + company signature added; [Status] [Ticket Link] [Note] besides
-  the no-response placeholders; ITFlow's $note is SQL-escaped HTML, put in after the rest is escaped). Re-check if upstream changes
-  ticketMailResolved (26.11's canned responses don't touch it). Smoke `24-no-response.spec.js`.
+  The "Ticket resolved" email is ITFlow's own (26.10.195, the user's choice): our wording for it (`mit_settings` resolved_message,
+  `mitResolvedMailContent` in ticketMailResolved) is gone - it only reached the Resolve button, not a reply resolving the ticket. A saved
+  resolved_message row is left unused. Smoke `24-no-response.spec.js`.
 - Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
   Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
   section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),
@@ -1161,8 +1167,7 @@ model: see DEPLOYMENT.md.
     `mitQboHandlesInvoiceMail`) and the auto-send condition starts `!$mit_hold &&`; usage matches lines in item_order (ITFlow's copy
     order). `mitQboInvoiceBar` hides the new page's controls (`#add-line`, `.itflow-paper-actions`, `[data-billing-ai]`, billing_item.php,
     invoice_add_*). Our old quote add-row cells (`mitQuoteAddCell*`, `mitQuoteHead*`) and the "document look" CSS are unused.
-  - Ticket emails are built by ITFlow (`ticketEmailContent` / `emailQueue`): `mitResolvedMailContent($row, $note, $content)` (replaces
-    mitResolvedMailBody - [Ticket Link] reads "the button below"), the no-response email goes through `ticketMailSend`,
+  - Ticket emails are built by ITFlow (`ticketEmailContent` / `emailQueue`): the no-response email goes through `ticketMailSend`,
     `mitScheduleExtraRecipients` (replaces mitScheduleExtraMail), `mitTicketTechsCopyReply` (replaces mitTicketTechsCopyMail - one
     guarded line after ITFlow's `ticketMailAssigneeReplied` in the parser and `client/post.php`), the assign_email switch is one line
     in `ticketMailAssigned` (not for previews). `mitReplyRecipientsMail` gets ITFlow's built email.
@@ -1401,7 +1406,7 @@ model: see DEPLOYMENT.md.
   `ticket_replies.ticket_reply_emailed` / `_emailed_to`, `email_queue.email_ticket_reply_id`, ITFlow's `ticketReplyEmailed($reply_id, $sent)`
   and `emailQueue(..., ['ticket_reply_id' => ...])`). Ours follows: `mitReplyRecipientsMail(..., $reply_id)` passes the reply id and records it
   (its return = `$emailed_to` for ITFlow's "emailed to N people" flash in add_ticket_reply; nobody picked -> "nobody was picked in To"),
-  `mitNoResponseResolve` the same for its note; ticketMailResolved keeps `mitResolvedMailContent` with ITFlow's reply id. ITFlow's own
+  `mitNoResponseResolve` the same for its note. ITFlow's own
   pickers now close on a click into an iframe (`itflowDismissPopups`) - our To / Notify script's frame-focus close is kept (harmless).
   Security sweep conflicts (API asset / contact models, link_contact_to_asset) taken as ITFlow's (`assetClientOwnedId` - a vendor must be
   the client's own now, as in the asset form). Smoke: 40-reply-recipients checks the emailed record; scenario-no-response too.
@@ -1417,11 +1422,19 @@ model: see DEPLOYMENT.md.
   of `mit_pay_type` / `mit_office_id`): `mitInviteExtrasSave($invite_id, $_POST)` - one line in `admin/post/users.php` add_user's invite branch -
   and `mitInviteExtrasApply($invite_id, $user_id)` - one line in `userInviteAccept` before the audit line. The user form's conflict: ITFlow removed
   the "Email them their sign in details" block (ours had the smtp_provider fix in it) - taken as theirs. Smoke: invite test in `86-offices.spec.js`.
+- Upstream develop merged again (Oct 29, 26.10.196 - 2 commits, ITFlow DB 3.5.1 -> 3.5.3): 3.5.2 client onboarding (`client_onboardings`,
+  Onboard a client, a "Finish onboarding" card on the client overview - placed before our MSP Align card / Needs attention in
+  `agent/client_overview.php`, the one conflict); 3.5.3 @mentions in internal notes (`ticket_reply_mentions`, "Mentioned me" view) - they
+  replace our Notify line (see Email reply recipients). Impact report's "board" / "started_at" overlaps were onboarding's names (false).
+  Smoke: 02 and 40 mention an agent through ITFlow's @ list beside our reply box.
+- ITFlow 26.11 released (Oct 29, 26.11.1 - tag `v26.11`, 3 commits past the develop we had, no database update): contracts refuse
+  impossible dates, keep month-end terms, leave archived clients' contracts alone (signing withdrawn), refuse deleting used / signed ones;
+  bulk client email needs Client view. Clean merge, impact report 0 to act on. Our version starts again at 26.11.1.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
   (the Graph path already sends inline parts); skipped when `$mail->Ical` is set (PHPMailer's alt_inline leaves the calendar part out). PO PDF
-  logo by file path (TCPDF puts DOCUMENT_ROOT in front of a web path, none from cron). Resolved / no-response wording: `mitTextParagraphs` keeps
+  logo by file path (TCPDF puts DOCUMENT_ROOT in front of a web path, none from cron). No-response wording: `mitTextParagraphs` keeps
   single line breaks and drops a first paragraph that is only a greeting (`mitIsGreeting` - ITFlow greets each recipient itself);
   `mitNoResponseResolve` resolves before it builds the email. Scenario `scenario-mail-logo.php` (also end to end through the mail queue and the
   Microsoft 365 stand-in); scenario-no-response checks one greeting and Resolved.
@@ -1484,9 +1497,8 @@ model: see DEPLOYMENT.md.
 2. Merge only official releases: `upstream/master` / the newest `vYY.MM` tag – not
    upstream `develop`. Exception (Oct 2026): upstream `develop` (unreleased 26.11 work, DB
    2.8.9) was merged into our `develop` at the user's request to get the new ticket page
-   early. Until upstream releases 26.11, `develop` is ahead of any release - **do not promote
-   `develop` to `MountaineerIT-ITFLOW` before 26.11 is out** without the user explicitly accepting
-   unreleased upstream code in production. When 26.11 is released, merge its tag as usual.
+   early. **26.11 was released on Oct 29 2026 and its tag merged (26.11.1)** - `develop` is on a release again, so the
+   "not before 26.11" hold on promoting is over. From here on merge release tags only, unless the user asks for develop again.
    Checked Oct 18 (user chose to wait for the release): upstream develop then had 47 more commits, DB 2.9.0 -> 3.2.2.
    Merged again Oct 25 at the user's request (public beta): DB 3.4.7; the product column clash is handled (mitBeforeItflowUpdate + M040,
    see "Upstream develop merged again" above). Later upstream develop commits merge on top the same way; when 26.11 is tagged, merge the tag.
@@ -1508,7 +1520,7 @@ model: see DEPLOYMENT.md.
    user before pushing to `develop`.
 
 ## "Promote to production"
-Not before ITFlow 26.11 is released and merged (see "Pull in ITFlow's updates" 2.) unless the user accepts unreleased upstream code.
+ITFlow 26.11 is released and merged (Oct 29, 26.11.1), so `develop` can be promoted once it has been on beta a few working days.
 Before the PR, a practice run on a fresh production backup (the user makes a Database Only backup and shares it + its key; first
 done Oct 27, 26.10.173-174): restore it into a copy (`sh scripts/mit_test_copy.sh 9`, database recreated with
 `COLLATE utf8mb4_uca1400_ai_ci` - production is MariaDB 11.x -, dump imported, `$config_mit_dev_mode = 1` + a test inbox), run

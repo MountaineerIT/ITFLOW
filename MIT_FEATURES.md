@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 60 | 11 | 7 | 28 | 69 | 33 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 159 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 60 | 12 | 7 | 28 | 69 | 35 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 161 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -20,8 +20,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 11 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 10 |
-| [Email reply "To" line, internal-note Notify](#reply_recipients) | 2 | 1 | 12 | 8 | 29 | 7 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
+| [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 7 | 29 | 26 | 148 | 18 |
@@ -31,7 +31,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
-| [Customer Thermometer surveys](#customer_thermometer) | 5 | 1 | 15 | 7 | 24 | 4 |
+| [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
@@ -46,7 +46,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Module rows (module_*) and roleModuleInfo() are how permissions work; Admin > Settings > Modules form posts to settings_module.php.
 - Our menus hang off ITFlow's side_nav.php sections (INTEGRATIONS, BILLING, SUPPORT); our settings pages join settingsPages() / settingsFields() / the overview's $summaries (functions/settings.php, admin/settings.php), which feed the Settings menu, overview and Find a setting.
 
-**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
+**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/90-asset-stamps.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -65,6 +65,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/user/post/profile.php`: mitSessionRestamp
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `client/includes/check_login.php`: mitSessionCheck
+- `client/includes/header.php`: mitAssetStampStart
 - `client/login_microsoft.php`: mitPortalEntraTenant, mitPortalEntraTenantOk
 - `client/post.php`: mitSessionRestamp
 - `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
@@ -76,6 +77,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/user.php`: mitSessionRestamp
 - `includes/cron_jobs.php`: mit_ai_helper, mit_align, mit_boards, mit_customer_thermometer, mit_ninjaone, mit_qbo_billing, mit_timesheets, mit_usage
 - `includes/footer.php`: mitVersion
+- `includes/header.php`: mitAssetStampStart
 - `includes/load_user_session.php`: mitSessionCheck
 - `js/unbilled_time.js`: mit_to_bill, MountaineerIT
 - `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_updates_applied
@@ -678,23 +680,21 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/mail_queue.php`: mit_dev_mode
 - `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
 - `functions/backup.php`: mit_feedback
-- `functions/ticket.php`: mitResolvedMailContent
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
 
 **ITFlow functions it calls**
 
 - `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
-- `functions/email.php`: emailPlainText
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketForModal, ticketForRequest, ticketIsOpen, ticketMailSend, ticketOpenTaskCount, ticketReference, ticketReplyEmailed, ticketResolve, ticketRow
 
-**ITFlow tables** credentials, history, notifications, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
+**ITFlow tables** credentials, history, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
 
-**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status_name, ticket_subject, user_id, watcher_ticket_id
+**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, user_id, watcher_ticket_id
 
 **ITFlow page ids / classes its scripts and styles use** `#public_reply_type_opt1` `#replyAudience` `#replyComposer` `#replySubmitLabel` `#startStopTimer` `#ticket_add_reply` `.itflow-ticket-trips`
 
@@ -705,7 +705,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Our files** `functions/mit_ticket_layout.php`, `agent/js/mit_ticket_layout.js`, `includes/mit_timers_nav.php`, `js/mit_timers.js`, `functions/mit_list_views.php`, `functions/mit_no_response.php`, `agent/modals/mit_no_response/no_response.php`, `agent/post/mit_no_response.php`, `admin/includes/mit_no_response_card.php`, `admin/post/mit_no_response_settings.php`
 
 <a id="reply_recipients"></a>
-## Email reply "To" line, internal-note Notify (`reply_recipients`)
+## Email reply "To" line (internal notes use ITFlow's @mentions) (`reply_recipients`)
 
 **Takes for granted**
 
@@ -719,7 +719,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `agent/ajax.php`: mit_ticket_techs
 - `agent/calendar.php`: mit_ticket_techs
-- `agent/post/ticket.php`: mitInternalNoteNotify, mitReplyRecipientsMail, mitReplyRecipientsReady, mitTicketClientMoved, mit_reply_recipients, mit_send_to_present, mit_content, mit_resolved, mit_row, mit_subject
+- `agent/post/ticket.php`: mitReplyRecipientsMail, mitReplyRecipientsReady, mitTicketClientMoved, mit_send_to_present, mit_content, mit_resolved, mit_row, mit_subject
 - `agent/ticket.php`: mitReplyRecipientsField
 - `functions.php`: mit_reply_recipients
 - `functions/calendar.php`: mit_ticket_techs
@@ -732,12 +732,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/email.php`: emailQueue
 - `functions/logging.php`: logTicketHistory
 - `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket.php`: ticketColleagueRecipients, ticketEmailFrom, ticketReference, ticketReplyEmailed, ticketUrl
-- `functions/user.php`: userClientAccess
+- `functions/ticket.php`: ticketColleagueRecipients, ticketEmailFrom, ticketReplyEmailed
 
-**ITFlow tables** contacts, notifications, tags, ticket_replies, ticket_watchers, tickets, user_roles, users
+**ITFlow tables** contacts, tags, ticket_watchers, tickets, users
 
-**ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_name, contact_primary, notification_action, notification_client_id, notification_type, notification_user_id, role_id, role_is_admin, ticket_assigned_to, ticket_client_id, ticket_contact_id, ticket_id, ticket_reply, ticket_reply_id, ticket_subject, user_archived_at, user_email, user_id, user_name, user_role_id, user_status, user_type, watcher_email, watcher_ticket_id
+**ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_name, contact_primary, ticket_assigned_to, ticket_client_id, ticket_contact_id, ticket_id, ticket_reply_id, user_archived_at, user_email, user_id, user_name, user_type, watcher_email, watcher_ticket_id
 
 **ITFlow page ids / classes its scripts and styles use** `#replyAudience` `#ticket_add_reply`
 
@@ -1188,7 +1187,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - Resolved / closed tickets by ticket_resolved_at / ticket_closed_at; ticketMergeInto writes "merged this ticket into" history.
 
-**Tests** `tests/smoke/18-customer-thermometer.spec.js`
+**Tests** `tests/smoke/18-customer-thermometer.spec.js`, `tests/scenarios/scenario-ct-responses.php`
 
 **Hooks in ITFlow's files**
 

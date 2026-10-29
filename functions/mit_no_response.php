@@ -128,57 +128,6 @@ function mitNoResponseNotSql($alias = 't') {
     return "NOT EXISTS (SELECT 1 FROM mit_ticket_no_response nr WHERE nr.ticket_id = $alias.ticket_id AND nr.resolved_at <=> $alias.ticket_resolved_at)";
 }
 
-/*
- * The "Ticket resolved" email (ITFlow's ticketMailResolved) in the company's own words: mit_settings resolved_message, edited on the
- * same Admin > Settings > Ticket card. Empty = ITFlow's own email, unchanged. One guarded line in functions/ticket.php
- * ticketMailResolved passes ITFlow's email content (ticketEmailContent) through mitResolvedMailContent, which puts our words in as
- * its paragraphs; ITFlow's email keeps its reply line, button (the ticket link), the agent's note (where [Note] is), the conversation
- * and the company's details. The subject stays ITFlow's.
- */
-
-const MIT_RESOLVED_DEFAULT = "Hello [Contact],\n\n"
-    . "Your ticket regarding [Subject] has been marked as solved and is pending closure.\n\n"
-    . "[Note]\n\n"
-    . "If your request/issue is resolved, you can simply ignore this email. If you need further assistance, please reply or re-open it here: [Ticket Link]\n\n"
-    . "Ticket: [Ticket]\nSubject: [Subject]\nStatus: [Status]";
-
-/** The saved wording for the "Ticket resolved" email, or '' for ITFlow's own. */
-function mitResolvedTemplateSaved() {
-    return trim((string) mitSetting('resolved_message', ''));
-}
-
-/** What the card shows: the saved wording, else ITFlow's own written as a template. */
-function mitResolvedTemplate() {
-    $saved = mitResolvedTemplateSaved();
-    return $saved !== '' ? $saved : MIT_RESOLVED_DEFAULT;
-}
-
-/** The placeholders the resolved email may use, and what each is for. */
-function mitResolvedPlaceholders() {
-    return mitNoResponsePlaceholders() + ['[Status]' => 'its status', '[Ticket Link]' => 'the words "the button below" - the email has a button to view or re-open it',
-        '[Note]' => 'what the agent wrote when resolving (left out when nothing was)'];
-}
-
-/**
- * ITFlow's resolved email ($content, from ticketEmailContent) in the company's words - unchanged when none are saved. $note is
- * ITFlow's: the agent's words as HTML, or ''.
- */
-function mitResolvedMailContent(array $row, $note, array $content) {
-    $template = mitResolvedTemplateSaved();
-    if ($template === '') {
-        return $content;
-    }
-    $text = mitNoResponseFill(strtr($template, ['[Status]' => (string) ($row['ticket_status_name'] ?? '')]), $row);
-    // The ticket link is ITFlow's button now; the note stays ITFlow's quoted message, only where [Note] is
-    $has_note = strpos($text, '[Note]') !== false;
-    $text = preg_replace('/[ \t]*\[Note\][ \t]*(\n\n|\n)?/', '', str_replace('[Ticket Link]', 'the button below', $text));
-    $content['intro'] = mitTextParagraphs($text);
-    if (!$has_note || trim(emailPlainText((string) $note)) === '') {
-        unset($content['message']);
-    }
-    return ticketEmailPreview($content);
-}
-
 /**
  * Plain text in paragraphs for emailHtml's intro - blank lines split them, a single line break stays one ("Thanks,\nChris" -
  * emailHtml writes each paragraph with nl2br). A first paragraph that is only a greeting ("Hi Zed," / "Hello [First Name],") is

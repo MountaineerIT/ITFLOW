@@ -86,36 +86,29 @@ test('a running ticket timer stops when the note is sent', async ({ page }) => {
     await expectClean(page, errors);
 });
 
-test('internal note notifies the tech picked', async ({ page }) => {
+test('internal note: an @mention tells the agent (ITFlow\'s mentions - our Notify line is gone)', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     const errors = watch(page);
     const ticketPage = `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`;
     await visit(page, ticketPage, errors);
     await page.click('label[for=public_reply_type_opt0]');
-    const line = page.locator('#mitNotify');
-    await expect(line, 'the Notify line on internal notes').toBeVisible();
+    await expect(page.locator('#mitNotify'), 'no Notify line of ours').toHaveCount(0);
     await expect(page.locator('#mitSendTo'), 'not the email To line').toBeHidden();
-    const agent = await line.locator('select option').first().evaluate((o) => ({ id: o.value, name: o.textContent.trim() })).catch(() => null);
-    if (agent) {
-        // Its list closes on a click in the note editor (TinyMCE's frame, which the page never sees)
-        await line.locator('.itflow-select').click();
-        await expect(page.locator('.itflow-select-panel')).toHaveCount(1);
-        const editor = await page.locator('#replyComposer iframe').first().boundingBox();
-        const panel = await page.locator('.itflow-select-panel').boundingBox();
-        if (panel.y + panel.height + 10 < editor.y + editor.height) {
-            await page.mouse.click(editor.x + editor.width - 20, editor.y + editor.height - 10); // clear of the open list
-        } else {
-            await page.frameLocator('#replyComposer iframe').first().locator('body').focus(); // a long list covers the editor
-        }
-        await expect(page.locator('.itflow-select-panel'), 'Notify list closed by a click in the editor').toHaveCount(0);
-    }
-    test.skip(!agent, 'no other agent who can see this client');
+    const agents = JSON.parse((await page.locator('#ticket_reply').getAttribute('data-mention-agents')) || '[]');
+    test.skip(!agents.length, 'no agent who can open this client\'s tickets');
+    const agent = agents[0];
+    const body = page.frameLocator('#replyComposer iframe').first().locator('body');
+    await body.click();
+    await page.keyboard.type('Smoke test note for ');
+    await page.keyboard.type('@' + agent.name.slice(0, 3), { delay: 80 });
+    await expect(page.locator('.tox-collection__item', { hasText: agent.name }).first(), 'the @ list').toBeVisible();
+    await page.keyboard.press('Enter');
+    await expect(body.locator(`.itflow-mention[data-mention="${agent.id}"]`), 'the mention in the note').toHaveCount(1);
     const form = page.locator('form:has(#replyComposer)');
-    await fillForm(form, { ticket_reply: 'Smoke test note for a tech', 'mit_notify[]': [agent.id] });
     await submit(form, 'add_ticket_reply');
+    expect(await flash(page), 'ITFlow says who was told').toContain(`${agent.name} was told`);
     await visit(page, ticketPage, errors);
-    const history = page.locator('.card', { has: page.locator('.card-title i.fa-history') });
-    await expect(history).toContainText(`notified ${agent.name} about an internal note`);
+    await expect(page.locator('.itflow-mention', { hasText: agent.name }).first(), 'the note shows the mention').toBeVisible();
     await expectClean(page, errors);
 });
 

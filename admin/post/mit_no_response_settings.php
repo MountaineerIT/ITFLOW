@@ -14,15 +14,10 @@ if (isset($_POST['mit_edit_no_response'])) {
         return mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST[$field] ?? ''))), 0, 5000);
     };
     mitSetSetting('no_response_message', $clean('mit_no_response_message'));
-    if (isset($_POST['mit_resolved_message'])) {
-        // ITFlow's own wording unchanged (or emptied) keeps ITFlow's own email
-        $resolved = $clean('mit_resolved_message');
-        mitSetSetting('resolved_message', $resolved === MIT_RESOLVED_DEFAULT ? '' : $resolved);
-    }
 
-    logAudit("Settings", "Edit", "$session_name edited the messages sent when resolving tickets");
+    logAudit("Settings", "Edit", "$session_name edited the Resolve - no response message");
 
-    flashAlert("Messages saved");
+    flashAlert("Message saved");
 
     redirect();
 

@@ -1,6 +1,6 @@
 <?php
 /*
- * "Resolve - no response" and the "Ticket resolved" wording (functions/mit_no_response.php), with the Customer Thermometer survey
+ * "Resolve - no response" (functions/mit_no_response.php), with the Customer Thermometer survey
  * rule (mitCtDueTickets): the [Agent] placeholder writes the agent's name as it is ($session_name is kept SQL-escaped by ITFlow),
  * the message reaches the contact - and the watchers when the contact has no address -, a no-response ticket is never surveyed,
  * but once reopened and resolved the normal way it is.
@@ -79,37 +79,16 @@ try {
         scenarioCheck('a ticket merged into another is not surveyed', in_array((string) $child, array_column(mitCtDueTickets(500), 'ticket_id'), true), false);
     }
 
-    echo "resolved wording\n";
-    mitSetSetting('resolved_message', "Hi [First Name],\n\n[Ticket] is [Status]. From [Agent].\n\n[Note]\n\nReopen: [Ticket Link]");
+    echo "ITFlow's own resolved email (our wording was removed in 26.10.195)\n";
+    // A wording saved before then is set aside, not used
+    mitSetSetting('resolved_message', "Hi [First Name],\n\nOld wording of ours. Reopen: [Ticket Link]");
     $t3 = scenarioMakeTicket($client_id, $contact_id);
     ticketResolve(ticketRow($t3));
     ticketMailResolved($t3, '<p>Fixed the printer</p>');
     $body = $content($t3);
-    scenarioCheck('our wording used', strpos($body, 'Reopen: the button below') !== false, true);
-    scenarioCheck('our "Hi [First Name]," left out - ITFlow greets each person', [strpos($body, 'Hi Zed') === false, substr_count($body, 'Hello ')], [true, 1]);
-    scenarioCheck('[Status] filled in', strpos($body, 'is Resolved.') !== false, true);
+    scenarioCheck("ITFlow's wording", strpos($body, 'We have marked ticket') !== false, true);
+    scenarioCheck('a saved wording of ours is not used', strpos($body, 'Old wording of ours') === false, true);
     scenarioCheck('the note is kept', strpos($body, 'Fixed the printer') !== false, true);
-    scenarioCheck('[Agent] as written in the email', strpos($body, 'From Pat O&#039;Neil.') !== false || strpos($body, "From Pat O'Neil.") !== false, true);
-    scenarioCheck('no SQL backslash in the email', strpos($body, 'O\\') === false, true);
-    // ITFlow 3.4.8: given the resolving note's id, the note is marked emailed - our wording still used
-    if (function_exists('ticketReplyEmailReady') && ticketReplyEmailReady()) {
-        mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '<p>Fixed it</p>', ticket_reply_type = 'Public', ticket_reply_by = 1, ticket_reply_ticket_id = $t3");
-        $resolve_note = intval(mysqli_insert_id($mysqli));
-        ticketMailResolved($t3, '<p>Fixed it</p>', $resolve_note);
-        scenarioCheck('resolved email with a note id: the note is marked emailed', scenarioValue("SELECT ticket_reply_emailed FROM ticket_replies WHERE ticket_reply_id = $resolve_note"), '1');
-        scenarioCheck('... and the email has our wording', strpos((string) scenarioValue("SELECT email_content FROM email_queue WHERE email_ticket_reply_id = $resolve_note LIMIT 1"), 'Reopen: the button below') !== false, true);
-    }
-    // No note: nothing left where [Note] was
-    $t4 = scenarioMakeTicket($client_id, $contact_id);
-    ticketResolve(ticketRow($t4));
-    ticketMailResolved($t4, '');
-    scenarioCheck('empty note: no placeholder left', strpos($content($t4), '[Note]') === false, true);
-    // Set back to ITFlow's: ITFlow's own email
-    mitSetSetting('resolved_message', '');
-    $t5 = scenarioMakeTicket($client_id, $contact_id);
-    ticketResolve(ticketRow($t5));
-    ticketMailResolved($t5, '');
-    scenarioCheck("empty wording: ITFlow's own email", strpos($content($t5), 'From Pat') === false && $content($t5) !== '', true);
 } finally {
     $saved === null ? mitDeleteSetting('resolved_message') : mitSetSetting('resolved_message', $saved);
     mysqli_query($mysqli, "DELETE FROM email_queue WHERE email_subject LIKE '%ZZ scenario ticket%'");

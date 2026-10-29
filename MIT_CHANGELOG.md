@@ -4,6 +4,25 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1 - 2026-10-29
+- ITFlow 26.11 merged - the official release of everything we had been running ahead of time, plus its last fixes: contracts refuse impossible dates (like Feb 30) and keep month-end terms on the last day of shorter months; an archived client's contracts are left as they are and their signing requests withdrawn; a contract that was used or signed can't be deleted (cancel it instead); bulk email to clients needs Client view, not edit.
+- Our version numbers start again at 26.11.1.
+
+## 26.10.197 - 2026-10-29
+- After an update, browsers now fetch ITFlow's changed scripts and styles by themselves - no more Ctrl+Shift+R before a new feature works (each one is linked with a version stamp).
+
+## 26.10.196 - 2026-10-29
+- ITFlow's latest work merged (database 3.5.3): @mentions in internal notes - type @ and pick a teammate; they get a bell and an email, their name is highlighted on the ticket, and the tickets list has a "Mentioned me" view.
+- ITFlow's client onboarding: "Onboard a client" (under New Client's arrow and in the client menu) walks through company, locations, people, agreement, billing, IT basics and a kickoff project; the client overview shows "Finish onboarding" until it is done.
+- Our "Notify" line on internal notes is gone - use @mentions instead.
+
+## 26.10.195 - 2026-10-28
+- Resolving a ticket always sends ITFlow's own "Ticket resolved" email: our wording for it is removed from Admin > Settings > Tickets (it was only used by the Resolve button, not when a reply resolved the ticket, so the emails differed). "Resolve - no response" keeps its own message.
+
+## 26.10.194 - 2026-10-28
+- Customer Thermometer: every response is read back - Customer Thermometer gives at most 200 results a request (the newest), so responses older than the newest 200 were never picked up; they are now read a week at a time (a full week again a day at a time).
+- Customer Thermometer: when a send is refused (out of send credits, a sending limit or the address unsubscribed) the run stops there instead of using up every waiting ticket, says so plainly, and Admin > Integrations > Customer Thermometer offers "Send the refused ones again" once it is sorted out (before, a refused survey was never sent).
+
 ## 26.10.193 - 2026-10-28
 - Quick ticket: the window scrolls when a contact has several open tickets - its title and Make ticket stay on screen (it ran off the bottom with no scrollbar).
 

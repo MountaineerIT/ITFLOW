@@ -29,7 +29,7 @@ return [
             'admin/database_updates/mountaineerit/*.php', 'includes/mit_version.php', 'MIT_CHANGELOG.md', 'admin/includes/mit_changelog_card.php',
             'functions/mit_settings_index.php', 'admin/includes/mit_integrations_nav.php', 'admin/includes/mit_modules_fields.php',
             'agent/includes/mit_billing_nav.php'],
-        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
+        'tests' => ['tests/smoke/01-pages.spec.js', 'tests/smoke/90-asset-stamps.spec.js', 'tests/smoke/72-module-switches.spec.js', 'tests/smoke/30-checks.spec.js', 'tests/smoke/77-sign-in-security.spec.js', 'tests/smoke/78-portal-sessions.spec.js',
             'tests/smoke/79-platform-pages.spec.js', 'tests/smoke/88-settings-overview.spec.js', 'tests/scenarios/scenario-mail-logo.php', 'tests/scenarios/scenario-pager-many-pages.php', 'tests/smoke/83-contracts.spec.js', 'tests/smoke/99-php-log.spec.js'],
         'assumes' => [
             'ITFlow runs admin/database_updates.php in version order and our runner after it (update_cli, setup, restores).',
@@ -207,7 +207,7 @@ return [
         'overlap' => ['ticket_layout', 'no_response', 'ticket_timer', 'time_tracking', 'list_view', 'saved_view'],
     ],
     'reply_recipients' => [
-        'name' => 'Email reply "To" line, internal-note Notify',
+        'name' => 'Email reply "To" line (internal notes use ITFlow\'s @mentions)',
         'files' => ['functions/mit_reply_recipients.php', 'agent/js/mit_reply_recipients.js'],
         'tests' => ['tests/smoke/40-reply-recipients.spec.js'],
         'assumes' => [
@@ -345,7 +345,7 @@ return [
         'name' => 'Customer Thermometer surveys',
         'files' => ['functions/mit_ct.php', 'admin/mit_customer_thermometer.php', 'admin/post/mit_customer_thermometer.php', 'agent/mit_ct_reviews.php',
             'cron/mit_customer_thermometer.php'],
-        'tests' => ['tests/smoke/18-customer-thermometer.spec.js'],
+        'tests' => ['tests/smoke/18-customer-thermometer.spec.js', 'tests/scenarios/scenario-ct-responses.php'],
         'assumes' => ['Resolved / closed tickets by ticket_resolved_at / ticket_closed_at; ticketMergeInto writes "merged this ticket into" history.'],
         'watch' => ['merged this ticket into'],
         'overlap' => ['survey', 'feedback', 'csat', 'satisfaction', 'rating'],
