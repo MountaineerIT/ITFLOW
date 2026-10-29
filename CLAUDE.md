@@ -1427,6 +1427,9 @@ model: see DEPLOYMENT.md.
   `agent/client_overview.php`, the one conflict); 3.5.3 @mentions in internal notes (`ticket_reply_mentions`, "Mentioned me" view) - they
   replace our Notify line (see Email reply recipients). Impact report's "board" / "started_at" overlaps were onboarding's names (false).
   Smoke: 02 and 40 mention an agent through ITFlow's @ list beside our reply box.
+- ITFlow 26.11 released (Oct 29, 26.11.1 - tag `v26.11`, 3 commits past the develop we had, no database update): contracts refuse
+  impossible dates, keep month-end terms, leave archived clients' contracts alone (signing withdrawn), refuse deleting used / signed ones;
+  bulk client email needs Client view. Clean merge, impact report 0 to act on. Our version starts again at 26.11.1.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
@@ -1494,9 +1497,8 @@ model: see DEPLOYMENT.md.
 2. Merge only official releases: `upstream/master` / the newest `vYY.MM` tag – not
    upstream `develop`. Exception (Oct 2026): upstream `develop` (unreleased 26.11 work, DB
    2.8.9) was merged into our `develop` at the user's request to get the new ticket page
-   early. Until upstream releases 26.11, `develop` is ahead of any release - **do not promote
-   `develop` to `MountaineerIT-ITFLOW` before 26.11 is out** without the user explicitly accepting
-   unreleased upstream code in production. When 26.11 is released, merge its tag as usual.
+   early. **26.11 was released on Oct 29 2026 and its tag merged (26.11.1)** - `develop` is on a release again, so the
+   "not before 26.11" hold on promoting is over. From here on merge release tags only, unless the user asks for develop again.
    Checked Oct 18 (user chose to wait for the release): upstream develop then had 47 more commits, DB 2.9.0 -> 3.2.2.
    Merged again Oct 25 at the user's request (public beta): DB 3.4.7; the product column clash is handled (mitBeforeItflowUpdate + M040,
    see "Upstream develop merged again" above). Later upstream develop commits merge on top the same way; when 26.11 is tagged, merge the tag.
@@ -1518,7 +1520,7 @@ model: see DEPLOYMENT.md.
    user before pushing to `develop`.
 
 ## "Promote to production"
-Not before ITFlow 26.11 is released and merged (see "Pull in ITFlow's updates" 2.) unless the user accepts unreleased upstream code.
+ITFlow 26.11 is released and merged (Oct 29, 26.11.1), so `develop` can be promoted once it has been on beta a few working days.
 Before the PR, a practice run on a fresh production backup (the user makes a Database Only backup and shares it + its key; first
 done Oct 27, 26.10.173-174): restore it into a copy (`sh scripts/mit_test_copy.sh 9`, database recreated with
 `COLLATE utf8mb4_uca1400_ai_ci` - production is MariaDB 11.x -, dump imported, `$config_mit_dev_mode = 1` + a test inbox), run
