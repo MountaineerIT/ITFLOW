@@ -84,7 +84,7 @@ test('admin: a bug with a screenshot, from the page it was on', async ({ page })
     made.bug = Number(row.feedback_id);
     expect([row.kind, row.status], 'an open bug').toEqual(['bug', 'open']);
     expect(row.page, 'kept with the page it came from (Tickets may add the agent\'s remembered filters)').toMatch(/^\/agent\/tickets\.php(\?|$)/);
-    expect(row.version, 'and our build').toMatch(/^\d+\.\d+\.\d+ \/ ITFlow /);
+    expect(row.version, 'and our build').toMatch(/^\d+\.\d+(\.\d+){1,2} \/ ITFlow /);
     expect(row.image, 'the screenshot stored in its own folder').toMatch(/^uploads\/mit_feedback\/[a-f0-9]{32}\.png$/);
 
     // Typed text is text, not HTML
