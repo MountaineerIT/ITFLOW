@@ -1430,6 +1430,10 @@ model: see DEPLOYMENT.md.
 - ITFlow 26.11 released (Oct 29, 26.11.1 - tag `v26.11`, 3 commits past the develop we had, no database update): contracts refuse
   impossible dates, keep month-end terms, leave archived clients' contracts alone (signing withdrawn), refuse deleting used / signed ones;
   bulk client email needs Client view. Clean merge, impact report 0 to act on. Our version starts again at 26.11.1.
+- ITFlow 26.11.1 (Oct 30, 26.11.1.1 - the user's choice of numbering: ITFlow's version + our iteration, so our next pushes are
+  26.11.1.2 ...): ITFlow's 3.0.3 / 3.1.1 / 3.5.0 database updates no longer stop on junk values (trip miles >= 1e9, tax >= 100,000 %,
+  client rate >= 1e8) and 3.5.0 resumes after a run that stopped part way - matters for production's first update to 26.11. README.md kept
+  as ours (the one conflict); ITFlow's new `.github/readme/` screenshots left out.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

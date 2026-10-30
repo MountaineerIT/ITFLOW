@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.1 - 2026-10-30
+- ITFlow 26.11.1 merged: its database updates no longer stop on badly typed old values (trip miles of a billion or more and tax rates of 100,000% or more are set to 0, client rates of 100,000,000 or more are left out of Standard terms), and an update that stopped part way carries on when run again. This matters for production's first move to 26.11.
+- Our numbering follows ITFlow's: 26.11.1.1 is our first version on ITFlow 26.11.1.
+
 ## 26.11.1 - 2026-10-29
 - ITFlow 26.11 merged - the official release of everything we had been running ahead of time, plus its last fixes: contracts refuse impossible dates (like Feb 30) and keep month-end terms on the last day of shorter months; an archived client's contracts are left as they are and their signing requests withdrawn; a contract that was used or signed can't be deleted (cancel it instead); bulk email to clients needs Client view, not edit.
 - Our version numbers start again at 26.11.1.
