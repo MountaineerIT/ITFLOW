@@ -87,6 +87,31 @@ test('restore: a refused piece says why - the sign-in no longer matching, or Clo
     await page.unroute('**/admin/post.php');
 });
 
+test('restore: pieces a proxy refuses (BunkerWeb / nginx 403) are sent again smaller', async ({ page }) => {
+    const file = path.join(test.info().outputDir, 'proxy.zip');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, 'this is not a zip');
+    let refusals = 0;
+    // nginx's own page, as BunkerWeb answers: the first two tries at the piece are refused, the third (smaller) gets through
+    await page.route('**/admin/post.php', async (route) => {
+        const sent = route.request().postData() || '';
+        if (sent.includes('name="mit_backup_chunk"\r\n') && refusals < 2) {
+            refusals++;
+            return route.fulfill({ status: 403, contentType: 'text/html', headers: { server: 'nginx' },
+                body: '<html><head><title>403 Forbidden</title></head><body><center><h1>403 Forbidden</h1></center><hr><center>nginx</center></body></html>' });
+        }
+        return route.continue();
+    });
+    await visit(page, 'admin/backup.php');
+    const form = page.locator('form:has(button[name=mit_backup_upload])');
+    await form.locator('input[name=backup_file]').setInputFiles(file);
+    await form.locator('button[name=mit_backup_upload]').click();
+    // It carried on to the end - the server then reads the file and says it is no backup
+    await expect(form.locator('[data-mit-upload-text]')).toContainText('not a backup that can be read');
+    expect(refusals, 'refused twice, then sent smaller').toBe(2);
+    await page.unroute('**/admin/post.php');
+});
+
 test('restore: a big backup goes up in pieces and is put back together', async ({ page }) => {
     const errors = watch(page);
     const list = await backups(page);
