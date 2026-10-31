@@ -143,8 +143,8 @@ model: see DEPLOYMENT.md.
   `cron/cron.php` records a job stopped with a non-zero code as Failed (parser connect error passed on);
   autopay includes Partial invoices (`cron/nightly_tasks.php`); `api/v1/clients/delete.php` uploads path.
   Audit B (Oct 20, 26.10.73): `.htaccess` security headers (nosniff, Referrer-Policy same-origin, CSP frame-ancestors 'self',
-  HSTS on HTTPS); `api/v1/validate_api_key.php` takes the key from `X-API-Key` / `Authorization: Bearer` (getallheaders
-  fallback) or the POST body and refuses `?api_key=` (var_dump gone; a body that is not JSON = no fields, `?: []` - 26.10.191, was a 500 in the *_output.php files); trips need Financial edit and an active agent
+  HSTS on HTTPS); `api/v1/validate_api_key.php` also takes the key from `X-API-Key` / `Authorization: Bearer` (getallheaders
+  fallback); `?api_key=` refused until 26.11.1.4, accepted again (stock ITFlow and MSP Align read that way - scenario-api-key-ways.php) (var_dump gone; a body that is not JSON = no fields, `?: []` - 26.10.191, was a 500 in the *_output.php files); trips need Financial edit and an active agent
   (`agent/post/trip.php`, `trip_model.php`); `bulk_edit_expense_client` checks each expense's current client; portal
   `client/includes/check_login.php` ends sessions of archived clients / contacts and when the portal is off;
   `client/login_microsoft.php` (portal on, contact not archived, curl timeouts, tenant hook); saved-card payment
@@ -1071,6 +1071,9 @@ model: see DEPLOYMENT.md.
   26.11.1.2: the card's script reads a refused piece's answer (`refused()`): ITFlow's CSRF page (sign-in no longer matching - reload), a
   Cloudflare block page, 413, else the page's title / first line - with the piece's offset. A 403 is never a size problem (that is 413 / an
   empty $_POST, which ITFlow also answers with its CSRF 403). Smoke: "a refused piece says why" in `16-backup-restore.spec.js`.
+  26.11.1.3 (beta sits behind BunkerWeb - nginx + ModSecurity - which answered nginx's bare 403 to a 32 MB piece): a 403 / 413 that is not our
+  JSON shrinks the piece size by 4 (32 -> 8 -> 2 -> 1 MB) and resends from the same offset (the proxy refused it before PHP saw it); the message
+  carries the Server header. Smoke: "pieces a proxy refuses ... are sent again smaller".
   Temporary folder (26.10.111): ITFlow unpacks into sys_get_temp_dir() (/tmp) - on Debian 13 a RAM disk of half the memory, so a
   1.1 GB backup failed with "Could not extract the archive: No error" (or, a little smaller, "database restored but uploads.zip could
   not be opened"). `mitRestoreUseTempDir` (start of `mitRestoreRun`) sets TMPDIR to `<backups>/mit_tmp` before PHP picks its folder

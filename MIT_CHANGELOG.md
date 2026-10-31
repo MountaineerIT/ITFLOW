@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.4 - 2026-10-31
+- API: a key in the address (`?api_key=...`) works again, as it does on ITFlow itself. Tools written for stock ITFlow read that way - MSP Align's ITFlow connection stopped reading clients, assets and licenses once production moved to this build, whatever key it was given. The X-API-Key and Authorization: Bearer headers still work and keep the key out of web server logs.
+
+## 26.11.1.3 - 2026-10-30
+- Admin > Backup, uploading a backup to restore: when something in front of ITFlow refuses a piece (a proxy or firewall such as BunkerWeb, nginx's "403 Forbidden"), the page sends it again in smaller pieces, down to 1 MB, before giving up. The message also names the server that answered.
+
 ## 26.11.1.2 - 2026-10-30
 - Admin > Backup, uploading a backup to restore: when the server refuses a piece, the page now says which piece and what answered - your sign-in no longer matching the page (reload and upload again), Cloudflare's firewall, or a request too big for the web server - instead of always guessing "over its upload limit".
 

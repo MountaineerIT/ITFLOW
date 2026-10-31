@@ -92,15 +92,18 @@ $mit_restore_last = mitRestoreLastStatus();
                 if (j && r.ok && !j.error) {
                     return j;
                 }
-                throw new Error(j && j.error ? j.error : refused(r.status, body));
+                var err = new Error(j && j.error ? j.error : refused(r.status, body, r.headers.get('server')));
+                err.status = r.status;
+                err.ours = !!j; // our handler answered (a real problem with the upload) - not something in front of it
+                throw err;
             });
         });
     }
     // What answered when it was not our JSON - ITFlow's own page (a sign-in that no longer matches), a proxy such as Cloudflare, or PHP
-    function refused(status, body) {
+    function refused(status, body, server) {
         var doc = new DOMParser().parseFromString(body || '', 'text/html');
-        var said = ((doc.title || '') + ' ' + ((doc.querySelector('p, h1, h2') || {}).textContent || '')).replace(/\s+/g, ' ').trim().slice(0, 200);
-        var why = 'The server answered HTTP ' + status + (said ? ': "' + said + '"' : '') + '.';
+        var said = (doc.body ? doc.body.textContent : '').replace(/\s+/g, ' ').trim().slice(0, 200);
+        var why = 'The server answered HTTP ' + status + (said ? ': "' + said + '"' : '') + (server ? ' (' + server + ')' : '') + '.';
         if (/csrf/i.test(body)) {
             return why + ' Your sign-in no longer matches this page (it timed out, or you signed in again elsewhere) - reload the page and upload again.';
         }
@@ -135,8 +138,17 @@ $mit_restore_last = mitRestoreLastStatus();
                     return post({ mit_backup_chunk_finish: 1, id: id, restore_key: key });
                 }
                 return post({ mit_backup_chunk: 1, id: id, offset: offset }, file.slice(offset, offset + size)).catch(function (err) {
+                    // Refused before it reached ITFlow (a proxy such as nginx limiting request bodies): smaller pieces, down to 1 MB
+                    if (!err.ours && (err.status === 403 || err.status === 413) && size > 1048576) {
+                        size = Math.max(1048576, Math.floor(size / 4));
+                        text.textContent = 'The server refused pieces that size - sending ' + mb(size) + ' pieces instead';
+                        return { received: offset, retry: true };
+                    }
                     throw new Error('Piece at ' + mb(offset) + ' of ' + mb(file.size) + ': ' + err.message);
                 }).then(function (r) {
+                    if (r.retry) {
+                        return send(r.received);
+                    }
                     bar.style.width = Math.floor(100 * r.received / file.size) + '%';
                     text.textContent = mb(r.received) + ' of ' + mb(file.size) + ' sent - keep this page open';
                     return send(r.received);

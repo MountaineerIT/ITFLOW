@@ -319,16 +319,17 @@ test('a pop-up link to another site is not loaded (ajax-modal runs the page it g
     expect(outside).toEqual([]);
 });
 
-test('security headers, and API keys only in a header', async ({ page }) => {
+test('security headers, and API keys in the address still work (as on stock ITFlow)', async ({ page }) => {
     const response = await page.goto('login.php');
     const headers = response.headers();
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['content-security-policy'] || '').toContain("frame-ancestors 'self'");
     expect(headers['referrer-policy']).toBe('same-origin');
-    // A key in the address is refused with a message (it would end up in server logs), whatever the key
+    // A key in the address is checked like any other (tools written for stock ITFlow - MSP Align - read that way): a wrong one is
+    // refused as invalid, not as "in the address" (scenario-api-key-ways.php reads with a real key every way)
     const api = await page.goto('api/v1/clients/read.php?api_key=mit-smoke-not-a-key');
     expect(api.status()).toBe(401);
-    expect(await api.text()).toContain('X-API-Key');
+    expect(await api.text()).toContain('API key is invalid');
 });
 
 test('Microsoft 365 card offers a calendar-only app for Outlook', async ({ page }) => {
