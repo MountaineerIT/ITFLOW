@@ -56,6 +56,37 @@ test('restore: a file that is not a backup is refused', async ({ page }) => {
     await expect(form.locator('[data-mit-upload-text]')).toContainText('not a backup that can be read');
 });
 
+test('restore: a refused piece says why - the sign-in no longer matching, or Cloudflare - not a guess about size', async ({ page }) => {
+    const file = path.join(test.info().outputDir, 'refused.zip');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, Buffer.alloc(2048, 1));
+    const answers = {
+        csrf: '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>CSRF token verification failed. Your session may have expired.</p></body></html>',
+        cloudflare: '<!DOCTYPE html><html><head><title>Attention Required! | Cloudflare</title></head><body><h1>Sorry, you have been blocked</h1><p>Cloudflare Ray ID: 1</p></body></html>',
+    };
+    for (const [kind, body] of Object.entries(answers)) {
+        await page.unroute('**/admin/post.php');
+        // The start goes through; the first piece is answered as beta's server answered it
+        await page.route('**/admin/post.php', async (route) => {
+            const sent = route.request().postData() || '';
+            if (sent.includes('name="mit_backup_chunk"\r\n')) {
+                return route.fulfill({ status: 403, contentType: 'text/html', body });
+            }
+            return route.continue();
+        });
+        await visit(page, 'admin/backup.php');
+        const form = page.locator('form:has(button[name=mit_backup_upload])');
+        await form.locator('input[name=backup_file]').setInputFiles(file);
+        await form.locator('button[name=mit_backup_upload]').click();
+        const text = form.locator('[data-mit-upload-text]');
+        await expect(text).toContainText('HTTP 403');
+        await expect(text, 'not a guess about the size').not.toContainText('upload limit');
+        await expect(text).toContainText(kind === 'csrf' ? 'reload the page and upload again' : 'Cloudflare stopped the upload');
+        await expect(text, 'which piece').toContainText('Piece at 0.0 MB');
+    }
+    await page.unroute('**/admin/post.php');
+});
+
 test('restore: a big backup goes up in pieces and is put back together', async ({ page }) => {
     const errors = watch(page);
     const list = await backups(page);
