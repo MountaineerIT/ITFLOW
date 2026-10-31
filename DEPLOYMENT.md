@@ -61,8 +61,8 @@ It asks for the server name, HTTPS type (Let's Encrypt for a public name, self-s
 internal one, or `none` for a server behind a reverse proxy that handles HTTPS - the proxy must send `X-Forwarded-Proto: https`
 and `X-Forwarded-For`; proxies on a private network are trusted for the visitor's address, add `RemoteIPTrustedProxy <ip>` to
 `/etc/apache2/sites-available/itflow.conf` for a public one), timezone, company name and the first admin's name, email and password,
-(API: from 26.10.73 the key goes in an `X-API-Key: <key>` header - or `Authorization: Bearer <key>` - not in the address;
-`?api_key=` is refused. Update n8n / scripts that used it.)
+(API: a key can go in an `X-API-Key: <key>` header - or `Authorization: Bearer <key>` - which keeps it out of the web server's
+logs; `?api_key=` in the address works too, as on stock ITFlow - refused from 26.10.73 to 26.11.1.3, which broke MSP Align's reads.)
 shows a summary and asks to continue. It then:
 
 - installs Apache, MariaDB, PHP and git, and sets PHP upload limits to 500 MB

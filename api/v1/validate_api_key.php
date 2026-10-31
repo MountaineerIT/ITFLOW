@@ -55,13 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] !== "GET" && $_SERVER['REQUEST_METHOD'] !== "POST
     exit();
 }
 
-// Mountaineer IT: the key comes in a header (X-API-Key, or Authorization: Bearer) or the POST body - never in the address,
-// which ends up in web server and proxy logs
-if (isset($_GET['api_key'])) {
-    header(WORDING_UNAUTHORIZED);
-    echo json_encode(['success' => 'False', 'message' => 'Send the API key in the X-API-Key header (or Authorization: Bearer), not in the address.']);
-    exit();
-}
+// Mountaineer IT: the key may also come in a header (X-API-Key, or Authorization: Bearer) - kept out of web server and proxy logs.
+// ITFlow's own ways (?api_key= in the address, api_key in the POST body) still work, as tools written for stock ITFlow use them.
 $api_key_header = (string) ($_SERVER['HTTP_X_API_KEY'] ?? '');
 // Apache does not always hand PHP the Authorization header in $_SERVER - ask it directly
 $api_key_auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
@@ -73,7 +68,7 @@ if ($api_key_header === '' && preg_match('/^Bearer\s+(\S+)$/i', $api_key_auth, $
 }
 
 // Check API key is provided
-if ($api_key_header === '' && !isset($_POST['api_key'])) {
+if ($api_key_header === '' && !isset($_GET['api_key']) && !isset($_POST['api_key'])) {
     header(WORDING_UNAUTHORIZED);
     exit();
 }
@@ -81,6 +76,8 @@ if ($api_key_header === '' && !isset($_POST['api_key'])) {
 // Set API key variable
 if ($api_key_header !== '') {
     $api_key = escapeSql($api_key_header);
+} elseif (isset($_GET['api_key'])) {
+    $api_key = escapeSql($_GET['api_key']);
 }
 if (isset($_POST['api_key'])) {
     $api_key = escapeSql($_POST['api_key']);
