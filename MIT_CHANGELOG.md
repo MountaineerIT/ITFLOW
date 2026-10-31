@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.2 - 2026-10-30
+- Admin > Backup, uploading a backup to restore: when the server refuses a piece, the page now says which piece and what answered - your sign-in no longer matching the page (reload and upload again), Cloudflare's firewall, or a request too big for the web server - instead of always guessing "over its upload limit".
+
 ## 26.11.1.1 - 2026-10-30
 - ITFlow 26.11.1 merged: its database updates no longer stop on badly typed old values (trip miles of a billion or more and tax rates of 100,000% or more are set to 0, client rates of 100,000,000 or more are left out of Standard terms), and an update that stopped part way carries on when run again. This matters for production's first move to 26.11.
 - Our numbering follows ITFlow's: 26.11.1.1 is our first version on ITFlow 26.11.1.

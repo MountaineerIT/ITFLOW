@@ -86,9 +86,31 @@ $mit_restore_last = mitRestoreLastStatus();
             data.append('chunk', file, 'chunk');
         }
         return fetch(form.getAttribute('action'), { method: 'POST', body: data, credentials: 'same-origin' }).then(function (r) {
-            return r.json().catch(function () { throw new Error('The server answered HTTP ' + r.status + ' - a piece may be over its upload limit.'); })
-                .then(function (j) { if (!r.ok || j.error) { throw new Error(j.error || ('HTTP ' + r.status)); } return j; });
+            return r.text().then(function (body) {
+                var j = null;
+                try { j = JSON.parse(body); } catch (e) { j = null; }
+                if (j && r.ok && !j.error) {
+                    return j;
+                }
+                throw new Error(j && j.error ? j.error : refused(r.status, body));
+            });
         });
+    }
+    // What answered when it was not our JSON - ITFlow's own page (a sign-in that no longer matches), a proxy such as Cloudflare, or PHP
+    function refused(status, body) {
+        var doc = new DOMParser().parseFromString(body || '', 'text/html');
+        var said = ((doc.title || '') + ' ' + ((doc.querySelector('p, h1, h2') || {}).textContent || '')).replace(/\s+/g, ' ').trim().slice(0, 200);
+        var why = 'The server answered HTTP ' + status + (said ? ': "' + said + '"' : '') + '.';
+        if (/csrf/i.test(body)) {
+            return why + ' Your sign-in no longer matches this page (it timed out, or you signed in again elsewhere) - reload the page and upload again.';
+        }
+        if (/cloudflare|cf-ray|attention required/i.test(body)) {
+            return why + ' Cloudflare stopped the upload - allow uploads to /admin/post.php in its firewall, or restore from the command line below.';
+        }
+        if (status === 413) {
+            return why + ' A piece is over the web server\'s request limit - raise it, or restore from the command line below.';
+        }
+        return why;
     }
     function mb(n) { return (n / 1048576).toFixed(n < 104857600 ? 1 : 0) + ' MB'; }
     form.addEventListener('submit', function (e) {
@@ -112,7 +134,9 @@ $mit_restore_last = mitRestoreLastStatus();
                     text.textContent = 'Checking the backup...';
                     return post({ mit_backup_chunk_finish: 1, id: id, restore_key: key });
                 }
-                return post({ mit_backup_chunk: 1, id: id, offset: offset }, file.slice(offset, offset + size)).then(function (r) {
+                return post({ mit_backup_chunk: 1, id: id, offset: offset }, file.slice(offset, offset + size)).catch(function (err) {
+                    throw new Error('Piece at ' + mb(offset) + ' of ' + mb(file.size) + ': ' + err.message);
+                }).then(function (r) {
                     bar.style.width = Math.floor(100 * r.received / file.size) + '%';
                     text.textContent = mb(r.received) + ' of ' + mb(file.size) + ' sent - keep this page open';
                     return send(r.received);

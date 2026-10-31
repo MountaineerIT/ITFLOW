@@ -1068,6 +1068,9 @@ model: see DEPLOYMENT.md.
   3 x the archive. Each restore writes `<backups>/mit_last_restore.json` (running / done / failed - `mitRestoreSetStatus`), shown on
   Admin > Backup (`[data-mit-last-restore]`) - a restore carries on when the browser or a proxy stops waiting (ignore_user_abort).
   Tested with a 1.2 GB backup: upload 29 s, restore about 3 min (2.5 of it the "Before restore" copy).
+  26.11.1.2: the card's script reads a refused piece's answer (`refused()`): ITFlow's CSRF page (sign-in no longer matching - reload), a
+  Cloudflare block page, 413, else the page's title / first line - with the piece's offset. A 403 is never a size problem (that is 413 / an
+  empty $_POST, which ITFlow also answers with its CSRF 403). Smoke: "a refused piece says why" in `16-backup-restore.spec.js`.
   Temporary folder (26.10.111): ITFlow unpacks into sys_get_temp_dir() (/tmp) - on Debian 13 a RAM disk of half the memory, so a
   1.1 GB backup failed with "Could not extract the archive: No error" (or, a little smaller, "database restored but uploads.zip could
   not be opened"). `mitRestoreUseTempDir` (start of `mitRestoreRun`) sets TMPDIR to `<backups>/mit_tmp` before PHP picks its folder
