@@ -1296,6 +1296,7 @@ function billingTimeInvoice($client_id, array $hours, array $opts, &$error = '')
         }
     }
     billingRecalc('invoice', $invoice_id);
+    if (function_exists('mitQboTagTimeLines')) { mitQboTagTimeLines($invoice_id, $item_name); } // Mountaineer IT: ticket time's category (QuickBooks income account)
 
     $invoice = billingRow('invoice', $invoice_id, false);
     $what = (count($references) === 1 ? 'ticket ' : count($references) . ' tickets ') . implode(', ', array_slice($references, 0, 20)) . (count($references) > 20 ? ' and more' : '');

@@ -718,6 +718,22 @@ model: see DEPLOYMENT.md.
   QuickBooks" / Undo, `[data-mit-qbo-mark-manual]` / `[data-mit-qbo-manual]`), Invoice Approvals bulk + tab `?show=manual` (put back =
   `mit_qbo_unmark_manual_bulk`), Batches page under Add to batch (`[data-mit-qbo-mark-bulk]`); handlers at the end of `agent/post/mit_qbo.php`;
   list badge "QBO (by hand)". Smoke: last test in `10-qbo.spec.js`.
+  Income accounts by category (Nov 1, 26.11.1.5, M051 - the user's request: GL per line, items made from ITFlow): `functions/mit_qbo_accounts.php`
+  (ours, required from mit_qbo.php). Each invoice line's ITFlow Income category (`mitQboLineCategories`): its product's, a ticket part's product's
+  (`mit_ticket_parts.invoice_item_id` - parts lines carry no product), its own (`mit_invoice_item_categories`: Edit Line picker or ticket time), else the
+  invoice's. Category -> QuickBooks income account in `mit_qbo_category_accounts` (else `mit_settings` qbo_default_account). The line's item
+  (`mitQboLineItem`, called from `mitQboInvoicePayload` once M051 ran): mapped product item; unmapped product -> the item with its name (inactive one
+  reactivated) or one made (NonInventory for product_type 'product', else Service - never Inventory) on its category's account and mapped; no product ->
+  item with the line's name, else the category's own "<category> (ITFlow)" item (made once, id kept in mit_qbo_category_accounts; changing the category's
+  account moves it), else the fallback item, else "Sales (ITFlow)" on the default account (qbo_default_item). Items are made only while `qbo_create_items`
+  is on (default), at send; the batch page lists them first (`mitQboBatchItemPlan`, `[data-mit-qbo-item-plan]`). Mapped items keep their own account.
+  Settings on Admin > Integrations > QuickBooks Online > Income accounts tab (`[data-mit-qbo-accounts]`, handler `mit_qbo_save_accounts` ->
+  `mitQboAccountsSave`; qbo_time_category = ticket time's category). Hooks, one line each: `mitQboLineCategoryField` in
+  `agent/modals/billing/billing_item.php` (invoices, after our quote line fields), `mitQboLineCategorySave` in `agent/post/billing.php` billing_item_save,
+  `mitQboTagTimeLines($invoice_id, $item_name)` after billingRecalc in `functions/billing.php` billingTimeInvoice (tags its new lines by name). The
+  staff invoice page shows each line's category under it (`mitQboLineCategoryTag` from our `mitPaperLineExtras`). The stand-in (qbo-mock) now keeps
+  items (POST /item, GET /item/{id}, Name / Active filters, an inactive "Old router") and income accounts (79-82, bank 90). Scenario
+  `scenario-qbo-accounts.php` (every kind of line; fails without the time hook), smoke `91-qbo-accounts.spec.js`.
 - Usage billing (Oct 2026, step 4 of the billing plan; step 5 = source connectors reporting through its API): `functions/mit_usage.php`
   (ours, required from `functions.php`). Tables M032: `mit_usage_lines` (a recurring invoice line billed by a count - source
   manual / api / tag, usage name `line_metric` - tag lines "tag:<id>" -, optional minimum; FK recurring_invoice_items /

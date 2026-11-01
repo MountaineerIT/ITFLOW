@@ -311,13 +311,14 @@ return [
         'name' => 'QuickBooks Online (approvals, batches, locks, payments back)',
         'files' => ['functions/mit_qbo*.php', 'admin/mit_qbo*.php', 'admin/post/mit_qbo.php', 'agent/mit_invoice_approvals.php', 'agent/mit_qbo_batch*.php',
             'agent/post/mit_qbo.php', 'cron/mit_qbo_sync.php'],
-        'tests' => ['tests/smoke/10-qbo.spec.js', 'tests/smoke/61-qbo-guards.spec.js', 'tests/smoke/66-qbo-more-doors.spec.js', 'tests/scenarios/scenario-qbo-*.php'],
+        'tests' => ['tests/smoke/10-qbo.spec.js', 'tests/smoke/61-qbo-guards.spec.js', 'tests/smoke/66-qbo-more-doors.spec.js', 'tests/smoke/91-qbo-accounts.spec.js', 'tests/scenarios/scenario-qbo-*.php'],
         'assumes' => [
             'Every way an invoice or its payments change goes through a guarded handler (agent/post/invoice.php, billing.php, payment.php, ajax.php, API, nightly, portal, guest pay, bank import, reprice).',
             'Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.',
             'Recurring invoices by recurringInvoiceGenerate (auto-send condition).',
+            'Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.',
         ],
-        'watch' => ['updateInvoiceStatusFromPayments', 'billingStripeBook', 'recurringInvoiceGenerate', 'productRepriceApply', 'income_import'],
+        'watch' => ['updateInvoiceStatusFromPayments', 'billingStripeBook', 'recurringInvoiceGenerate', 'productRepriceApply', 'income_import', 'billingTimeInvoice', 'product_category_id', 'invoice_category_id'],
         'overlap' => ['quickbooks', 'qbo', 'xero', 'accounting_sync', 'intuit'],
     ],
     'usage' => [

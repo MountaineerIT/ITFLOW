@@ -4,6 +4,11 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.5 - 2026-11-01
+- QuickBooks Online: income accounts by category. Each of ITFlow's Income categories (Hardware Sales, Support ...) can be given one of QuickBooks' income accounts, plus a default one (Admin > Integrations > QuickBooks Online > Income accounts).
+- Every invoice line goes to the account of its own category, so one invoice with hardware and labor lands in both: a product's line uses the product's category, a ticket part its product's, ticket time the category set for it, and a line typed by hand the one picked in its Edit window (else the invoice's). The category shows under each line on the invoice page.
+- Missing items are made in QuickBooks when a batch is sent: a product without an item gets one (Non-inventory or Service) on its category's account, and lines without a product use one item per category, e.g. "Hardware Sales (ITFlow)". An item already in QuickBooks with the same name is used instead. The batch page lists what will be made before you send; items already mapped keep their own account. Can be switched off on the same tab.
+
 ## 26.11.1.4 - 2026-10-31
 - API: a key in the address (`?api_key=...`) works again, as it does on ITFlow itself. Tools written for stock ITFlow read that way - MSP Align's ITFlow connection stopped reading clients, assets and licenses once production moved to this build, whatever key it was given. The X-API-Key and Authorization: Bearer headers still work and keep the key out of web server logs.
 

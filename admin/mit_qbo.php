@@ -17,6 +17,9 @@ if (!mitQboReady()) {
 $settings = mitQboSettings();
 $connected = mitQboConnected();
 $tabs = ['connection' => 'Connection', 'customers' => 'Customers', 'items' => 'Items', 'tax_codes' => 'Tax codes'];
+if (function_exists('mitQboAccountsReady') && mitQboAccountsReady()) {
+    $tabs['accounts'] = 'Income accounts'; // functions/mit_qbo_accounts.php (M051)
+}
 $tab = isset($tabs[$_GET['tab'] ?? '']) ? $_GET['tab'] : 'connection';
 $csrf = $_SESSION['csrf_token'];
 
@@ -25,8 +28,12 @@ $qbo_lists = ['customers' => [], 'items' => [], 'tax_codes' => []];
 $qbo_error = '';
 if ($connected) {
     try {
-        foreach ($tab === 'connection' ? ['items', 'tax_codes'] : [$tab] as $kind) {
-            $qbo_lists[$kind] = mitQboList($kind);
+        if ($tab === 'accounts') {
+            $qbo_lists['accounts'] = mitQboIncomeAccounts();
+        } else {
+            foreach ($tab === 'connection' ? ['items', 'tax_codes'] : [$tab] as $kind) {
+                $qbo_lists[$kind] = mitQboList($kind);
+            }
         }
     } catch (Throwable $e) {
         $qbo_error = $e->getMessage();
@@ -213,6 +220,77 @@ if ($connected) {
                     </div>
                 </div>
             </div>
+
+        <?php } elseif ($tab === 'accounts') {
+            $a = mitQboAccountSettings();
+            $income = mitQboIncomeCategories();
+            $mapped = mitQboCategoryAccounts();
+            $accounts = $qbo_lists['accounts'] ?? [];
+            $account_select = function ($name, $current, $current_name, $none) use ($accounts) {
+                $html = '<select class="form-select form-select-sm" name="' . escapeHtml($name) . '"><option value="">' . escapeHtml($none) . '</option>';
+                if ($current !== '' && !isset($accounts[$current])) {
+                    $html .= '<option value="' . escapeHtml($current) . '" selected>' . escapeHtml($current_name ?: $current) . ' (inactive or gone)</option>';
+                }
+                foreach ($accounts as $account) {
+                    $html .= '<option value="' . escapeHtml($account['id']) . '"' . ($current === $account['id'] ? ' selected' : '') . '>' . escapeHtml($account['name'])
+                        . ($account['type'] === 'Other Income' ? ' (other income)' : '') . '</option>';
+                }
+                return $html . '</select>';
+            }; ?>
+            <?php if (!$connected) { ?>
+                <div class="alert alert-info">Connect to QuickBooks first (Connection tab).</div>
+            <?php } else { ?>
+                <p class="text-muted" style="max-width: 50rem">
+                    Each invoice line goes to the income account of its <strong>category</strong>: a product's line the product's category, a ticket part its
+                    product's category, ticket time the category below, a line typed by hand the one picked in its Edit window - else the invoice's category.
+                    Products without a QuickBooks item get one made with their category's account, and lines without a product use one item per category
+                    (e.g. "Hardware Sales<?= escapeHtml(MIT_QBO_ITEM_SUFFIX) ?>"). Items already mapped (Items tab) keep the account they have in QuickBooks.
+                </p>
+                <form action="post.php" method="post" data-mit-qbo-accounts>
+                    <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
+                    <div class="row g-3 mb-3" style="max-width: 60rem">
+                        <div class="col-md-6">
+                            <label class="form-label">Default income account</label>
+                            <?= $account_select('qbo_default_account', $a['default_account'], $a['default_account_name'], '- none -') ?>
+                            <div class="form-text">For categories without an account below, and products without a category.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Category for ticket time</label>
+                            <select class="form-select form-select-sm" name="qbo_time_category">
+                                <option value="0">- the invoice's category -</option>
+                                <?php foreach ($income as $id => $name) { ?>
+                                    <option value="<?= $id ?>" <?= $a['time_category'] === $id ? 'selected' : '' ?>><?= escapeHtml($name) ?></option>
+                                <?php } ?>
+                            </select>
+                            <div class="form-text">Hours billed from tickets (Unbilled Time / To Bill, Invoice from a ticket).</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" name="qbo_create_items" value="1" id="mitQboCreateItems" <?= $a['create_items'] ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="mitQboCreateItems">Make missing items in QuickBooks when a batch is sent</label>
+                            </div>
+                            <div class="form-text">The batch page lists them before it is sent. Off: lines use the item with their name, else the fallback item (as before).</div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle" style="max-width: 60rem">
+                            <thead><tr><th>Category</th><th>QuickBooks income account</th><th>Item for lines without a product</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($income as $id => $name) {
+                                $row = $mapped[$id] ?? []; ?>
+                                <tr data-mit-qbo-category="<?= $id ?>">
+                                    <td><?= escapeHtml($name) ?></td>
+                                    <td style="min-width: 18rem"><?= $account_select("account[$id]", (string) ($row['qbo_account_id'] ?? ''), (string) ($row['qbo_account_name'] ?? ''), '- the default account -') ?></td>
+                                    <td class="small text-body-secondary"><?= ($row['qbo_item_id'] ?? '') !== '' ? escapeHtml($row['qbo_item_name']) : 'made when first needed' ?></td>
+                                </tr>
+                            <?php } ?>
+                            <?php if (!$income) { ?><tr><td colspan="3" class="text-muted">No Income categories yet - add them in Admin > Categories.</td></tr><?php } ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" name="mit_qbo_save_accounts" class="btn btn-primary"><i class="fas fa-check me-2"></i>Save</button>
+                </form>
+            <?php } ?>
 
         <?php } else {
             $kind = $tab;

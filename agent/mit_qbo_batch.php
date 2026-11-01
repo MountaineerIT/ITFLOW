@@ -38,6 +38,16 @@ $waiting = count(array_filter($live, fn($e) => in_array($e['entry_status'], ['qu
 $any_sent = (bool) array_filter($live, fn($e) => $e['entry_status'] === 'sent');
 [$status_label, $status_class] = MIT_QBO_BATCH_STATUSES[$batch['batch_status']] ?? [$batch['batch_status'], 'text-bg-secondary'];
 $total = array_sum(array_column($live, 'amount'));
+// QuickBooks items sending would make (functions/mit_qbo_accounts.php) - listed before the send
+$item_plan = [];
+$item_plan_error = '';
+if ($waiting && $connected && function_exists('mitQboBatchItemPlan')) {
+    try {
+        $item_plan = mitQboBatchItemPlan($batch_id);
+    } catch (Throwable $e) {
+        $item_plan_error = $e->getMessage();
+    }
+}
 
 ?>
 
@@ -55,6 +65,28 @@ $total = array_sum(array_column($live, 'amount'));
         <?php } ?>
     </div>
     <div class="card-body">
+        <?php if ($item_plan) { ?>
+            <div class="alert alert-info" data-mit-qbo-item-plan>
+                <div class="fw-semibold mb-1"><i class="fas fa-plus-circle me-2"></i>Sending makes <?= count($item_plan) ?> item<?= count($item_plan) === 1 ? '' : 's' ?> in QuickBooks</div>
+                <table class="table table-sm mb-1 small bg-transparent">
+                    <thead><tr><th>Item</th><th>Type</th><th>Income account</th><th>For</th><th>Invoices</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($item_plan as $row) { ?>
+                        <tr data-mit-qbo-plan-item>
+                            <td><?= escapeHtml($row['name']) ?></td>
+                            <td><?= $row['type'] === 'NonInventory' ? 'Non-inventory' : 'Service' ?></td>
+                            <td><?= escapeHtml($row['account']) ?></td>
+                            <td><?= escapeHtml($row['for']) ?></td>
+                            <td><?= escapeHtml(implode(', ', array_slice($row['invoices'], 0, 5)) . (count($row['invoices']) > 5 ? ' and ' . (count($row['invoices']) - 5) . ' more' : '')) ?></td>
+                        </tr>
+                    <?php } ?>
+                    </tbody>
+                </table>
+                <div class="small">An item with the same name already in QuickBooks is used instead. Accounts and the setting are in Admin > Integrations > QuickBooks Online > Income accounts.</div>
+            </div>
+        <?php } elseif ($item_plan_error !== '') { ?>
+            <div class="alert alert-warning small">Could not check which QuickBooks items sending would make: <?= escapeHtml($item_plan_error) ?></div>
+        <?php } ?>
         <div class="d-flex flex-wrap gap-4 mb-3 small">
             <div><span class="text-muted">Invoices</span><div class="fs-5 fw-semibold"><?= count($live) ?><?= $hidden > 0 ? " <span class=\"fs-6 text-muted\">+ $hidden of clients you can't see</span>" : '' ?></div></div>
             <div><span class="text-muted">Total</span><div class="fs-5 fw-semibold"><?= mitMoney($total) ?></div></div>
