@@ -934,8 +934,10 @@ function mitPaperLineExtras(array $paper, array $item) {
             . escapeHtml(billingMoney((float) $cost, (string) ($paper['row']['quote_currency_code'] ?? ''))) . '</span> '
             . mitPricingBadge($cost, $extra['item_price_method'] ?? '', $extra['item_price_percent'] ?? '', $item['item_price']) . '</div>';
     }
-    if (($paper['type'] ?? '') === 'invoice' && function_exists('mitProcInvoiceLineStatus')) {
-        return '<div class="d-print-none">' . mitProcInvoiceLineStatus(intval($paper['row']['invoice_id'] ?? 0), $item_id) . '</div>';
+    if (($paper['type'] ?? '') === 'invoice') {
+        $status = function_exists('mitProcInvoiceLineStatus') ? mitProcInvoiceLineStatus(intval($paper['row']['invoice_id'] ?? 0), $item_id) : '';
+        $category = function_exists('mitQboLineCategoryTag') && !empty($paper['mit_staff']) ? mitQboLineCategoryTag((array) $paper['row'], $item) : '';
+        return $status . $category !== '' ? '<div class="d-print-none">' . $status . ($category !== '' ? '<div class="small mt-1">' . $category . '</div>' : '') . '</div>' : '';
     }
     return '';
 }

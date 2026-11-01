@@ -20,6 +20,7 @@
  */
 
 require_once __DIR__ . '/mit_qbo_billing.php';
+require_once __DIR__ . '/mit_qbo_accounts.php';
 
 const MIT_QBO_SCOPE = 'com.intuit.quickbooks.accounting';
 const MIT_QBO_MINOR_VERSION = 75;
@@ -483,9 +484,11 @@ function mitQboDocNumber(array $invoice) {
 
 /**
  * The QuickBooks invoice for an ITFlow invoice: [payload, problems]. Problems (a missing customer / tax code / item) stop the
- * send. $items is mitQboList('items') - names are matched when a product has no mapping, then the fallback item is used.
+ * send. $items is mitQboList('items'). Each line's item: functions/mit_qbo_accounts.php (mitQboLineItem - its product's item, an
+ * item with its name, its category's item, the fallback item; missing ones made in QuickBooks when $create and items are made),
+ * else (M051 not run) its product's item, the item with its name, the fallback item.
  */
-function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0) {
+function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0, $create = true) {
     global $mysqli;
     $invoice_id = intval($invoice_id);
     $s = mitQboSettings();
@@ -519,11 +522,22 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0) {
 
     $lines = [];
     $taxes_used = [];
-    $result = mysqli_query($mysqli, "SELECT * FROM invoice_items WHERE item_invoice_id = $invoice_id AND item_archived_at IS NULL ORDER BY item_order, item_id");
-    while ($line = mysqli_fetch_assoc($result)) {
+    $invoice_lines = mysqli_fetch_all(mysqli_query($mysqli, "SELECT * FROM invoice_items WHERE item_invoice_id = $invoice_id AND item_archived_at IS NULL ORDER BY item_order, item_id"), MYSQLI_ASSOC);
+    $by_line = function_exists('mitQboAccountsReady') && mitQboAccountsReady(); // Mountaineer IT: income account by category (M051)
+    if ($by_line) {
+        $line_ctx = mitQboLineContext($items, $create);
+        $line_ctx['products'] = mitQboLineProducts($invoice_lines);
+        $line_categories = mitQboLineCategories($invoice, $invoice_lines);
+    }
+    foreach ($invoice_lines as $line) {
         $item_ref = '';
         $product_id = intval($line['item_product_id']);
-        if ($product_id && isset($item_map[$product_id])) {
+        if ($by_line) {
+            [$item_ref, $problem] = mitQboLineItem($line, $line_categories[intval($line['item_id'])][0] ?? 0, $line_ctx);
+            if ($problem !== '') {
+                $problems[] = $problem;
+            }
+        } elseif ($product_id && isset($item_map[$product_id])) {
             $item_ref = $item_map[$product_id]['qbo_id'];
         } elseif (isset($items_by_name[mb_strtolower(trim((string) $line['item_name']))])) {
             $item_ref = $items_by_name[mb_strtolower(trim((string) $line['item_name']))];

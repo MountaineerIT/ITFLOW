@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 60 | 13 | 7 | 28 | 69 | 35 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 162 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 61 | 13 | 7 | 29 | 70 | 35 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 164 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
@@ -28,7 +28,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 10 | 6 | 15 | 12 | 64 | 24 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 11 | 8 | 16 | 14 | 71 | 25 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
@@ -94,9 +94,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 
-**ITFlow tables** assets, calendar_events, clients, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
+**ITFlow tables** assets, calendar_events, categories, clients, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -1048,15 +1048,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Every way an invoice or its payments change goes through a guarded handler (agent/post/invoice.php, billing.php, payment.php, ajax.php, API, nightly, portal, guest pay, bank import, reprice).
 - Payments: payments table + updateInvoiceStatusFromPayments; Stripe booking in billingStripeBook.
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
+- Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`
 
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mitQboInvoiceLock
 - `agent/invoice.php`: mitQboInvoiceBar
 - `agent/invoices.php`: mitQboListBadge, mit_qbo_ids
-- `agent/post/billing.php`: mitQboGuardInvoice, mitQboInvoiceLock
+- `agent/modals/billing/billing_item.php`: mitQboLineCategoryField
+- `agent/post/billing.php`: mitQboGuardInvoice, mitQboInvoiceLock, mitQboLineCategorySave
 - `agent/post/client.php`: mitQboGuardClientDelete
 - `agent/post/expense.php`: mitQboGuardInvoice
 - `agent/post/invoice.php`: mitQboGuardEmail, mitQboGuardInvoice
@@ -1070,7 +1072,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/mail_queue.php`: mit_dev_mode
 - `cron/nightly_tasks.php`: mitQboSendsReminders, mitQboTakesPayments
 - `functions.php`: mit_qbo
-- `functions/billing.php`: mitQboHandlesInvoiceMail, mit_hold
+- `functions/billing.php`: mitQboHandlesInvoiceMail, mitQboTagTimeLines, mit_hold
 - `functions/billing_pay.php`: mitQboCardPaymentBooked
 - `functions/income_import.php`: mitQboTakesPayments
 - `functions/products.php`: mitQboInvoiceLock
@@ -1081,6 +1083,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **ITFlow functions it calls**
 
 - `cron/includes/cron_lock.php`: cronJobStop
+- `functions/accounts.php`: accountType
 - `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql, enforceUserPermission, lookupUserPermission
 - `functions/logging.php`: appNotify, logAudit
@@ -1091,15 +1094,15 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/tax.php`: taxSettings
 
-**ITFlow tables** accounts, clients, companies, contacts, history, invoice_items, invoices, payments, products, settings, taxes, users
+**ITFlow tables** accounts, categories, clients, companies, contacts, history, invoice_items, invoices, payments, products, settings, taxes, tickets, users
 
-**ITFlow columns** account_archived_at, account_id, account_name, client_archived_at, client_id, client_name, company_currency, company_id, company_name, config_enable_cron, contact_archived_at, contact_billing, contact_client_id, contact_email, contact_name, contact_primary, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_client_id, invoice_credit_amount, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_note, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_archived_at, item_description, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_tax_id, item_total, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_deposit_transfer_id, payment_id, payment_invoice_id, payment_method, payment_reconciliation_id, payment_reference, product_archived_at, product_id, product_name, product_price, tax_archived_at, tax_id, tax_name, tax_percent, user_id, user_name
+**ITFlow columns** account_archived_at, account_id, account_name, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_currency, company_id, company_name, config_enable_cron, contact_archived_at, contact_billing, contact_client_id, contact_email, contact_name, contact_primary, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_credit_amount, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_note, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_archived_at, item_description, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_tax_id, item_total, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_deposit_transfer_id, payment_id, payment_invoice_id, payment_method, payment_reconciliation_id, payment_reference, product_archived_at, product_category_id, product_id, product_name, product_price, product_type, tax_archived_at, tax_id, tax_name, tax_percent, user_id, user_name
 
-**Watched in ITFlow's code** `updateInvoiceStatusFromPayments` `billingStripeBook` `recurringInvoiceGenerate` `productRepriceApply` `income_import`
+**Watched in ITFlow's code** `updateInvoiceStatusFromPayments` `billingStripeBook` `recurringInvoiceGenerate` `productRepriceApply` `income_import` `billingTimeInvoice` `product_category_id` `invoice_category_id`
 
 **"ITFlow does this too" words** quickbooks, qbo, xero, accounting_sync, intuit
 
-**Our files** `functions/mit_qbo.php`, `functions/mit_qbo_billing.php`, `admin/mit_qbo.php`, `admin/mit_qbo_callback.php`, `admin/post/mit_qbo.php`, `agent/mit_invoice_approvals.php`, `agent/mit_qbo_batch.php`, `agent/mit_qbo_batches.php`, `agent/post/mit_qbo.php`, `cron/mit_qbo_sync.php`
+**Our files** `functions/mit_qbo_accounts.php`, `functions/mit_qbo.php`, `functions/mit_qbo_billing.php`, `admin/mit_qbo.php`, `admin/mit_qbo_callback.php`, `admin/post/mit_qbo.php`, `agent/mit_invoice_approvals.php`, `agent/mit_qbo_batch.php`, `agent/mit_qbo_batches.php`, `agent/post/mit_qbo.php`, `cron/mit_qbo_sync.php`
 
 <a id="usage"></a>
 ## Usage billing (counts on recurring lines, connectors, API) (`usage`)

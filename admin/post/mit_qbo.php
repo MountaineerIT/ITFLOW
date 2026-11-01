@@ -157,3 +157,17 @@ if (isset($_POST['mit_qbo_save_map']) || isset($_POST['mit_qbo_create_customer']
     }
     redirect("mit_qbo.php?tab=$kind");
 }
+
+if (isset($_POST['mit_qbo_save_accounts']) && function_exists('mitQboAccountsSave')) {
+
+    validateCSRFToken();
+
+    try {
+        $warnings = mitQboAccountsSave($_POST);
+        logAudit('Settings', 'Edit', escapeSql(stripslashes($session_name) . ' changed the QuickBooks Online income accounts'));
+        flashAlert('Income accounts saved.' . ($warnings ? ' ' . escapeHtml(implode(' ', $warnings)) : ''), $warnings ? 'warning' : 'success');
+    } catch (Throwable $e) {
+        flashAlert(escapeHtml($e->getMessage()), 'error');
+    }
+    redirect('mit_qbo.php?tab=accounts');
+}
