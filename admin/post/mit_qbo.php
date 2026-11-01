@@ -142,6 +142,19 @@ if (isset($_POST['mit_qbo_save_map']) || isset($_POST['mit_qbo_create_customer']
             mitQboSetMap($kind, $id, $qbo_id, $list[$qbo_id]['name'] ?? '');
             $changed++;
         }
+        // Customers: each client's own QuickBooks terms (functions/mit_qbo_terms.php)
+        if ($kind === 'customers' && isset($_POST['term']) && function_exists('mitQboTermsReady') && mitQboTermsReady()) {
+            $terms = mitQboTerms();
+            $own = mitQboClientTerms();
+            foreach ((array) $_POST['term'] as $id => $term_id) {
+                $term_id = (string) $term_id;
+                if ($term_id === ($own[intval($id)]['qbo_term_id'] ?? '') || ($term_id !== '' && !isset($terms[$term_id]))) {
+                    continue;
+                }
+                mitQboSetClientTerm($id, $term_id, $terms[$term_id]['name'] ?? '');
+                $changed++;
+            }
+        }
         if (isset($_POST['mit_qbo_create_customer']) && $kind === 'customers') {
             $client_id = intval($_POST['mit_qbo_create_customer']);
             mitQboCreateCustomer($client_id);

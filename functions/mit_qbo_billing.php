@@ -508,6 +508,9 @@ function mitQboSendEntry(array $entry, array $items, $email) {
             qbo_total = $total, qbo_balance = " . floatval($qbo['Balance'] ?? $total) . ", sent_at = NOW() WHERE entry_id = $entry_id AND entry_status IN ('queued', 'failed')");
         $entry['qbo_invoice_id'] = $qbo['Id'] ?? '';
         $entry['bill_email'] = $qbo['BillEmail']['Address'] ?? '';
+        if (function_exists('mitQboTermsAfterSend')) {
+            mitQboTermsAfterSend($invoice_id, $qbo, $entry_id); // a client's own terms: QuickBooks' due date
+        }
         // ITFlow follows: a Draft becomes Sent (QuickBooks has it), with the step in its history
         if ($invoice['invoice_status'] === 'Draft') {
             mysqli_query($mysqli, "UPDATE invoices SET invoice_status = 'Sent' WHERE invoice_id = $invoice_id AND invoice_status = 'Draft'");
@@ -553,7 +556,7 @@ function mitQboBatchSend($batch_id) {
     $sent = 0;
     $failed = [];
     try {
-        $items = mitQboList('items');
+        $items = mitQboList('items', true); // fresh - an item made inactive in QuickBooks since must not be used
         $result = mysqli_query($mysqli, "SELECT e.*, invoice_prefix, invoice_number FROM mit_qbo_batch_invoices e JOIN invoices ON invoices.invoice_id = e.invoice_id
             WHERE e.batch_id = $batch_id AND e.entry_status IN ('queued', 'failed')" . clientScopeSql('invoices.invoice_client_id') . " ORDER BY e.entry_id");
         while ($entry = mysqli_fetch_assoc($result)) {

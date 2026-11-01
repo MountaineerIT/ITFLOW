@@ -12,6 +12,9 @@ test.describe.configure({ mode: 'serial' });
 
 const MOCK = 'http://127.0.0.1/qbo-mock/index.php';
 const made = { category: smokeName('QBO Hardware'), categoryId: 0, clientName: smokeName('QBO accounts client'), clientId: 0, invoiceId: 0, lineId: 0, connected: false, batchIds: [] };
+// Our QuickBooks settings this test changes - put back afterwards (rows as they were, or none)
+const SETTINGS = ['qbo_default_account', 'qbo_default_account_name', 'qbo_default_item', 'qbo_time_category', 'qbo_create_items', 'qbo_fallback_item'];
+const savedSettings = db.rows(`SELECT setting_name, setting_value FROM mit_settings WHERE setting_name IN ('${SETTINGS.join("','")}')`);
 const invoicePage = () => `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoiceId}`;
 
 async function post(page, url, fields) {
@@ -121,6 +124,21 @@ test('a typed line gets the category in its Edit window, the batch lists the ite
     await expect(page.locator('[data-mit-qbo-item-plan]'), 'nothing left to make').toHaveCount(0);
 });
 
+test('the Customers tab sets a client\'s own QuickBooks terms', async ({ page }) => {
+    test.skip(!made.connected || !made.clientId, 'not connected');
+    test.skip(!db.value("SHOW TABLES LIKE 'mit_qbo_client_terms'"), 'needs database update M052');
+    const errors = watch(page);
+    await visit(page, 'admin/mit_qbo.php?tab=customers', errors);
+    const pick = page.locator(`select[name="term[${made.clientId}]"][data-mit-qbo-client-term]`);
+    await expect(pick, 'a Terms picker per client').toHaveCount(1);
+    await pick.selectOption({ label: 'Due on the 1st' });
+    await submit(page.locator('#mitQboMapForm'), 'mit_qbo_save_map');
+    expect(await flash(page)).toMatch(/\d+ mappings? saved/);
+    expect(db.value(`SELECT qbo_term_name FROM mit_qbo_client_terms WHERE client_id = ${made.clientId}`), 'saved').toBe('Due on the 1st');
+    await expect(page.locator(`select[name="term[${made.clientId}]"]`)).toHaveValue('4');
+    await expectClean(page, errors);
+});
+
 test.afterAll(async ({ browser }) => {
     const use = test.info().project.use;
     const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
@@ -144,6 +162,10 @@ test.afterAll(async ({ browser }) => {
     }
     if (made.categoryId) {
         db.run(`DELETE FROM categories WHERE category_id = ${made.categoryId}`);
+    }
+    db.run(`DELETE FROM mit_settings WHERE setting_name IN ('${SETTINGS.join("','")}')`);
+    for (const row of savedSettings) {
+        db.run(`INSERT INTO mit_settings SET setting_name = '${row.setting_name}', setting_value = '${String(row.setting_value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`);
     }
     if (made.connected) {
         await page.goto('admin/mit_qbo.php');
