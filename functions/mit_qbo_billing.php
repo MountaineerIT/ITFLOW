@@ -930,7 +930,7 @@ function mitQboInvoiceBar($invoice_id) {
         && !mitQboManualRows([$invoice_id])) {
         return '';
     }
-    $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_status FROM invoices WHERE invoice_id = $invoice_id"));
+    $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_id, invoice_status, invoice_date, invoice_due, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id"));
     $entry = mitQboActiveEntry($invoice_id);
     $approval = mitInvoiceApprovalState($invoice_id);
     $approval_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT a.approved_at, user_name FROM mit_invoice_approvals a LEFT JOIN users ON user_id = a.approved_by WHERE a.invoice_id = $invoice_id"));
@@ -985,8 +985,10 @@ function mitQboInvoiceBar($invoice_id) {
             '[data-modal-url*="invoice_mark_sent.php"]', '#items .drag-handle', '[data-modal-url*="payment_add.php"]', '[data-modal-url*="payment_saved_method_add.php"]',
             '[data-modal-url*="invoice_add_ticket"]', '[data-modal-url*="invoice_add_expense"]', '[data-modal-url*="invoice_add_trip"]']);
     }
+    // The invoice's QuickBooks terms (functions/mit_qbo_terms.php) - a picker until it is in a batch
+    $terms = $invoice && !$manual && function_exists('mitQboInvoiceTermField') ? mitQboInvoiceTermField($invoice, (bool) $entry || !$can) : '';
     return '<div class="alert alert-light border d-flex flex-wrap align-items-center gap-2 py-2 d-print-none" data-mit-qbo-bar>'
-        . '<i class="fas fa-file-export text-success"></i><strong class="me-1">QuickBooks</strong><span class="me-auto">' . implode(' ', $parts) . '</span>' . $buttons . '</div>'
+        . '<i class="fas fa-file-export text-success"></i><strong class="me-1">QuickBooks</strong><span class="me-auto">' . implode(' ', $parts) . '</span>' . $terms . $buttons . '</div>'
         . ($hide ? '<style>' . implode(', ', $hide) . ' { display: none !important; }</style>' : '')
         . ($entry ? '<script>document.addEventListener("DOMContentLoaded", function () { var n = document.getElementById("billingNotes") || document.getElementById("invoiceNotes"); if (n) { n.readOnly = true; n.title = "Locked while in a QuickBooks batch"; } });</script>' : '');
 }

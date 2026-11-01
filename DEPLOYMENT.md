@@ -254,8 +254,8 @@ break stock ITFlow, and lists what stops working after a move.
   recurring auto-send come back, and payments made in QuickBooks stop coming back. Payments already brought back are
   ordinary ITFlow payments (method "QuickBooks Online") and stay; the approvals, batches, "Already in QuickBooks" marks and
   mappings stay unused in `mit_qbo_*` / `mit_invoice_approvals`. Income accounts by category and the categories picked for invoice lines stay unused in
-  `mit_qbo_category_accounts` / `mit_invoice_item_categories`; the items made in QuickBooks stay there. Clients' own QuickBooks terms stay
-  unused in `mit_qbo_client_terms`.
+  `mit_qbo_category_accounts` / `mit_invoice_item_categories`; the items made in QuickBooks stay there. Clients' and invoices' own QuickBooks terms
+  stay unused in `mit_qbo_client_terms` / `mit_qbo_invoice_terms`.
 - **Usage billing** – recurring invoices bill the fixed quantity on their lines again (update it by hand each month); the
   counts, `api/v1/mit_usage/` and Usage Review go (the data stays in `mit_usage_*`). Invoices already made keep their
   quantities. Systems reporting counts through the API get "resource not mapped" errors - switch them off. The usage

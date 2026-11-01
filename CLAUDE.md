@@ -744,7 +744,14 @@ model: see DEPLOYMENT.md.
   is not "changed since approval"; the user's choice: QuickBooks' due date wins); else the QuickBooks STANDARD term with the invoice's days (due -
   date; 0 = "Due on receipt", else "Net N" - an inactive one reactivated, a missing one made, `mitQboTermForDays`), ITFlow's DueDate sent as is.
   Stand-in: Terms 1-5 (5 = inactive Net 45, 4 = date-driven "Due on the 1st"), POST /term, invoices work DueDate out from a term. Scenario
-  `scenario-qbo-terms.php`, smoke: last test of `91-qbo-accounts.spec.js`.
+  `scenario-qbo-terms.php`, smoke: third test of `91-qbo-accounts.spec.js`.
+  Per-invoice terms (Nov 1, 26.11.1.7, M053 - the user's request: clients keep a default, an invoice can differ): `mit_qbo_invoice_terms`
+  (invoice_id PK FK invoices CASCADE) over the client's term in `mitQboApplyTerms`. Picker `mitQboInvoiceTermField` in the invoice's QuickBooks
+  strip (`mitQboInvoiceBar` - `[data-mit-qbo-invoice-term]`, default option "Client's: X" / "By due date: Net N", saves on change; text only
+  while in a batch or without Financial edit), handler `mit_qbo_invoice_term` at the end of `agent/post/mit_qbo.php` -> `mitQboSetInvoiceTerm`
+  (refused while batched; a STANDARD term moves invoice_due to date + days at once, history line; date-driven ones follow QuickBooks after the
+  send). QuickBooks' terms kept a day in `mit_settings` qbo_terms_cache (`mitQboTermsCached`; every live `mitQboTerms()` refreshes it).
+  Scenario: last part of `scenario-qbo-terms.php`; smoke: last test of `91-qbo-accounts.spec.js`.
 - Usage billing (Oct 2026, step 4 of the billing plan; step 5 = source connectors reporting through its API): `functions/mit_usage.php`
   (ours, required from `functions.php`). Tables M032: `mit_usage_lines` (a recurring invoice line billed by a count - source
   manual / api / tag, usage name `line_metric` - tag lines "tag:<id>" -, optional minimum; FK recurring_invoice_items /

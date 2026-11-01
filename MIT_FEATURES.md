@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 62 | 13 | 7 | 29 | 70 | 35 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 35 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 165 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
@@ -1050,7 +1050,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 - Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-terms.php`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
 
 **Hooks in ITFlow's files**
 
@@ -1102,7 +1102,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** quickbooks, qbo, xero, accounting_sync, intuit
 
-**Our files** `functions/mit_qbo_terms.php`, `functions/mit_qbo.php`, `functions/mit_qbo_accounts.php`, `functions/mit_qbo_billing.php`, `admin/mit_qbo.php`, `admin/mit_qbo_callback.php`, `admin/post/mit_qbo.php`, `agent/mit_invoice_approvals.php`, `agent/mit_qbo_batch.php`, `agent/mit_qbo_batches.php`, `agent/post/mit_qbo.php`, `cron/mit_qbo_sync.php`
+**Our files** `functions/mit_qbo.php`, `functions/mit_qbo_accounts.php`, `functions/mit_qbo_billing.php`, `functions/mit_qbo_terms.php`, `admin/mit_qbo.php`, `admin/mit_qbo_callback.php`, `admin/post/mit_qbo.php`, `agent/mit_invoice_approvals.php`, `agent/mit_qbo_batch.php`, `agent/mit_qbo_batches.php`, `agent/post/mit_qbo.php`, `cron/mit_qbo_sync.php`
 
 <a id="usage"></a>
 ## Usage billing (counts on recurring lines, connectors, API) (`usage`)

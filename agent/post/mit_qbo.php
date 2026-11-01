@@ -176,3 +176,29 @@ if (isset($_GET['mit_qbo_mark_manual']) || isset($_POST['mit_qbo_mark_manual']) 
     flashAlert($message, $refused ? ($marked ? 'warning' : 'error') : 'success');
     redirect();
 }
+
+/*
+ * The Terms picker in an invoice's QuickBooks strip (functions/mit_qbo_terms.php): this invoice's own QuickBooks terms, or back to the
+ * client's / the invoice's days ('').
+ */
+if (isset($_POST['mit_qbo_invoice_term']) && function_exists('mitQboSetInvoiceTerm')) {
+
+    validateCSRFToken();
+
+    if (!mitQboCan(2)) {
+        flashAlert('You need edit access to Financial to change QuickBooks terms.', 'error');
+        redirect();
+    }
+    $invoice_id = intval($_POST['mit_qbo_invoice_term']);
+    $term_id = (string) ($_POST['term'] ?? '');
+    $problem = mitQboSetInvoiceTerm($invoice_id, $term_id);
+    if ($problem !== '') {
+        flashAlert(escapeHtml($problem), 'error');
+    } else {
+        $own = mitQboInvoiceTerm($invoice_id);
+        logAudit('Invoice', 'Edit', escapeSql(stripslashes($session_name) . ' set the QuickBooks terms of invoice ' . $invoice_id . ' to ' . ($own ? $own['qbo_term_name'] : 'the default')),
+            intval(getFieldById('invoices', $invoice_id, 'invoice_client_id')), $invoice_id);
+        flashAlert('QuickBooks terms: ' . escapeHtml($own ? $own['qbo_term_name'] : 'the default') . '.');
+    }
+    redirect();
+}

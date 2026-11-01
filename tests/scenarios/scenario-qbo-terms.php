@@ -86,6 +86,21 @@ try {
     scenarioCheck('ITFlow\'s due date follows', $q1("SELECT invoice_due FROM invoices WHERE invoice_id = $id"), $first);
     scenarioCheck('... with a line in its history', (bool) $q1("SELECT 1 FROM history WHERE history_invoice_id = $id AND history_description LIKE 'Due date set to $first by QuickBooks Online%'"), true);
     scenarioCheck('... and not "changed since approval"', mitInvoiceApprovalState($id), 'approved');
+    echo "one invoice's own terms (over the client's)\n";
+    $id = $invoice($client_1st, 10);
+    scenarioCheck('Net 15 picked on the invoice', mitQboSetInvoiceTerm($id, '2'), '');
+    scenarioCheck('... ITFlow\'s due date moved to 15 days at once', $q1("SELECT invoice_due FROM invoices WHERE invoice_id = $id"), date('Y-m-d', strtotime('+15 days')));
+    scenarioCheck('... with a line in its history', (bool) $q1("SELECT 1 FROM history WHERE history_invoice_id = $id AND history_description LIKE 'Terms set to Net 15 by %'"), true);
+    $field = mitQboInvoiceTermField(mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoices WHERE invoice_id = $id")), false);
+    scenarioCheck('the strip\'s picker shows it, the client\'s as the default', [strpos($field, 'value="2" selected') !== false, strpos($field, escapeHtml("Client's: Due on the 1st")) !== false], [true, true]);
+    [$count, $failed] = $send($id);
+    $qbo = $sent($id);
+    scenarioCheck('sent with Net 15, not the client\'s Due on the 1st (' . json_encode($failed) . ')', [$qbo['SalesTermRef']['name'] ?? '', $qbo['DueDate'] ?? ''], ['Net 15', date('Y-m-d', strtotime('+15 days'))]);
+    scenarioCheck('locked in its batch: refused', mitQboSetInvoiceTerm($id, '3') !== '', true);
+    scenarioCheck('... and the strip shows text, no picker', strpos(mitQboInvoiceTermField(mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoices WHERE invoice_id = $id")), true), '<select') === false, true);
+    $other = $invoice($client_id, 30);
+    mitQboSetInvoiceTerm($other, '4');
+    scenarioCheck('cleared back to the default', [mitQboSetInvoiceTerm($other, ''), mitQboInvoiceTerm($other)], ['', null]);
     mitQboSetClientTerm($client_1st, '');
     scenarioCheck('cleared', mitQboClientTerms()[$client_1st] ?? null, null);
 } finally {

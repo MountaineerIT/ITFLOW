@@ -10,6 +10,9 @@
  *   else the QuickBooks term with the invoice's days (due date - invoice date; 0 = "Due on receipt"), made there when it has none
  *     ("Net 45"), with ITFlow's due date as it is.
  * Invoices already in QuickBooks are left as they are (the user's choice).
+ * One invoice can have its own term over all of that (M053 mit_qbo_invoice_terms - the Terms picker in the invoice's QuickBooks strip,
+ * mitQboInvoiceTermField / mitQboSetInvoiceTerm): a term with days moves ITFlow's due date to match at once; a date-driven one is
+ * worked out by QuickBooks at the send. QuickBooks' term list is kept a day in mit_settings qbo_terms_cache (the strip reads that).
  */
 
 /** Has M052 run? (one query per request) */
@@ -26,7 +29,7 @@ function mitQboTermsReady() {
     return $ready;
 }
 
-/** QuickBooks' terms, active ones: id => [id, name, type (STANDARD | DATE_DRIVEN), days, day_of_month]. Read once a request. */
+/** QuickBooks' terms, active ones: id => [id, name, type (STANDARD | DATE_DRIVEN), days, day_of_month]. Read once a request (and kept for a day). */
 function mitQboTerms($fresh = false) {
     static $list = null;
     if ($list === null || $fresh) {
@@ -36,8 +39,123 @@ function mitQboTerms($fresh = false) {
                 'days' => isset($row['DueDays']) ? intval($row['DueDays']) : null, 'day_of_month' => isset($row['DayOfMonthDue']) ? intval($row['DayOfMonthDue']) : null];
         }
         uasort($list, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
+        mitSetSetting('qbo_terms_cache', json_encode(['at' => time(), 'terms' => $list]));
     }
     return $list;
+}
+
+/** QuickBooks' terms for a page: the copy kept for a day, read again when older (or none - [] when QuickBooks can't be reached). */
+function mitQboTermsCached() {
+    $kept = json_decode((string) mitSetting('qbo_terms_cache', ''), true);
+    if (is_array($kept) && isset($kept['terms']) && intval($kept['at'] ?? 0) > time() - 86400) {
+        return $kept['terms'];
+    }
+    try {
+        return mitQboTerms();
+    } catch (Throwable $e) {
+        return is_array($kept['terms'] ?? null) ? $kept['terms'] : [];
+    }
+}
+
+/** One invoice's own term: [qbo_term_id, qbo_term_name] or null. */
+function mitQboInvoiceTerm($invoice_id) {
+    global $mysqli;
+    if (!mitQboInvoiceTermsReady()) {
+        return null;
+    }
+    return mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT qbo_term_id, qbo_term_name FROM mit_qbo_invoice_terms WHERE invoice_id = " . intval($invoice_id))) ?: null;
+}
+
+/** Has M053 run? */
+function mitQboInvoiceTermsReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        try {
+            $ready = mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE 'mit_qbo_invoice_terms'")) === 1;
+        } catch (Throwable $e) {
+            $ready = false;
+        }
+    }
+    return $ready;
+}
+
+/**
+ * Pick (or clear, with '') one invoice's QuickBooks term. Refused while it is in a QuickBooks batch. A term with days moves ITFlow's
+ * due date to the invoice date + those days (history line). Returns '' or the problem.
+ */
+function mitQboSetInvoiceTerm($invoice_id, $term_id) {
+    global $mysqli, $session_user_id, $session_name;
+    $invoice_id = intval($invoice_id);
+    $term_id = preg_replace('/[^0-9A-Za-z_-]/', '', (string) $term_id);
+    if (!mitQboInvoiceTermsReady()) {
+        return 'The database update for invoice terms has not run yet.';
+    }
+    $invoice = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT invoice_id, invoice_date, invoice_due, invoice_client_id FROM invoices WHERE invoice_id = $invoice_id"
+        . clientScopeSql('invoice_client_id')));
+    if (!$invoice) {
+        return 'That invoice does not exist.';
+    }
+    if (function_exists('mitQboInvoiceLock') && mitQboInvoiceLock($invoice_id) !== '') {
+        return 'The invoice is in a QuickBooks batch - its terms are set there.';
+    }
+    if ($term_id === '') {
+        mysqli_query($mysqli, "DELETE FROM mit_qbo_invoice_terms WHERE invoice_id = $invoice_id");
+        return '';
+    }
+    $term = mitQboTermsCached()[$term_id] ?? (mitQboTerms(true)[$term_id] ?? null);
+    if (!$term) {
+        return 'QuickBooks has no active terms with that id.';
+    }
+    $by = intval($session_user_id ?? 0);
+    $name = escapeSql(mb_substr($term['name'], 0, 255));
+    mysqli_query($mysqli, "INSERT INTO mit_qbo_invoice_terms SET invoice_id = $invoice_id, qbo_term_id = '$term_id', qbo_term_name = '$name', set_by = $by, set_at = NOW()
+        ON DUPLICATE KEY UPDATE qbo_term_id = '$term_id', qbo_term_name = '$name', set_by = $by, set_at = NOW()");
+    if ($term['type'] === 'STANDARD' && $term['days'] !== null) {
+        $due = date('Y-m-d', strtotime((string) $invoice['invoice_date'] . ' +' . intval($term['days']) . ' days'));
+        if ($due !== substr((string) $invoice['invoice_due'], 0, 10)) {
+            mysqli_query($mysqli, "UPDATE invoices SET invoice_due = '$due' WHERE invoice_id = $invoice_id");
+            mysqli_query($mysqli, "INSERT INTO history SET history_status = 'Draft', history_description = '" . escapeSql('Terms set to ' . $term['name'] . ' by '
+                . stripslashes((string) ($session_name ?? 'ITFlow')) . ' - due ' . $due . ', was ' . substr((string) $invoice['invoice_due'], 0, 10)) . "', history_invoice_id = $invoice_id");
+        }
+    }
+    return '';
+}
+
+/**
+ * The Terms picker in the invoice's QuickBooks strip (mitQboInvoiceBar): the default (the client's own term, else the one with the
+ * invoice's days) and every QuickBooks term; changing it saves at once. Read-only text while the invoice is locked in a batch.
+ */
+function mitQboInvoiceTermField(array $invoice, $locked) {
+    if (!mitQboTermsReady() || !mitQboInvoiceTermsReady() || !mitQboConnected()) {
+        return '';
+    }
+    $invoice_id = intval($invoice['invoice_id']);
+    $own = mitQboInvoiceTerm($invoice_id);
+    $client = mitQboClientTerms()[intval($invoice['invoice_client_id'])] ?? null;
+    $days = intval(round((strtotime((string) $invoice['invoice_due']) - strtotime((string) $invoice['invoice_date'])) / 86400));
+    $default = $client ? 'Client\'s: ' . $client['qbo_term_name'] : 'By due date: ' . ($days <= 0 ? 'Due on receipt' : "Net $days");
+    if ($locked) {
+        return '<span class="small text-body-secondary" data-mit-qbo-invoice-term-text><i class="fas fa-calendar-check me-1"></i>Terms: '
+            . escapeHtml($own ? $own['qbo_term_name'] : preg_replace('/^[^:]+: /', '', $default)) . '</span>';
+    }
+    $terms = mitQboTermsCached();
+    ob_start(); ?>
+    <form action="/agent/post.php" method="post" class="d-flex align-items-center gap-1" data-mit-qbo-invoice-term>
+        <input type="hidden" name="csrf_token" value="<?= escapeHtml((string) ($_SESSION['csrf_token'] ?? '')) ?>">
+        <input type="hidden" name="mit_qbo_invoice_term" value="<?= $invoice_id ?>">
+        <label class="small text-body-secondary text-nowrap mb-0" for="mitQboInvoiceTerm"><i class="fas fa-calendar-check me-1"></i>Terms</label>
+        <select class="form-select form-select-sm" name="term" id="mitQboInvoiceTerm" style="width: auto" onchange="this.form.submit()">
+            <option value=""><?= escapeHtml($default) ?></option>
+            <?php if ($own && !isset($terms[$own['qbo_term_id']])) { ?>
+                <option value="<?= escapeHtml($own['qbo_term_id']) ?>" selected><?= escapeHtml($own['qbo_term_name']) ?> (inactive or gone)</option>
+            <?php }
+            foreach ($terms as $term) { ?>
+                <option value="<?= escapeHtml($term['id']) ?>" <?= $own && $own['qbo_term_id'] === $term['id'] ? 'selected' : '' ?>><?= escapeHtml($term['name']) ?></option>
+            <?php } ?>
+        </select>
+    </form>
+    <?php return ob_get_clean();
 }
 
 /** A client's own QuickBooks term: client id => [qbo_term_id, qbo_term_name]. */
@@ -109,11 +227,12 @@ function mitQboApplyTerms(array &$payload, array $invoice, array &$problems, $cr
         return;
     }
     $client_id = intval($invoice['invoice_client_id']);
-    $own = mitQboClientTerms()[$client_id] ?? null;
+    // The invoice's own term, else the client's
+    $own = mitQboInvoiceTerm($invoice['invoice_id'] ?? 0) ?: (mitQboClientTerms()[$client_id] ?? null);
     try {
         if ($own) {
             if (!isset(mitQboTerms()[$own['qbo_term_id']])) {
-                $problems[] = 'The client\'s QuickBooks terms "' . $own['qbo_term_name'] . '" are no longer active in QuickBooks - pick others on the Customers tab.';
+                $problems[] = 'The QuickBooks terms "' . $own['qbo_term_name'] . '" are no longer active in QuickBooks - pick others on the invoice (QuickBooks strip) or the Customers tab.';
                 return;
             }
             $payload['SalesTermRef'] = ['value' => (string) $own['qbo_term_id']];

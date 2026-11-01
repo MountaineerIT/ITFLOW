@@ -139,6 +139,28 @@ test('the Customers tab sets a client\'s own QuickBooks terms', async ({ page })
     await expectClean(page, errors);
 });
 
+test('an invoice\'s own terms: picked in its QuickBooks strip over the client\'s default', async ({ page }) => {
+    test.skip(!made.connected || !made.clientId, 'not connected');
+    test.skip(!db.value("SHOW TABLES LIKE 'mit_qbo_invoice_terms'"), 'needs database update M053');
+    const errors = watch(page);
+    await visit(page, `agent/client_overview.php?client_id=${made.clientId}`, errors);
+    const add = await openModal(page, `modals/invoice/invoice_add.php?client_id=${made.clientId}`);
+    await add.locator('select[name=category]').selectOption({ index: 1 });
+    await fillForm(add, { scope: 'Smoke test QuickBooks terms' });
+    await submit(add, 'add_invoice');
+    made.invoice2Id = Number(new URL(page.url()).searchParams.get('invoice_id'));
+    expect(made.invoice2Id, 'invoice made').toBeGreaterThan(0);
+    const picker = page.locator('[data-mit-qbo-bar] [data-mit-qbo-invoice-term] select[name=term]');
+    await expect(picker, 'the Terms picker in the QuickBooks strip').toHaveCount(1);
+    await expect(picker.locator('option[value=""]'), 'the client\'s terms are the default').toHaveText("Client's: Due on the 1st");
+    await Promise.all([page.waitForNavigation(), picker.selectOption({ label: 'Net 15' })]);
+    expect(await flash(page)).toContain('QuickBooks terms: Net 15');
+    expect(db.value(`SELECT qbo_term_name FROM mit_qbo_invoice_terms WHERE invoice_id = ${made.invoice2Id}`), 'saved').toBe('Net 15');
+    expect(db.value(`SELECT DATEDIFF(invoice_due, invoice_date) FROM invoices WHERE invoice_id = ${made.invoice2Id}`), 'due date follows').toBe('15');
+    await expect(page.locator('[data-mit-qbo-invoice-term] select[name=term]')).toHaveValue('2');
+    await expectClean(page, errors);
+});
+
 test.afterAll(async ({ browser }) => {
     const use = test.info().project.use;
     const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
@@ -152,6 +174,9 @@ test.afterAll(async ({ browser }) => {
             await post(page, '/agent/post.php', { entry_id: entry, mit_qbo_entry_remove: 'unlink' });
         }
         await action(page, `delete_invoice=${made.invoiceId}`, invoicePage());
+    }
+    if (made.invoice2Id) {
+        await action(page, `delete_invoice=${made.invoice2Id}`, `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoice2Id}`);
     }
     for (const batchId of made.batchIds) {
         await page.goto(`agent/mit_qbo_batch.php?batch_id=${batchId}`);
