@@ -186,6 +186,21 @@ try {
     scenarioCheck('Hardware\'s own item follows', $qbo_item($hw_item)['IncomeAccountRef']['value'] ?? '', '82');
     scenarioCheck('a mapped product\'s item keeps its account', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', '80');
 
+    echo "the category's item made inactive in QuickBooks\n";
+    $hw_now = $qbo_item($hw_item);
+    mitQboApi('POST', '/item', ['Id' => $hw_item, 'SyncToken' => (string) $hw_now['SyncToken'], 'sparse' => true, 'Active' => false]);
+    $fourth = billingInvoiceCreate($client_id, date('Y-m-d'), $projects, 'ZZ scenario accounts 4', 'Scenario');
+    $made['invoices'][] = $fourth;
+    mysqli_query($mysqli, "UPDATE invoices SET invoice_currency_code = 'USD' WHERE invoice_id = $fourth");
+    $typed = $line($fourth, ['name' => 'ZZ scen typed hardware again']);
+    mitQboLineCategorySave('invoice', $typed, ['mit_line_category_present' => '1', 'mit_line_category' => $hardware]);
+    billingRecalc('invoice', $fourth);
+    [$batch4] = $send([$fourth]);
+    [$sent4, $failed4] = mitQboBatchSend($batch4);
+    scenarioCheck('sent (' . json_encode($failed4) . ')', $sent4, 1);
+    scenarioCheck('... the same item, made active again (not a second one)', [$qbo_item($hw_item)['Active'] ?? null,
+        count(array_filter($mock('/_state')['items'], fn($i) => $i['Name'] === "ZZ Hardware $stamp (ITFlow)"))], [true, 1]);
+
     echo "making items switched off\n";
     mitSetSetting('qbo_create_items', '0');
     $gadget = $product("ZZ scen gadget $stamp", $hardware, 'service');

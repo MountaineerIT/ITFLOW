@@ -376,6 +376,7 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
         }
         $store($id, $qbo_name);
         $ctx['made'][$key] = $id;
+        $ctx['active_ids'][$id] = true;
         return [$id, ''];
     };
 
@@ -419,7 +420,8 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
     // Its category's own item
     if ($category_id && $a['create_items']) {
         $mapped = mitQboCategoryAccounts()[$category_id] ?? null;
-        if ($mapped && $mapped['qbo_item_id'] !== '') {
+        // Its item, while QuickBooks still has it active (deleted or made inactive there: made / made active again below)
+        if ($mapped && $mapped['qbo_item_id'] !== '' && isset($ctx['active_ids'][$mapped['qbo_item_id']])) {
             return [$mapped['qbo_item_id'], ''];
         }
         $account = mitQboAccountFor($category_id);
@@ -440,7 +442,7 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
     }
     // Nothing else: "Sales (ITFlow)" on the default account
     if ($a['create_items'] && $a['default_account'] !== '') {
-        if ($a['default_item'] !== '') {
+        if ($a['default_item'] !== '' && isset($ctx['active_ids'][$a['default_item']])) {
             return [$a['default_item'], ''];
         }
         return $make('default', 'Sales' . MIT_QBO_ITEM_SUFFIX, 'Service', [$a['default_account'], $a['default_account_name']], 'Lines with no category',
@@ -460,7 +462,7 @@ function mitQboLineContext(array $items, $create) {
             $by_name[mb_strtolower(trim($item['short']))] = $by_name[mb_strtolower(trim($item['short']))] ?? $item['id'];
         }
     }
-    return ['items_by_name' => $by_name, 'item_map' => mitQboMap('items'), 'products' => [], 'settings' => mitQboSettings(), 'accounts' => mitQboAccountSettings(),
+    return ['items_by_name' => $by_name, 'active_ids' => array_fill_keys(array_map('strval', array_keys($items)), true), 'item_map' => mitQboMap('items'), 'products' => [], 'settings' => mitQboSettings(), 'accounts' => mitQboAccountSettings(),
         'create' => (bool) $create, 'plan' => [], 'made' => []];
 }
 
@@ -487,7 +489,7 @@ function mitQboBatchItemPlan($batch_id) {
     if (!mitQboAccountsReady() || !mitQboAccountSettings()['create_items']) {
         return [];
     }
-    $ctx = mitQboLineContext(mitQboList('items'), false);
+    $ctx = mitQboLineContext(mitQboList('items', true), false); // fresh: items made since this request started count
     $plan = [];
     $result = mysqli_query($mysqli, "SELECT e.invoice_id, i.* FROM mit_qbo_batch_invoices e JOIN invoices i ON i.invoice_id = e.invoice_id
         WHERE e.batch_id = " . intval($batch_id) . " AND e.entry_status IN ('queued', 'failed') AND COALESCE(e.qbo_invoice_id, '') = ''" . clientScopeSql('i.invoice_client_id'));

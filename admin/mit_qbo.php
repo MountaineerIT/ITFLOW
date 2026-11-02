@@ -302,7 +302,18 @@ if ($connected) {
                 'tax_codes' => "SELECT tax_id AS id, tax_name AS name, tax_percent AS detail FROM taxes WHERE tax_archived_at IS NULL ORDER BY tax_name",
             ];
             $rows = mysqli_fetch_all(mysqli_query($mysqli, $sources[$kind]), MYSQLI_ASSOC);
-            $options = $qbo_lists[$kind]; ?>
+            $options = $qbo_lists[$kind];
+            // Customers: each client's QuickBooks terms (functions/mit_qbo_terms.php)
+            $terms = [];
+            $client_terms = [];
+            if ($kind === 'customers' && $connected && function_exists('mitQboTermsReady') && mitQboTermsReady()) {
+                try {
+                    $terms = mitQboTerms();
+                    $client_terms = mitQboClientTerms();
+                } catch (Throwable $e) {
+                    $qbo_error = $e->getMessage();
+                }
+            } ?>
 
             <?php if (!$connected) { ?>
                 <div class="alert alert-info">Connect to QuickBooks first (Connection tab).</div>
@@ -311,7 +322,8 @@ if ($connected) {
                     <p class="text-muted mb-0 me-auto" style="max-width: 46rem">
                         <?php if ($kind === 'customers') { ?>
                             The QuickBooks customer each client's invoices go to. Unmapped clients get one when their first invoice is sent (if "Make missing
-                            customers" is on).
+                            customers" is on). Terms: every invoice goes with the QuickBooks terms matching its days (Due on receipt, Net 15, Net 30 ... - made in
+                            QuickBooks when missing); pick a client's own here (e.g. "Due on the 1st") and QuickBooks works its due date out, which ITFlow then takes.
                         <?php } elseif ($kind === 'items') { ?>
                             The QuickBooks item (product / service) each ITFlow product's invoice lines use - it decides the income account in QuickBooks. Lines
                             without a product use the item with the same name, else the fallback item.
@@ -330,7 +342,7 @@ if ($connected) {
                     <input type="hidden" name="kind" value="<?= $kind ?>">
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle" style="max-width: 60rem">
-                            <thead><tr><th><?= $labels[$kind][0] ?></th><th><?= $labels[$kind][1] ?></th><?php if ($kind === 'customers') { ?><th></th><?php } ?></tr></thead>
+                            <thead><tr><th><?= $labels[$kind][0] ?></th><th><?= $labels[$kind][1] ?></th><?php if ($terms) { ?><th title="Blank: the QuickBooks terms with the invoice's days (Due on receipt, Net 15, Net 30 ...)">Terms</th><?php } ?><?php if ($kind === 'customers') { ?><th></th><?php } ?></tr></thead>
                             <tbody>
                             <?php foreach ($rows as $row) {
                                 $id = intval($row['id']);
@@ -351,6 +363,20 @@ if ($connected) {
                                             <?php } ?>
                                         </select>
                                     </td>
+                                    <?php if ($terms) {
+                                        $own = $client_terms[$id]['qbo_term_id'] ?? ''; ?>
+                                        <td style="min-width: 12rem">
+                                            <select class="form-select form-select-sm" name="term[<?= $id ?>]" data-mit-qbo-client-term>
+                                                <option value="">- by the invoice's days -</option>
+                                                <?php if ($own !== '' && !isset($terms[$own])) { ?>
+                                                    <option value="<?= escapeHtml($own) ?>" selected><?= escapeHtml($client_terms[$id]['qbo_term_name']) ?> (inactive or gone)</option>
+                                                <?php }
+                                                foreach ($terms as $term) { ?>
+                                                    <option value="<?= escapeHtml($term['id']) ?>" <?= $own === $term['id'] ? 'selected' : '' ?>><?= escapeHtml($term['name']) ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </td>
+                                    <?php } ?>
                                     <?php if ($kind === 'customers') { ?>
                                         <td><?php if ($current === '') { ?>
                                             <button type="submit" form="mitQboMapForm" name="mit_qbo_create_customer" value="<?= $id ?>" class="btn btn-link btn-sm p-0">Make in QuickBooks</button>

@@ -4,6 +4,14 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.7 - 2026-11-01
+- QuickBooks Online: each invoice has a Terms picker in its QuickBooks strip. It starts on the client's default (or the terms matching the due date) and can be changed for that one invoice - e.g. Net 15 for a hardware order on a client who is normally due on the 1st. Picking terms with days moves the invoice's due date to match straight away; a date-based term ("Due on the 1st") is worked out by QuickBooks when the invoice is sent. Once the invoice is in a batch its terms are shown, not changeable.
+
+## 26.11.1.6 - 2026-11-01
+- QuickBooks Online: invoices now go to QuickBooks with their Terms. Each one gets the QuickBooks terms matching its days - Due on receipt, Net 15, Net 30 ... (made in QuickBooks when it doesn't have them yet). Invoices already in QuickBooks are left as they are.
+- A client can have its own QuickBooks terms, e.g. "Due on the 1st" (Admin > Integrations > QuickBooks Online > Customers, new Terms column). QuickBooks then works the due date out, and the invoice's due date in ITFlow follows it (noted in the invoice's history).
+- QuickBooks: an "(ITFlow)" item that was deleted or made inactive in QuickBooks is made (or made active) again when it is next needed, instead of the send failing with "Invalid Reference Id".
+
 ## 26.11.1.5 - 2026-11-01
 - QuickBooks Online: income accounts by category. Each of ITFlow's Income categories (Hardware Sales, Support ...) can be given one of QuickBooks' income accounts, plus a default one (Admin > Integrations > QuickBooks Online > Income accounts).
 - Every invoice line goes to the account of its own category, so one invoice with hardware and labor lands in both: a product's line uses the product's category, a ticket part its product's, ticket time the category set for it, and a line typed by hand the one picked in its Edit window (else the invoice's). The category shows under each line on the invoice page.

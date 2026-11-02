@@ -21,6 +21,7 @@
 
 require_once __DIR__ . '/mit_qbo_billing.php';
 require_once __DIR__ . '/mit_qbo_accounts.php';
+require_once __DIR__ . '/mit_qbo_terms.php';
 
 const MIT_QBO_SCOPE = 'com.intuit.quickbooks.accounting';
 const MIT_QBO_MINOR_VERSION = 75;
@@ -322,10 +323,10 @@ function mitQboQuote($value) {
     return "'" . str_replace(["\\", "'"], ["\\\\", "\\'"], (string) $value) . "'";
 }
 
-/** QuickBooks' customers / items / tax codes, active ones, read once per request: id => [id, name, ...]. */
-function mitQboList($kind) {
+/** QuickBooks' customers / items / tax codes, active ones, read once per request ($fresh: read again): id => [id, name, ...]. */
+function mitQboList($kind, $fresh = false) {
     static $lists = [];
-    if (!isset($lists[$kind])) {
+    if (!isset($lists[$kind]) || $fresh) {
         $list = [];
         if ($kind === 'customers') {
             foreach (mitQboQueryAll('Customer', 'Active = true') as $row) {
@@ -602,6 +603,9 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0, $create 
         'Line' => $lines,
         'PrivateNote' => mb_substr('From ITFlow invoice ' . mitQboDocNumber($invoice) . ($batch_id ? " (batch $batch_id)" : ''), 0, 4000),
     ];
+    if (function_exists('mitQboApplyTerms')) {
+        mitQboApplyTerms($payload, $invoice, $problems, $create); // the client's QuickBooks terms, else the ones with the invoice's days
+    }
     if (trim((string) $invoice['invoice_note']) !== '') {
         $payload['CustomerMemo'] = ['value' => mb_substr(trim(strip_tags((string) $invoice['invoice_note'])), 0, 1000)];
     }
