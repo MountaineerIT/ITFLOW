@@ -4,6 +4,13 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.2.3 - 2026-11-03
+- Calendar, Dispatch and the ticket lists: the ticket quick look (and a calendar entry's) fits the screen - a long ticket no longer runs off the bottom. The title and the Assign / Edit / Open ticket buttons stay put and the middle scrolls, like Dispatch's Schedule window.
+
+## 26.11.2.2 - 2026-11-03
+- Ticket page, Customize layout: with "Three columns" picked, the new left column now shows a "Drag boxes here" area to drop boxes on. It was there but invisible, so it looked as if boxes couldn't be moved into it. Any column emptied while customizing shows the same area.
+- Three columns share the page width by proportion (the middle column the widest), so on a laptop screen the ticket's title, description and reply box are no longer squeezed between two fixed 300-pixel columns.
+
 ## 26.11.2.1 - 2026-11-03
 - ITFlow 26.11.2 merged: Transactions, its Transfers pill, Reconcile and the transactions export are faster (database update 3.5.4 adds one index to transfers; it runs by itself with the update).
 - ITFlow is now licensed under the GNU Affero General Public License v3.0 (AGPL-3.0, was GPL-3.0), and so is this build from this version on. Anyone who uses it over a network - staff, and clients through the portal or a guest link - can get its source, which is this build's public GitHub repository (README, "License and credits").

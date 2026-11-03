@@ -67,6 +67,38 @@ test('layout: Customize layout, Save for me, and back to the company default', a
     await expectClean(page, errors);
 });
 
+test('layout: three columns - the new left column shows where to drop, takes boxes by drag, and keeps them', async ({ page }) => {
+    const errors = watch(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await visit(page, ticketPage(), errors);
+    await page.locator('.ticket-layout-header .dropdown:not(.mit-no-response) > [data-bs-toggle="dropdown"]').first().click();
+    await page.locator('.dropdown-item', { hasText: 'Customize layout' }).click();
+    const bar = page.locator('.mit-layout-toolbar');
+    await bar.locator('select').selectOption('three');
+    // The empty left column is a visible target (26.11.2.2 - it showed nothing at all, so there was nowhere to drop)
+    const left = page.locator('.ticket-layout > .mit-layout-left');
+    await expect(left).toBeVisible();
+    expect(await left.evaluate((el) => getComputedStyle(el, '::before').content), 'the left column says where to drop').toContain('Drag boxes here');
+    // Drag the Details box into it by its bar
+    const handle = page.locator('[data-mit-box="details"] .mit-box-handle');
+    const from = await handle.boundingBox();
+    await page.mouse.move(from.x + 10, from.y + 5);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 30, from.y + 25, { steps: 5 });
+    const to = await left.boundingBox();
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 25 });
+    await page.mouse.up();
+    await expect(page.locator('.mit-layout-left > [data-mit-box="details"]'), 'Details dropped into the left column').toHaveCount(1);
+    // Three columns share the width, the middle one the widest
+    const widths = await page.evaluate(() => ['.mit-layout-left', '.ticket-layout-main', '.ticket-layout-side'].map((s) => document.querySelector(s).getBoundingClientRect().width));
+    expect(widths[1], 'the middle column is the widest').toBeGreaterThan(widths[0]);
+    await Promise.all([page.waitForNavigation(), bar.locator('button', { hasText: 'Save for me' }).click()]);
+    expect(JSON.parse(pref(1) || 'null').left, 'saved in the left column').toContain('details');
+    await expect(page.locator('.ticket-layout.mit-cols-three > .mit-layout-left > [data-mit-box="details"]'), 'still there after the reload').toHaveCount(1);
+    db.run("DELETE FROM mit_user_preferences WHERE user_id = 1 AND preference = 'ticket.layout'");
+    await expectClean(page, errors);
+});
+
 test('layout: a company default reaches the technician, who cannot set one', async ({ page, browser }) => {
     await visit(page, ticketPage());
     const csrf = await page.evaluate(() => window.mitTicketLayout.csrf);

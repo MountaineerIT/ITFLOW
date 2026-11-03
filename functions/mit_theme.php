@@ -33,7 +33,15 @@ function mitThemeHead() {
         // A login's copy buttons - username, password, link (functions/credential.php) - the size of the text beside them (ITFlow's are .8em,
         // hard to hit); the user chose 1em for all three (26.11.1.8)
         . '<style>.itflow-credential-user + .itflow-copy, .itflow-credential-pw .itflow-credential-copy, .itflow-copy.clipboardjs[title="Copy link"]'
-        . ' { font-size: 1em; padding: .1rem .3rem; line-height: 1; vertical-align: middle; }</style>';
+        . ' { font-size: 1em; padding: .1rem .3rem; line-height: 1; vertical-align: middle; }'
+        // The ticket and calendar-entry quick looks (calendar, Dispatch, lists) fit the screen: title and buttons stay, the middle scrolls -
+        // Bootstrap's .modal-dialog-scrollable rules, keyed on ITFlow's own markup (ajax_modal.js builds the dialog; 26.11.2.3)
+        . ' .modal-dialog:has(> .modal-content > .modal-body.itflow-ticket-glance), .modal-dialog:has(> .modal-content > .modal-header .itflow-cal-tile)'
+        . ' { height: calc(100% - var(--bs-modal-margin) * 2); }'
+        . ' :is(.modal-dialog:has(> .modal-content > .modal-body.itflow-ticket-glance), .modal-dialog:has(> .modal-content > .modal-header .itflow-cal-tile)) > .modal-content'
+        . ' { max-height: 100%; overflow: hidden; }'
+        . ' :is(.modal-dialog:has(> .modal-content > .modal-body.itflow-ticket-glance), .modal-dialog:has(> .modal-content > .modal-header .itflow-cal-tile)) > .modal-content > .modal-body'
+        . ' { overflow-y: auto; overscroll-behavior: contain; }</style>';
     if (!mitLookOn()) {
         return $time;
     }

@@ -374,6 +374,9 @@ model: see DEPLOYMENT.md.
   wrapped as "conversation" - re-check those if upstream reworks `agent/ticket.php`. Hooks: one line
   after the layout in `agent/ticket.php` (`mitTicketLayoutHtml`), `agent/ajax.php?mit_ticket_layout`,
   `functions.php` (require). "Customize layout" is added to the ticket's ⋮ menu by the script.
+  Three columns (26.11.2.2): while editing, an empty column shows "Drag boxes here" (`.mit-layout-editing .ticket-layout > :is(...):empty::before`
+  - the editing class is on <body>, the column classes on .ticket-layout; the old selector wanted both on one element, so the new left
+  column was invisible); widths `1fr 1.6fr 1fr` (were fixed 300 / 340 px). Smoke: the three-columns drag test in `43-layout-timers.spec.js`.
   The same script opens the reply box on "Public note" at page load (ITFlow starts it shut with nothing
   picked) - it relies on ITFlow's ids `#replyComposer`, `public_reply_type_opt1`, `#replyAudience`, `#replySubmitLabel`.
   It also adds a "Read" tick to the Description box's header: ticked, the description starts folded away for that tech
@@ -931,6 +934,10 @@ model: see DEPLOYMENT.md.
   `mitThemeHead()` sets ITFlow's username (`.itflow-credential-user + .itflow-copy`), password (`.itflow-credential-pw .itflow-credential-copy`)
   and link (`.itflow-copy.clipboardjs[title="Copy link"]`) copy buttons from functions/credential.php to 1em (its copy buttons are .8em);
   smoke `93-credential-copy.spec.js`.
+  Quick looks fit the screen (26.11.2.3, every look - the user's request): the ticket (`.modal-body.itflow-ticket-glance`, agent/modals/ticket/ticket.php)
+  and calendar-entry (`.modal-header .itflow-cal-tile`, calendar_event.php) quick looks get Bootstrap's scrollable-dialog rules from `mitThemeHead()`
+  (dialog height = screen less margins, content max-height 100%, body scrolls) - keyed with :has on ITFlow's markup, as ajax_modal.js builds the
+  dialog without a scrollable class. Other ajax modals untouched (a <form> around the body, or dropdowns, would break). Smoke `94-quick-look-fit.spec.js`.
   Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
   MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
   each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage
