@@ -6,7 +6,7 @@
 
 [![Mountaineer IT build][build-shield]][changelog-url]
 [![Last commit][commit-shield]][commit-url]
-[![GPL License][license-shield]][license-url]
+[![AGPL License][license-shield]][license-url]
 [![Based on ITFlow][upstream-shield]][upstream-url]
 
 <p>
@@ -176,18 +176,23 @@ No system is risk-free - use your judgement before storing highly confidential i
 
 ITFlow is © its authors - the [ITFlow project](https://itflow.org) and its
 [contributors](https://github.com/itflow-org/itflow/graphs/contributors) - and is licensed under the
-[GNU General Public License v3.0](LICENSE). This build is a modified version, distributed under the same license, "as is",
-WITHOUT WARRANTY OF ANY KIND. Our changes are listed in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) and in this repository's history.
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0; ITFlow moved to it from GPL-3.0 in 26.11.2). This build is a modified
+version, distributed under the same license, "as is", WITHOUT WARRANTY OF ANY KIND. Our changes are listed in
+[MIT_CHANGELOG.md](MIT_CHANGELOG.md) and in this repository's history.
+
+**Source code:** the AGPL asks that anyone using a modified version over a network - our staff, and clients through the portal
+or a guest link - can get its source. This build's complete source is this public repository,
+<https://github.com/MountaineerIT/ITFLOW> (the `MountaineerIT-ITFLOW` branch is what runs in production).
 
 Thank you to the ITFlow team and everyone who has contributed to it - this build only exists because of their work. If ITFlow
-is useful to you, consider [supporting the project](https://services.itflow.org).
+is useful to you, consider [supporting the project](https://itflow.org/hosting.php?want=sponsor).
 
 <!-- MARKDOWN LINKS -->
 [build-shield]: https://img.shields.io/badge/build-Mountaineer%20IT-2f6fde?style=for-the-badge
 [changelog-url]: MIT_CHANGELOG.md
 [commit-shield]: https://img.shields.io/github/last-commit/MountaineerIT/ITFLOW/MountaineerIT-ITFLOW?style=for-the-badge
 [commit-url]: https://github.com/MountaineerIT/ITFLOW/commits/MountaineerIT-ITFLOW
-[license-shield]: https://img.shields.io/badge/license-GPL--3.0-orange?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/license-AGPL--3.0-orange?style=for-the-badge
 [license-url]: LICENSE
 [upstream-shield]: https://img.shields.io/badge/based%20on-ITFlow-blue?style=for-the-badge
 [upstream-url]: https://github.com/itflow-org/itflow

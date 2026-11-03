@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.2.1 - 2026-11-03
+- ITFlow 26.11.2 merged: Transactions, its Transfers pill, Reconcile and the transactions export are faster (database update 3.5.4 adds one index to transfers; it runs by itself with the update).
+- ITFlow is now licensed under the GNU Affero General Public License v3.0 (AGPL-3.0, was GPL-3.0), and so is this build from this version on. Anyone who uses it over a network - staff, and clients through the portal or a guest link - can get its source, which is this build's public GitHub repository (README, "License and credits").
+
 ## 26.11.1.8 - 2026-11-03
 - Dispatch: the merge buttons in the Schedule dialog say which ticket is kept - "Keep this one, close T-123" / "Keep T-123, close this one". The merge form opens under the ticket picked, says what will happen, and shows any problem (a missing reason, a refusal) right there - before, it showed at the foot of the dialog, out of sight, so the button seemed to do nothing. Enter in the reason box merges.
 - Dispatch: assets can be set while scheduling - the ticket's Asset and Other assets, from the client's assets (the contact's first), saved with the booking as the ticket's own Asset form saves them.

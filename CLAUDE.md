@@ -109,7 +109,7 @@ model: see DEPLOYMENT.md.
 - `DEPLOYMENT.md`, `CLAUDE.md`, `scripts/install.sh` (Debian one-line installer), `tests/smoke/` (Playwright smoke
   tests, see its README) – ours.
 - `README.md`, `SECURITY.md`, `.github/ISSUE_TEMPLATE/bug_report.md` / `feature_request.md` (Oct 27, 26.10.180) - ours: this build, an
-  unofficial fork (GPL-3.0 credit to ITFlow kept), private reporting on our repository; ITFlow's `support.md` (forum) removed. On an
+  unofficial fork (AGPL-3.0 since ITFlow 26.11.2 - was GPL-3.0; credit to ITFlow kept, source = this public repository), private reporting on our repository; ITFlow's `support.md` (forum) removed. On an
   upstream merge keep ours (take any useful change of theirs by hand); delete `support.md` again if it comes back.
   Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
   itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
@@ -1486,6 +1486,10 @@ model: see DEPLOYMENT.md.
   26.11.1.2 ...): ITFlow's 3.0.3 / 3.1.1 / 3.5.0 database updates no longer stop on junk values (trip miles >= 1e9, tax >= 100,000 %,
   client rate >= 1e8) and 3.5.0 resumes after a run that stopped part way - matters for production's first update to 26.11. README.md kept
   as ours (the one conflict); ITFlow's new `.github/readme/` screenshots left out.
+- ITFlow 26.11.2 (Nov 3, 26.11.2.1 - on ITFlow's master, no tag; 8 commits): Transactions / Transfers / Reconcile speed-up, database 3.5.3 ->
+  3.5.4 (index transfers.transfer_expense_id - nothing of ours on that table). **ITFlow relicensed GPL-3.0 -> AGPL-3.0**; the user accepted
+  it for this build (Nov 3): README's license section + badge say AGPL-3.0 and point to this public repository as the source (the AGPL's
+  network clause - portal / guest users). Conflicts: README.md (ours kept) and .github/workflows/first-interaction.yml (kept deleted).
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
