@@ -617,7 +617,9 @@ model: see DEPLOYMENT.md.
   The Schedule dialog also shows the ticket's title (editable), client, contact, priority, status, category and SLA (`?details=` /
   `?contacts=`); changes are saved first by `mitDispatchSaveDetails` - the same rules as ITFlow's Edit ticket,
   Change client (`change_client_ticket`, public replies become internal) and SLA forms; re-check it if those change.
-  Under Contact it lists the contact's other open tickets (`?contact_tickets=`) with "Merge into this" / "Merge this into it"
+  Under Contact it lists the contact's other open tickets (`?contact_tickets=`) with "Keep this one, close T-x" / "Keep T-x, close
+  this one" (26.11.1.8 - were "Merge into this" / "Merge this into it"; the form opens under the row picked, its problems shown
+  there - not Swal's validation line at the foot of the dialog -, Enter in the reason merges; smoke `92-dispatch-merge.spec.js`)
   (`mitDispatchMerge`: ITFlow's Merge form checks, a scheduled ticket being merged has its schedule cancelled, then ITFlow's
   own `ticketMergeInto()`, which lives in `agent/post/ticket.php` and is loaded from there - re-check if upstream moves it).
   Permission (M035, 26.10.105): ITFlow module row `module_dispatch` (Admin > Roles "Dispatch") - `mitDispatchLevel`: View 1 sees the

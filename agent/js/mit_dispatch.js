@@ -238,23 +238,31 @@
         request('GET', {contact_tickets: contact.value, except: ticket.id}).then(function (list) {
             list = Array.isArray(list) ? list : [];
             box.hidden = !list.length;
-            box.innerHTML = '<div class="border rounded p-2 bg-body-tertiary"><div class="fw-semibold mb-1"><i class="fas fa-fw fa-layer-group me-1"></i>'
+            box.innerHTML = '<div class="border rounded p-2 bg-body-tertiary"><div class="fw-semibold"><i class="fas fa-fw fa-layer-group me-1"></i>'
                 + list.length + ' other open ticket' + (list.length === 1 ? '' : 's') + ' for this contact</div>'
+                + '<div class="text-muted mb-1">Same issue? Merge them - one ticket is kept, the other is closed with a note pointing to it.</div>'
                 + list.map(function (o) {
-                    return '<div class="d-flex align-items-start gap-2 py-1 border-top" data-md-other="' + o.id + '" data-reference="' + escapeText(o.reference) + '">'
-                        + '<div class="flex-grow-1" style="min-width:0"><a href="' + escapeText(o.url) + '" target="_blank" rel="noopener">' + escapeText(o.reference) + '</a> '
+                    return '<div class="py-1 border-top" data-md-other="' + o.id + '" data-reference="' + escapeText(o.reference) + '">'
+                        + '<div class="d-flex align-items-start gap-2"><div class="flex-grow-1" style="min-width:0"><a href="' + escapeText(o.url) + '" target="_blank" rel="noopener">' + escapeText(o.reference) + '</a> '
                         + escapeText(o.subject) + '<div class="text-muted">' + escapeText([o.status, o.agent, o.scheduled ? 'scheduled ' + o.scheduled : ''].filter(Boolean).join(' · ')) + '</div></div>'
-                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="here"' + (off || ' title="Close ' + escapeText(o.reference) + ' into ' + escapeText(ticket.reference) + '"') + '>Merge into this</button>'
-                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="there"' + (off || ' title="Close ' + escapeText(ticket.reference) + ' into ' + escapeText(o.reference) + ' (not scheduled)"') + '>Merge this into it</button>'
-                        + '</div>';
+                        + '<div class="d-flex flex-column gap-1">'
+                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="here"' + off + '>Keep this one, close ' + escapeText(o.reference) + '</button>'
+                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="there"' + off + '>Keep ' + escapeText(o.reference) + ', close this one</button>'
+                        + '</div></div></div>';
                 }).join('')
-                + '<div class="border-top pt-2 mt-1" data-md-merge-form hidden><div class="mb-1" data-md-merge-what></div>'
-                + '<input type="text" class="form-control form-control-sm mb-1" placeholder="Reason - noted on both tickets" data-md-merge-reason maxlength="500">'
-                + '<div class="d-flex align-items-center gap-2"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="mdMergeReplies" data-md-merge-replies>'
-                + '<label class="form-check-label" for="mdMergeReplies">Move its replies too</label></div>'
-                + '<button type="button" class="btn btn-sm btn-light ms-auto" data-md-merge-cancel>Cancel</button>'
-                + '<button type="button" class="btn btn-sm btn-danger" data-md-merge-go>Merge and close</button></div></div></div>';
+                + '</div>';
         });
+    }
+
+    // The form under the row picked: what will happen, the reason, the button - and any problem shown right there
+    function mergeFormHtml() {
+        return '<div class="border rounded bg-body p-2 mt-1" data-md-merge-form><div class="mb-1" data-md-merge-what></div>'
+            + '<input type="text" class="form-control form-control-sm mb-1" placeholder="Why? (noted on both tickets)" data-md-merge-reason maxlength="500">'
+            + '<div class="text-danger small mb-1" data-md-merge-error hidden></div>'
+            + '<div class="d-flex align-items-center gap-2"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="mdMergeReplies" data-md-merge-replies>'
+            + '<label class="form-check-label" for="mdMergeReplies">Move the closed one\'s replies over too</label></div>'
+            + '<button type="button" class="btn btn-sm btn-light ms-auto" data-md-merge-cancel>Cancel</button>'
+            + '<button type="button" class="btn btn-sm btn-danger" data-md-merge-go>Merge</button></div></div>';
     }
 
     // Merge buttons in that list (one handler for the box, as the list is redrawn)
@@ -264,47 +272,95 @@
             return;
         }
         let pending = null;
+        let busy = false;
+        const closeForm = function () {
+            const old = box.querySelector('[data-md-merge-form]');
+            if (old) {
+                old.remove();
+            }
+            box.querySelectorAll('[data-md-merge].active').forEach(function (b) {
+                b.classList.remove('active');
+            });
+            pending = null;
+        };
+        const go = function () {
+            const form = box.querySelector('[data-md-merge-form]');
+            if (!form || !pending || busy) {
+                return;
+            }
+            const error = form.querySelector('[data-md-merge-error]');
+            const say = function (text) {
+                error.textContent = text;
+                error.hidden = !text;
+            };
+            const reasonBox = form.querySelector('[data-md-merge-reason]');
+            const reason = reasonBox.value.trim();
+            if (!reason) {
+                say('Type a reason first - it is noted on both tickets.');
+                reasonBox.focus();
+                return;
+            }
+            say('');
+            const button = form.querySelector('[data-md-merge-go]');
+            busy = true;
+            button.disabled = true;
+            button.textContent = 'Merging...';
+            const merging = pending;
+            request('POST', {merge: 1, csrf_token: csrf, child_id: merging.child.id, parent_id: merging.parent.id, comment: reason,
+                move_replies: form.querySelector('[data-md-merge-replies]').checked ? 1 : 0}).then(function (json) {
+                busy = false;
+                if (!json || json.error) {
+                    say((json && json.error) || 'Something went wrong - reload and try again.');
+                    button.disabled = false;
+                    button.textContent = 'Merge';
+                    return;
+                }
+                toast(json.message, 'success');
+                if (merging.child.id === ticket.id) {
+                    // This ticket is closed now - nothing left to schedule
+                    Swal.close();
+                    refresh();
+                    return;
+                }
+                pending = null;
+                loadOtherTickets(ticket);
+            }, function () {
+                busy = false;
+                say('Could not reach the server - try again.');
+                button.disabled = false;
+                button.textContent = 'Merge';
+            });
+        };
         box.addEventListener('click', function (e) {
             const pick = e.target.closest('[data-md-merge]');
-            const form = box.querySelector('[data-md-merge-form]');
             if (pick) {
+                closeForm();
                 const row = pick.closest('[data-md-other]');
                 const other = {id: Number(row.dataset.mdOther), reference: row.dataset.reference};
                 pending = pick.dataset.mdMerge === 'here' ? {child: other, parent: ticket} : {child: ticket, parent: other};
-                box.querySelector('[data-md-merge-what]').textContent = 'Merge ' + pending.child.reference + ' into ' + pending.parent.reference
-                    + ' - ' + pending.child.reference + ' is closed' + (pending.child.id === ticket.id ? ' and not scheduled.' : '.');
-                form.hidden = false;
-                box.querySelector('[data-md-merge-reason]').focus();
+                pick.classList.add('active');
+                row.insertAdjacentHTML('beforeend', mergeFormHtml());
+                const what = row.querySelector('[data-md-merge-what]');
+                what.innerHTML = '<strong>' + escapeText(pending.child.reference) + '</strong> is closed and merged into <strong>'
+                    + escapeText(pending.parent.reference) + '</strong>, which stays open'
+                    + (pending.child.id === ticket.id ? ' - this one is not scheduled, and this window closes.' : '.');
+                row.querySelector('[data-md-merge-reason]').focus();
                 return;
             }
             if (e.target.closest('[data-md-merge-cancel]')) {
-                form.hidden = true;
-                pending = null;
+                closeForm();
                 return;
             }
-            if (e.target.closest('[data-md-merge-go]') && pending) {
-                const reason = box.querySelector('[data-md-merge-reason]').value.trim();
-                if (!reason) {
-                    Swal.showValidationMessage('Give a reason for the merge');
-                    return;
-                }
-                Swal.resetValidationMessage();
-                request('POST', {merge: 1, csrf_token: csrf, child_id: pending.child.id, parent_id: pending.parent.id, comment: reason,
-                    move_replies: box.querySelector('[data-md-merge-replies]').checked ? 1 : 0}).then(function (json) {
-                    if (json.error) {
-                        Swal.showValidationMessage(json.error);
-                        return;
-                    }
-                    toast(json.message, 'success');
-                    if (pending.child.id === ticket.id) {
-                        // This ticket is closed now - nothing left to schedule
-                        Swal.close();
-                        refresh();
-                        return;
-                    }
-                    pending = null;
-                    loadOtherTickets(ticket);
-                });
+            if (e.target.closest('[data-md-merge-go]')) {
+                go();
+            }
+        });
+        // Enter in the reason merges (not "Schedule it")
+        box.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.closest('[data-md-merge-reason]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                go();
             }
         });
     }
