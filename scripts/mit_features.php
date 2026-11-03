@@ -157,7 +157,7 @@ return [
     'dispatch' => [
         'name' => 'Dispatch board, Workload, This week',
         'files' => ['functions/mit_dispatch*.php', 'agent/mit_dispatch*.php', 'agent/js/mit_dispatch.js', 'agent/includes/mit_dispatch_nav.php'],
-        'tests' => ['tests/smoke/14-dispatch-role.spec.js', 'tests/smoke/51-dispatch-flow.spec.js', 'tests/smoke/92-dispatch-merge.spec.js', 'tests/scenarios/scenario-sched-workload.php'],
+        'tests' => ['tests/smoke/14-dispatch-role.spec.js', 'tests/smoke/51-dispatch-flow.spec.js', 'tests/smoke/92-dispatch-dialog.spec.js', 'tests/scenarios/scenario-sched-workload.php'],
         'assumes' => [
             'Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).',
             'ticketSlaState for SLA counts; Admin > SLA working hours.',

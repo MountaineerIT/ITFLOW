@@ -1,4 +1,5 @@
-// Dispatch's Schedule dialog: merging the contact's other open ticket (agent/js/mit_dispatch.js loadOtherTickets / bindMerge,
+// Dispatch's Schedule dialog: its order (booking, ticket details with the assets, email, then the contact's other open tickets),
+// assets picked as it is scheduled (ITFlow's ticket_asset_id + ticket_assets, functions/mit_dispatch.php mitDispatchSaveDetails), and merging the contact's other open ticket (agent/js/mit_dispatch.js loadOtherTickets / bindMerge,
 // functions/mit_dispatch.php mitDispatchMerge). The buttons say which ticket is kept; the form opens under the row picked and
 // shows its problems there (a missing reason used to show at the foot of the tall dialog, out of sight); Enter in the reason
 // merges. Both ways round: keep this one (the other closed, the list redrawn) and keep the other (this one closed, the window shut).
@@ -32,7 +33,7 @@ async function openDialog(page, ticketId) {
     await expect(page.locator('.swal2-popup')).toBeVisible();
 }
 
-test.describe.serial('dispatch merge', () => {
+test.describe.serial('dispatch schedule dialog', () => {
     let state;
     const made = [];
     test.beforeAll(() => {
@@ -94,6 +95,41 @@ test.describe.serial('dispatch merge', () => {
         expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${a}`)).not.toBeNull();
         expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${b}`)).toBeNull();
         expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${b}`)).not.toBeNull();
+        expect(errors).toEqual([]);
+    });
+
+    test('order of the dialog, and assets picked as it is scheduled', async ({ page }, info) => {
+        const errors = watch(page);
+        const a = makeTicket({ subject: `${tag} E`, client: 1, assigned: 0, contact: 3 });
+        const b = makeTicket({ subject: `${tag} F`, client: 1, assigned: 1, contact: 3 });
+        made.push(a, b);
+        sql(`UPDATE tickets SET ticket_asset_id = 0 WHERE ticket_id = ${a}`);
+        await openDialog(page, a);
+        await expect(page.locator(`[data-md-other="${b}"]`)).toHaveCount(1, { timeout: 8000 });
+        // Booking first, then details, then email, the other tickets last
+        const order = await page.evaluate(() => {
+            const at = (el) => (el ? el.getBoundingClientRect().top + document.querySelector('.swal2-html-container').scrollTop : -1);
+            return ['mdTech', 'mdClient', 'mdAsset', 'mdOtherAssets', 'mdSla', 'mdNotify', 'mdOther'].map((id) => at(document.getElementById(id)));
+        });
+        for (let i = 1; i < order.length; i++) {
+            expect(order[i], `field ${i} below the one before`).toBeGreaterThanOrEqual(order[i - 1]);
+        }
+        await page.screenshot({ path: info.outputPath('dialog.png'), fullPage: true });
+        // The main asset, and two others through ITFlow's picker
+        await page.locator('#mdAsset').selectOption('8');
+        await expect(page.locator('#mdOtherAssets option[value="8"]')).toHaveCount(0);
+        // ITFlow's own picker, clicked inside the dialog (its panel must sit above the dialog)
+        await page.locator('#mdOtherAssets').locator('xpath=..').click();
+        await page.locator('.itflow-select-option', { hasText: 'ACME-PC2' }).click();
+        await page.locator('.itflow-select-option', { hasText: 'Front Desk - Printer' }).click();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('.swal2-popup')).toBeVisible();
+        await page.locator('.swal2-confirm').click();
+        await expect(page.locator('.swal2-popup')).toHaveCount(0, { timeout: 8000 });
+        expect(one(`SELECT ticket_asset_id FROM tickets WHERE ticket_id = ${a}`)).toBe('8');
+        expect(one(`SELECT GROUP_CONCAT(asset_id ORDER BY asset_id) FROM ticket_assets WHERE ticket_id = ${a}`)).toBe('9,10');
+        expect(one(`SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = ${a} AND ticket_history_description LIKE '%set the asset to ACME-PC1%'`)).toBe('1');
+        expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`)).not.toBeNull();
         expect(errors).toEqual([]);
     });
 });

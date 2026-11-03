@@ -38,7 +38,7 @@
             return '<div class="form-check ms-auto"><input class="form-check-input" type="checkbox" id="mdContact"' + (contactDefault ? ' checked' : '') + '><label class="form-check-label" for="mdContact">Email the contact</label></div>';
         }
         const set = notifyDefaults[onsite ? '1' : '0'];
-        return '<div class="col-12 mt-2" id="mdNotify"><div class="form-label mb-1">Email</div><div class="d-flex flex-wrap gap-3">'
+        return '<div class="col-12" id="mdNotify">' + sectionHead('fa-envelope', 'Email about this booking') + '<div class="d-flex flex-wrap gap-3">'
             + Object.keys(notifyWho).map(function (who) {
                 return '<div class="form-check"><input class="form-check-input" type="checkbox" id="mdN_' + who + '" data-who="' + who + '"' + (set[who] ? ' checked' : '')
                     + '><label class="form-check-label" for="mdN_' + who + '">' + notifyWho[who] + '</label></div>';
@@ -187,6 +187,12 @@
     }
 
     // The ticket's client, contact, priority, status, category and SLA, to put right while scheduling it (null: not shown)
+    // A section's heading in the Schedule dialog
+    function sectionHead(icon, text) {
+        return '<div class="fw-semibold border-top pt-2 mt-2 mb-1"><i class="fas fa-fw ' + icon + ' me-1 text-muted"></i>' + text + '</div>';
+    }
+
+    // The ticket's details: who it is for, what it is about (assets), how it is handled
     function detailsHtml(d) {
         if (!d || d.error) {
             return '';
@@ -194,22 +200,38 @@
         const t = d.ticket;
         const contacts = [{id: 0, name: 'No contact'}].concat(d.contacts);
         const clients = (t.client_id ? [] : [{id: 0, name: 'No client (internal)'}]).concat(d.clients);
-        return '<div class="col-12 border-top mt-3 pt-2 fw-semibold">Details</div>'
+        return '<div class="col-12">' + sectionHead('fa-ticket-alt', 'Ticket details') + '</div>'
             + '<div class="col-sm-6"><label class="form-label mb-0" for="mdClient">Client</label><select class="form-select form-select-sm" id="mdClient">' + options(clients, t.client_id) + '</select></div>'
             + '<div class="col-sm-6"><label class="form-label mb-0" for="mdContactPick">Contact</label><select class="form-select form-select-sm" id="mdContactPick">' + options(contacts, t.contact_id) + '</select></div>'
-            + '<div class="col-12" id="mdOther" hidden></div>'
+            + '<div class="col-sm-6" data-md-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label mb-0" for="mdAsset">Asset</label><select class="form-select form-select-sm" id="mdAsset">'
+            + assetOptions(d.assets, d.asset_id) + '</select></div>'
+            + '<div class="col-sm-6" data-md-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label mb-0" for="mdOtherAssets">Other assets</label>'
+            + '<select class="form-select form-select-sm select2" id="mdOtherAssets" multiple data-placeholder="None">' + otherAssetOptions(d.assets, d.other_asset_ids, d.asset_id) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdPriority">Priority</label><select class="form-select form-select-sm" id="mdPriority">'
             + options(d.priorities.map(function (p) { return {id: p, name: p}; }), t.priority) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdStatus">Status</label><select class="form-select form-select-sm" id="mdStatus">'
             + options(d.statuses, t.status_id) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdCategory">Category</label><select class="form-select form-select-sm" id="mdCategory">'
             + options([{id: 0, name: 'No category'}].concat(d.categories), t.category_id) + '</select></div>'
-            + (d.boards && d.boards.length ? '<div class="col-12"><label class="form-label mb-0" for="mdBoard">Board</label><select class="form-select form-select-sm" id="mdBoard">'
+            + (d.boards && d.boards.length ? '<div class="col-sm-6"><label class="form-label mb-0" for="mdBoard">Board</label><select class="form-select form-select-sm" id="mdBoard">'
                 + options(d.boards, d.board) + '</select></div>' : '')
-            + '<div class="col-12"><label class="form-label mb-0" for="mdSla">SLA</label><select class="form-select form-select-sm" id="mdSla">'
+            + '<div class="' + (d.boards && d.boards.length ? 'col-sm-6' : 'col-12') + '"><label class="form-label mb-0" for="mdSla">SLA</label><select class="form-select form-select-sm" id="mdSla">'
             + '<option value="auto">Automatic - from the client\'s contract and priority</option>'
-            + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id) + '</select>'
-            + '<div class="form-text mt-0" id="mdClientNote" hidden>Moving it to another client makes its public replies internal, and its SLA is worked out again unless you pick one.</div></div>';
+            + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id) + '</select></div>'
+            + '<div class="col-12"><div class="form-text mt-0" id="mdClientNote" hidden>Moving it to another client makes its public replies internal, takes its assets off, and its SLA is worked out again unless you pick one.</div></div>';
+    }
+
+    // The main asset's choices; the other assets' (all but the main one)
+    function assetOptions(assets, current) {
+        return options([{id: 0, name: 'None'}].concat(assets || []), current || 0);
+    }
+    function otherAssetOptions(assets, picked, main) {
+        picked = (picked || []).map(Number);
+        return (assets || []).filter(function (a) {
+            return a.id !== Number(main);
+        }).map(function (a) {
+            return '<option value="' + a.id + '"' + (picked.indexOf(a.id) !== -1 ? ' selected' : '') + '>' + escapeText(a.name) + '</option>';
+        }).join('');
     }
 
     // ticket: {id, reference, subject, tech, minutes, onsite}; at: Date (or null); tech: id
@@ -365,6 +387,57 @@
         });
     }
 
+    // The Asset pickers follow the client (a new client's assets, none picked) and the contact (theirs listed first, picks kept);
+    // the other assets never list the main one
+    function loadAssets(keep) {
+        const client = document.getElementById('mdClient');
+        const contact = document.getElementById('mdContactPick');
+        const main = document.getElementById('mdAsset');
+        const others = document.getElementById('mdOtherAssets');
+        if (!client || !main || !others) {
+            return;
+        }
+        const wanted = keep ? Number(main.value) : 0;
+        const picked = keep ? Array.prototype.map.call(others.selectedOptions, function (o) {
+            return Number(o.value);
+        }) : [];
+        document.querySelectorAll('[data-md-assets]').forEach(function (el) {
+            el.hidden = !Number(client.value);
+        });
+        if (!Number(client.value)) {
+            main.innerHTML = assetOptions([], 0);
+            others.innerHTML = '';
+            return;
+        }
+        main.disabled = true;
+        request('GET', {assets: client.value, contact: contact ? contact.value : 0}).then(function (list) {
+            list = Array.isArray(list) ? list : [];
+            assetList = list;
+            main.innerHTML = assetOptions(list, list.some(function (a) { return a.id === wanted; }) ? wanted : 0);
+            others.innerHTML = otherAssetOptions(list, picked, main.value);
+            main.disabled = false;
+        });
+    }
+    let assetList = [];
+    function bindAssets() {
+        const main = document.getElementById('mdAsset');
+        const others = document.getElementById('mdOtherAssets');
+        if (!main || !others) {
+            return;
+        }
+        assetList = Array.prototype.slice.call(main.options).filter(function (o) {
+            return Number(o.value);
+        }).map(function (o) {
+            return {id: Number(o.value), name: o.textContent};
+        });
+        main.addEventListener('change', function () {
+            const picked = Array.prototype.map.call(others.selectedOptions, function (o) {
+                return Number(o.value);
+            });
+            others.innerHTML = otherAssetOptions(assetList, picked, main.value);
+        });
+    }
+
     function confirmBookingDialog(ticket, at, techId, details) {
         const start = at || (function () {
             const d = new Date(state.date.getTime());
@@ -384,6 +457,7 @@
                 ? '<div class="mb-2"><label class="form-label mb-0" for="mdSubject">Title</label><input type="text" class="form-control form-control-sm" id="mdSubject" maxlength="500" value="' + escapeText(details.ticket.subject || '') + '"></div>'
                 : '<div class="mb-2 text-muted">' + escapeText(ticket.subject || '') + '</div>')
             + '<div class="row g-2">'
+            + (details && details.ticket ? '<div class="col-12">' + sectionHead('fa-calendar-check', 'Booking') + '</div>' : '')
             + '<div class="col-12"><label class="form-label mb-0">Agent</label><select class="form-select form-select-sm" id="mdTech">'
             + techs.map(function (t) {
                 return '<option value="' + t.id + '"' + (t.id === Number(techId) ? ' selected' : '') + '>' + escapeText(t.name) + '</option>';
@@ -397,7 +471,10 @@
             + '<div class="col-12 d-flex gap-3 mt-2">'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdOnsite" value="1"' + (ticket.onsite ? ' checked' : '') + '><label class="form-check-label" for="mdOnsite">Onsite</label></div>'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdRemote" value="0"' + (ticket.onsite ? '' : ' checked') + '><label class="form-check-label" for="mdRemote">Remote</label></div>'
-            + (notifyDefaults ? '</div>' + notifyHtml(ticket.onsite) : notifyHtml(ticket.onsite) + '</div>') + detailsHtml(details) + '</div></div>';
+            + (notifyDefaults ? '</div>' : notifyHtml(ticket.onsite) + '</div>')
+            // Then the ticket's details, who is emailed, and last the contact's other open tickets (to merge)
+            + detailsHtml(details) + (notifyDefaults ? notifyHtml(ticket.onsite) : '')
+            + '<div class="col-12 mt-2" id="mdOther" hidden></div>' + '</div></div>';
 
         return Swal.fire({
             theme: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light',
@@ -432,8 +509,10 @@
                 client.dataset.original = client.value;
                 bindMerge(ticket);
                 loadOtherTickets(ticket);
+                bindAssets();
                 document.getElementById('mdContactPick').addEventListener('change', function () {
                     loadOtherTickets(ticket);
+                    loadAssets(true);
                 });
                 const original = client.dataset.original;
                 client.addEventListener('change', function () {
@@ -444,6 +523,7 @@
                         contact.innerHTML = options([{id: 0, name: 'No contact'}].concat(Array.isArray(list) ? list : []), Array.isArray(list) && list.length ? list[0].id : 0);
                         contact.disabled = false;
                         loadOtherTickets(ticket);
+                        loadAssets(client.value === original);
                     });
                 });
             },
@@ -495,6 +575,14 @@
                     post.detail_sla = document.getElementById('mdSla').value;
                     if (document.getElementById('mdBoard')) {
                         post.detail_board = document.getElementById('mdBoard').value;
+                    }
+                    const asset = document.getElementById('mdAsset');
+                    if (asset && !asset.disabled) {
+                        post.detail_assets_present = 1;
+                        post.detail_asset_id = asset.value;
+                        post.detail_other_assets = Array.prototype.map.call(document.getElementById('mdOtherAssets').selectedOptions, function (o) {
+                            return o.value;
+                        }).join(',');
                     }
                 }
                 return request('POST', post).then(function (json) {
