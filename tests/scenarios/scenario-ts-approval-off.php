@@ -10,11 +10,16 @@ $was = trim(shell_exec("mysql -N -B " . escapeshellarg(basename(preg_replace('/^
 require __DIR__ . '/bootstrap.php';
 $was = mysqli_fetch_row(mysqli_query($mysqli, "SELECT setting_value FROM mit_settings WHERE setting_name = 'ts_approval'"))[0] ?? null;
 mitSetSetting('ts_approval', '0');
+// Put back on every way out - also the skips below: exit() inside try does not run finally. No row before = no row after
+// (approval on by default); left off, it broke the next scenario's "behind" checks (Nov 3)
 $restore = function () use ($mysqli, $was) {
     if ($was !== null) {
         mysqli_query($mysqli, "UPDATE mit_settings SET setting_value = '" . escapeSql($was) . "' WHERE setting_name = 'ts_approval'");
+    } else {
+        mysqli_query($mysqli, "DELETE FROM mit_settings WHERE setting_name = 'ts_approval'");
     }
 };
+register_shutdown_function($restore);
 try {
     if (mitTsSettings()['approval'] || !mitReimbViaPayroll()) {
         echo "  skip - approval could not be switched off here (settings read already) or pay back is not payroll\n";
