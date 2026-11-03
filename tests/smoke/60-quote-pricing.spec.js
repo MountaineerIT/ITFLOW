@@ -63,6 +63,18 @@ test('add-a-line row: price worked out from cost + markup, cost saved', async ({
     await expect(box).toContainText('$250.00');
     await expect(box).toContainText('$50.00');
     await expect(box).toContainText('20.0%');
+    // In the side column, between the Quote card and History (26.11.1.8 - was under the quote)
+    const place = await page.evaluate(() => {
+        const profit = document.querySelector('[data-mit-profit-box]');
+        const cards = [...profit.parentElement.querySelectorAll(':scope > .card')];
+        const title = (c) => (c.querySelector('.card-title') || {}).textContent || '';
+        return {
+            side: !profit.closest('.itflow-paper-col'),
+            before: title(cards[cards.indexOf(profit) - 1] || {}).trim(),
+            history: cards.findIndex((c) => title(c).trim() === 'History') > cards.indexOf(profit),
+        };
+    });
+    expect(place).toEqual({ side: true, before: 'Quote', history: true });
 });
 
 test('Edit Line window: margin and an image upload', async ({ page }) => {

@@ -882,10 +882,13 @@ function mitQuoteProfitBox($quote_id, $currency_format, $currency_code) {
     if ($html === '') {
         return '';
     }
-    return '<div class="border border-warning-subtle bg-warning-subtle rounded p-3 mt-3 small d-print-none" data-mit-profit-box>'
-        . '<div class="small fw-bold mb-2 text-warning-emphasis">PROFIT - ONLY STAFF SEE THIS</div>' . $html
-        . ($missing ? '<div class="small text-body-secondary mt-1">' . $missing . ' line' . ($missing === 1 ? ' has' : 's have') . ' no cost entered - counted as all profit.</div>' : '')
-        . '</div>';
+    // A card of the side column, under the Quote card (26.11.1.8 - was under the quote itself), tinted as staff-only
+    return '<div class="card mb-3 border-warning-subtle d-print-none" data-mit-profit-box>'
+        . '<div class="card-header bg-warning-subtle"><h3 class="card-title mb-0"><i class="fas fa-fw fa-chart-line text-warning-emphasis me-2"></i>Profit'
+        . ' <span class="small fw-normal text-warning-emphasis ms-1">only staff see this</span></h3></div>'
+        . '<div class="card-body">' . $html
+        . ($missing ? '<div class="small text-body-secondary mt-2">' . $missing . ' line' . ($missing === 1 ? ' has' : 's have') . ' no cost entered - counted as all profit.</div>' : '')
+        . '</div></div>';
 }
 
 /*
