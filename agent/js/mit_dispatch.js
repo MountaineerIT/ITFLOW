@@ -532,7 +532,8 @@
             reverseButtons: true,
             buttonsStyling: false,
             focusConfirm: true,
-            customClass: {confirmButton: 'btn btn-primary mx-1', cancelButton: 'btn btn-secondary mx-1'},
+            // With the ticket's details it is a long form: one fixed size that fits the screen, the fields scrolling inside it
+            customClass: {popup: details && !details.error ? 'mit-md-schedule' : '', confirmButton: 'btn btn-primary mx-1', cancelButton: 'btn btn-secondary mx-1'},
             preConfirm: function () {
                 const date = document.getElementById('mdDate').value;
                 const time = document.getElementById('mdStart').value;

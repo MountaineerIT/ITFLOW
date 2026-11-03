@@ -623,7 +623,9 @@ model: see DEPLOYMENT.md.
   Dialog order (26.11.1.8): Title, Booking (agent, date / start / length, onsite / remote), Ticket details (client, contact, Asset +
   Other assets - ITFlow's ticket_asset_id / ticket_assets, saved by `mitDispatchSaveDetails` with `detail_assets_present` as its
   Asset form does: the client's own only, history lines; list from `mitDispatchAssets` - the contact's first -, `?assets=`; Other assets
-  is ITFlow's select2 picker inside the Swal dialog), Email about this booking, then the contact's other open tickets
+  is ITFlow's select2 picker inside the Swal dialog), Email about this booking, then the contact's other open tickets. With the details it is one fixed size that fits the screen
+  (`customClass.popup` `mit-md-schedule`, CSS in `agent/mit_dispatch.php`: min(52rem, 100dvh - 2rem), the fields scroll between the title
+  and the buttons)
   (`mitDispatchMerge`: ITFlow's Merge form checks, a scheduled ticket being merged has its schedule cancelled, then ITFlow's
   own `ticketMergeInto()`, which lives in `agent/post/ticket.php` and is loaded from there - re-check if upstream moves it).
   Permission (M035, 26.10.105): ITFlow module row `module_dispatch` (Admin > Roles "Dispatch") - `mitDispatchLevel`: View 1 sees the

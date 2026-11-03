@@ -114,7 +114,20 @@ test.describe.serial('dispatch schedule dialog', () => {
         for (let i = 1; i < order.length; i++) {
             expect(order[i], `field ${i} below the one before`).toBeGreaterThanOrEqual(order[i - 1]);
         }
-        await page.screenshot({ path: info.outputPath('dialog.png'), fullPage: true });
+        // One size that fits the window: the fields scroll inside it, the buttons stay on screen
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await page.waitForTimeout(400);
+        const fit = await page.evaluate(() => {
+            const popup = document.querySelector('.swal2-popup').getBoundingClientRect();
+            const body = document.querySelector('.swal2-html-container');
+            const buttons = document.querySelector('.swal2-actions').getBoundingClientRect();
+            return { top: popup.top, bottom: popup.bottom, scrolls: body.scrollHeight > body.clientHeight + 10, buttons: buttons.bottom <= window.innerHeight };
+        });
+        expect(fit.top).toBeGreaterThanOrEqual(0);
+        expect(fit.bottom).toBeLessThanOrEqual(720);
+        expect(fit.scrolls).toBe(true);
+        expect(fit.buttons).toBe(true);
+        await page.screenshot({ path: info.outputPath('dialog.png') });
         // The main asset, and two others through ITFlow's picker
         await page.locator('#mdAsset').selectOption('8');
         await expect(page.locator('#mdOtherAssets option[value="8"]')).toHaveCount(0);
