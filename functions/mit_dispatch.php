@@ -470,7 +470,51 @@ function mitDispatchDetails($ticket_id) {
         'boards' => array_values(array_map(function ($b) { return ['id' => $b['id'], 'name' => $b['name']]; }, mitDispatchBoards())
             + ($board_id && !in_array($board_id, array_column(mitDispatchBoards(), 'id'), true) && isset(mitBoards()[$board_id])
                 ? [-1 => ['id' => $board_id, 'name' => mitBoards()[$board_id]['board_name']]] : [])),
+        // ITFlow's ticket assets: the main one (ticket_asset_id) and the others (ticket_assets)
+        'asset_id' => intval($row['ticket_asset_id']),
+        'other_asset_ids' => $other_assets = mitDispatchTicketOtherAssets($row['ticket_id']),
+        'assets' => mitDispatchAssets($row['ticket_client_id'], $row['ticket_contact_id'], array_merge([intval($row['ticket_asset_id'])], $other_assets)),
     ];
+}
+
+/** A ticket's other assets (ITFlow's ticket_assets), as ids. */
+function mitDispatchTicketOtherAssets($ticket_id) {
+    global $mysqli;
+    $ids = [];
+    $result = mysqli_query($mysqli, "SELECT asset_id FROM ticket_assets WHERE ticket_id = " . intval($ticket_id) . " ORDER BY asset_id");
+    while ($row = mysqli_fetch_row($result)) {
+        $ids[] = intval($row[0]);
+    }
+    return $ids;
+}
+
+/**
+ * A client's assets for the dialog's Asset pickers: [{id, name}] - the contact's own first, then the rest by name; archived ones only when
+ * the ticket already has them ($keep). [] for no client or one out of reach.
+ */
+function mitDispatchAssets($client_id, $contact_id = 0, array $keep = []) {
+    global $mysqli;
+    $client_id = intval($client_id);
+    if (!$client_id || !hasClientAccess($client_id)) {
+        return [];
+    }
+    $contact_id = intval($contact_id);
+    $keep = array_filter(array_map('intval', $keep));
+    $result = mysqli_query($mysqli, "SELECT asset_id, asset_name, asset_type, asset_contact_id, asset_archived_at FROM assets WHERE asset_client_id = $client_id
+        AND (asset_archived_at IS NULL" . ($keep ? " OR asset_id IN (" . implode(',', $keep) . ")" : '') . ")
+        ORDER BY (asset_contact_id = $contact_id AND $contact_id > 0) DESC, asset_name LIMIT 2000");
+    $assets = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $name = $row['asset_name'] . ($row['asset_type'] ? ' - ' . $row['asset_type'] : '');
+        if ($contact_id && intval($row['asset_contact_id']) === $contact_id) {
+            $name .= ' (contact\'s)';
+        }
+        if ($row['asset_archived_at']) {
+            $name .= ' (archived)';
+        }
+        $assets[] = ['id' => intval($row['asset_id']), 'name' => $name];
+    }
+    return $assets;
 }
 
 /**
@@ -564,6 +608,32 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
         $contact_name = $contact_id ? (string) getFieldById('contacts', $contact_id, 'contact_name') : 'No one';
         logTicketHistory($ticket_id, "$session_name changed the contact from " . escapeSql($row['contact_name'] ?: 'No one') . " to " . escapeSql($contact_name));
         $changed[] = "contact $contact_name";
+    }
+
+    // Assets - as ITFlow's ticket Asset form: the main one and the others, the client's own only (a new client's start empty)
+    if (isset($post['detail_assets_present'])) {
+        $asset_id = ticketClientOwnedId('asset', $post['detail_asset_id'] ?? 0, $client_id);
+        $old_asset_id = $client_id === $old_client_id ? intval($row['ticket_asset_id']) : 0;
+        $others = ticketClientOwnedAssetIds(explode(',', (string) ($post['detail_other_assets'] ?? '')), $client_id, $asset_id);
+        $old_others = $client_id === $old_client_id ? mitDispatchTicketOtherAssets($ticket_id) : [];
+        if ($asset_id !== $old_asset_id) {
+            mysqli_query($mysqli, "UPDATE tickets SET ticket_asset_id = $asset_id WHERE ticket_id = $ticket_id");
+            $asset_name = $asset_id ? (string) getFieldById('assets', $asset_id, 'asset_name') : '';
+            logTicketHistory($ticket_id, $asset_id ? "$session_name set the asset to " . escapeSql($asset_name) : "$session_name removed the asset");
+            $changed[] = $asset_id ? "asset $asset_name" : 'asset removed';
+        }
+        sort($others);
+        if ($others !== $old_others) {
+            ticketSetOtherAssets($ticket_id, $others);
+            $added = array_diff($others, $old_others);
+            $removed = array_diff($old_others, $others);
+            foreach ([[$added, 'added additional asset'], [$removed, 'removed additional asset']] as [$ids, $verb]) {
+                foreach ($ids as $id) {
+                    logTicketHistory($ticket_id, "$session_name $verb " . escapeSql((string) getFieldById('assets', $id, 'asset_name')));
+                }
+            }
+            $changed[] = count($others) . ' other asset' . (count($others) === 1 ? '' : 's');
+        }
     }
 
     // Category

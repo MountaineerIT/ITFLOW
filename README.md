@@ -46,8 +46,8 @@ ITFlow keeps an MSP's client documentation, tickets, quotes, invoices and expens
 follows ITFlow's releases and adds what we need to run our own service desk. Everything ITFlow does still works the same way;
 our additions sit beside it and can be switched off.
 
-Each version is ITFlow's release plus our own number (for example **26.10.181** = ITFlow 26.10, our 181st update). Admin >
-Update shows both, with the release notes.
+Each version is ITFlow's release plus our own number (for example **26.11.1.8** = ITFlow 26.11.1, our 8th update on it). Admin >
+Update shows both, with the release notes. This build is on ITFlow **26.11**.
 
 ## A look around
 
@@ -83,12 +83,15 @@ Update shows both, with the release notes.
 - Bookings with start and end times, a colour per tech, clash warnings and a "7 days" calendar view
 - Extra techs on a ticket, each booked with the lead or at their own time
 - Dispatch board - techs side by side for a day or a week, drag tickets from the queue, a workload view and weekly stats
+- One Schedule window for a booking: the ticket's title, client, contact, assets, priority, status, board and SLA, who gets
+  emailed, and the contact's other open tickets - merge a duplicate there and then
 - Outlook calendar sync per tech, with Outlook busy times shown in ITFlow
 - "Left behind" list of open tickets whose booking has passed; repeats like "the third Wednesday"
 
 **Tickets**
 - Service boards (Service Desk, Tier 1, Tier 2 ...) with routing rules, round-robin assignment, escalation and visibility by role
-- Pick who gets each email reply; notify other agents on internal notes
+- Quick ticket - a + in the top bar for a call or a walk-up: client, contact, the issue, and the contact's open tickets
+- Pick who gets each email reply (ITFlow's own @mentions tell agents about internal notes)
 - Start and end times on notes, a running-timers list in the top bar, a customisable ticket page layout
 - "Resolve - no response" with its own wording, and per-event notification switches
 - Project tickets kept off the service queue and SLA
@@ -99,11 +102,13 @@ Update shows both, with the release notes.
 - Leave banks (PTO, sick) with accrual and carry-over; holidays; mileage and purchases paid back through payroll
 
 **Quotes, procurement and billing**
-- Quote pricing from cost (markup, margin or set price), a profit box, and images on lines and products
+- Quote pricing from cost (markup, margin or set price), a staff-only profit card, and images on lines and products
 - Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts
 - Several offices - each agent's trips start from their office, their ticket emails show its address and phone, and POs ship to any office
 - Parts on tickets, billed from To Bill on the same invoice as the ticket's time, expenses and travel
-- QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back
+- QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back; each line goes to the income
+  account of its category (hardware and labor on one invoice land in both), missing items are made, and terms go with every
+  invoice - a client default (Net 30, Due on the 1st ...) that one invoice can change
 - Usage billing - recurring lines billed by a count (manual, API, tags, NinjaOne, Bitwarden, Ingram Micro)
 
 **Integrations**
@@ -112,8 +117,11 @@ Update shows both, with the release notes.
 - AI helper - asks questions of past tickets and documents and drafts write-ups, with a hard wall around passwords and secrets
 
 **Running it**
-- One-line Debian installer, restore from Admin > Backup (large backups too) and a development mode for test copies
+- One-line Debian installer, restore from Admin > Backup (large backups too, also through a proxy or firewall that limits
+  upload size) and a development mode for test copies
 - Cron health warnings and alert emails, consistency checks, a modern look (optional), bug and idea reports from the top bar (switched on in Admin > Debug)
+- Side-menu sections that fold away, our settings on ITFlow's Settings overview and in Find a setting, and browsers that pick
+  up changed scripts and styles after an update without a hard refresh
 
 The full list, with where each piece lives in the code, is in [MIT_FEATURES.md](MIT_FEATURES.md). Release notes for every
 version are in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) (ITFlow's own are in [CHANGELOG.md](CHANGELOG.md)).

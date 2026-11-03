@@ -229,7 +229,6 @@ $paper = [
     <!-- The quote, as the client sees it -->
     <div class="col-xl-8 itflow-paper-col">
         <?php require "../includes/billing_paper.php"; ?>
-        <?= mitQuoteProfitBox($quote_id, $currency_format, $currency) // Mountaineer IT: staff only, not printed ?>
     </div>
 
     <div class="col-xl-4 d-print-none">
@@ -278,6 +277,8 @@ $paper = [
                 </dl>
             </div>
         </div>
+
+        <?= function_exists('mitQuoteProfitBox') ? mitQuoteProfitBox($quote_id, $currency_format, $currency) : '' // Mountaineer IT: staff only, not printed ?>
 
         <?php if ($made) { ?>
             <!-- What it was invoiced as -->

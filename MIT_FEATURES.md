@@ -8,16 +8,16 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 35 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 165 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 167 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 5 | 12 | 13 | 23 | 15 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 6 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 16 |
-| [Dispatch board, Workload, This week](#dispatch) | 6 | 3 | 40 | 16 | 65 | 11 |
+| [Dispatch board, Workload, This week](#dispatch) | 6 | 4 | 42 | 17 | 71 | 11 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
@@ -250,12 +250,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Takes for granted**
 
+- A login's copy buttons (functions/credential.php): username .itflow-credential-user + .itflow-copy, password .itflow-credential-pw .itflow-credential-copy, link .itflow-copy[title="Copy link"] - set to 1em.
 - The side menu: li.nav-header headings with the section's li items after them in the same list (folded by js/mit_nav_sections.js).
 - ITFlow's markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.
 - Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.
 - login.php / client pages send CSP default-src 'self' - our files there must be files, not inline.
 
-**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`, `tests/smoke/87-nav-sections.spec.js`
+**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`, `tests/smoke/87-nav-sections.spec.js`, `tests/smoke/93-credential-copy.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -291,7 +292,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow page ids / classes its scripts and styles use** `#items` `.app-header` `.app-main` `.app-sidebar` `.app-wrapper` `.itflow-brand-name` `.itflow-client-avatar` `.itflow-client-head` `.itflow-client-head-name` `.itflow-client-switcher` `.itflow-dash-money-value` `.itflow-dash-rail` `.itflow-dash-rail-clear` `.itflow-dash-rail-count` `.itflow-dash-rail-detail` `.itflow-dash-rail-item` `.itflow-dash-rail-label` `.itflow-theme-swatch`
 
-**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box`
+**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box` `itflow-credential-copy` `itflow-credential-user` `title="Copy link"`
 
 **"ITFlow does this too" words** theme, dark_mode, logo
 
@@ -511,7 +512,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).
 - ticketSlaState for SLA counts; Admin > SLA working hours.
 
-**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/scenarios/scenario-sched-workload.php`
+**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`
 
 **Hooks in ITFlow's files**
 
@@ -539,12 +540,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
 - `functions/sla.php`: applyTicketSla, getSlaSettings
-- `functions/ticket.php`: ticketCancelSchedule, ticketCategoryId, ticketClientOwnedId, ticketDuePill, ticketDueState, ticketIsOpen, ticketReference, ticketRow, ticketScheduleValue, ticketSetSchedule, ticketSlaPill, ticketSlaState, ticketUrl
+- `functions/ticket.php`: ticketCancelSchedule, ticketCategoryId, ticketClientOwnedAssetIds, ticketClientOwnedId, ticketDuePill, ticketDueState, ticketIsOpen, ticketReference, ticketRow, ticketScheduleValue, ticketSetOtherAssets, ticketSetSchedule, ticketSlaPill, ticketSlaState, ticketUrl
 - `functions/ticket_fields.php`: ticketChangeAssignee, ticketChangePriority, ticketChangeStatus, ticketPickableStatuses
 
-**ITFlow tables** calendars, categories, clients, contacts, credentials, modules, notifications, slas, ticket_assets, ticket_history, ticket_replies, ticket_statuses, tickets, trips, user_settings, users
+**ITFlow tables** assets, calendars, categories, clients, contacts, credentials, modules, notifications, slas, ticket_assets, ticket_history, ticket_replies, ticket_statuses, tickets, trips, user_settings, users
 
-**ITFlow columns** category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, event_id, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_due_at, ticket_first_response_at, ticket_history_created_at, ticket_history_description, ticket_history_ticket_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_priority, ticket_project_id, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_type, ticket_resolution_due_at, ticket_resolution_sla_alert_stage, ticket_resolution_sla_met, ticket_resolved_at, ticket_response_due_at, ticket_response_sla_alert_stage, ticket_response_sla_met, ticket_schedule, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_status_pauses_sla, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_archived_at, user_config_calendar_first_day, user_id, user_name, user_status, user_type
+**ITFlow columns** asset_archived_at, asset_client_id, asset_contact_id, asset_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, event_id, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_due_at, ticket_first_response_at, ticket_history_created_at, ticket_history_description, ticket_history_ticket_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_priority, ticket_project_id, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_type, ticket_resolution_due_at, ticket_resolution_sla_alert_stage, ticket_resolution_sla_met, ticket_resolved_at, ticket_response_due_at, ticket_response_sla_alert_stage, ticket_response_sla_met, ticket_schedule, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_status_pauses_sla, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_archived_at, user_config_calendar_first_day, user_id, user_name, user_status, user_type
 
 **Watched in ITFlow's code** `ticketMergeInto` `ticketSlaState` `change_client_ticket`
 

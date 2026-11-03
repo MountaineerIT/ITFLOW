@@ -6,6 +6,7 @@
  *   GET  ?items=1&from=Y-m-d&to=Y-m-d&techs=1,2                  the board's bookings
  *   GET  ?details=TICKET_ID                                      the ticket's client, contact, priority, category, SLA + choices
  *   GET  ?contacts=CLIENT_ID                                     a client's contacts
+ *   GET  ?assets=CLIENT_ID&contact=CONTACT_ID                    a client's assets (the contact's first)
  *   GET  ?contact_tickets=CONTACT_ID&except=TICKET_ID            the contact's other open tickets
  *   GET  ?workload=1&techs=1,2&first_day=0|1[&board]               each tech's open tickets, SLA and booked hours
  *   GET  ?week_stats=1&techs=1,2&first_day=0|1[&board]             this week: in vs closed, SLA results, per agent
@@ -60,6 +61,11 @@ if (isset($_GET['details'])) {
 
 if (isset($_GET['contacts'])) {
     echo json_encode(mitDispatchContacts($_GET['contacts']));
+    exit;
+}
+
+if (isset($_GET['assets'])) {
+    echo json_encode(mitDispatchAssets($_GET['assets'], $_GET['contact'] ?? 0));
     exit;
 }
 

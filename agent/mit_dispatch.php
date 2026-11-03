@@ -29,6 +29,11 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
 ?>
 
 <style>
+    /* The Schedule dialog with the ticket's details: one size that fits the screen - title and buttons stay, the fields scroll between them */
+    .swal2-popup.mit-md-schedule { height: min(52rem, calc(100vh - 2rem)); height: min(52rem, calc(100dvh - 2rem)); grid-template-rows: auto minmax(0, 1fr) auto auto auto; padding-bottom: .75rem; }
+    .swal2-popup.mit-md-schedule .swal2-title { padding-top: .75rem; }
+    .swal2-popup.mit-md-schedule .swal2-html-container { overflow-y: auto; overscroll-behavior: contain; margin: .5rem 0 0; padding: 0 1.25rem .5rem; border-bottom: 1px solid var(--bs-border-color); }
+    .swal2-popup.mit-md-schedule .swal2-actions { margin-top: .75rem; }
     /* The queue's three tabs side by side - a narrow pane wraps the words inside each tab */
     [data-md-tab] { padding: .25rem .3rem !important; line-height: 1.2; height: 100%; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .15rem; }
     [data-md-tab] .badge { margin-left: 0 !important; padding: .2em .4em; }

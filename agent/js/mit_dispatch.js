@@ -38,7 +38,7 @@
             return '<div class="form-check ms-auto"><input class="form-check-input" type="checkbox" id="mdContact"' + (contactDefault ? ' checked' : '') + '><label class="form-check-label" for="mdContact">Email the contact</label></div>';
         }
         const set = notifyDefaults[onsite ? '1' : '0'];
-        return '<div class="col-12 mt-2" id="mdNotify"><div class="form-label mb-1">Email</div><div class="d-flex flex-wrap gap-3">'
+        return '<div class="col-12" id="mdNotify">' + sectionHead('fa-envelope', 'Email about this booking') + '<div class="d-flex flex-wrap gap-3">'
             + Object.keys(notifyWho).map(function (who) {
                 return '<div class="form-check"><input class="form-check-input" type="checkbox" id="mdN_' + who + '" data-who="' + who + '"' + (set[who] ? ' checked' : '')
                     + '><label class="form-check-label" for="mdN_' + who + '">' + notifyWho[who] + '</label></div>';
@@ -187,6 +187,12 @@
     }
 
     // The ticket's client, contact, priority, status, category and SLA, to put right while scheduling it (null: not shown)
+    // A section's heading in the Schedule dialog
+    function sectionHead(icon, text) {
+        return '<div class="fw-semibold border-top pt-2 mt-2 mb-1"><i class="fas fa-fw ' + icon + ' me-1 text-muted"></i>' + text + '</div>';
+    }
+
+    // The ticket's details: who it is for, what it is about (assets), how it is handled
     function detailsHtml(d) {
         if (!d || d.error) {
             return '';
@@ -194,22 +200,38 @@
         const t = d.ticket;
         const contacts = [{id: 0, name: 'No contact'}].concat(d.contacts);
         const clients = (t.client_id ? [] : [{id: 0, name: 'No client (internal)'}]).concat(d.clients);
-        return '<div class="col-12 border-top mt-3 pt-2 fw-semibold">Details</div>'
+        return '<div class="col-12">' + sectionHead('fa-ticket-alt', 'Ticket details') + '</div>'
             + '<div class="col-sm-6"><label class="form-label mb-0" for="mdClient">Client</label><select class="form-select form-select-sm" id="mdClient">' + options(clients, t.client_id) + '</select></div>'
             + '<div class="col-sm-6"><label class="form-label mb-0" for="mdContactPick">Contact</label><select class="form-select form-select-sm" id="mdContactPick">' + options(contacts, t.contact_id) + '</select></div>'
-            + '<div class="col-12" id="mdOther" hidden></div>'
+            + '<div class="col-sm-6" data-md-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label mb-0" for="mdAsset">Asset</label><select class="form-select form-select-sm" id="mdAsset">'
+            + assetOptions(d.assets, d.asset_id) + '</select></div>'
+            + '<div class="col-sm-6" data-md-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label mb-0" for="mdOtherAssets">Other assets</label>'
+            + '<select class="form-select form-select-sm select2" id="mdOtherAssets" multiple data-placeholder="None">' + otherAssetOptions(d.assets, d.other_asset_ids, d.asset_id) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdPriority">Priority</label><select class="form-select form-select-sm" id="mdPriority">'
             + options(d.priorities.map(function (p) { return {id: p, name: p}; }), t.priority) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdStatus">Status</label><select class="form-select form-select-sm" id="mdStatus">'
             + options(d.statuses, t.status_id) + '</select></div>'
             + '<div class="col-sm-4"><label class="form-label mb-0" for="mdCategory">Category</label><select class="form-select form-select-sm" id="mdCategory">'
             + options([{id: 0, name: 'No category'}].concat(d.categories), t.category_id) + '</select></div>'
-            + (d.boards && d.boards.length ? '<div class="col-12"><label class="form-label mb-0" for="mdBoard">Board</label><select class="form-select form-select-sm" id="mdBoard">'
+            + (d.boards && d.boards.length ? '<div class="col-sm-6"><label class="form-label mb-0" for="mdBoard">Board</label><select class="form-select form-select-sm" id="mdBoard">'
                 + options(d.boards, d.board) + '</select></div>' : '')
-            + '<div class="col-12"><label class="form-label mb-0" for="mdSla">SLA</label><select class="form-select form-select-sm" id="mdSla">'
+            + '<div class="' + (d.boards && d.boards.length ? 'col-sm-6' : 'col-12') + '"><label class="form-label mb-0" for="mdSla">SLA</label><select class="form-select form-select-sm" id="mdSla">'
             + '<option value="auto">Automatic - from the client\'s contract and priority</option>'
-            + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id) + '</select>'
-            + '<div class="form-text mt-0" id="mdClientNote" hidden>Moving it to another client makes its public replies internal, and its SLA is worked out again unless you pick one.</div></div>';
+            + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id) + '</select></div>'
+            + '<div class="col-12"><div class="form-text mt-0" id="mdClientNote" hidden>Moving it to another client makes its public replies internal, takes its assets off, and its SLA is worked out again unless you pick one.</div></div>';
+    }
+
+    // The main asset's choices; the other assets' (all but the main one)
+    function assetOptions(assets, current) {
+        return options([{id: 0, name: 'None'}].concat(assets || []), current || 0);
+    }
+    function otherAssetOptions(assets, picked, main) {
+        picked = (picked || []).map(Number);
+        return (assets || []).filter(function (a) {
+            return a.id !== Number(main);
+        }).map(function (a) {
+            return '<option value="' + a.id + '"' + (picked.indexOf(a.id) !== -1 ? ' selected' : '') + '>' + escapeText(a.name) + '</option>';
+        }).join('');
     }
 
     // ticket: {id, reference, subject, tech, minutes, onsite}; at: Date (or null); tech: id
@@ -238,23 +260,31 @@
         request('GET', {contact_tickets: contact.value, except: ticket.id}).then(function (list) {
             list = Array.isArray(list) ? list : [];
             box.hidden = !list.length;
-            box.innerHTML = '<div class="border rounded p-2 bg-body-tertiary"><div class="fw-semibold mb-1"><i class="fas fa-fw fa-layer-group me-1"></i>'
+            box.innerHTML = '<div class="border rounded p-2 bg-body-tertiary"><div class="fw-semibold"><i class="fas fa-fw fa-layer-group me-1"></i>'
                 + list.length + ' other open ticket' + (list.length === 1 ? '' : 's') + ' for this contact</div>'
+                + '<div class="text-muted mb-1">Same issue? Merge them - one ticket is kept, the other is closed with a note pointing to it.</div>'
                 + list.map(function (o) {
-                    return '<div class="d-flex align-items-start gap-2 py-1 border-top" data-md-other="' + o.id + '" data-reference="' + escapeText(o.reference) + '">'
-                        + '<div class="flex-grow-1" style="min-width:0"><a href="' + escapeText(o.url) + '" target="_blank" rel="noopener">' + escapeText(o.reference) + '</a> '
+                    return '<div class="py-1 border-top" data-md-other="' + o.id + '" data-reference="' + escapeText(o.reference) + '">'
+                        + '<div class="d-flex align-items-start gap-2"><div class="flex-grow-1" style="min-width:0"><a href="' + escapeText(o.url) + '" target="_blank" rel="noopener">' + escapeText(o.reference) + '</a> '
                         + escapeText(o.subject) + '<div class="text-muted">' + escapeText([o.status, o.agent, o.scheduled ? 'scheduled ' + o.scheduled : ''].filter(Boolean).join(' · ')) + '</div></div>'
-                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="here"' + (off || ' title="Close ' + escapeText(o.reference) + ' into ' + escapeText(ticket.reference) + '"') + '>Merge into this</button>'
-                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="there"' + (off || ' title="Close ' + escapeText(ticket.reference) + ' into ' + escapeText(o.reference) + ' (not scheduled)"') + '>Merge this into it</button>'
-                        + '</div>';
+                        + '<div class="d-flex flex-column gap-1">'
+                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="here"' + off + '>Keep this one, close ' + escapeText(o.reference) + '</button>'
+                        + '<button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-md-merge="there"' + off + '>Keep ' + escapeText(o.reference) + ', close this one</button>'
+                        + '</div></div></div>';
                 }).join('')
-                + '<div class="border-top pt-2 mt-1" data-md-merge-form hidden><div class="mb-1" data-md-merge-what></div>'
-                + '<input type="text" class="form-control form-control-sm mb-1" placeholder="Reason - noted on both tickets" data-md-merge-reason maxlength="500">'
-                + '<div class="d-flex align-items-center gap-2"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="mdMergeReplies" data-md-merge-replies>'
-                + '<label class="form-check-label" for="mdMergeReplies">Move its replies too</label></div>'
-                + '<button type="button" class="btn btn-sm btn-light ms-auto" data-md-merge-cancel>Cancel</button>'
-                + '<button type="button" class="btn btn-sm btn-danger" data-md-merge-go>Merge and close</button></div></div></div>';
+                + '</div>';
         });
+    }
+
+    // The form under the row picked: what will happen, the reason, the button - and any problem shown right there
+    function mergeFormHtml() {
+        return '<div class="border rounded bg-body p-2 mt-1" data-md-merge-form><div class="mb-1" data-md-merge-what></div>'
+            + '<input type="text" class="form-control form-control-sm mb-1" placeholder="Why? (noted on both tickets)" data-md-merge-reason maxlength="500">'
+            + '<div class="text-danger small mb-1" data-md-merge-error hidden></div>'
+            + '<div class="d-flex align-items-center gap-2"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" id="mdMergeReplies" data-md-merge-replies>'
+            + '<label class="form-check-label" for="mdMergeReplies">Move the closed one\'s replies over too</label></div>'
+            + '<button type="button" class="btn btn-sm btn-light ms-auto" data-md-merge-cancel>Cancel</button>'
+            + '<button type="button" class="btn btn-sm btn-danger" data-md-merge-go>Merge</button></div></div>';
     }
 
     // Merge buttons in that list (one handler for the box, as the list is redrawn)
@@ -264,48 +294,147 @@
             return;
         }
         let pending = null;
+        let busy = false;
+        const closeForm = function () {
+            const old = box.querySelector('[data-md-merge-form]');
+            if (old) {
+                old.remove();
+            }
+            box.querySelectorAll('[data-md-merge].active').forEach(function (b) {
+                b.classList.remove('active');
+            });
+            pending = null;
+        };
+        const go = function () {
+            const form = box.querySelector('[data-md-merge-form]');
+            if (!form || !pending || busy) {
+                return;
+            }
+            const error = form.querySelector('[data-md-merge-error]');
+            const say = function (text) {
+                error.textContent = text;
+                error.hidden = !text;
+            };
+            const reasonBox = form.querySelector('[data-md-merge-reason]');
+            const reason = reasonBox.value.trim();
+            if (!reason) {
+                say('Type a reason first - it is noted on both tickets.');
+                reasonBox.focus();
+                return;
+            }
+            say('');
+            const button = form.querySelector('[data-md-merge-go]');
+            busy = true;
+            button.disabled = true;
+            button.textContent = 'Merging...';
+            const merging = pending;
+            request('POST', {merge: 1, csrf_token: csrf, child_id: merging.child.id, parent_id: merging.parent.id, comment: reason,
+                move_replies: form.querySelector('[data-md-merge-replies]').checked ? 1 : 0}).then(function (json) {
+                busy = false;
+                if (!json || json.error) {
+                    say((json && json.error) || 'Something went wrong - reload and try again.');
+                    button.disabled = false;
+                    button.textContent = 'Merge';
+                    return;
+                }
+                toast(json.message, 'success');
+                if (merging.child.id === ticket.id) {
+                    // This ticket is closed now - nothing left to schedule
+                    Swal.close();
+                    refresh();
+                    return;
+                }
+                pending = null;
+                loadOtherTickets(ticket);
+            }, function () {
+                busy = false;
+                say('Could not reach the server - try again.');
+                button.disabled = false;
+                button.textContent = 'Merge';
+            });
+        };
         box.addEventListener('click', function (e) {
             const pick = e.target.closest('[data-md-merge]');
-            const form = box.querySelector('[data-md-merge-form]');
             if (pick) {
+                closeForm();
                 const row = pick.closest('[data-md-other]');
                 const other = {id: Number(row.dataset.mdOther), reference: row.dataset.reference};
                 pending = pick.dataset.mdMerge === 'here' ? {child: other, parent: ticket} : {child: ticket, parent: other};
-                box.querySelector('[data-md-merge-what]').textContent = 'Merge ' + pending.child.reference + ' into ' + pending.parent.reference
-                    + ' - ' + pending.child.reference + ' is closed' + (pending.child.id === ticket.id ? ' and not scheduled.' : '.');
-                form.hidden = false;
-                box.querySelector('[data-md-merge-reason]').focus();
+                pick.classList.add('active');
+                row.insertAdjacentHTML('beforeend', mergeFormHtml());
+                const what = row.querySelector('[data-md-merge-what]');
+                what.innerHTML = '<strong>' + escapeText(pending.child.reference) + '</strong> is closed and merged into <strong>'
+                    + escapeText(pending.parent.reference) + '</strong>, which stays open'
+                    + (pending.child.id === ticket.id ? ' - this one is not scheduled, and this window closes.' : '.');
+                row.querySelector('[data-md-merge-reason]').focus();
                 return;
             }
             if (e.target.closest('[data-md-merge-cancel]')) {
-                form.hidden = true;
-                pending = null;
+                closeForm();
                 return;
             }
-            if (e.target.closest('[data-md-merge-go]') && pending) {
-                const reason = box.querySelector('[data-md-merge-reason]').value.trim();
-                if (!reason) {
-                    Swal.showValidationMessage('Give a reason for the merge');
-                    return;
-                }
-                Swal.resetValidationMessage();
-                request('POST', {merge: 1, csrf_token: csrf, child_id: pending.child.id, parent_id: pending.parent.id, comment: reason,
-                    move_replies: box.querySelector('[data-md-merge-replies]').checked ? 1 : 0}).then(function (json) {
-                    if (json.error) {
-                        Swal.showValidationMessage(json.error);
-                        return;
-                    }
-                    toast(json.message, 'success');
-                    if (pending.child.id === ticket.id) {
-                        // This ticket is closed now - nothing left to schedule
-                        Swal.close();
-                        refresh();
-                        return;
-                    }
-                    pending = null;
-                    loadOtherTickets(ticket);
-                });
+            if (e.target.closest('[data-md-merge-go]')) {
+                go();
             }
+        });
+        // Enter in the reason merges (not "Schedule it")
+        box.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && e.target.closest('[data-md-merge-reason]')) {
+                e.preventDefault();
+                e.stopPropagation();
+                go();
+            }
+        });
+    }
+
+    // The Asset pickers follow the client (a new client's assets, none picked) and the contact (theirs listed first, picks kept);
+    // the other assets never list the main one
+    function loadAssets(keep) {
+        const client = document.getElementById('mdClient');
+        const contact = document.getElementById('mdContactPick');
+        const main = document.getElementById('mdAsset');
+        const others = document.getElementById('mdOtherAssets');
+        if (!client || !main || !others) {
+            return;
+        }
+        const wanted = keep ? Number(main.value) : 0;
+        const picked = keep ? Array.prototype.map.call(others.selectedOptions, function (o) {
+            return Number(o.value);
+        }) : [];
+        document.querySelectorAll('[data-md-assets]').forEach(function (el) {
+            el.hidden = !Number(client.value);
+        });
+        if (!Number(client.value)) {
+            main.innerHTML = assetOptions([], 0);
+            others.innerHTML = '';
+            return;
+        }
+        main.disabled = true;
+        request('GET', {assets: client.value, contact: contact ? contact.value : 0}).then(function (list) {
+            list = Array.isArray(list) ? list : [];
+            assetList = list;
+            main.innerHTML = assetOptions(list, list.some(function (a) { return a.id === wanted; }) ? wanted : 0);
+            others.innerHTML = otherAssetOptions(list, picked, main.value);
+            main.disabled = false;
+        });
+    }
+    let assetList = [];
+    function bindAssets() {
+        const main = document.getElementById('mdAsset');
+        const others = document.getElementById('mdOtherAssets');
+        if (!main || !others) {
+            return;
+        }
+        assetList = Array.prototype.slice.call(main.options).filter(function (o) {
+            return Number(o.value);
+        }).map(function (o) {
+            return {id: Number(o.value), name: o.textContent};
+        });
+        main.addEventListener('change', function () {
+            const picked = Array.prototype.map.call(others.selectedOptions, function (o) {
+                return Number(o.value);
+            });
+            others.innerHTML = otherAssetOptions(assetList, picked, main.value);
         });
     }
 
@@ -328,6 +457,7 @@
                 ? '<div class="mb-2"><label class="form-label mb-0" for="mdSubject">Title</label><input type="text" class="form-control form-control-sm" id="mdSubject" maxlength="500" value="' + escapeText(details.ticket.subject || '') + '"></div>'
                 : '<div class="mb-2 text-muted">' + escapeText(ticket.subject || '') + '</div>')
             + '<div class="row g-2">'
+            + (details && details.ticket ? '<div class="col-12">' + sectionHead('fa-calendar-check', 'Booking') + '</div>' : '')
             + '<div class="col-12"><label class="form-label mb-0">Agent</label><select class="form-select form-select-sm" id="mdTech">'
             + techs.map(function (t) {
                 return '<option value="' + t.id + '"' + (t.id === Number(techId) ? ' selected' : '') + '>' + escapeText(t.name) + '</option>';
@@ -341,7 +471,10 @@
             + '<div class="col-12 d-flex gap-3 mt-2">'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdOnsite" value="1"' + (ticket.onsite ? ' checked' : '') + '><label class="form-check-label" for="mdOnsite">Onsite</label></div>'
             + '<div class="form-check"><input class="form-check-input" type="radio" name="mdWhere" id="mdRemote" value="0"' + (ticket.onsite ? '' : ' checked') + '><label class="form-check-label" for="mdRemote">Remote</label></div>'
-            + (notifyDefaults ? '</div>' + notifyHtml(ticket.onsite) : notifyHtml(ticket.onsite) + '</div>') + detailsHtml(details) + '</div></div>';
+            + (notifyDefaults ? '</div>' : notifyHtml(ticket.onsite) + '</div>')
+            // Then the ticket's details, who is emailed, and last the contact's other open tickets (to merge)
+            + detailsHtml(details) + (notifyDefaults ? notifyHtml(ticket.onsite) : '')
+            + '<div class="col-12 mt-2" id="mdOther" hidden></div>' + '</div></div>';
 
         return Swal.fire({
             theme: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light',
@@ -376,8 +509,10 @@
                 client.dataset.original = client.value;
                 bindMerge(ticket);
                 loadOtherTickets(ticket);
+                bindAssets();
                 document.getElementById('mdContactPick').addEventListener('change', function () {
                     loadOtherTickets(ticket);
+                    loadAssets(true);
                 });
                 const original = client.dataset.original;
                 client.addEventListener('change', function () {
@@ -388,6 +523,7 @@
                         contact.innerHTML = options([{id: 0, name: 'No contact'}].concat(Array.isArray(list) ? list : []), Array.isArray(list) && list.length ? list[0].id : 0);
                         contact.disabled = false;
                         loadOtherTickets(ticket);
+                        loadAssets(client.value === original);
                     });
                 });
             },
@@ -396,7 +532,8 @@
             reverseButtons: true,
             buttonsStyling: false,
             focusConfirm: true,
-            customClass: {confirmButton: 'btn btn-primary mx-1', cancelButton: 'btn btn-secondary mx-1'},
+            // With the ticket's details it is a long form: one fixed size that fits the screen, the fields scrolling inside it
+            customClass: {popup: details && !details.error ? 'mit-md-schedule' : '', confirmButton: 'btn btn-primary mx-1', cancelButton: 'btn btn-secondary mx-1'},
             preConfirm: function () {
                 const date = document.getElementById('mdDate').value;
                 const time = document.getElementById('mdStart').value;
@@ -439,6 +576,14 @@
                     post.detail_sla = document.getElementById('mdSla').value;
                     if (document.getElementById('mdBoard')) {
                         post.detail_board = document.getElementById('mdBoard').value;
+                    }
+                    const asset = document.getElementById('mdAsset');
+                    if (asset && !asset.disabled) {
+                        post.detail_assets_present = 1;
+                        post.detail_asset_id = asset.value;
+                        post.detail_other_assets = Array.prototype.map.call(document.getElementById('mdOtherAssets').selectedOptions, function (o) {
+                            return o.value;
+                        }).join(',');
                     }
                 }
                 return request('POST', post).then(function (json) {

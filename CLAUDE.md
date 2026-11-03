@@ -344,7 +344,7 @@ model: see DEPLOYMENT.md.
   `products.product_cost/...` (M007); defaults in `mit_settings` `quote_price_*` / `quote_show_images`
   (card `admin/includes/mit_quote_card.php` required at the end of `admin/settings_quote.php`,
   handler `admin/post/mit_quote_settings.php`). Hooks: `agent/quote.php` (Image / Our cost cells, add
-  row multipart, profit box under the totals), `agent/modals/quote/quote_item_edit.php`, `agent/post/quote.php`
+  row multipart, profit box - a card in the side column under the Quote card since 26.11.1.8, `mitQuoteProfitBox`), `agent/modals/quote/quote_item_edit.php`, `agent/post/quote.php`
   (add/edit/copy/delete items, PDF image), `guest/guest_view_quote.php` + `guest/guest_post.php` (PDF),
   `agent/modals/product/product_add.php` / `product_edit.php`, `agent/post/product.php`,
   `agent/post/client.php` (client delete). Invoices are untouched (customer price only).
@@ -617,7 +617,15 @@ model: see DEPLOYMENT.md.
   The Schedule dialog also shows the ticket's title (editable), client, contact, priority, status, category and SLA (`?details=` /
   `?contacts=`); changes are saved first by `mitDispatchSaveDetails` - the same rules as ITFlow's Edit ticket,
   Change client (`change_client_ticket`, public replies become internal) and SLA forms; re-check it if those change.
-  Under Contact it lists the contact's other open tickets (`?contact_tickets=`) with "Merge into this" / "Merge this into it"
+  Under Contact it lists the contact's other open tickets (`?contact_tickets=`) with "Keep this one, close T-x" / "Keep T-x, close
+  this one" (26.11.1.8 - were "Merge into this" / "Merge this into it"; the form opens under the row picked, its problems shown
+  there - not Swal's validation line at the foot of the dialog -, Enter in the reason merges; smoke `92-dispatch-dialog.spec.js`).
+  Dialog order (26.11.1.8): Title, Booking (agent, date / start / length, onsite / remote), Ticket details (client, contact, Asset +
+  Other assets - ITFlow's ticket_asset_id / ticket_assets, saved by `mitDispatchSaveDetails` with `detail_assets_present` as its
+  Asset form does: the client's own only, history lines; list from `mitDispatchAssets` - the contact's first -, `?assets=`; Other assets
+  is ITFlow's select2 picker inside the Swal dialog), Email about this booking, then the contact's other open tickets. With the details it is one fixed size that fits the screen
+  (`customClass.popup` `mit-md-schedule`, CSS in `agent/mit_dispatch.php`: min(52rem, 100dvh - 2rem), the fields scroll between the title
+  and the buttons)
   (`mitDispatchMerge`: ITFlow's Merge form checks, a scheduled ticket being merged has its schedule cancelled, then ITFlow's
   own `ticketMergeInto()`, which lives in `agent/post/ticket.php` and is loaded from there - re-check if upstream moves it).
   Permission (M035, 26.10.105): ITFlow module row `module_dispatch` (Admin > Roles "Dispatch") - `mitDispatchLevel`: View 1 sees the
@@ -919,6 +927,10 @@ model: see DEPLOYMENT.md.
   removed in `mitBrandLogoField` / `mitBrandAppLogoSave`): `mitBrandScreenLogo($company_logo)` - one guarded line each in
   `agent/includes/side_nav.php` ($brand_logo) and `login.php` (after $company_logo). The company logo stays ITFlow's for quotes,
   invoices, POs, PDFs, guest pages and the light pages - client portal, MFA set-up (`agent/user/mfa_enforcement.php` has no dark style).
+  A login's copy buttons (every look; the user chose 1em for all three - first pushed with the password one at 1.6em, kept as 26.11.1.8): one `<style>` in
+  `mitThemeHead()` sets ITFlow's username (`.itflow-credential-user + .itflow-copy`), password (`.itflow-credential-pw .itflow-credential-copy`)
+  and link (`.itflow-copy.clipboardjs[title="Copy link"]`) copy buttons from functions/credential.php to 1em (its copy buttons are .8em);
+  smoke `93-credential-copy.spec.js`.
   Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
   MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
   each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage
