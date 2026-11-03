@@ -29,7 +29,9 @@ function mitLookOn() {
 function mitThemeHead() {
     // Time fields (clock icon = now, AM / PM from now) - for every look
     $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>'
-        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '"></script>'; // the side menu's sections fold - not deferred: it folds them as the menu is built (no flicker)
+        . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '"></script>' // the side menu's sections fold - not deferred: it folds them as the menu is built (no flicker)
+        // A login's Copy password button twice ITFlow's size (.8em -> 1.6em) - it is the one clicked most, and was hard to hit (26.11.1.8)
+        . '<style>.itflow-credential-pw .itflow-credential-copy { font-size: 1.6em; padding: .1rem .3rem; line-height: 1; vertical-align: middle; }</style>';
     if (!mitLookOn()) {
         return $time;
     }

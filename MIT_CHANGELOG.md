@@ -4,6 +4,13 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.1.8 - 2026-11-03
+- Dispatch: the merge buttons in the Schedule dialog say which ticket is kept - "Keep this one, close T-123" / "Keep T-123, close this one". The merge form opens under the ticket picked, says what will happen, and shows any problem (a missing reason, a refusal) right there - before, it showed at the foot of the dialog, out of sight, so the button seemed to do nothing. Enter in the reason box merges.
+- Dispatch: assets can be set while scheduling - the ticket's Asset and Other assets, from the client's assets (the contact's first), saved with the booking as the ticket's own Asset form saves them.
+- Dispatch: the Schedule dialog reads top to bottom - Booking, Ticket details, Email about this booking, then the contact's other open tickets - and is one size that fits the screen, with the fields scrolling between the title and the buttons.
+- Quotes: the staff-only Profit box is now a card in the side column, under the Quote card (it was under the quote itself).
+- Credentials: a login's Copy password button is twice the size, so it is easier to click.
+
 ## 26.11.1.7 - 2026-11-01
 - QuickBooks Online: each invoice has a Terms picker in its QuickBooks strip. It starts on the client's default (or the terms matching the due date) and can be changed for that one invoice - e.g. Net 15 for a hardware order on a client who is normally due on the 1st. Picking terms with days moves the invoice's due date to match straight away; a date-based term ("Due on the 1st") is worked out by QuickBooks when the invoice is sent. Once the invoice is in a batch its terms are shown, not changeable.
 

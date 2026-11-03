@@ -86,14 +86,15 @@ return [
         'files' => ['functions/mit_theme.php', 'css/mit_*.css', 'css/mit_login_nodes.svg', 'css/fonts/inter/*', 'js/mit_theme.js', 'js/mit_time_inputs.js', 'js/mit_nav_sections.js',
             'js/mit_portal_tables.js', 'functions/mit_client_tiles.php'],
         'tests' => ['tests/smoke/21-brand-logo.spec.js', 'tests/smoke/26-portal-phone.spec.js', 'tests/smoke/46-client-tiles.spec.js', 'tests/smoke/80-theme-look.spec.js',
-            'tests/smoke/87-nav-sections.spec.js'],
+            'tests/smoke/87-nav-sections.spec.js', 'tests/smoke/93-credential-copy.spec.js'],
         'assumes' => [
+            'A login\'s Copy password button is .itflow-credential-pw .itflow-credential-copy (functions/credential.php credentialPasswordHtml) - made twice ITFlow\'s size.',
             'The side menu: li.nav-header headings with the section\'s li items after them in the same list (folded by js/mit_nav_sections.js).',
             'ITFlow\'s markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.',
             'Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.',
             'login.php / client pages send CSP default-src \'self\' - our files there must be files, not inline.',
         ],
-        'watch' => ['app-header', 'app-sidebar', 'itflow-dash-rail', 'itflow-client-switcher', '--itflow-accent', '--itflow-status-bg', 'login-box'],
+        'watch' => ['app-header', 'app-sidebar', 'itflow-dash-rail', 'itflow-client-switcher', '--itflow-accent', '--itflow-status-bg', 'login-box', 'itflow-credential-copy'],
         'overlap' => ['theme', 'dark_mode', 'logo'],
     ],
     'emails' => [
