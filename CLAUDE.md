@@ -374,6 +374,9 @@ model: see DEPLOYMENT.md.
   wrapped as "conversation" - re-check those if upstream reworks `agent/ticket.php`. Hooks: one line
   after the layout in `agent/ticket.php` (`mitTicketLayoutHtml`), `agent/ajax.php?mit_ticket_layout`,
   `functions.php` (require). "Customize layout" is added to the ticket's ⋮ menu by the script.
+  Three columns (26.11.2.2): while editing, an empty column shows "Drag boxes here" (`.mit-layout-editing .ticket-layout > :is(...):empty::before`
+  - the editing class is on <body>, the column classes on .ticket-layout; the old selector wanted both on one element, so the new left
+  column was invisible); widths `1fr 1.6fr 1fr` (were fixed 300 / 340 px). Smoke: the three-columns drag test in `43-layout-timers.spec.js`.
   The same script opens the reply box on "Public note" at page load (ITFlow starts it shut with nothing
   picked) - it relies on ITFlow's ids `#replyComposer`, `public_reply_type_opt1`, `#replyAudience`, `#replySubmitLabel`.
   It also adds a "Read" tick to the Description box's header: ticked, the description starts folded away for that tech
