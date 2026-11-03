@@ -16,6 +16,10 @@ async function openDialog(page, ticketId) {
     await page.locator('[data-md-tab="unassigned"]').click();
     const card = page.locator(`.mit-dq-item[data-ticket="${ticketId}"]`);
     await expect(card).toHaveCount(1, { timeout: 8000 });
+    // The queue redraws as the filter and tab reload it - let it settle so the card isn't replaced mid-drag
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
+    await expect(card).toHaveCount(1);
     const techId = Number(one(`SELECT user_id FROM users WHERE user_email = 'tech@test.test'`));
     await card.scrollIntoViewIfNeeded();
     const from = await card.boundingBox();

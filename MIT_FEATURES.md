@@ -8,11 +8,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 35 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 167 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 168 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
-| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 6 | 12 | 13 | 23 | 15 |
+| [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
@@ -256,7 +256,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.
 - login.php / client pages send CSP default-src 'self' - our files there must be files, not inline.
 
-**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`, `tests/smoke/87-nav-sections.spec.js`, `tests/smoke/93-credential-copy.spec.js`
+**Tests** `tests/smoke/21-brand-logo.spec.js`, `tests/smoke/26-portal-phone.spec.js`, `tests/smoke/46-client-tiles.spec.js`, `tests/smoke/80-theme-look.spec.js`, `tests/smoke/87-nav-sections.spec.js`, `tests/smoke/93-credential-copy.spec.js`, `tests/smoke/94-quick-look-fit.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -292,7 +292,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow page ids / classes its scripts and styles use** `#items` `.app-header` `.app-main` `.app-sidebar` `.app-wrapper` `.itflow-brand-name` `.itflow-client-avatar` `.itflow-client-head` `.itflow-client-head-name` `.itflow-client-switcher` `.itflow-dash-money-value` `.itflow-dash-rail` `.itflow-dash-rail-clear` `.itflow-dash-rail-count` `.itflow-dash-rail-detail` `.itflow-dash-rail-item` `.itflow-dash-rail-label` `.itflow-theme-swatch`
 
-**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box` `itflow-credential-copy` `itflow-credential-user` `title="Copy link"`
+**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box` `itflow-credential-copy` `itflow-credential-user` `itflow-ticket-glance` `itflow-cal-tile` `title="Copy link"`
 
 **"ITFlow does this too" words** theme, dark_mode, logo
 

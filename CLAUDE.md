@@ -934,6 +934,10 @@ model: see DEPLOYMENT.md.
   `mitThemeHead()` sets ITFlow's username (`.itflow-credential-user + .itflow-copy`), password (`.itflow-credential-pw .itflow-credential-copy`)
   and link (`.itflow-copy.clipboardjs[title="Copy link"]`) copy buttons from functions/credential.php to 1em (its copy buttons are .8em);
   smoke `93-credential-copy.spec.js`.
+  Quick looks fit the screen (26.11.2.3, every look - the user's request): the ticket (`.modal-body.itflow-ticket-glance`, agent/modals/ticket/ticket.php)
+  and calendar-entry (`.modal-header .itflow-cal-tile`, calendar_event.php) quick looks get Bootstrap's scrollable-dialog rules from `mitThemeHead()`
+  (dialog height = screen less margins, content max-height 100%, body scrolls) - keyed with :has on ITFlow's markup, as ajax_modal.js builds the
+  dialog without a scrollable class. Other ajax modals untouched (a <form> around the body, or dropdowns, would break). Smoke `94-quick-look-fit.spec.js`.
   Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
   MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
   each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage
