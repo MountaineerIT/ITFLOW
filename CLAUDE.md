@@ -927,8 +927,10 @@ model: see DEPLOYMENT.md.
   removed in `mitBrandLogoField` / `mitBrandAppLogoSave`): `mitBrandScreenLogo($company_logo)` - one guarded line each in
   `agent/includes/side_nav.php` ($brand_logo) and `login.php` (after $company_logo). The company logo stays ITFlow's for quotes,
   invoices, POs, PDFs, guest pages and the light pages - client portal, MFA set-up (`agent/user/mfa_enforcement.php` has no dark style).
-  Copy password button (26.11.1.8, every look - the user asked for it twice the size): one `<style>` in `mitThemeHead()` sets ITFlow's
-  `.itflow-credential-pw .itflow-credential-copy` to 1.6em (its copy buttons are .8em); smoke `93-credential-copy.spec.js`.
+  A login's copy buttons (every look; the user chose 1em for all three - first pushed with the password one at 1.6em, kept as 26.11.1.8): one `<style>` in
+  `mitThemeHead()` sets ITFlow's username (`.itflow-credential-user + .itflow-copy`), password (`.itflow-credential-pw .itflow-credential-copy`)
+  and link (`.itflow-copy.clipboardjs[title="Copy link"]`) copy buttons from functions/credential.php to 1em (its copy buttons are .8em);
+  smoke `93-credential-copy.spec.js`.
   Folding menu sections (26.10.187, every look): `js/mit_nav_sections.js` (loaded by `mitThemeHead()` in the head, not deferred - 26.10.188: a
   MutationObserver folds items as the menu is parsed, so they never flash open; smoke checks every frame; no new line in ITFlow's files) turns
   each `.app-sidebar li.nav-header` into a button that hides the `li` items after it up to the next heading; folds kept in localStorage

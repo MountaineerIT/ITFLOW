@@ -250,7 +250,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Takes for granted**
 
-- A login's Copy password button is .itflow-credential-pw .itflow-credential-copy (functions/credential.php credentialPasswordHtml) - made twice ITFlow's size.
+- A login's copy buttons (functions/credential.php): username .itflow-credential-user + .itflow-copy, password .itflow-credential-pw .itflow-credential-copy, link .itflow-copy[title="Copy link"] - set to 1em.
 - The side menu: li.nav-header headings with the section's li items after them in the same list (folded by js/mit_nav_sections.js).
 - ITFlow's markup classes: .app-header, .app-sidebar .nav-link.active, .card-header.bg-dark, .itflow-dash-rail*, .itflow-client-switcher.
 - Company theme colours as body.theme-<colour> (admin/settings_theme.php); statuses coloured through --itflow-status-bg.
@@ -292,7 +292,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow page ids / classes its scripts and styles use** `#items` `.app-header` `.app-main` `.app-sidebar` `.app-wrapper` `.itflow-brand-name` `.itflow-client-avatar` `.itflow-client-head` `.itflow-client-head-name` `.itflow-client-switcher` `.itflow-dash-money-value` `.itflow-dash-rail` `.itflow-dash-rail-clear` `.itflow-dash-rail-count` `.itflow-dash-rail-detail` `.itflow-dash-rail-item` `.itflow-dash-rail-label` `.itflow-theme-swatch`
 
-**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box` `itflow-credential-copy`
+**Watched in ITFlow's code** `app-header` `app-sidebar` `itflow-dash-rail` `itflow-client-switcher` `--itflow-accent` `--itflow-status-bg` `login-box` `itflow-credential-copy` `itflow-credential-user` `title="Copy link"`
 
 **"ITFlow does this too" words** theme, dark_mode, logo
 

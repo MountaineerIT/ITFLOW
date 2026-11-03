@@ -9,7 +9,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Dispatch: assets can be set while scheduling - the ticket's Asset and Other assets, from the client's assets (the contact's first), saved with the booking as the ticket's own Asset form saves them.
 - Dispatch: the Schedule dialog reads top to bottom - Booking, Ticket details, Email about this booking, then the contact's other open tickets - and is one size that fits the screen, with the fields scrolling between the title and the buttons.
 - Quotes: the staff-only Profit box is now a card in the side column, under the Quote card (it was under the quote itself).
-- Credentials: a login's Copy password button is twice the size, so it is easier to click.
+- Credentials: a login's three copy buttons - username, password and link - are the size of the text beside them (they were smaller), so they are easier to click.
 
 ## 26.11.1.7 - 2026-11-01
 - QuickBooks Online: each invoice has a Terms picker in its QuickBooks strip. It starts on the client's default (or the terms matching the due date) and can be changed for that one invoice - e.g. Net 15 for a hardware order on a client who is normally due on the 1st. Picking terms with days moves the invoice's due date to match straight away; a date-based term ("Due on the 1st") is worked out by QuickBooks when the invoice is sent. Once the invoice is in a batch its terms are shown, not changeable.

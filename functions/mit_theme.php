@@ -30,8 +30,10 @@ function mitThemeHead() {
     // Time fields (clock icon = now, AM / PM from now) - for every look
     $time = '<script src="' . mitAsset('/js/mit_time_inputs.js') . '" defer></script>'
         . '<script src="' . mitAsset('/js/mit_nav_sections.js') . '"></script>' // the side menu's sections fold - not deferred: it folds them as the menu is built (no flicker)
-        // A login's Copy password button twice ITFlow's size (.8em -> 1.6em) - it is the one clicked most, and was hard to hit (26.11.1.8)
-        . '<style>.itflow-credential-pw .itflow-credential-copy { font-size: 1.6em; padding: .1rem .3rem; line-height: 1; vertical-align: middle; }</style>';
+        // A login's copy buttons - username, password, link (functions/credential.php) - the size of the text beside them (ITFlow's are .8em,
+        // hard to hit); the user chose 1em for all three (26.11.1.8)
+        . '<style>.itflow-credential-user + .itflow-copy, .itflow-credential-pw .itflow-credential-copy, .itflow-copy.clipboardjs[title="Copy link"]'
+        . ' { font-size: 1em; padding: .1rem .3rem; line-height: 1; vertical-align: middle; }</style>';
     if (!mitLookOn()) {
         return $time;
     }
