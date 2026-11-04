@@ -294,9 +294,9 @@ test('calendar: a short booking keeps its text inside its block (FullCalendar ce
     }
 });
 
-test('calendar + Dispatch: an open booking takes the main place and is drawn over a completed one it overlaps', async ({ page }) => {
-    // agent/js/calendar.js mitDoneLast / agent/js/mit_dispatch.js eventOrder mitDone + z-index CSS (26.11.2.4): before, a completed booking
-    // that started first took the column's main place and the open one was squeezed beside it
+test('calendar + Dispatch: bookings at the same time sit side by side, open or completed, none on top of another', async ({ page }) => {
+    // slotEventOverlap: false in agent/js/calendar.js and agent/js/mit_dispatch.js (26.11.2.5 - the user's choice): FullCalendar's default
+    // drew bookings starting together on top of each other, half hidden
     const db = require('./mitdb');
     const errors = watch(page);
     await visit(page, 'agent/calendar.php', errors);
@@ -313,21 +313,19 @@ test('calendar + Dispatch: an open booking takes the main place and is drawn ove
     const doneSubject = smokeName('over done');
     const before = await page.locator('#calendarAgent').inputValue();
     try {
+        made.push(booking(openSubject, '13:00', '14:00', false));
         made.push(booking(doneSubject, '13:00', '14:00', true));
-        made.push(booking(openSubject, '13:30', '15:00', false));
 
         const check = async (scope, where) => {
             const done = page.locator(`${scope} [data-kind="ticket"]`, { hasText: doneSubject }).first();
             const open = page.locator(`${scope} [data-kind="ticket"]`, { hasText: openSubject }).first();
             await expect(open).toBeVisible();
             const [d, o] = [await done.boundingBox(), await open.boundingBox()];
-            expect(o.x, `${where}: the open booking has the main (left) place`).toBeLessThan(d.x);
-            expect(o.width, `${where}: and is the wider one`).toBeGreaterThan(d.width);
-            // Where both are, the open one is on top
-            const top = await page.evaluate(([x, y]) => (document.elementFromPoint(x, y) || document.body).closest('[data-kind]')?.textContent || '', [d.x + 3, o.y + 10]);
-            expect(top, `${where}: the open booking is drawn over the completed one`).toContain(openSubject);
-            // The completed one still opens from the part that shows
-            await page.mouse.click(d.x + d.width - 4, d.y + 6);
+            const apart = o.x + o.width <= d.x + 2 || d.x + d.width <= o.x + 2;
+            expect(apart, `${where}: side by side, not on top of each other (${JSON.stringify([o, d])})`).toBeTruthy();
+            expect(Math.abs(o.width - d.width), `${where}: the same width`).toBeLessThan(6);
+            // The completed one opens when clicked
+            await page.mouse.click(d.x + d.width / 2, d.y + 6);
             await expect(page.locator('.modal.show .modal-title'), `${where}: a click on the completed one opens it`).toContainText(doneSubject.slice(0, 20));
             await page.locator('.modal.show [data-bs-dismiss="modal"]').first().click();
             await expect(page.locator('.modal.show')).toHaveCount(0);

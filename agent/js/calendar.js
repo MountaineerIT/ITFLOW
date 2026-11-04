@@ -122,13 +122,6 @@
         return date.toLocaleString(undefined, options);
     }
 
-    // Mountaineer IT: a completed booking (functions/calendar.php className itflow-cal-done) is placed after the open ones at the same
-    // time, so an open booking takes the main place in the column and the completed one overlaps it from the side, drawn underneath
-    // (z-index in agent/calendar.php) - 26.11.2.4
-    function mitDoneLast(item) {
-        const done = String(item.className || '').split(/\s+/).indexOf('itflow-cal-done') !== -1;
-        return Object.assign({}, item, {mitDone: done ? 1 : 0});
-    }
 
     // Mountaineer IT: "now" (the red line, today) on the viewer's own clock when they work in another time zone - the
     // server sends their times moved into it (data-mit-zone, functions/mit_zones.php)
@@ -242,7 +235,8 @@
         droppable: canSchedule,
         scrollTime: '07:30:00',
         businessHours: {daysOfWeek: [1, 2, 3, 4, 5], startTime: '08:00', endTime: '18:00'},
-        eventOrder: 'allDay,mitDone,start,-duration,title', // Mountaineer IT: + mitDone - open bookings placed first (mitDoneLast)
+        eventOrder: 'allDay,start,-duration,title',
+        slotEventOverlap: false, // Mountaineer IT: bookings at the same time sit side by side, open or completed, never on top of each other (26.11.2.5)
         ...(mitZone ? {now: mitZoneNow} : {}), // Mountaineer IT: the viewer's clock
         views: {
             // Side by side past three, the rest go behind "+N more"
@@ -272,7 +266,7 @@
                 } catch (e) {
                     items = [];
                 }
-                success((Array.isArray(items) ? items : []).map(mitDoneLast)); // Mountaineer IT
+                success(Array.isArray(items) ? items : []);
             }, function (error) {
                 failure(error);
             });

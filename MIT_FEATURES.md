@@ -530,9 +530,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mit_calendar, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: data-mit-agent, data-mit-zone, mitDoneLast, mit_calendar, mit_ticket_techs, mit_zones
+- `agent/calendar.php`: data-mit-agent, data-mit-zone, mit_calendar, mit_ticket_techs, mit_zones
 - `agent/includes/side_nav.php`: mit_dispatch_nav
-- `agent/js/calendar.js`: data-mit-agent, data-mit-zone, mitAgent, mitDone, mitDoneLast, mitZone, mit_calendar, mit_event_agents, mit_zones
+- `agent/js/calendar.js`: data-mit-agent, data-mit-zone, mitAgent, mitZone, mit_calendar, mit_event_agents, mit_zones
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
 - `agent/modals/calendar/calendar_event_add.php`: mit_zones
 - `agent/modals/calendar/calendar_event_form.php`: mit_zones

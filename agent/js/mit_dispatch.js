@@ -830,8 +830,6 @@
                     cal.removeAllEvents();
                     cal.addEventSource(items.filter(function (item) {
                         return Number(item.extendedProps.tech) === Number(cal.mdTech);
-                    }).map(function (item) {
-                        return Object.assign({}, item, {mitDone: String(item.className || '').split(/\s+/).indexOf('itflow-cal-done') !== -1 ? 1 : 0});
                     }));
                 });
                 dayTotals(items);
@@ -860,9 +858,7 @@
             const techId = Number(col.dataset.tech);
             const cal = new FullCalendar.Calendar(col.querySelector('[data-md-cal]'), {
                 initialView: 'timeGridDay',
-                // A completed booking is placed after the open ones and drawn under them (as on the calendar page - agent/js/calendar.js
-                // mitDoneLast; CSS in agent/mit_dispatch.php), so an open booking keeps the main place in the column - 26.11.2.4
-                eventOrder: 'allDay,mitDone,start,-duration,title',
+                slotEventOverlap: false, // bookings at the same time side by side, open or completed (as on the calendar page - 26.11.2.5)
                 initialDate: ymd(state.date),
                 headerToolbar: false,
                 dayHeaders: false,

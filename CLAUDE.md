@@ -238,12 +238,10 @@ model: see DEPLOYMENT.md.
   in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week; its lines carry
   a `MountaineerIT` comment for the hook check) - seven days from any day, the arrows move one day, so a booking can be dragged
   across a weekend; allowed in the saved state's view list (`functions/mit_calendar.php`, which maps its first name `mitTimeGrid7`).
-  Open bookings over completed ones (26.11.2.4, the user's choice - replaces the first 26.11.2.4 push's background "behind" blocks, which they didn't like):
-  bookings stay ordinary events; `eventOrder` 'allDay,mitDone,start,-duration,title' with `mitDone` 1 on closed / resolved tickets'
-  bookings (functions/calendar.php's `itflow-cal-done`) - `mitDoneLast` in `agent/js/calendar.js`, the same map + eventOrder in
-  `agent/js/mit_dispatch.js`'s day calendars - so an open booking is placed first (the main, wider place) and the completed one overlaps it
-  from the side; CSS `:has(> .itflow-cal-done[data-kind]) { z-index: 0 !important }` in `agent/calendar.php` / `agent/mit_dispatch.php`
-  draws the completed one underneath. Smoke: last test of 08.
+  Bookings side by side (26.11.2.5, the user's choice after two tries in 26.11.2.4 - completed ones as background blocks, then open ones on
+  top): `slotEventOverlap: false` in `agent/js/calendar.js` and Dispatch's day calendars (`agent/js/mit_dispatch.js`) - bookings at the same
+  time, open or completed, share the column side by side, none drawn over another. No other special handling of completed bookings (ITFlow's
+  own faded `itflow-cal-done`). Smoke: "side by side" test in 08.
   Own time zone (26.11.2.5, the user's choice - a tech works from Japan): `functions/mit_zones.php` (ours, required from mit_common.php). The zone
   is the timesheet one (`mit_timesheet_people.time_zone`, Account > Preferences "My time zone" - `mitUserZone` / `mitViewZone`; none = the
   company's `config_timezone`). Stored times stay company clock times; only the edges move: out - `mitZoneItems` (calendar_items, calendar_day,

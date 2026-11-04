@@ -53,7 +53,6 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     .mit-dispatch [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
     .mit-dispatch [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
     .mit-dw-chip[data-mit-agent] { padding-left: .65rem; }
-    .mit-dispatch :has(> .itflow-cal-done[data-kind]) { z-index: 0 !important; } /* a completed booking under the open ones (26.11.2.4) */
     .mit-dispatch [data-kind="helper"] { outline: 2px dashed rgba(255, 255, 255, .75); outline-offset: -3px; }
     .mit-dispatch-week th, .mit-dispatch-week td { vertical-align: top; }
     .mit-dispatch-week td.mit-dw-cell { min-width: 130px; width: 200px; max-width: 200px; height: 70px; padding: .25rem; }
