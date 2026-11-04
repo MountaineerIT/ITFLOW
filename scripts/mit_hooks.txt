@@ -195,6 +195,8 @@ hook	agent/modals/recurring_ticket/recurring_ticket_edit.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket.php	mitZoneWhen	2
 hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
 hook	agent/modals/ticket/ticket_add.php	mitServiceUserSql	2
+hook	agent/modals/ticket/ticket_add.php	mitTicketAddAssignee	2
+hook	agent/modals/ticket/ticket_add.php	mitTicketAddFields	2
 hook	agent/modals/ticket/ticket_bulk_assign.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_edit.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitAgentCanSeeClient	1
@@ -258,6 +260,9 @@ hook	agent/post/ticket.php	mitReplyTimesFromPost	2
 hook	agent/post/ticket.php	mitReplyTimesSavePending	4
 hook	agent/post/ticket.php	mitScheduleLeadChanging	1
 hook	agent/post/ticket.php	mitScheduleNotifyFromPost	2
+hook	agent/post/ticket.php	mitTicketAddAfterCreate	2
+hook	agent/post/ticket.php	mitTicketAddFlash	2
+hook	agent/post/ticket.php	mitTicketAddRedirect	2
 hook	agent/post/ticket.php	mitTicketClientMoved	1
 hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
 hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
@@ -392,6 +397,7 @@ hook	functions.php	mit_quick_ticket	1
 hook	functions.php	mit_quotes	1
 hook	functions.php	mit_reply_recipients	1
 hook	functions.php	mit_theme	1
+hook	functions.php	mit_ticket_add	1
 hook	functions.php	mit_ticket_layout	1
 hook	functions.php	mit_timesheets	1
 hook	functions.php	mit_usage	1
@@ -780,6 +786,7 @@ ours	functions/mit_reply_times.php
 ours	functions/mit_service_users.php
 ours	functions/mit_settings_index.php
 ours	functions/mit_theme.php
+ours	functions/mit_ticket_add.php
 ours	functions/mit_ticket_layout.php
 ours	functions/mit_ticket_picks.php
 ours	functions/mit_ticket_techs.php

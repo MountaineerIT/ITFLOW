@@ -213,7 +213,7 @@ ob_start();
                                     while ($row = mysqli_fetch_assoc($sql)) {
                                         $user_id = intval($row['user_id']);
                                         $user_name = escapeHtml($row['user_name']); ?>
-                                        <option <?php if ($session_user_id == $user_id) { echo "selected"; } ?> value="<?= $user_id ?>"<?= selectOptionUser($row['user_id'], $row['user_name'], $row['user_avatar'] ?? '') ?>><?= $user_name ?></option>
+                                        <option <?php if ((function_exists('mitTicketAddAssignee') ? mitTicketAddAssignee() : $session_user_id) == $user_id) { echo "selected"; } // Mountaineer IT: ?assigned_to= (Dispatch) ?> value="<?= $user_id ?>"<?= selectOptionUser($row['user_id'], $row['user_name'], $row['user_avatar'] ?? '') ?>><?= $user_name ?></option>
                                     <?php } ?>
                                 </select>
                             </div>
@@ -229,6 +229,8 @@ ob_start();
                         </div>
                     </div>
                 </div>
+
+                <?= function_exists('mitTicketAddFields') ? mitTicketAddFields() : '' // Mountaineer IT: Status and Schedule ?>
 
                 <div class="mb-3">
                     <?= tagFormFieldHtml('ticket', [], 'Onboarding, Hardware, Escalated', 'Tags', 'data-template-field="tags"') ?>

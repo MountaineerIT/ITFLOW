@@ -935,6 +935,26 @@
                         openModal(props.modal, 'lg');
                     }
                 },
+                // A drag over empty time: New Ticket for this agent, booked for what was picked (functions/mit_ticket_add.php)
+                selectable: canEdit,
+                selectMirror: true,
+                selectMinDistance: 5, // a drag, not a click (a click on the board does nothing, as before)
+                select: function (info) {
+                    cal.unselect();
+                    if (info.allDay) {
+                        return;
+                    }
+                    const params = new URLSearchParams({
+                        assigned_to: String(techId),
+                        mit_schedule_start: ymd(info.start) + 'T' + hm(info.start),
+                        mit_schedule_end: ymd(info.end) + 'T' + hm(info.end),
+                        mit_return: 'dispatch'
+                    });
+                    if (state.filters && state.filters.client_id) {
+                        params.set('client_id', String(state.filters.client_id));
+                    }
+                    openModal('modals/ticket/ticket_add.php?' + params.toString(), 'lg');
+                },
                 // From the queue
                 drop: function (info) {
                     const start = new Date(info.date.getTime());

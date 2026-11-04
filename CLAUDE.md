@@ -1585,6 +1585,15 @@ model: see DEPLOYMENT.md.
   (`apiKeyAgents`), the parser's agent email match, api/v1/technicians. Sign-in: login.php skips the row (one line in its user loop),
   `includes/load_user_session.php` ends an existing session. Admin > Users: main list filtered, `mitServiceUsersSection` (one line after the
   list's card in `admin/users.php`). Scenario `scenario-service-users.php` (lists, notices, API key still works), smoke `96-service-users.spec.js`.
+- New Ticket: Status and Schedule (Nov 4, 26.11.2.6 - the user's request): `functions/mit_ticket_add.php` (ours, required from `functions.php`), no
+  tables. `mitTicketAddFields()` (one line in `agent/modals/ticket/ticket_add.php` before the tags) - Status (`mit_status`: 0 = ITFlow's New / Open, else
+  `ticketPickableStatuses`) and a Schedule fieldset (`mit_schedule` on the viewer's clock, `mit_schedule_minutes`, `mit_schedule_onsite`; GET
+  `mit_schedule_start` / `_end` / `_onsite` fill it). In add_ticket (`agent/post/ticket.php`) three lines: `mitTicketAddAfterCreate` after the Quick ticket
+  line (ticketChangeStatus, then `mitFromView` + ticketSetSchedule - skipped for Quick ticket posts), `mitTicketAddFlash` after ITFlow's "created" flash
+  (adds the booking / clash to it), `mitTicketAddRedirect` before the redirect (`mit_return=dispatch` -> `mit_dispatch.php?date=`). The Assign to list
+  starts on `mitTicketAddAssignee()` (?assigned_to=, else the agent - one condition). Dispatch day view: `selectable: canEdit`, `selectMinDistance: 5`
+  and `select` in `agent/js/mit_dispatch.js` renderDay open the window for the column's agent and the dragged time (and the client filter). Smoke
+  `97-ticket-add.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

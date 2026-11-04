@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 64 | 13 | 7 | 29 | 70 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 172 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 173 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -36,6 +36,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 39 |
+| [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -539,7 +540,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/modals/calendar/calendar_event_form.php`: mit_zones
 - `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
 - `agent/post/ticket.php`: mit_zones
-- `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects
+- `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects, mit_ticket_add
 - `functions/calendar.php`: mit_ticket_techs
 - `functions/reports.php`: mit_boards
 - `functions/sla.php`: mit_projects
@@ -1425,3 +1426,40 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** service_account, api_user, user_is_api, bot_user
 
 **Our files** `functions/mit_service_users.php`
+
+<a id="ticket_add"></a>
+## New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time (`ticket_add`)
+
+**Takes for granted**
+
+- ITFlow's New Ticket window is agent/modals/ticket/ticket_add.php (Assign to select name="assigned_to", then Due, then tags); add_ticket in agent/post/ticket.php inserts the ticket, flashes "created" and redirects to ticket.php.
+- ticketPickableStatuses / ticketChangeStatus set a status other than New / Resolved / Closed; ticketScheduleValue + ticketSetSchedule book the work (emails, note, history).
+- Dispatch's day view is one FullCalendar v7 timeGridDay per agent (agent/js/mit_dispatch.js renderDay); select gives the picked range on the viewer's clock.
+
+**Tests** `tests/smoke/97-ticket-add.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `agent/calendar.php`: mit_zones
+- `agent/js/calendar.js`: mit_zones
+- `agent/modals/calendar/calendar_event_add.php`: mit_zones
+- `agent/modals/calendar/calendar_event_form.php`: mit_zones
+- `agent/modals/ticket/ticket_add.php`: mitTicketAddAssignee, mitTicketAddFields
+- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
+- `agent/post/ticket.php`: mitTicketAddAfterCreate, mitTicketAddFlash, mitTicketAddRedirect, mit_zones
+- `functions.php`: mit_dispatch, mit_quick_ticket, mit_ticket_add
+
+**ITFlow functions it calls**
+
+- `functions/request.php`: flashAlert, redirect
+- `functions/sanitize.php`: escapeHtml
+- `functions/ticket.php`: ticketForRequest, ticketRow, ticketScheduleValue, ticketSetSchedule
+- `functions/ticket_fields.php`: ticketChangeStatus, ticketPickableStatuses
+
+**ITFlow columns** ticket_schedule, ticket_status, ticket_status_name, user_name
+
+**Watched in ITFlow's code** `ticketPickableStatuses` `ticketChangeStatus` `ticketScheduleValue` `name="assigned_to"` `add_ticket`
+
+**"ITFlow does this too" words** ticket_add_schedule, new_ticket_schedule, schedule_on_create
+
+**Our files** `functions/mit_ticket_add.php`

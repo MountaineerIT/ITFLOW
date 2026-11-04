@@ -6,6 +6,8 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 
 ## 26.11.2.6 - 2026-11-04
 - API / service accounts: Admin > Users > New / Edit has an "API / service account" switch for a login an API key acts as. It keeps its role, so its API keys keep working, but it is left out of the calendar's Whose, Dispatch, every assign picker (new, edit, bulk, quick picker, schedule window), watchers / @mentions, helpers, recurring tickets, project managers, contracts, event agents, service boards and round-robin, timesheets, reports and the Get started team count, and admin / approval notices. It can't sign in to ITFlow in a browser. Admin > Users lists these accounts in their own section at the bottom.
+- New Ticket has a Status picker (New / Open as before, or any of your statuses such as On Hold) and a Schedule section (date and time, how long, remote / onsite) - the ticket is booked as it is made, with the same emails as scheduling it from the ticket.
+- Dispatch: drag over empty time on an agent's column (Day view) to open New Ticket assigned to that agent and booked for that time; saving it brings you back to Dispatch.
 
 ## 26.11.2.5 - 2026-11-04
 - Calendar and Dispatch: bookings at the same time now sit side by side in equal columns, open or completed - none is drawn over another any more (this replaces 26.11.2.4's open-on-top layout).
