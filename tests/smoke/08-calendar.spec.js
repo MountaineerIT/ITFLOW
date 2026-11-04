@@ -294,9 +294,9 @@ test('calendar: a short booking keeps its text inside its block (FullCalendar ce
     }
 });
 
-test('calendar + Dispatch: a completed booking sits behind an open one at the same time, and a click on it opens its ticket', async ({ page }) => {
-    // Completed bookings are background items (agent/js/calendar.js mitDoneBehind, agent/js/mit_dispatch.js doneBehind - 26.11.2.4): they
-    // used to share the column with an open booking, so both were half width and overlapped
+test('calendar + Dispatch: an open booking takes the main place and is drawn over a completed one it overlaps', async ({ page }) => {
+    // agent/js/calendar.js mitDoneLast / agent/js/mit_dispatch.js eventOrder mitDone + z-index CSS (26.11.2.4): before, a completed booking
+    // that started first took the column's main place and the open one was squeezed beside it
     const db = require('./mitdb');
     const errors = watch(page);
     await visit(page, 'agent/calendar.php', errors);
@@ -309,22 +309,26 @@ test('calendar + Dispatch: a completed booking sits behind an open one at the sa
         ticket_subject = ${db.q(subject)}, ticket_details = '', ticket_priority = 'Low', ticket_status = ${done ? 5 : 2},
         ticket_schedule = '${date} ${from}:00', ticket_schedule_end = '${date} ${to}:00', ticket_url_key = MD5(RAND()), ticket_created_at = NOW(),
         ticket_created_by = ${me}, ticket_assigned_to = ${me}, ticket_client_id = ${client}${done ? ', ticket_resolved_at = NOW(), ticket_closed_at = NOW()' : ''}`);
-    const openSubject = smokeName('behind open');
-    const doneSubject = smokeName('behind done');
+    const openSubject = smokeName('over open');
+    const doneSubject = smokeName('over done');
     const before = await page.locator('#calendarAgent').inputValue();
     try {
-        made.push(booking(openSubject, '13:30', '15:00', false));
         made.push(booking(doneSubject, '13:00', '14:00', true));
+        made.push(booking(openSubject, '13:30', '15:00', false));
 
         const check = async (scope, where) => {
-            const behind = page.locator(`${scope} .mit-cal-behind`, { hasText: doneSubject });
-            await expect(behind, `${where}: the completed booking is drawn behind`).toHaveCount(1);
+            const done = page.locator(`${scope} [data-kind="ticket"]`, { hasText: doneSubject }).first();
             const open = page.locator(`${scope} [data-kind="ticket"]`, { hasText: openSubject }).first();
             await expect(open).toBeVisible();
-            const [b, o] = [await behind.boundingBox(), await open.boundingBox()];
-            expect(o.width, `${where}: the open booking keeps the column's width (not half of it)`).toBeGreaterThan(b.width * 0.8);
-            await page.mouse.click(b.x + b.width / 2, b.y + 6); // the part above the open booking
-            await expect(page.locator('.modal.show .modal-title'), `${where}: a click on it opens its ticket, not New Event`).toContainText(doneSubject.slice(0, 20));
+            const [d, o] = [await done.boundingBox(), await open.boundingBox()];
+            expect(o.x, `${where}: the open booking has the main (left) place`).toBeLessThan(d.x);
+            expect(o.width, `${where}: and is the wider one`).toBeGreaterThan(d.width);
+            // Where both are, the open one is on top
+            const top = await page.evaluate(([x, y]) => (document.elementFromPoint(x, y) || document.body).closest('[data-kind]')?.textContent || '', [d.x + 3, o.y + 10]);
+            expect(top, `${where}: the open booking is drawn over the completed one`).toContain(openSubject);
+            // The completed one still opens from the part that shows
+            await page.mouse.click(d.x + d.width - 4, d.y + 6);
+            await expect(page.locator('.modal.show .modal-title'), `${where}: a click on the completed one opens it`).toContainText(doneSubject.slice(0, 20));
             await page.locator('.modal.show [data-bs-dismiss="modal"]').first().click();
             await expect(page.locator('.modal.show')).toHaveCount(0);
         };
@@ -333,9 +337,6 @@ test('calendar + Dispatch: a completed booking sits behind an open one at the sa
         await pickWhose(page, me);
         await page.locator('#itflowCalendar button', { hasText: /^Day$/ }).first().click();
         await check('#itflowCalendar', 'calendar');
-        await page.locator('#itflowCalendar button', { hasText: /^Month$/ }).first().click();
-        await expect(page.locator('#itflowCalendar .mit-cal-behind'), 'month view keeps it as a line').toHaveCount(0);
-        await expect(page.locator('#itflowCalendar .itflow-cal-done', { hasText: doneSubject })).toHaveCount(1);
 
         if (await page.request.get('agent/mit_dispatch.php').then((r) => r.ok())) {
             await visit(page, 'agent/mit_dispatch.php', errors);

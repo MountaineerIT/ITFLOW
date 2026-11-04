@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 36 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 35 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 168 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
@@ -82,7 +82,6 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `js/unbilled_time.js`: mit_to_bill, MountaineerIT
 - `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_updates_applied
 - `setup/index.php`: mitRestoreItflowUpdates, MountaineerIT, mit_message
-- `agent/js/calendar.js`: mitBehind, mitBehindKind, mitBehindModal, mitBehindModals, mitBehindView, mitLastPointer
 - `functions/app.php`: MountaineerIT
 - `scripts/setup_cli.php`: MountaineerIT
 - `scripts/update_cli.php`: mit_updates_applied
@@ -518,9 +517,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mit_calendar, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: data-mit-agent, mit-cal-behind, mitDoneBehind, mit_calendar, mit_ticket_techs
+- `agent/calendar.php`: data-mit-agent, mitDoneLast, mit_calendar, mit_ticket_techs
 - `agent/includes/side_nav.php`: mit_dispatch_nav
-- `agent/js/calendar.js`: data-mit-agent, mit-behind-, mit-cal-behind, mitAgent, mitDoneBehind, mit_calendar, mit_event_agents
+- `agent/js/calendar.js`: data-mit-agent, mitAgent, mitDone, mitDoneLast, mit_calendar, mit_event_agents
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
 - `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects
 - `functions/calendar.php`: mit_ticket_techs

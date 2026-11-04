@@ -122,41 +122,12 @@
         return date.toLocaleString(undefined, options);
     }
 
-    // Mountaineer IT: a completed booking (functions/calendar.php className itflow-cal-done) as a background item - FullCalendar leaves
-    // background items out of its side-by-side layout, so the open bookings keep their full width (the day / week time grids only)
-    // FullCalendar sends no eventClick for background items - a click on one becomes a `select`, so each carries a numbered class
-    // (mit-behind-N -> its quick look here) and `select` opens it instead of a new event
-    const mitBehindModals = [];
-    let mitLastPointer = null; // where the last press on the calendar was - set after render
-    function mitDoneBehind(item) {
-        const cls = String(item.className || '');
-        if (cls.split(/\s+/).indexOf('itflow-cal-done') === -1 || item.allDay || !mitBehindView()) {
-            return item;
-        }
-        mitBehindModals.push((item.extendedProps || {}).modal || '');
-        return Object.assign({}, item, {display: 'background', className: cls + ' mit-cal-behind mit-behind-' + (mitBehindModals.length - 1), editable: false});
-    }
-    // Only on the time grids - a background item fills the whole day in month view (the list has no columns to share)
-    let mitBehindKind = null;
-    function mitBehindView() {
-        try {
-            return calendar.view.type.indexOf('timeGrid') === 0;
-        } catch (e) {
-            return false;
-        }
-    }
-    // FullCalendar puts a layer over its background items, so a click never lands on one: it is found by where the click is - inside a
-    // completed booking's box and not on an open booking ([data-kind], set in eventDidMount)
-    function mitBehindModal(e) {
-        if (!e || typeof e.clientX !== 'number' || (e.target && e.target.closest && e.target.closest('[data-kind]:not(.mit-cal-behind)'))) {
-            return null;
-        }
-        const hit = Array.prototype.find.call(document.querySelectorAll('#itflowCalendar .mit-cal-behind'), function (box) {
-            const r = box.getBoundingClientRect();
-            return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-        });
-        const match = hit ? /(?:^|\s)mit-behind-(\d+)(?:\s|$)/.exec(hit.className) : null;
-        return match ? mitBehindModals[Number(match[1])] || '' : null;
+    // Mountaineer IT: a completed booking (functions/calendar.php className itflow-cal-done) is placed after the open ones at the same
+    // time, so an open booking takes the main place in the column and the completed one overlaps it from the side, drawn underneath
+    // (z-index in agent/calendar.php) - 26.11.2.4
+    function mitDoneLast(item) {
+        const done = String(item.className || '').split(/\s+/).indexOf('itflow-cal-done') !== -1;
+        return Object.assign({}, item, {mitDone: done ? 1 : 0});
     }
 
     function openModal(url, size) {
@@ -259,7 +230,7 @@
         droppable: canSchedule,
         scrollTime: '07:30:00',
         businessHours: {daysOfWeek: [1, 2, 3, 4, 5], startTime: '08:00', endTime: '18:00'},
-        eventOrder: 'allDay,start,-duration,title',
+        eventOrder: 'allDay,mitDone,start,-duration,title', // Mountaineer IT: + mitDone - open bookings placed first (mitDoneLast)
         views: {
             // Side by side past three, the rest go behind "+N more"
             timeGrid: {eventMaxStack: 3},
@@ -288,9 +259,7 @@
                 } catch (e) {
                     items = [];
                 }
-                // Mountaineer IT: completed bookings sit behind the open ones (background) - they no longer take half a column from an open
-                // booking at the same time; drawn and clickable as a faded block (agent/calendar.php CSS, mitDoneBehind - 26.11.2.4)
-                success((Array.isArray(items) ? items : []).map(mitDoneBehind));
+                success((Array.isArray(items) ? items : []).map(mitDoneLast)); // Mountaineer IT
             }, function (error) {
                 failure(error);
             });
@@ -302,12 +271,6 @@
 
         datesSet: function (info) {
             state.view = info.view.type;
-            // Mountaineer IT: completed bookings change form between the time grids and the other views (mitDoneBehind)
-            const behindKind = info.view.type.indexOf('timeGrid') === 0;
-            if (mitBehindKind !== null && mitBehindKind !== behindKind) {
-                calendar.refetchEvents();
-            }
-            mitBehindKind = behindKind;
             save();
         },
 
@@ -391,15 +354,6 @@
         // A day, or a run of days or times, picked on empty calendar
         select: function (info) {
             calendar.unselect();
-            // Mountaineer IT: a click on a completed booking opens it (mitBehindModal) - not a new event. Read from the press
-            // (pointerdown): FullCalendar's mouseup lands on its own selection block
-            const mitBehind = mitBehindModal(mitLastPointer);
-            if (mitBehind !== null) {
-                if (mitBehind) {
-                    openModal(mitBehind, 'lg');
-                }
-                return;
-            }
             newEvent({
                 start: info.allDay ? ymd(info.start) : ymdhm(info.start),
                 end: info.allDay ? ymd(info.end) : ymdhm(info.end),
@@ -421,10 +375,6 @@
     });
 
     calendar.render();
-    // Mountaineer IT: where a press on the calendar was - a click on a completed booking (mitDoneBehind) reaches `select`, which opens it
-    el.addEventListener('pointerdown', function (e) {
-        mitLastPointer = {clientX: e.clientX, clientY: e.clientY, target: e.target};
-    }, true);
 
     // ---------- moving things ----------
 
