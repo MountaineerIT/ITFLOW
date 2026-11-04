@@ -65,6 +65,12 @@ hook	agent/ajax.php	mitTicketPickOptions	2
 hook	agent/ajax.php	mitTicketPickSet	2
 hook	agent/ajax.php	mitTicketScheduleMinutes	1
 hook	agent/ajax.php	mitTicketTechCalendarMove	1
+hook	agent/ajax.php	mitViewShifted	2
+hook	agent/ajax.php	mitZoneItems	4
+hook	agent/ajax.php	mitZoneMovePost	2
+hook	agent/ajax.php	mitZoneRange	4
+hook	agent/ajax.php	mitZoneWhen	1
+hook	agent/ajax.php	mitZoneWhenText	2
 hook	agent/ajax.php	mit_calendar	1
 hook	agent/ajax.php	mit_calendar_state	1
 hook	agent/ajax.php	mit_left_behind	2
@@ -80,17 +86,21 @@ hook	agent/asset.php	mitNinjaAssetButton	2
 hook	agent/assets.php	mitAlignAssetBadge	2
 hook	agent/assets.php	mitClientTiles	2
 hook	agent/calendar.php	data-mit-agent	2
+hook	agent/calendar.php	data-mit-zone	1
 hook	agent/calendar.php	mit-cal-agent	1
 hook	agent/calendar.php	mit-cal-when	3
 hook	agent/calendar.php	mit-tech-dot	1
 hook	agent/calendar.php	mitAgentColor	1
 hook	agent/calendar.php	mitAsset	2
 hook	agent/calendar.php	mitCalendarState	1
-hook	agent/calendar.php	mitDoneLast	1
 hook	agent/calendar.php	mitLeftBehindCard	2
+hook	agent/calendar.php	mitViewShifted	2
+hook	agent/calendar.php	mitViewZone	1
+hook	agent/calendar.php	mitZoneNote	2
 hook	agent/calendar.php	mit_calendar	1
 hook	agent/calendar.php	mit_outlook	1
 hook	agent/calendar.php	mit_ticket_techs	1
+hook	agent/calendar.php	mit_zones	1
 hook	agent/client_overview.php	mitAlignClientCard	2
 hook	agent/client_overview.php	mitAlignReplacesAttention	1
 hook	agent/client_overview.php	mitCtClientCard	2
@@ -128,16 +138,18 @@ hook	agent/invoices.php	mitQboListBadge	3
 hook	agent/invoices.php	mit_qbo_ids	2
 hook	agent/js/calendar.js	MountaineerIT	3
 hook	agent/js/calendar.js	data-mit-agent	1
+hook	agent/js/calendar.js	data-mit-zone	1
 hook	agent/js/calendar.js	mit-cal-agent	2
 hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
-hook	agent/js/calendar.js	mitDone	3
-hook	agent/js/calendar.js	mitDoneLast	3
 hook	agent/js/calendar.js	mitStriped	3
+hook	agent/js/calendar.js	mitZone	4
+hook	agent/js/calendar.js	mitZoneNow	2
 hook	agent/js/calendar.js	mit_calendar	2
 hook	agent/js/calendar.js	mit_calendar_state	2
 hook	agent/js/calendar.js	mit_event_agents	2
+hook	agent/js/calendar.js	mit_zones	1
 hook	agent/js/ticket_schedule_modal.js	mit_calendar	1
 hook	agent/js/ticket_schedule_modal.js	mit_ticket_tech	1
 hook	agent/modals/asset/asset.php	mitAlignAssetPanel	2
@@ -145,21 +157,33 @@ hook	agent/modals/asset/asset.php	mitNinjaAssetButton	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
 hook	agent/modals/calendar/calendar_event.php	mitEventQuickAssign	2
+hook	agent/modals/calendar/calendar_event.php	mitZoneWhenText	2
 hook	agent/modals/calendar/calendar_event.php	mit_assign	5
 hook	agent/modals/calendar/calendar_event.php	mit_who	4
 hook	agent/modals/calendar/calendar_event_add.php	mitEventDefaultAgents	2
+hook	agent/modals/calendar/calendar_event_add.php	mitFromView	3
+hook	agent/modals/calendar/calendar_event_add.php	mit_zones	1
 hook	agent/modals/calendar/calendar_event_form.php	mitEventAssignField	2
 hook	agent/modals/calendar/calendar_event_form.php	mitRepeatOnField	2
+hook	agent/modals/calendar/calendar_event_form.php	mitToView	2
+hook	agent/modals/calendar/calendar_event_form.php	mitViewShifted	2
+hook	agent/modals/calendar/calendar_event_form.php	mitZoneFormHint	2
 hook	agent/modals/calendar/calendar_event_form.php	mit_assign	5
+hook	agent/modals/calendar/calendar_event_form.php	mit_zones	1
 hook	agent/modals/product/product_form.php	mitProductImageField	2
 hook	agent/modals/quote/quote_to_invoice.php	mitProcQuoteConvertFields	1
 hook	agent/modals/recurring_ticket/recurring_ticket_add.php	mitRecurringTicketRepeatOnField	1
 hook	agent/modals/recurring_ticket/recurring_ticket_edit.php	mitRecurringTicketRepeatOnField	1
+hook	agent/modals/ticket/ticket.php	mitZoneWhen	2
 hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitAgentCanSeeClient	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleLengths	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitTicketScheduleMinutes	1
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitToView	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitZoneFormHint	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitZoneNow	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mit_zones	1
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
@@ -176,6 +200,7 @@ hook	agent/post/client.php	mitQboGuardClientDelete	2
 hook	agent/post/client.php	mitQuoteImagesDelete	1
 hook	agent/post/client.php	mitTicketPartsDeleting	1
 hook	agent/post/client.php	mitTsDeleteGuard	2
+hook	agent/post/event.php	mitZoneEventPost	4
 hook	agent/post/expense.php	mitQboGuardInvoice	2
 hook	agent/post/invoice.php	mitQboGuardEmail	2
 hook	agent/post/invoice.php	mitQboGuardInvoice	16
@@ -196,6 +221,7 @@ hook	agent/post/recurring_ticket.php	mitRecurringTicketSaveByDay	3
 hook	agent/post/ticket.php	mitAgentCanSeeClient	1
 hook	agent/post/ticket.php	mitBoardAfterCreate	2
 hook	agent/post/ticket.php	mitBoardRoute	2
+hook	agent/post/ticket.php	mitFromView	2
 hook	agent/post/ticket.php	mitNotifyOn	6
 hook	agent/post/ticket.php	mitProjectTicketMoved	4
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
@@ -218,6 +244,7 @@ hook	agent/post/ticket.php	mit_resolved	4
 hook	agent/post/ticket.php	mit_row	4
 hook	agent/post/ticket.php	mit_send_to_present	2
 hook	agent/post/ticket.php	mit_subject	2
+hook	agent/post/ticket.php	mit_zones	1
 hook	agent/post/trip.php	mitQboGuardInvoice	4
 hook	agent/post/trip.php	mitReimbTripLocked	8
 hook	agent/post/trip.php	mitReimbTripWhyLocked	8
@@ -414,6 +441,7 @@ hook	functions/ticket.php	mitTicketScheduleEnd	1
 hook	functions/ticket.php	mitTicketTechsLeadCancelled	1
 hook	functions/ticket.php	mitTicketTechsLeadMoved	1
 hook	functions/ticket.php	mitTsDeleteGuard	2
+hook	functions/ticket.php	mitZoneAgentOpts	2
 hook	functions/ticket.php	mit_contact	4
 hook	functions/ticket.php	mit_extra	3
 hook	functions/ticket.php	mit_office	4
@@ -719,6 +747,7 @@ ours	functions/mit_ts_california.php
 ours	functions/mit_ts_holidays.php
 ours	functions/mit_usage.php
 ours	functions/mit_usage_connectors.php
+ours	functions/mit_zones.php
 ours	includes/mit_cron_nav.php
 ours	includes/mit_timers_nav.php
 ours	includes/mit_version.php

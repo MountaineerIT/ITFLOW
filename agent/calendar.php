@@ -72,8 +72,6 @@ foreach ($sources as $key => $source) {
     #itflowCalendar .mit-cal-agent { font-weight: 600; margin: 0 .25rem 0 .1rem; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     /* Mountaineer IT: a short booking keeps its text inside the block - FullCalendar centres it, so it ran out above and below (26.10.181) */
     #itflowCalendar :has(> .itflow-cal-event.is-timegrid) { align-items: flex-start; overflow: hidden; }
-    /* Mountaineer IT: a completed booking is drawn under the open ones it overlaps (agent/js/calendar.js mitDoneLast - 26.11.2.4) */
-    #itflowCalendar :has(> .itflow-cal-done[data-kind]) { z-index: 0 !important; }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 
@@ -87,7 +85,7 @@ foreach ($sources as $key => $source) {
     data-mobile="<?= !empty($session_mobile) ? 1 : 0 ?>"
     data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : '' ?>"
     data-sources="<?= escapeHtml(json_encode($page_sources)) ?>"
-    data-saved-state="<?= escapeHtml(json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all'))) ?>">
+    data-saved-state="<?= escapeHtml(json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all'))) ?>"<?= function_exists('mitViewShifted') && mitViewShifted() ? ' data-mit-zone="' . escapeHtml(mitViewZone()) . '"' : '' // Mountaineer IT: the viewer's own time zone (functions/mit_zones.php) ?>>
 
     <div class="col-lg-auto itflow-cal-side order-2 order-lg-1 d-print-none">
 
@@ -191,6 +189,7 @@ foreach ($sources as $key => $source) {
     <div class="col-lg order-1 order-lg-2 min-w-0">
         <div class="card">
             <div class="card-body p-2 p-md-3">
+                <?= function_exists('mitZoneNote') ? mitZoneNote() : '' // Mountaineer IT: "Times in Tokyo (JST)" when the viewer is away from the company's zone ?>
                 <div id="calendar"></div>
             </div>
         </div>

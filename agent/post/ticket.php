@@ -1883,6 +1883,9 @@ if (isset($_POST['edit_ticket_schedule'])) {
     validateCSRFToken();
 
     $row = ticketForRequest($_POST['ticket_id'] ?? 0, 2);
+    if (function_exists('mitFromView')) { // Mountaineer IT: typed on the viewer's own clock (functions/mit_zones.php)
+        $_POST['scheduled_date_time'] = mitFromView(trim((string) ($_POST['scheduled_date_time'] ?? '')));
+    }
     $schedule = ticketScheduleValue($_POST['scheduled_date_time'] ?? '');
 
     if ($schedule === '') {

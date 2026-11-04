@@ -461,7 +461,7 @@ function mitTicketTechMail($ticket_id, $user_id, $start, $end, $kind) {
 
     $cal_str = '';
     if ($kind === 'booked') {
-        $when = mitScheduleWhenText($start, $end);
+        $when = mitZoneWhenFor(mitScheduleWhenText($start, $end), $user_id); // on the helper's own clock (functions/mit_zones.php)
         $what = "You are scheduled to help on $about for " . $html($when) . " (" . (intval($row['ticket_onsite']) ? 'onsite' : 'remote') . ").$lead";
         $subject = "Ticket Scheduled - [$reference] - " . $row['ticket_subject'];
         $cal_subject = intval($row['ticket_number']) . ": " . $row['client_name'] . " - " . $row['ticket_subject'];

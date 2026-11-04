@@ -30,6 +30,9 @@ $form_locked_client = $form_client_id && !empty($_GET['lock_client']);
 $start = ticketScheduleValue(str_replace('T', ' ', (string) ($_GET['start'] ?? '')) . (strlen((string) ($_GET['start'] ?? '')) === 10 ? ' 00:00:00' : ''));
 $end = ticketScheduleValue(str_replace('T', ' ', (string) ($_GET['end'] ?? '')) . (strlen((string) ($_GET['end'] ?? '')) === 10 ? ' 00:00:00' : ''));
 $all_day = !empty($_GET['all_day']);
+if (function_exists('mitFromView') && !$all_day) { // Mountaineer IT: picked on the viewer's own clock (functions/mit_zones.php)
+    [$start, $end] = [mitFromView($start), mitFromView($end)];
+}
 if ($start === '') {
     $start = date('Y-m-d H:00:00', strtotime('+1 hour'));
 }

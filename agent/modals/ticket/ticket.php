@@ -174,7 +174,7 @@ ob_start();
 
         <?php if (!empty($ticket['ticket_schedule'])) { ?>
             <dt>Scheduled</dt>
-            <dd><i class="fas fa-<?= intval($ticket['ticket_onsite']) ? 'truck' : 'calendar-check' ?> text-body-secondary me-1"></i><?= escapeHtml(date('D M j, g:i A', strtotime($ticket['ticket_schedule']))) ?><?= intval($ticket['ticket_onsite']) ? ' <span class="text-body-secondary">on site</span>' : '' ?></dd>
+            <dd><i class="fas fa-<?= intval($ticket['ticket_onsite']) ? 'truck' : 'calendar-check' ?> text-body-secondary me-1"></i><?= escapeHtml(function_exists('mitZoneWhen') ? mitZoneWhen($ticket['ticket_schedule'], 'D M j, g:i A') : date('D M j, g:i A', strtotime($ticket['ticket_schedule']))) // Mountaineer IT: on the viewer's clock ?><?= intval($ticket['ticket_onsite']) ? ' <span class="text-body-secondary">on site</span>' : '' ?></dd>
         <?php } ?>
 
         <?php if (intval($ticket['ticket_project_id']) && $ticket['project_name'] !== null) { ?>

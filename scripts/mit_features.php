@@ -112,14 +112,15 @@ return [
         'overlap' => ['notify_schedule', 'schedule_notify', 'inline_image', 'email_logo', 'resolved_message'],
     ],
     'calendar' => [
-        'name' => 'Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)',
-        'files' => ['functions/mit_calendar.php', 'functions/mit_left_behind.php', 'functions/mit_recurring.php', 'functions/mit_event_agents.php',
+        'name' => 'Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)',
+        'files' => ['functions/mit_calendar.php', 'functions/mit_left_behind.php', 'functions/mit_recurring.php', 'functions/mit_event_agents.php', 'functions/mit_zones.php',
             'agent/js/mit_left_behind.js', 'js/mit_repeat_on.js', 'admin/includes/mit_calendar_card.php', 'admin/post/mit_calendar_settings.php',
             'agent/post/mit_event_agents.php'],
         'tests' => ['tests/smoke/08-calendar.spec.js', 'tests/smoke/20-event-agents.spec.js', 'tests/smoke/50-sched-window.spec.js',
             'tests/smoke/52-calendar-state-moves.spec.js', 'tests/smoke/53-event-repeat-weekday.spec.js', 'tests/smoke/54-recurring-ticket-weekday.spec.js',
-            'tests/scenarios/scenario-sched-*.php'],
+            'tests/scenarios/scenario-sched-*.php', 'tests/smoke/95-time-zones.spec.js', 'tests/scenarios/scenario-zones.php'],
         'assumes' => [
+            'Stored booking / event times are clock times in the company zone (includes/inc_set_timezone.php); mit_zones.php moves them onto the viewer\'s clock at the edges.',
             'Bookings are tickets.ticket_schedule (+ our ticket_schedule_end); ticketSetSchedule / ticketCancelSchedule change them.',
             'functions/calendar.php builds the sources (calendarSources / calendarSourceItems / calendarEventItems); agent/js/calendar.js draws them with FullCalendar v7.',
             'Attendee agents (calendar_event_attendees.attendee_user_id) are an entry\'s assignment.',

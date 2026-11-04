@@ -65,7 +65,7 @@ ob_start();
     <dl class="itflow-asset-dl mb-0">
         <dt>When</dt>
         <dd>
-            <div class="fw-semibold"><?= escapeHtml(calendarWhenText($event, $start, $end)) ?></div>
+            <div class="fw-semibold"><?= escapeHtml(function_exists('mitZoneWhenText') ? mitZoneWhenText($event, $start, $end) : calendarWhenText($event, $start, $end)) // Mountaineer IT: on the viewer's clock ?></div>
             <?php if ($repeats) { ?>
                 <div class="small text-body-secondary"><i class="fas fa-redo fa-fw me-1"></i><?= escapeHtml(calendarRepeatText($event)) ?>, from <?= date('M j, Y', strtotime($event['event_start'])) ?></div>
                 <?php if (calendarSkippedDates($event)) { ?>

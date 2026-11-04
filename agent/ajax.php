@@ -2359,6 +2359,7 @@ if (isset($_GET['calendar_items'])) {
         exit;
     }
     $opts = ['client_id' => $client_id, 'user_id' => intval($_GET['user_id'] ?? 0), 'mit_split_projects' => true]; // Mountaineer IT: project bookings under Projects
+    [$from, $to] = function_exists('mitZoneRange') ? mitZoneRange($from, $to) : [$from, $to]; // Mountaineer IT: the days asked for are on the viewer's clock
 
     $calendar_ids = array_filter(array_map('intval', explode(',', (string) ($_GET['calendars'] ?? ''))));
     $items = calendarEventItems($calendar_ids, $from, $to, $opts);
@@ -2366,7 +2367,7 @@ if (isset($_GET['calendar_items'])) {
         $items = array_merge($items, calendarSourceItems($key, $from, $to, $opts));
     }
 
-    echo json_encode($items);
+    echo json_encode(function_exists('mitZoneItems') ? mitZoneItems($items) : $items); // Mountaineer IT: times in the viewer's zone
     exit;
 }
 
@@ -2388,6 +2389,9 @@ if (isset($_POST['calendar_move'])) {
         exit;
     };
 
+    if (function_exists('mitZoneMovePost')) {
+        $_POST = mitZoneMovePost($_POST); // Mountaineer IT: a time dropped on the viewer's clock, as the company's clock reads it
+    }
     $start = ticketScheduleValue($_POST['start'] ?? '');
     if ($start === '') {
         $fail('That is not a date and time.');
@@ -2426,7 +2430,7 @@ if (isset($_POST['calendar_move'])) {
         }
         $result = ticketSetSchedule($row, $start, $onsite, $end);
 
-        echo json_encode(['ok' => true, 'message' => ticketReference($row) . ' scheduled for ' . $result['when_text'], 'conflicts' => $result['conflicts']]);
+        echo json_encode(['ok' => true, 'message' => ticketReference($row) . ' scheduled for ' . (function_exists('mitViewShifted') && mitViewShifted() ? mitZoneWhen($start) : $result['when_text']), 'conflicts' => $result['conflicts']]); // Mountaineer IT: on the viewer's clock
         exit;
     }
 
@@ -2471,7 +2475,7 @@ if (isset($_POST['calendar_move'])) {
 
     logAudit("Calendar Event", "Edit", "$session_name moved the event " . escapeSql($event['event_title']) . " to " . escapeSql(calendarWhenText($event)), intval($event['event_client_id']), $event_id);
 
-    echo json_encode(['ok' => true, 'message' => $event['event_title'] . ' moved to ' . calendarWhenText($event) . ($sent ? " - the update was emailed to $sent " . ($sent === 1 ? 'person' : 'people') : '')]);
+    echo json_encode(['ok' => true, 'message' => $event['event_title'] . ' moved to ' . (function_exists('mitZoneWhenText') ? mitZoneWhenText($event, $event['event_start'], $event['event_end']) : calendarWhenText($event)) . ($sent ? " - the update was emailed to $sent " . ($sent === 1 ? 'person' : 'people') : '')]);
     exit;
 }
 
@@ -2607,11 +2611,13 @@ if (isset($_GET['calendar_day'])) {
 
     $from = "$date 00:00:00";
     $to = "$date 23:59:59";
+    [$from, $to] = function_exists('mitZoneRange') ? mitZoneRange($from, $to) : [$from, $to]; // Mountaineer IT: the viewer's day
     $opts = ['user_id' => $user_id];
     $items = array_merge(
         calendarSourceItems('tickets', $from, $to, $opts),
         calendarEventItems(array_keys(calendarList()), $from, $to, $opts)
     );
+    $items = function_exists('mitZoneItems') ? mitZoneItems($items) : $items; // Mountaineer IT: on the viewer's clock
 
     $day = [];
     foreach ($items as $item) {

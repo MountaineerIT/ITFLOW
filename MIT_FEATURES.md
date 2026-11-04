@@ -7,17 +7,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 35 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 168 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 40 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 170 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
-| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays)](#calendar) | 9 | 16 | 28 | 10 | 40 | 26 |
+| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 18 | 28 | 10 | 40 | 30 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
-| [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 16 |
-| [Dispatch board, Workload, This week](#dispatch) | 6 | 4 | 42 | 17 | 71 | 11 |
+| [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 19 |
+| [Dispatch board, Workload, This week](#dispatch) | 6 | 4 | 42 | 17 | 71 | 15 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
@@ -57,10 +57,15 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `admin/settings.php`: mitSettingsSummaries
 - `admin/settings_module.php`: mit_modules_fields
 - `admin/update.php`: MIT_CHANGELOG, mitVersion, mit_changelog_card, MountaineerIT
-- `agent/calendar.php`: mitAsset
+- `agent/calendar.php`: mitAsset, mit_zones
 - `agent/includes/get_side_nav_counts.php`: mitNavCachedCount, mit_to_bill
 - `agent/includes/side_nav.php`: mit_billing_nav, mit_to_bill
+- `agent/js/calendar.js`: mit_zones
+- `agent/modals/calendar/calendar_event_add.php`: mit_zones
+- `agent/modals/calendar/calendar_event_form.php`: mit_zones
+- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
 - `agent/post/payment.php`: mitLock, mitUnlock
+- `agent/post/ticket.php`: mit_zones
 - `agent/unbilled_time.php`: mit_to_bill
 - `agent/user/post/profile.php`: mitSessionRestamp
 - `api/v1/enforce_api_rbac.php`: mit_usage
@@ -339,45 +344,50 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Our files** `functions/mit_notifications.php`, `agent/js/mit_schedule_notify.js`
 
 <a id="calendar"></a>
-## Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays) (`calendar`)
+## Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone) (`calendar`)
 
 **Takes for granted**
 
+- Stored booking / event times are clock times in the company zone (includes/inc_set_timezone.php); mit_zones.php moves them onto the viewer's clock at the edges.
 - Bookings are tickets.ticket_schedule (+ our ticket_schedule_end); ticketSetSchedule / ticketCancelSchedule change them.
 - functions/calendar.php builds the sources (calendarSources / calendarSourceItems / calendarEventItems); agent/js/calendar.js draws them with FullCalendar v7.
 - Attendee agents (calendar_event_attendees.attendee_user_id) are an entry's assignment.
 - Holidays are business_holidays (Admin > SLA closure days).
 
-**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-end.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`
+**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-end.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-zones.php`
 
 **Hooks in ITFlow's files**
 
 - `admin/modals/user/user_form.php`: mitCalendarColorField
 - `admin/post/users.php`: mitSaveAgentColor
 - `admin/settings_ticket.php`: mitServiceTicketColor, mit_calendar_card
-- `agent/ajax.php`: mitCleanCalendarState, mitLeftBehindAjax, mitSetUserPreference, mitTicketScheduleMinutes, mit_calendar, mit_calendar_state, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: mit-cal-agent, mit-cal-when, mit-tech-dot, mitAgentColor, mitCalendarState, mitLeftBehindCard, mit_calendar, mit_outlook, mit_ticket_techs
-- `agent/js/calendar.js`: MountaineerIT, mit-cal-agent, mit-cal-when, mit-tech-dot, mitStriped, mit_calendar, mit_calendar_state, mit_event_agents
+- `agent/ajax.php`: mitCleanCalendarState, mitLeftBehindAjax, mitSetUserPreference, mitTicketScheduleMinutes, mitViewShifted, mitZoneItems, mitZoneMovePost, mitZoneRange, mitZoneWhen, mitZoneWhenText, mit_calendar, mit_calendar_state, mit_left_behind, mit_ticket_techs
+- `agent/calendar.php`: mit-cal-agent, mit-cal-when, mit-tech-dot, mitAgentColor, mitCalendarState, mitLeftBehindCard, mitViewShifted, mitViewZone, mitZoneNote, mit_calendar, mit_outlook, mit_ticket_techs, mit_zones
+- `agent/js/calendar.js`: MountaineerIT, mit-cal-agent, mit-cal-when, mit-tech-dot, mitStriped, mitZoneNow, mit_calendar, mit_calendar_state, mit_event_agents, mit_zones
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
-- `agent/modals/calendar/calendar_event.php`: mitEventQuickAssign, mit_assign, mit_who
-- `agent/modals/calendar/calendar_event_add.php`: mitEventDefaultAgents
-- `agent/modals/calendar/calendar_event_form.php`: mitEventAssignField, mitRepeatOnField, mit_assign
+- `agent/modals/calendar/calendar_event.php`: mitEventQuickAssign, mitZoneWhenText, mit_assign, mit_who
+- `agent/modals/calendar/calendar_event_add.php`: mitEventDefaultAgents, mitFromView, mit_zones
+- `agent/modals/calendar/calendar_event_form.php`: mitEventAssignField, mitRepeatOnField, mitToView, mitViewShifted, mitZoneFormHint, mit_zones, mit_assign
 - `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitRecurringTicketRepeatOnField
 - `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitRecurringTicketRepeatOnField
-- `agent/modals/ticket/ticket_edit_schedule.php`: mitScheduleLengths, mitTicketScheduleMinutes
+- `agent/modals/ticket/ticket.php`: mitZoneWhen
+- `agent/modals/ticket/ticket_edit_schedule.php`: mitScheduleLengths, mitTicketScheduleMinutes, mitToView, mitZoneFormHint, mitZoneNow, mit_zones
+- `agent/post/event.php`: mitZoneEventPost
 - `agent/post/recurring_ticket.php`: mitByDayFollow, mitRecurringTicketSaveByDay
+- `agent/post/ticket.php`: mitFromView, mit_zones
 - `agent/ticket.php`: mitScheduleShortText
 - `agent/user/includes/user_side_nav.php`: mit_outlook
 - `agent/user/post/profile.php`: mitSaveAgentColor
 - `agent/user/user_preferences.php`: mitCalendarColorField
 - `cron/nightly_tasks.php`: mitRecurringTicketByDayColumn
-- `functions.php`: mit_calendar
+- `functions.php`: mit_calendar, mit_timesheets
 - `functions/app.php`: mitTicketScheduleEnd
 - `functions/calendar.php`: mitAgentColor, mitByDayDate, mitByDayRule, mitByDayText, mitCalendarTicketItems, mitEventByDayColumn, mitEventByDaySql, mitEventItemsAgents, mitHolidayCalendarItems, mitHolidayCalendarSources, mitScheduleOverlapSql, mitTicketScheduleEnd, mit_recurring, mit_ticket_techs
 - `functions/client_overview.php`: mitEventByDayColumn
 - `functions/dashboard.php`: mitEventByDayColumn
-- `functions/ticket.php`: mitByDayDate, mitByDayRule, mitByDayText, mitRecurringTicketByDay, mitScheduleConflicts, mitScheduleWhenText, mitTicketScheduleEnd, mit_recurring, mit_ticket_techs
-- `includes/cron_jobs.php`: mit_outlook
+- `functions/reports.php`: mit_timesheets
+- `functions/ticket.php`: mitByDayDate, mitByDayRule, mitByDayText, mitRecurringTicketByDay, mitScheduleConflicts, mitScheduleWhenText, mitTicketScheduleEnd, mitZoneAgentOpts, mit_recurring, mit_ticket_techs
+- `includes/cron_jobs.php`: mit_outlook, mit_timesheets
 
 **ITFlow functions it calls**
 
@@ -401,7 +411,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** schedule_end, calendar_color, agent_color, by_day, byday
 
-**Our files** `functions/mit_calendar.php`, `functions/mit_left_behind.php`, `functions/mit_recurring.php`, `functions/mit_event_agents.php`, `agent/js/mit_left_behind.js`, `js/mit_repeat_on.js`, `admin/includes/mit_calendar_card.php`, `admin/post/mit_calendar_settings.php`, `agent/post/mit_event_agents.php`
+**Our files** `functions/mit_calendar.php`, `functions/mit_left_behind.php`, `functions/mit_recurring.php`, `functions/mit_event_agents.php`, `functions/mit_zones.php`, `agent/js/mit_left_behind.js`, `js/mit_repeat_on.js`, `admin/includes/mit_calendar_card.php`, `admin/post/mit_calendar_settings.php`, `agent/post/mit_event_agents.php`
 
 <a id="outlook_m365"></a>
 ## Microsoft 365 app, Graph mail, Outlook calendar per tech (`outlook_m365`)
@@ -465,10 +475,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mitTicketTechCalendarMove, mit_ticket_techs
-- `agent/calendar.php`: mit_outlook, mit_ticket_techs
+- `agent/calendar.php`: mit_outlook, mit_ticket_techs, mit_zones
+- `agent/js/calendar.js`: mit_zones
 - `agent/js/ticket_schedule_modal.js`: mit_ticket_tech
-- `agent/modals/ticket/ticket_edit_schedule.php`: mitAgentCanSeeClient
-- `agent/post/ticket.php`: mitAgentCanSeeClient, mitScheduleLeadChanging
+- `agent/modals/calendar/calendar_event_add.php`: mit_zones
+- `agent/modals/calendar/calendar_event_form.php`: mit_zones
+- `agent/modals/ticket/ticket_edit_schedule.php`: mitAgentCanSeeClient, mit_zones
+- `agent/post/ticket.php`: mitAgentCanSeeClient, mitScheduleLeadChanging, mit_zones
 - `agent/ticket.php`: mitTicketTechsProp
 - `agent/ticket_kanban.php`: mitTicketTechsListBadge
 - `agent/ticket_list.php`: mitTicketTechsListBadge
@@ -517,10 +530,14 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mit_calendar, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: data-mit-agent, mitDoneLast, mit_calendar, mit_ticket_techs
+- `agent/calendar.php`: data-mit-agent, data-mit-zone, mit_calendar, mit_ticket_techs, mit_zones
 - `agent/includes/side_nav.php`: mit_dispatch_nav
-- `agent/js/calendar.js`: data-mit-agent, mitAgent, mitDone, mitDoneLast, mit_calendar, mit_event_agents
+- `agent/js/calendar.js`: data-mit-agent, data-mit-zone, mitAgent, mitZone, mit_calendar, mit_event_agents, mit_zones
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
+- `agent/modals/calendar/calendar_event_add.php`: mit_zones
+- `agent/modals/calendar/calendar_event_form.php`: mit_zones
+- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
+- `agent/post/ticket.php`: mit_zones
 - `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects
 - `functions/calendar.php`: mit_ticket_techs
 - `functions/reports.php`: mit_boards

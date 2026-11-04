@@ -4,6 +4,13 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.2.5 - 2026-11-04
+- Calendar and Dispatch: bookings at the same time now sit side by side in equal columns, open or completed - none is drawn over another any more (this replaces 26.11.2.4's open-on-top layout).
+- Calendar and Dispatch in your own time zone: anyone with "My time zone" set (Account > Preferences) now sees bookings, events, Outlook busy times and the red "now" line on their own clock, with a note saying which zone the times are in. Dragging, dropping, booking from Dispatch, the ticket's Edit schedule window and New / Edit Event all take times on that clock and store them in the company's time, so everyone else sees the same moment on theirs.
+- Dispatch shows the whole 24-hour day for someone away from the office's zone and shades the office's working hours where they fall on their clock (overnight for Japan).
+- The ticket page's booking line, quick looks and the "scheduled for" messages show your own time zone; where it differs from the company's, both are shown.
+- A tech's own booking email (and a helper's) gives the time in their zone with the company's time after it. Customer emails and calendar invites are unchanged.
+
 ## 26.11.2.4 - 2026-11-03
 - Calendar and Dispatch: where an open booking and a completed one overlap, the open one now takes the main (wider, left) place and is drawn on top; the completed one overlaps it from the side, underneath and faded as before, and still opens when clicked. (First pushed with completed bookings as faded background blocks - replaced by this.)
 
