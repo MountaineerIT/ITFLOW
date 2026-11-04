@@ -86,6 +86,7 @@ hook	agent/calendar.php	mit-tech-dot	1
 hook	agent/calendar.php	mitAgentColor	1
 hook	agent/calendar.php	mitAsset	2
 hook	agent/calendar.php	mitCalendarState	1
+hook	agent/calendar.php	mitDoneLast	1
 hook	agent/calendar.php	mitLeftBehindCard	2
 hook	agent/calendar.php	mit_calendar	1
 hook	agent/calendar.php	mit_outlook	1
@@ -131,6 +132,8 @@ hook	agent/js/calendar.js	mit-cal-agent	2
 hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
+hook	agent/js/calendar.js	mitDone	3
+hook	agent/js/calendar.js	mitDoneLast	3
 hook	agent/js/calendar.js	mitStriped	3
 hook	agent/js/calendar.js	mit_calendar	2
 hook	agent/js/calendar.js	mit_calendar_state	2

@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.2.4 - 2026-11-03
+- Calendar and Dispatch: where an open booking and a completed one overlap, the open one now takes the main (wider, left) place and is drawn on top; the completed one overlaps it from the side, underneath and faded as before, and still opens when clicked. (First pushed with completed bookings as faded background blocks - replaced by this.)
+
 ## 26.11.2.3 - 2026-11-03
 - Calendar, Dispatch and the ticket lists: the ticket quick look (and a calendar entry's) fits the screen - a long ticket no longer runs off the bottom. The title and the Assign / Edit / Open ticket buttons stay put and the middle scrolls, like Dispatch's Schedule window.
 
