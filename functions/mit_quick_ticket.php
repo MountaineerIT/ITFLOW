@@ -262,7 +262,7 @@ function mitQuickTicketSection() {
         }
     }
     $assign = ['me' => 'The agent making it', 'nobody' => 'Nobody (the board\'s round-robin may pick someone)'];
-    $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name ASC");
+    $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name ASC");
     while ($row = mysqli_fetch_assoc($result)) {
         $assign[(string) intval($row['user_id'])] = stripslashes($row['user_name']);
     }

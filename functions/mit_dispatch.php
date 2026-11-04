@@ -66,7 +66,7 @@ function mitDispatchCanEdit() {
 function mitDispatchTechs() {
     global $mysqli;
     $techs = [];
-    $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name");
+    $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name");
     while ($row = mysqli_fetch_assoc($result)) {
         if (mitAgentSupportLevel($row['user_id']) < 2) {
             continue; // their role cannot work tickets (Support edit)

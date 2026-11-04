@@ -81,6 +81,9 @@ test('layout: three columns - the new left column shows where to drop, takes box
     expect(await left.evaluate((el) => getComputedStyle(el, '::before').content), 'the left column says where to drop').toContain('Drag boxes here');
     // Drag the Details box into it by its bar
     const handle = page.locator('[data-mit-box="details"] .mit-box-handle');
+    // Let the columns settle after the switch (a drag started while they redraw only selected text)
+    await handle.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
     const from = await handle.boundingBox();
     await page.mouse.move(from.x + 10, from.y + 5);
     await page.mouse.down();

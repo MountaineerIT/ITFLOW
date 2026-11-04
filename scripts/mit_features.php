@@ -387,4 +387,16 @@ return [
         'watch' => ['notification_action', 'role_is_admin', 'session_is_admin'],
         'overlap' => ['feedback', 'feature_request', 'bug_report', 'suggestion'],
     ],
+    'service_users' => [
+        'name' => 'API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)',
+        'files' => ['functions/mit_service_users.php'],
+        'tests' => ['tests/smoke/96-service-users.spec.js', 'tests/scenarios/scenario-service-users.php'],
+        'assumes' => [
+            'ITFlow\'s API keys act as an agent (api_keys.api_key_user_id) who must be an active agent with a role (apiKeyAgentProblem).',
+            'Agent lists are queries with user_type = 1 on users - each carries one guarded mitServiceUserSql(...) after that condition.',
+            'Agent sign-in is login.php (the user loop) and includes/load_user_session.php on every agent / admin page.',
+        ],
+        'watch' => ['api_key_user_id', 'apiKeyAgentProblem', 'quickPickAgents', 'ticketMentionAgents', 'signInAdmins'],
+        'overlap' => ['service_account', 'api_user', 'user_is_api', 'bot_user'],
+    ],
 ];

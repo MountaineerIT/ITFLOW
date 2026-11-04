@@ -7,11 +7,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 63 | 13 | 7 | 29 | 70 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 170 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 64 | 13 | 7 | 29 | 70 | 40 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 172 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
-| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 20 | 7 |
+| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 18 | 28 | 10 | 40 | 30 |
@@ -35,6 +35,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
+| [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 39 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -83,7 +84,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `includes/cron_jobs.php`: mit_ai_helper, mit_align, mit_boards, mit_customer_thermometer, mit_ninjaone, mit_qbo_billing, mit_timesheets, mit_usage
 - `includes/footer.php`: mitVersion
 - `includes/header.php`: mitAssetStampStart
-- `includes/load_user_session.php`: mitSessionCheck
+- `includes/load_user_session.php`: mitSessionCheck, mit_service_users
 - `js/unbilled_time.js`: mit_to_bill, MountaineerIT
 - `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_updates_applied
 - `setup/index.php`: mitRestoreItflowUpdates, MountaineerIT, mit_message
@@ -242,7 +243,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** cron_jobs, settings, user_roles, users
 
-**ITFlow columns** company_id, config_cron_last_dispatch_at, config_enable_cron, cron_job_daily_at, cron_job_enabled, cron_job_interval_minutes, cron_job_last_error, cron_job_last_error_at, cron_job_last_run_at, cron_job_last_status, cron_job_name, cron_job_schedule, role_id, role_is_admin, user_archived_at, user_email, user_name, user_role_id, user_status, user_type
+**ITFlow columns** company_id, config_cron_last_dispatch_at, config_enable_cron, cron_job_daily_at, cron_job_enabled, cron_job_interval_minutes, cron_job_last_error, cron_job_last_error_at, cron_job_last_run_at, cron_job_last_status, cron_job_name, cron_job_schedule, role_id, role_is_admin, user_archived_at, user_email, user_id, user_name, user_role_id, user_status, user_type
 
 **Watched in ITFlow's code** `config_cron_last_dispatch_at`
 
@@ -1356,3 +1357,71 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** feedback, feature_request, bug_report, suggestion
 
 **Our files** `functions/mit_feedback.php`, `agent/mit_feedback_ajax.php`, `agent/js/mit_feedback.js`, `admin/includes/mit_feedback_card.php`, `admin/post/mit_feedback_settings.php`
+
+<a id="service_users"></a>
+## API / service accounts (logins API keys act as - out of every agent list, no browser sign-in) (`service_users`)
+
+**Takes for granted**
+
+- ITFlow's API keys act as an agent (api_keys.api_key_user_id) who must be an active agent with a role (apiKeyAgentProblem).
+- Agent lists are queries with user_type = 1 on users - each carries one guarded mitServiceUserSql(...) after that condition.
+- Agent sign-in is login.php (the user loop) and includes/load_user_session.php on every agent / admin page.
+
+**Tests** `tests/smoke/96-service-users.spec.js`, `tests/scenarios/scenario-service-users.php`
+
+**Hooks in ITFlow's files**
+
+- `admin/modals/user/user_form.php`: mitServiceUserField
+- `admin/post/users.php`: mitServiceUserSave
+- `admin/users.php`: mitServiceUserSql, mitServiceUsersSection
+- `agent/ajax.php`: mitServiceUserSql
+- `agent/calendar.php`: mitServiceUserSql
+- `agent/client_onboarding/agreement.php`: mitServiceUserSql
+- `agent/client_onboarding/kickoff.php`: mitServiceUserSql
+- `agent/modals/asset/asset_bulk_add_ticket.php`: mitServiceUserSql
+- `agent/modals/calendar/calendar_event_form.php`: mitServiceUserSql
+- `agent/modals/client/client_bulk_add_ticket.php`: mitServiceUserSql
+- `agent/modals/contract/contract_form.php`: mitServiceUserSql
+- `agent/modals/project/project_bulk_manager.php`: mitServiceUserSql
+- `agent/modals/project/project_export.php`: mitServiceUserSql
+- `agent/modals/project/project_form.php`: mitServiceUserSql
+- `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitServiceUserSql
+- `agent/modals/recurring_ticket/recurring_ticket_bulk_agent_edit.php`: mitServiceUserSql
+- `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitServiceUserSql
+- `agent/modals/ticket/ticket_add.php`: mitServiceUserSql
+- `agent/modals/ticket/ticket_bulk_assign.php`: mitServiceUserSql
+- `agent/modals/ticket/ticket_edit.php`: mitServiceUserSql
+- `agent/modals/ticket/ticket_edit_schedule.php`: mitServiceUserSql
+- `agent/modals/ticket/ticket_export.php`: mitServiceUserSql
+- `agent/projects.php`: mitServiceUserSql
+- `agent/recurring_tickets.php`: mitServiceUserSql
+- `agent/reports/satisfaction.php`: mitServiceUserSql
+- `agent/reports/sla_summary.php`: mitServiceUserSql
+- `agent/reports/ticket_aging.php`: mitServiceUserSql
+- `agent/reports/time_by_tech.php`: mitServiceUserSql
+- `agent/tickets.php`: mitServiceUserSql
+- `functions/expenses.php`: mitServiceUserSql
+- `functions/getting_started.php`: mitServiceUserSql
+- `functions/logging.php`: mitServiceUserSql
+- `functions/reports.php`: mitServiceUserSql
+- `functions/sign_in.php`: mitServiceUserSql
+- `functions/ticket_fields.php`: mitServiceUserSql
+- `functions/ticket_mention.php`: mitServiceUserSql
+- `functions/trips.php`: mitServiceUserSql
+- `includes/load_user_session.php`: mitIsServiceUser, mit_service_users
+- `login.php`: mitIsServiceUser
+
+**ITFlow functions it calls**
+
+- `functions/logging.php`: logAudit
+- `functions/sanitize.php`: escapeHtml, escapeSql
+
+**ITFlow tables** accounts, api_keys, user_roles, users
+
+**ITFlow columns** api_key_user_id, role_id, role_name, user_archived_at, user_email, user_id, user_name, user_role_id, user_status
+
+**Watched in ITFlow's code** `api_key_user_id` `apiKeyAgentProblem` `quickPickAgents` `ticketMentionAgents` `signInAdmins`
+
+**"ITFlow does this too" words** service_account, api_user, user_is_api, bot_user
+
+**Our files** `functions/mit_service_users.php`

@@ -115,7 +115,7 @@ function mitBoardMembers($board_id) {
     }
     $sql = mysqli_query($mysqli, "SELECT u.user_id, u.user_name, u.user_email, m.member_notify FROM mit_board_members m
         JOIN users u ON u.user_id = m.user_id WHERE m.board_id = " . intval($board_id) . "
-        AND u.user_type = 1 AND u.user_status = 1 AND u.user_archived_at IS NULL ORDER BY u.user_name");
+        AND u.user_type = 1" . mitServiceUserSql('u.user_id') . " AND u.user_status = 1 AND u.user_archived_at IS NULL ORDER BY u.user_name");
     while ($row = mysqli_fetch_assoc($sql)) {
         $members[intval($row['user_id'])] = ['user_name' => $row['user_name'], 'user_email' => $row['user_email'], 'notify' => intval($row['member_notify'])];
     }
@@ -470,7 +470,7 @@ function mitBoardNextMember(array $board, $client_id) {
         }
         $members = [];
         $sql = mysqli_query($mysqli, "SELECT u.user_id FROM mit_board_members m JOIN users u ON u.user_id = m.user_id
-            WHERE m.board_id = $board_id AND m.member_rotation = 1 AND u.user_type = 1 AND u.user_status = 1 AND u.user_archived_at IS NULL ORDER BY u.user_id");
+            WHERE m.board_id = $board_id AND m.member_rotation = 1 AND u.user_type = 1" . mitServiceUserSql('u.user_id') . " AND u.user_status = 1 AND u.user_archived_at IS NULL ORDER BY u.user_id");
         while ($row = mysqli_fetch_row($sql)) {
             $members[] = intval($row[0]);
         }

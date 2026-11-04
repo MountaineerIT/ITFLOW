@@ -105,6 +105,7 @@ if (isset($_POST['add_user'])) {
     }
     mitTsSavePayType($user_id, $_POST); // Mountaineer IT: employment (timesheets)
     function_exists('mitOfficeUserSave') && mitOfficeUserSave($user_id, $_POST); // Mountaineer IT: office
+    function_exists('mitServiceUserSave') && mitServiceUserSave($user_id, $_POST); // Mountaineer IT: API / service account
 
     $notes = [];
     $avatar_error = '';
@@ -203,6 +204,7 @@ if (isset($_POST['edit_user'])) {
     mitSaveAgentColor($user_id, $_POST); // Mountaineer IT: calendar colour
     mitTsSavePayType($user_id, $_POST); // Mountaineer IT: employment (timesheets)
     function_exists('mitOfficeUserSave') && mitOfficeUserSave($user_id, $_POST); // Mountaineer IT: office
+    function_exists('mitServiceUserSave') && mitServiceUserSave($user_id, $_POST); // Mountaineer IT: API / service account
 
     // An admin sees every client - their rules are left as they were, in case the role changes back
     if (!intval($role['role_is_admin']) && isset($_POST['client_permission_shown'])) {

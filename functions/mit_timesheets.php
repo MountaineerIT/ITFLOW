@@ -719,7 +719,7 @@ function mitTsUsers(array $also = [], $everyone = false) {
     if ($also && !$everyone && !array_diff($also, array_keys(mitTsUsers()))) {
         return $cache[$key] = mitTsUsers();
     }
-    $result = mysqli_query($mysqli, "SELECT user_id, user_name, user_email, user_avatar, user_status FROM users WHERE user_type = 1
+    $result = mysqli_query($mysqli, "SELECT user_id, user_name, user_email, user_avatar, user_status FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . "
         AND ((user_status = 1 AND user_archived_at IS NULL)" . ($also ? ' OR user_id IN (' . implode(',', $also) . ')' : '') . ") ORDER BY user_name");
     $users = [];
     while ($row = mysqli_fetch_assoc($result)) {
@@ -1650,7 +1650,7 @@ function mitTsApprovers() {
         JOIN user_roles ON role_id = users.user_role_id
         LEFT JOIN user_role_permissions urp ON urp.user_role_id = role_id
             AND urp.module_id = (SELECT module_id FROM modules WHERE module_name = 'module_timesheets' LIMIT 1)
-        WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL
+        WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL
         AND (role_is_admin = 1 OR urp.user_role_permission_level >= 3)");
     $approvers = [];
     while ($row = mysqli_fetch_assoc($result)) {

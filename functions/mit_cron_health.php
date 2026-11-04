@@ -177,7 +177,7 @@ function mitCronAlertRecipients() {
     }
     $recipients = [];
     $sql = mysqli_query($mysqli, "SELECT user_name, user_email FROM users JOIN user_roles ON role_id = user_role_id
-        WHERE role_is_admin = 1 AND user_type = 1 AND user_status = 1 AND user_archived_at IS NULL");
+        WHERE role_is_admin = 1 AND user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL");
     while ($row = mysqli_fetch_assoc($sql)) {
         if (filter_var($row['user_email'], FILTER_VALIDATE_EMAIL)) {
             $recipients[$row['user_email']] = $row['user_name'];

@@ -32,7 +32,7 @@ $lead_when = $row['ticket_schedule'] ? mitScheduleWhenText($row['ticket_schedule
 // Who can be added: active techs who are not the lead, not on it already, and can see the ticket's client
 $agents = [];
 if (!$tech) {
-    $sql_agents = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL AND user_id <> $lead_id ORDER BY user_name");
+    $sql_agents = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL AND user_id <> $lead_id ORDER BY user_name");
     while ($agent = mysqli_fetch_assoc($sql_agents)) {
         if (!isset($techs[intval($agent['user_id'])]) && mitAgentCanWorkTicket($agent['user_id'], $row['ticket_client_id'])) {
             $agents[] = $agent;

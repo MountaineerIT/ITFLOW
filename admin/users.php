@@ -28,6 +28,7 @@ $roles = userRoles();
 $role_filter = isset($roles[intval($_GET['role'] ?? 0)]) ? intval($_GET['role']) : 0;
 
 $filters = "user_type = 1 AND (user_name LIKE '%$q%' OR user_email LIKE '%$q%' OR role_name LIKE '%$q%')" . ($role_filter ? " AND user_role_id = $role_filter" : '');
+$filters .= function_exists('mitServiceUserSql') ? mitServiceUserSql('users.user_id') : ''; // Mountaineer IT: API / service accounts have their own section below
 $joins = "LEFT JOIN user_roles ON user_role_id = role_id
     LEFT JOIN user_settings ON user_settings.user_id = users.user_id";
 
@@ -548,6 +549,7 @@ $csrf = $_SESSION['csrf_token'];
     require_once "../includes/filter_footer.php";
     ?>
 </div>
+<?= function_exists('mitServiceUsersSection') ? mitServiceUsersSection() : '' // Mountaineer IT: API / service accounts ?>
 
 <script src="../js/bulk_actions.js"></script>
 

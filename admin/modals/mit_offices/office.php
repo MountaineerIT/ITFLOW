@@ -13,7 +13,7 @@ $office_id = $office ? $office_id : 0;
 $company = billingCompany();
 $countries = settingsLocalizationArrays();
 $people = mitOfficePeople();
-$agents = mysqli_fetch_all(mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1 AND user_archived_at IS NULL ORDER BY user_name"), MYSQLI_ASSOC);
+$agents = mysqli_fetch_all(mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_archived_at IS NULL ORDER BY user_name"), MYSQLI_ASSOC);
 $offices = mitOfficesAll();
 $phone_code = (string) ($office['phone_country_code'] ?? $company['company_phone_country_code'] ?? '');
 

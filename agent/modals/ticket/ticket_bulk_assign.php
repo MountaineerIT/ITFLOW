@@ -31,7 +31,7 @@ ob_start();
                     <option value="0">Not Assigned</option>
                     <?php
                     $sql_users_select = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users
-                        WHERE user_type = 1
+                        WHERE user_type = 1" . (function_exists('mitServiceUserSql') ? mitServiceUserSql('users.user_id') : '') . "
                         AND user_status = 1
                         AND user_archived_at IS NULL
                         ORDER BY user_name ASC"

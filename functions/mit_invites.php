@@ -10,7 +10,7 @@
  */
 
 /** The posted fields of ours an invite keeps. */
-const MIT_INVITE_EXTRA_FIELDS = ['mit_pay_type', 'mit_office_id'];
+const MIT_INVITE_EXTRA_FIELDS = ['mit_pay_type', 'mit_office_id', 'mit_service_present', 'mit_service_user'];
 
 /** Has database update M049 run (it needs ITFlow's user_invites)? */
 function mitInvitesReady() {
@@ -71,6 +71,9 @@ function mitInviteExtrasApply($invite_id, $user_id) {
     }
     if (function_exists('mitOfficeUserSave')) {
         mitOfficeUserSave($user_id, $extras);
+    }
+    if (function_exists('mitServiceUserSave')) {
+        mitServiceUserSave($user_id, $extras);
     }
     mysqli_query($mysqli, "DELETE FROM mit_invite_extras WHERE invite_id = " . intval($invite_id));
 }
