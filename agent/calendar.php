@@ -87,7 +87,7 @@ foreach ($sources as $key => $source) {
     data-mobile="<?= !empty($session_mobile) ? 1 : 0 ?>"
     data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : '' ?>"
     data-sources="<?= escapeHtml(json_encode($page_sources)) ?>"
-    data-saved-state="<?= escapeHtml(json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all'))) ?>">
+    data-saved-state="<?= escapeHtml(json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all'))) ?>"<?= function_exists('mitViewShifted') && mitViewShifted() ? ' data-mit-zone="' . escapeHtml(mitViewZone()) . '"' : '' // Mountaineer IT: the viewer's own time zone (functions/mit_zones.php) ?>>
 
     <div class="col-lg-auto itflow-cal-side order-2 order-lg-1 d-print-none">
 
@@ -191,6 +191,7 @@ foreach ($sources as $key => $source) {
     <div class="col-lg order-1 order-lg-2 min-w-0">
         <div class="card">
             <div class="card-body p-2 p-md-3">
+                <?= function_exists('mitZoneNote') ? mitZoneNote() : '' // Mountaineer IT: "Times in Tokyo (JST)" when the viewer is away from the company's zone ?>
                 <div id="calendar"></div>
             </div>
         </div>

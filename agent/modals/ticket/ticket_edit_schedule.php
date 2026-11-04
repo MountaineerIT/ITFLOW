@@ -11,6 +11,9 @@ $ticket_id = intval($row['ticket_id']);
 $ticket_prefix = escapeHtml($row['ticket_prefix']);
 $ticket_number = intval($row['ticket_number']);
 $ticket_scheduled_for = escapeHtml($row['ticket_schedule']);
+if (function_exists('mitToView') && $row['ticket_schedule']) { // Mountaineer IT: on the viewer's own clock (functions/mit_zones.php)
+    $ticket_scheduled_for = escapeHtml(mitToView($row['ticket_schedule']));
+}
 $ticket_onsite = intval($row['ticket_onsite']);
 $client_name = escapeHtml($row['client_name']);
 $client_id = intval($row['ticket_client_id']);
@@ -51,8 +54,9 @@ ob_start();
             <label>Date and time</label>
             <div class="input-group">
                     <span class="input-group-text"><i class="fa fa-fw fa-calendar-day"></i></span>
-                <input type="datetime-local" class="form-control" name="scheduled_date_time" id="scheduleDateTime" placeholder="Scheduled Date & Time" min="<?= date('Y-m-d\TH:i') ?>" <?php if ($ticket_scheduled_for) { echo "value='$ticket_scheduled_for'"; } ?>>
+                <input type="datetime-local" class="form-control" name="scheduled_date_time" id="scheduleDateTime" placeholder="Scheduled Date & Time" min="<?= function_exists('mitZoneNow') ? substr(mitZoneNow(), 0, 16) : date('Y-m-d\TH:i') // Mountaineer IT: now on the viewer's clock ?>" <?php if ($ticket_scheduled_for) { echo "value='$ticket_scheduled_for'"; } ?>>
             </div>
+            <?= function_exists('mitZoneFormHint') ? mitZoneFormHint() : '' // Mountaineer IT: "Times in Tokyo (JST)" ?>
         </div>
 
         <div class="row g-2 mb-3">

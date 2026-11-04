@@ -244,6 +244,20 @@ model: see DEPLOYMENT.md.
   `agent/js/mit_dispatch.js`'s day calendars - so an open booking is placed first (the main, wider place) and the completed one overlaps it
   from the side; CSS `:has(> .itflow-cal-done[data-kind]) { z-index: 0 !important }` in `agent/calendar.php` / `agent/mit_dispatch.php`
   draws the completed one underneath. Smoke: last test of 08.
+  Own time zone (26.11.2.5, the user's choice - a tech works from Japan): `functions/mit_zones.php` (ours, required from mit_common.php). The zone
+  is the timesheet one (`mit_timesheet_people.time_zone`, Account > Preferences "My time zone" - `mitUserZone` / `mitViewZone`; none = the
+  company's `config_timezone`). Stored times stay company clock times; only the edges move: out - `mitZoneItems` (calendar_items, calendar_day,
+  `mitDispatchItems(..., true)` from Dispatch's own request only), `mitScheduleShortText` (ticket line, Dispatch queue, helpers), quick looks
+  (`mitZoneWhen` / `mitZoneWhenText`), event form + schedule window values, the move / book messages; in - `mitZoneRange` (the days asked for),
+  `mitZoneMovePost` (calendar_move, every Dispatch POST), `mitZoneEventPost` (agent/post/event.php add / edit), `mitFromView` (edit_ticket_schedule,
+  calendar_event_add's picked times). JS: `data-mit-zone` on #itflowCalendar / #mitDispatch -> FullCalendar `now` from Intl on that zone; Dispatch
+  shows 00:00-24:00 for a shifted viewer with Admin > SLA working hours moved onto their clock (`mitZoneBusinessHours`, split at midnight), scrolled
+  to the earliest. Note `mitZoneNote` (`[data-mit-zone-note]`), form hint `mitZoneFormHint` (`[data-mit-zone-hint]`). The tech's booking email:
+  `mitScheduleWhenText` remembers its start / end (`$GLOBALS['mit_zone_when']`), `mitZoneAgentOpts` (one line in `functions/ticket.php`
+  ticketMailSchedule's agent branch) and `mitZoneWhenFor` (helpers' mail) say it on their clock + the company's. Customer emails, invites (.ics
+  carry their own zone), Outlook sync, clashes, Left behind and the week stats stay on company time. Known gap: a weekday repeat (`repeat_on`)
+  picked for an event whose Tokyo day differs from the company day follows the company day. Smoke `95-time-zones.spec.js`, scenario
+  `scenario-zones.php`.
   Short bookings (26.10.181): FullCalendar v7 centres a time-grid event's content, so a 30-minute block's text ran out above and below it -
   one rule in `agent/calendar.php`'s style block (`:has(> .itflow-cal-event.is-timegrid)`: top-aligned, overflow hidden); smoke: last test of 08.
   The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw

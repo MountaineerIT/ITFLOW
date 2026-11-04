@@ -130,6 +130,18 @@
         return Object.assign({}, item, {mitDone: done ? 1 : 0});
     }
 
+    // Mountaineer IT: "now" (the red line, today) on the viewer's own clock when they work in another time zone - the
+    // server sends their times moved into it (data-mit-zone, functions/mit_zones.php)
+    const mitZone = root.dataset.mitZone || '';
+    function mitZoneNow() {
+        const parts = {};
+        new Intl.DateTimeFormat('en-CA', {timeZone: mitZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
+            .formatToParts(new Date()).forEach(function (part) {
+                parts[part.type] = part.value;
+            });
+        return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute + ':' + parts.second;
+    }
+
     function openModal(url, size) {
         const link = document.createElement('a');
         link.href = '#';
@@ -231,6 +243,7 @@
         scrollTime: '07:30:00',
         businessHours: {daysOfWeek: [1, 2, 3, 4, 5], startTime: '08:00', endTime: '18:00'},
         eventOrder: 'allDay,mitDone,start,-duration,title', // Mountaineer IT: + mitDone - open bookings placed first (mitDoneLast)
+        ...(mitZone ? {now: mitZoneNow} : {}), // Mountaineer IT: the viewer's clock
         views: {
             // Side by side past three, the rest go behind "+N more"
             timeGrid: {eventMaxStack: 3},

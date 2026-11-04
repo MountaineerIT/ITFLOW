@@ -257,7 +257,7 @@ function mitDispatchEventMove($event_id, $start, $end, $all_day, $from, $to) {
         $sent += $mailed;
         $words = mitEventAgentsText($added, $removed);
     }
-    $what = trim(($moved ? 'moved to ' . calendarWhenText($event) : '') . ($moved && $words ? ', ' : '') . $words);
+    $what = trim(($moved ? 'moved to ' . (function_exists('mitZoneWhenText') ? mitZoneWhenText($event, $event['event_start'], $event['event_end']) : calendarWhenText($event)) : '') . ($moved && $words ? ', ' : '') . $words);
     logAudit('Calendar Event', 'Edit', escapeSql(stripslashes($session_name) . " (Dispatch) " . ($what ?: 'left') . ' the event ' . $event['event_title']), intval($event['event_client_id']), $event_id);
     return [true, $event['event_title'] . ($what ? ' ' . $what : '') . ($sent ? " - emailed to $sent " . ($sent === 1 ? 'person' : 'people') : '')];
 }

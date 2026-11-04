@@ -155,20 +155,29 @@ function mitScheduleWhenText($start, $end = null) {
     $start_ts = strtotime($start);
     $end_ts = strtotime($end);
     if (date('Y-m-d', $start_ts) === date('Y-m-d', $end_ts)) {
-        return date('l, F j, Y, g:ia', $start_ts) . ' - ' . date('g:ia', $end_ts);
+        $text = date('l, F j, Y, g:ia', $start_ts) . ' - ' . date('g:ia', $end_ts);
+    } else {
+        $text = date('l, F j, Y, g:ia', $start_ts) . ' - ' . date('l, F j, Y, g:ia', $end_ts);
     }
-    return date('l, F j, Y, g:ia', $start_ts) . ' - ' . date('l, F j, Y, g:ia', $end_ts);
+    // Remembered, so the tech's own booking email can say it on their clock (mitZoneAgentOpts, functions/mit_zones.php)
+    $GLOBALS['mit_zone_when'][$text] = [$start, $end];
+    return $text;
 }
 
 /** Short form for the ticket page: "Oct 20, 2026 • 1:00 PM - 3:00 PM". */
 function mitScheduleShortText($start, $end = null) {
     $end = mitTicketScheduleEnd($start, $end);
+    // On the viewer's own clock, with its zone, when they work away from the company's (functions/mit_zones.php)
+    $suffix = '';
+    if (function_exists('mitViewShifted') && mitViewShifted()) {
+        [$start, $end, $suffix] = [mitToView($start), mitToView($end), ' ' . mitZoneAbbr(mitViewZone())];
+    }
     $start_ts = strtotime($start);
     $end_ts = strtotime($end);
     if (date('Y-m-d', $start_ts) === date('Y-m-d', $end_ts)) {
-        return date('M d, Y • g:i A', $start_ts) . ' - ' . date('g:i A', $end_ts);
+        return date('M d, Y • g:i A', $start_ts) . ' - ' . date('g:i A', $end_ts) . $suffix;
     }
-    return date('M d, Y • g:i A', $start_ts) . ' - ' . date('M d, g:i A', $end_ts);
+    return date('M d, Y • g:i A', $start_ts) . ' - ' . date('M d, g:i A', $end_ts) . $suffix;
 }
 
 /**

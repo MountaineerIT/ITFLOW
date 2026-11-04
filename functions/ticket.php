@@ -1930,7 +1930,7 @@ function ticketMailSchedule($row, $cal_str, $cancelled, $when_text) {
         // Mountaineer IT: a tech whose Outlook is synced gets the booking there - no second copy from an invite
         $agent_cal_str = function_exists('mitOutlookSyncsEmail') && mitOutlookSyncsEmail($agent['email']) ? '' : $cal_str;
         emailQueue([$agent + ['footnote' => "You get this as the agent $reference is assigned to."]], $subject,
-            ticketAgentEmailContent($ticket, 'scheduled', $opts), ['from' => ticketEmailFrom(), 'cal_str' => $agent_cal_str]);
+            ticketAgentEmailContent($ticket, 'scheduled', function_exists('mitZoneAgentOpts') ? mitZoneAgentOpts($opts, $ticket['ticket_assigned_to']) : $opts), ['from' => ticketEmailFrom(), 'cal_str' => $agent_cal_str]); // Mountaineer IT: the time on the tech's own clock
     }
     if (intval($config_ticket_client_general_notifications) === 1 && empty($GLOBALS['mit_schedule_skip_contact'])) { // Mountaineer IT: Dispatch can leave the contact out
         // Mountaineer IT: Admin > Notifications / the booking's ticks - the contact, the watchers, and the site / primary contact and extra addresses

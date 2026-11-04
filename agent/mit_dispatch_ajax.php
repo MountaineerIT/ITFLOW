@@ -46,7 +46,7 @@ if (isset($_GET['items'])) {
     if ($to < $from || strtotime($to) - strtotime($from) > 86400 * 42) {
         $to = $from;
     }
-    echo json_encode(mitDispatchItems($from, $to, explode(',', (string) ($_GET['techs'] ?? ''))));
+    echo json_encode(mitDispatchItems($from, $to, explode(',', (string) ($_GET['techs'] ?? '')), true)); // the viewer's own clock
     exit;
 }
 
@@ -89,6 +89,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Seeing the board is Dispatch View; changing anything on it (all but the agent's own board settings) is Edit
     if (!isset($_POST['state']) && !mitDispatchCanEdit()) {
         $mit_fail('Booking and moving tickets here needs Dispatch Edit and Support edit (Admin > Roles) - you can look, not change.', 403);
+    }
+
+    if (function_exists('mitZoneMovePost')) {
+        $_POST = mitZoneMovePost($_POST); // a booking / move picked on the viewer's own clock, as the company's clock reads it
     }
 
     if (isset($_POST['merge'])) {

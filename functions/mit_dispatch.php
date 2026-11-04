@@ -203,24 +203,27 @@ function mitDispatchQueue($tab, array $filters = []) {
  * events they organise or are invited to, their Outlook busy times and closure days (holidays), as FullCalendar items
  * with 'tech' set. Only tickets can be moved here; the rest is there to book around.
  */
-function mitDispatchItems($from, $to, array $tech_ids) {
+function mitDispatchItems($from, $to, array $tech_ids, $view_zone = false) {
     $techs = mitDispatchTechs();
     $sources = calendarSources();
     $items = [];
     $ticket_ids = [];
     $calendar_ids = array_keys(calendarList());
     $holidays = isset($sources['holidays']) ? calendarSourceItems('holidays', "$from 00:00:00", "$to 23:59:59") : [];
+    // The board's days on the viewer's own clock (functions/mit_zones.php) - $view_zone from the board's own request only
+    $zone = $view_zone && function_exists('mitViewShifted') && mitViewShifted() ? mitViewZone() : null;
+    [$q_from, $q_to] = $zone ? mitZoneRange("$from 00:00:00", "$to 23:59:59", $zone) : ["$from 00:00:00", "$to 23:59:59"];
     foreach (array_unique(array_map('intval', $tech_ids)) as $tech_id) {
         if (!isset($techs[$tech_id])) {
             continue;
         }
         $opts = ['client_id' => 0, 'user_id' => $tech_id];
-        $found = calendarSourceItems('tickets', "$from 00:00:00", "$to 23:59:59", $opts);
+        $found = calendarSourceItems('tickets', $q_from, $q_to, $opts);
         if (isset($sources['outlook_busy'])) {
-            $found = array_merge($found, calendarSourceItems('outlook_busy', "$from 00:00:00", "$to 23:59:59", $opts));
+            $found = array_merge($found, calendarSourceItems('outlook_busy', $q_from, $q_to, $opts));
         }
         // Their meetings and other events, and the days the office is closed
-        $found = array_merge($found, calendarEventItems($calendar_ids, "$from 00:00:00", "$to 23:59:59", $opts), $holidays);
+        $found = array_merge($found, calendarEventItems($calendar_ids, $q_from, $q_to, $opts), $holidays);
         foreach ($found as $item) {
             $kind = $item['extendedProps']['kind'] ?? '';
             $ticket_ids[] = intval($item['extendedProps']['ticket_id'] ?? 0);
@@ -249,7 +252,7 @@ function mitDispatchItems($from, $to, array $tech_ids) {
         }
         unset($item);
     }
-    return $items;
+    return $zone ? mitZoneItems($items, $zone) : $items;
 }
 
 /**
@@ -341,7 +344,8 @@ function mitDispatchBook($ticket_id, $tech_id, $start, $minutes, $onsite, $tell_
     $result = ticketSetSchedule($row, $start, $onsite ? 1 : 0, $end);
     $mit_schedule_skip_contact = false;
     $tech = mitDispatchTechs()[$tech_id]['name'];
-    return [true, ticketReference($row) . " scheduled with $tech for " . $result['when_text'], $result['conflicts']];
+    $when = function_exists('mitViewShifted') && mitViewShifted() ? mitZoneWhen($start) : $result['when_text']; // on the viewer's own clock
+    return [true, ticketReference($row) . " scheduled with $tech for " . $when, $result['conflicts']];
 }
 
 /*

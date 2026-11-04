@@ -1982,7 +1982,7 @@ function mitTsPreferenceFields($user_id) {
         // Admins set their own pay type here - Admin > Users does not edit your own account
         . (!empty($GLOBALS['session_is_admin']) ? mitTsPayTypeField($user_id, 'col-md-8') : '')
         . (mitTsZoneColumn() ? '<div class="col-md-8"><label class="form-label" for="mitTsTimeZone">My time zone</label>' . mitTsZoneSelect('mit_ts_time_zone', mitTsOwnZone($user_id), 'mitTsTimeZone')
-            . '<div class="form-text">Working remotely? Your timesheet days and the day your ticket time falls on follow this. A change counts from now - after any timesheet you have already submitted - and is logged.</div></div>' : '')
+            . '<div class="form-text">Working remotely? Your timesheet days, the day your ticket time falls on, and the times on the calendar, Dispatch and your booking emails follow this. A timesheet change counts from now - after any timesheet you have already submitted - and is logged.</div></div>' : '')
         . '<div class="col-12"><label class="form-label">Charge codes I use</label><div class="d-flex flex-wrap gap-3">';
     foreach (mitTsCodesFor($user_id) as $code_id => $code) {
         $html .= '<div class="form-check"><input class="form-check-input" type="checkbox" name="mit_ts_codes[]" value="' . intval($code_id) . '" id="mitTsCode' . intval($code_id) . '"'

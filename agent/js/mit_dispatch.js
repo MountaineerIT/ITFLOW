@@ -48,6 +48,20 @@
     }
     const lengthOptions = JSON.parse(root.dataset.lengths || '[60]');
     const businessHours = JSON.parse(root.dataset.businessHours || 'true');
+    // The viewer's own time zone (functions/mit_zones.php): the server sends times moved into it; "now" follows it and the
+    // day shows all 24 hours (the office's working hours can fall at night there), scrolled to where they start
+    const mitZone = root.dataset.mitZone || '';
+    function mitZoneNow() {
+        const parts = {};
+        new Intl.DateTimeFormat('en-CA', {timeZone: mitZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'})
+            .formatToParts(new Date()).forEach(function (part) {
+                parts[part.type] = part.value;
+            });
+        return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute + ':' + parts.second;
+    }
+    const mitZoneScroll = (mitZone && Array.isArray(businessHours) ? businessHours.map(function (piece) {
+        return String(piece.startTime || '');
+    }).filter(Boolean).sort()[0] || '07:30' : '07:30') + ':00';
     const board = root.querySelector('[data-md-board]');
     const queueEl = root.querySelector('[data-md-queue]');
     const titleEl = root.querySelector('[data-md-title]');
@@ -856,9 +870,10 @@
                 allDayText: '',
                 // Side by side it fills its column, the same height as the queue (CSS in agent/mit_dispatch.php)
                 height: window.matchMedia('(min-width: 992px)').matches ? '100%' : 'calc(100vh - 16rem)',
-                slotMinTime: '06:00:00',
-                slotMaxTime: '21:00:00',
-                scrollTime: '07:30:00',
+                slotMinTime: mitZone ? '00:00:00' : '06:00:00',
+                slotMaxTime: mitZone ? '24:00:00' : '21:00:00',
+                scrollTime: mitZone ? mitZoneScroll : '07:30:00',
+                ...(mitZone ? {now: mitZoneNow} : {}),
                 slotDuration: '00:30:00',
                 snapDuration: '00:15:00',
                 nowIndicator: true,

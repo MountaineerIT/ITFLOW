@@ -111,11 +111,12 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     data-first-day="<?= $first_day ?>"
     data-default-minutes="<?= CALENDAR_TICKET_MINUTES ?>"
     data-lengths="<?= escapeHtml(json_encode(MIT_DISPATCH_LENGTHS)) ?>"
-    data-business-hours="<?= escapeHtml(json_encode(mitDispatchBusinessHours())) ?>"
+    data-business-hours="<?= escapeHtml(json_encode(function_exists('mitZoneBusinessHours') ? mitZoneBusinessHours(mitDispatchBusinessHours()) : mitDispatchBusinessHours())) ?>"<?= function_exists('mitViewShifted') && mitViewShifted() ? ' data-mit-zone="' . escapeHtml(mitViewZone()) . '"' : '' // the viewer's own time zone (functions/mit_zones.php) ?>
     data-contact-default="<?= intval($config_ticket_client_general_notifications ?? 0) === 1 ? 1 : 0 ?>"
     data-schedule-notify="<?= function_exists('mitScheduleDefaults') ? escapeHtml(json_encode(['0' => mitScheduleDefaults(false), '1' => mitScheduleDefaults(true)])) : 'null' ?>"
-    data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : date('Y-m-d') ?>">
+    data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : (function_exists('mitZoneNow') ? substr(mitZoneNow(), 0, 10) : date('Y-m-d')) ?>">
 
+    <?= function_exists('mitZoneNote') ? mitZoneNote() : '' // "Times in Tokyo (JST)" when the viewer is away from the company's zone ?>
     <div class="card mb-3">
         <div class="card-header bg-dark py-2 d-flex flex-wrap align-items-center gap-2">
             <h3 class="card-title mt-2 me-auto"><i class="fas fa-fw fa-people-arrows me-2"></i>Dispatch<?php if (!mitDispatchCanEdit()) { ?> <span class="badge text-bg-secondary ms-2 align-middle" data-md-view-only title="Your role has Dispatch View - ask for Dispatch Edit (Admin > Roles) to book and move tickets">View only</span><?php } ?> <span class="fw-normal opacity-75 ms-2 small" data-md-title></span></h3>

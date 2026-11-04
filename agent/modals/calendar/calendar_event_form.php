@@ -15,6 +15,9 @@ isset($mysqli) || die("Direct file access is not allowed");
 $form_all_day = !empty($form['event_all_day']);
 $form_start_ts = strtotime($form['event_start'] ?? '') ?: strtotime(date('Y-m-d 09:00:00'));
 $form_end_ts = !empty($form['event_end']) ? (strtotime($form['event_end']) ?: $form_start_ts + 3600) : $form_start_ts + 3600;
+if (function_exists('mitViewShifted') && mitViewShifted() && !$form_all_day) { // Mountaineer IT: shown on the viewer's own clock (functions/mit_zones.php)
+    [$form_start_ts, $form_end_ts] = [strtotime(mitToView(date('Y-m-d H:i:s', $form_start_ts))), strtotime(mitToView(date('Y-m-d H:i:s', $form_end_ts)))];
+}
 $form_repeat = isset(CALENDAR_REPEATS[$form['event_repeat'] ?? '']) ? $form['event_repeat'] : '';
 $form_interval = max(1, intval($form['event_repeat_interval'] ?? 1));
 $form_calendars = calendarList();
@@ -86,6 +89,7 @@ $form_can_email = calendarCanEmail();
                 <input type="time" class="form-control" id="event_form_end_time" name="end_time" value="<?= date('H:i', $form_end_ts) ?>"<?= $form_all_day ? '' : ' required' ?>>
             </div>
         </div>
+        <?= function_exists('mitZoneFormHint') ? mitZoneFormHint() : '' // Mountaineer IT: "Times in Tokyo (JST)" ?>
     </div>
     <div class="row g-2 align-items-end mt-1">
         <div class="col-md-4">

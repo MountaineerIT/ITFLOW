@@ -219,7 +219,7 @@ if (isset($_POST['add_event'])) {
         enforceCalendarEvent(['event_client_id' => $client_id], 'edit');
     }
 
-    $set = calendarEventFormSet($_POST, $client_id, $error);
+    $set = calendarEventFormSet(function_exists('mitZoneEventPost') ? mitZoneEventPost($_POST) : $_POST, $client_id, $error); // Mountaineer IT: typed on the viewer's clock
     if ($set === '') {
         flashAlert($error, 'error');
         redirect();
@@ -256,7 +256,7 @@ if (isset($_POST['edit_event'])) {
         enforceCalendarEvent(['event_client_id' => $client_id], 'edit');
     }
 
-    $set = calendarEventFormSet($_POST, $client_id, $error);
+    $set = calendarEventFormSet(function_exists('mitZoneEventPost') ? mitZoneEventPost($_POST) : $_POST, $client_id, $error); // Mountaineer IT: typed on the viewer's clock
     if ($set === '') {
         flashAlert($error, 'error');
         redirect();
