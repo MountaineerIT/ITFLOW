@@ -293,3 +293,60 @@ test('calendar: a short booking keeps its text inside its block (FullCalendar ce
         await pickWhose(page, before).catch(() => {});
     }
 });
+
+test('calendar + Dispatch: a completed booking sits behind an open one at the same time, and a click on it opens its ticket', async ({ page }) => {
+    // Completed bookings are background items (agent/js/calendar.js mitDoneBehind, agent/js/mit_dispatch.js doneBehind - 26.11.2.4): they
+    // used to share the column with an open booking, so both were half width and overlapped
+    const db = require('./mitdb');
+    const errors = watch(page);
+    await visit(page, 'agent/calendar.php', errors);
+    const me = Number(await page.locator('#itflowCalendar').getAttribute('data-user-id'));
+    const client = Number(db.val('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1'));
+    test.skip(!client, 'no client');
+    const date = day(0).slice(0, 10);
+    const made = [];
+    const booking = (subject, from, to, done) => db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = 990000 + FLOOR(RAND() * 9999),
+        ticket_subject = ${db.q(subject)}, ticket_details = '', ticket_priority = 'Low', ticket_status = ${done ? 5 : 2},
+        ticket_schedule = '${date} ${from}:00', ticket_schedule_end = '${date} ${to}:00', ticket_url_key = MD5(RAND()), ticket_created_at = NOW(),
+        ticket_created_by = ${me}, ticket_assigned_to = ${me}, ticket_client_id = ${client}${done ? ', ticket_resolved_at = NOW(), ticket_closed_at = NOW()' : ''}`);
+    const openSubject = smokeName('behind open');
+    const doneSubject = smokeName('behind done');
+    const before = await page.locator('#calendarAgent').inputValue();
+    try {
+        made.push(booking(openSubject, '13:30', '15:00', false));
+        made.push(booking(doneSubject, '13:00', '14:00', true));
+
+        const check = async (scope, where) => {
+            const behind = page.locator(`${scope} .mit-cal-behind`, { hasText: doneSubject });
+            await expect(behind, `${where}: the completed booking is drawn behind`).toHaveCount(1);
+            const open = page.locator(`${scope} [data-kind="ticket"]`, { hasText: openSubject }).first();
+            await expect(open).toBeVisible();
+            const [b, o] = [await behind.boundingBox(), await open.boundingBox()];
+            expect(o.width, `${where}: the open booking keeps the column's width (not half of it)`).toBeGreaterThan(b.width * 0.8);
+            await page.mouse.click(b.x + b.width / 2, b.y + 6); // the part above the open booking
+            await expect(page.locator('.modal.show .modal-title'), `${where}: a click on it opens its ticket, not New Event`).toContainText(doneSubject.slice(0, 20));
+            await page.locator('.modal.show [data-bs-dismiss="modal"]').first().click();
+            await expect(page.locator('.modal.show')).toHaveCount(0);
+        };
+
+        await visit(page, `agent/calendar.php?date=${date}`, errors);
+        await pickWhose(page, me);
+        await page.locator('#itflowCalendar button', { hasText: /^Day$/ }).first().click();
+        await check('#itflowCalendar', 'calendar');
+        await page.locator('#itflowCalendar button', { hasText: /^Month$/ }).first().click();
+        await expect(page.locator('#itflowCalendar .mit-cal-behind'), 'month view keeps it as a line').toHaveCount(0);
+        await expect(page.locator('#itflowCalendar .itflow-cal-done', { hasText: doneSubject })).toHaveCount(1);
+
+        if (await page.request.get('agent/mit_dispatch.php').then((r) => r.ok())) {
+            await visit(page, 'agent/mit_dispatch.php', errors);
+            await page.locator('[data-md-view="day"]').first().click();
+            await page.locator('[data-md-nav="0"]').first().click();
+            await page.waitForLoadState('networkidle');
+            await check('.mit-dispatch', 'Dispatch');
+        }
+        await expectClean(page, errors);
+    } finally {
+        made.forEach((id) => db.exec(`DELETE FROM tickets WHERE ticket_id = ${id}`));
+        await pickWhose(page, before).catch(() => {});
+    }
+});

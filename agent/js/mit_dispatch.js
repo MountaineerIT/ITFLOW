@@ -137,6 +137,32 @@
     function lengthText(minutes) {
         return minutes % 60 ? (minutes >= 60 ? Math.floor(minutes / 60) + 'h ' : '') + (minutes % 60) + 'm' : (minutes / 60) + 'h';
     }
+    // A completed booking sits behind the open ones (a background item - FullCalendar leaves those out of its side-by-side layout, so an
+    // open booking at the same time keeps its column) - as on the calendar page (agent/js/calendar.js mitDoneBehind, 26.11.2.4). Background
+    // items get no eventClick and sit under a layer of FullCalendar's, so a click is matched by where it is (the board's click listener)
+    const behindModals = [];
+    function doneBehind(item) {
+        const cls = String(item.className || '');
+        if (cls.split(/\s+/).indexOf('itflow-cal-done') === -1 || item.allDay) {
+            return item;
+        }
+        behindModals.push((item.extendedProps || {}).modal || '');
+        return Object.assign({}, item, {display: 'background', className: cls + ' mit-cal-behind mit-behind-' + (behindModals.length - 1), editable: false});
+    }
+    board.addEventListener('click', function (e) {
+        if (e.target.closest('[data-kind]:not(.mit-cal-behind)')) {
+            return;
+        }
+        const hit = Array.prototype.find.call(board.querySelectorAll('.mit-cal-behind'), function (box) {
+            const r = box.getBoundingClientRect();
+            return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        });
+        const match = hit ? /(?:^|\s)mit-behind-(\d+)(?:\s|$)/.exec(hit.className) : null;
+        if (match && behindModals[Number(match[1])]) {
+            openModal(behindModals[Number(match[1])], 'lg');
+        }
+    });
+
     function openModal(url, size) {
         const link = document.createElement('a');
         link.href = '#';
@@ -816,7 +842,7 @@
                     cal.removeAllEvents();
                     cal.addEventSource(items.filter(function (item) {
                         return Number(item.extendedProps.tech) === Number(cal.mdTech);
-                    }));
+                    }).map(doneBehind));
                 });
                 dayTotals(items);
             });

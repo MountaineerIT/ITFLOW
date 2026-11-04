@@ -238,6 +238,13 @@ model: see DEPLOYMENT.md.
   in the top-level `buttons` option - FullCalendar v7 ignores a view's buttonText; added to headerToolbar after Week; its lines carry
   a `MountaineerIT` comment for the hook check) - seven days from any day, the arrows move one day, so a booking can be dragged
   across a weekend; allowed in the saved state's view list (`functions/mit_calendar.php`, which maps its first name `mitTimeGrid7`).
+  Completed bookings behind (26.11.2.4, the user's choice "behind, open on top"): on the time grids a booking of a closed / resolved ticket
+  (functions/calendar.php's `itflow-cal-done`) is a FullCalendar background item (`mitDoneBehind` in `agent/js/calendar.js`, `doneBehind` in
+  `agent/js/mit_dispatch.js`), so it no longer halves an open booking's width. Background items get no eventClick and sit under a layer of
+  FullCalendar's: each carries class `mit-behind-N` (its quick-look URL) and a click is matched by position - on the calendar in `select`
+  (from the pointerdown, `mitLastPointer`; FullCalendar's mouseup lands on its own selection block), on Dispatch a click listener on the
+  board. Month / list keep the line (the calendar refetches when moving between grid and other views). CSS `.mit-cal-behind` in
+  `agent/calendar.php` / `agent/mit_dispatch.php`. Smoke: last test of 08.
   Short bookings (26.10.181): FullCalendar v7 centres a time-grid event's content, so a 30-minute block's text ran out above and below it -
   one rule in `agent/calendar.php`'s style block (`:has(> .itflow-cal-event.is-timegrid)`: top-aligned, overflow hidden); smoke: last test of 08.
   The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw

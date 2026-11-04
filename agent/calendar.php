@@ -73,6 +73,15 @@ foreach ($sources as $key => $source) {
     /* Mountaineer IT: a short booking keeps its text inside the block - FullCalendar centres it, so it ran out above and below (26.10.181) */
     #itflowCalendar :has(> .itflow-cal-event.is-timegrid) { align-items: flex-start; overflow: hidden; }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
+    /* Mountaineer IT: a completed booking sits behind the open ones (agent/js/calendar.js mitDoneBehind - a background item): faded, its
+       text on top, clickable where it shows (26.11.2.4) */
+    #itflowCalendar .mit-cal-behind {
+        background-color: color-mix(in srgb, var(--fc-event-color, #6c757d) 22%, var(--bs-body-bg, #fff)) !important;
+        border-left: 3px solid color-mix(in srgb, var(--fc-event-color, #6c757d) 60%, transparent);
+        border-radius: 4px; color: var(--bs-secondary-color, #6c757d); cursor: pointer; opacity: 1; overflow: hidden;
+        font-size: .78em; line-height: 1.25; text-decoration: line-through;
+    }
+    #itflowCalendar .mit-cal-behind:hover { background-color: color-mix(in srgb, var(--fc-event-color, #6c757d) 35%, var(--bs-body-bg, #fff)) !important; }
 </style>
 
 <div class="row g-3 itflow-calendar-page" id="itflowCalendar"

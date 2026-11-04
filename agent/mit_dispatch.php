@@ -53,6 +53,14 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     .mit-dispatch [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
     .mit-dispatch [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
     .mit-dw-chip[data-mit-agent] { padding-left: .65rem; }
+    /* A completed booking behind the open ones (agent/js/mit_dispatch.js doneBehind - a background item), as on the calendar page */
+    .mit-dispatch .mit-cal-behind {
+        background-color: color-mix(in srgb, var(--fc-event-color, #6c757d) 22%, var(--bs-body-bg, #fff)) !important;
+        border-left: 3px solid color-mix(in srgb, var(--fc-event-color, #6c757d) 60%, transparent);
+        border-radius: 4px; color: var(--bs-secondary-color, #6c757d); cursor: pointer; opacity: 1; overflow: hidden;
+        font-size: .78em; line-height: 1.25; text-decoration: line-through;
+    }
+    .mit-dispatch .mit-cal-behind:hover { background-color: color-mix(in srgb, var(--fc-event-color, #6c757d) 35%, var(--bs-body-bg, #fff)) !important; }
     .mit-dispatch [data-kind="helper"] { outline: 2px dashed rgba(255, 255, 255, .75); outline-offset: -3px; }
     .mit-dispatch-week th, .mit-dispatch-week td { vertical-align: top; }
     .mit-dispatch-week td.mit-dw-cell { min-width: 130px; width: 200px; max-width: 200px; height: 70px; padding: .25rem; }
