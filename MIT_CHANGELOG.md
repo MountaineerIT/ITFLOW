@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.2.7 - 2026-11-05
+- Ask AI opens as a floating window like Quick ticket: rounded corners, a dark title bar, and a small gap from the screen's edges.
+
 ## 26.11.2.6 - 2026-11-04
 - API / service accounts: Admin > Users > New / Edit has an "API / service account" switch for a login an API key acts as. It keeps its role, so its API keys keep working, but it is left out of the calendar's Whose, Dispatch, every assign picker (new, edit, bulk, quick picker, schedule window), watchers / @mentions, helpers, recurring tickets, project managers, contracts, event agents, service boards and round-robin, timesheets, reports and the Get started team count, and admin / approval notices. It can't sign in to ITFlow in a browser. Admin > Users lists these accounts in their own section at the bottom.
 - New Ticket has a Status picker (New / Open as before, or any of your statuses such as On Hold) and a Schedule section (date and time, how long, remote / onsite) - the ticket is booked as it is made, with the same emails as scheduling it from the ticket.
