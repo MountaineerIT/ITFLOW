@@ -1618,7 +1618,7 @@ model: see DEPLOYMENT.md.
   in `agent/post/recurring_invoice.php` add / edit); the nightly query uses `mitRecurringInvoiceDueSql()` and calls recurringInvoiceGenerate with
   `$early` = next date > today (so the invoice is dated today), and one line after `$mit_hold` in recurringInvoiceGenerate (`mitRecurringInvoiceDue`)
   sets invoice_due = the run date (next) or the run date + contractNetTerms (terms - the user's "hybrid"), only when made early under a plan with lead
-  days. Lead days stay under one repeat (`mitRecurringLeadClamp`: weekly 6, monthly 27, max 90). A client's own QuickBooks term (mitQboApplyTerms) still
+  days. The field's own script widens its window to modal-lg (ajax-modal opens it at the default width, where the choices were cut off). Lead days stay under one repeat (`mitRecurringLeadClamp`: weekly 6, monthly 27, max 90). A client's own QuickBooks term (mitQboApplyTerms) still
   wins in QuickBooks. Scenario `scenario-recurring-lead.php` (the real nightly job), smoke `98-recurring-lead.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check

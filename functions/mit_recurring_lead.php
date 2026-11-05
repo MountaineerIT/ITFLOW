@@ -261,7 +261,10 @@ function mitRecurringInvoicePlanField($recurring_invoice_id = 0, $client_id = 0)
         . '<div class="col-sm-6"><label class="form-label">Due when made early</label>'
         . '<select class="form-select" name="mit_plan_due"><option value="terms"' . ($plan['due_mode'] === 'terms' ? ' selected' : '') . '>' . escapeHtml($terms_label) . '</option>'
         . '<option value="next"' . ($plan['due_mode'] === 'next' ? ' selected' : '') . '>On the Next invoice date</option></select>'
-        . '<div class="form-text">The client\'s terms count from the Next invoice date.</div></div>';
+        . '<div class="form-text">The client\'s terms count from the Next invoice date.</div></div>'
+        // The window opens at Bootstrap's default width, where ITFlow's "When it is made" choice and ours were cut off - widen it to large,
+        // like the recurring ticket window (every opener of the window, no extra line in ITFlow's files)
+        . '<script>(function(){var s=document.currentScript,d=s&&s.closest(".modal-dialog");if(d&&!/modal-(lg|xl)/.test(d.className)){d.classList.add("modal-lg");}})();</script>';
 }
 
 /** Save the plan from the add / edit form (only when the form had it). */
