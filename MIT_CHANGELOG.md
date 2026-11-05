@@ -4,12 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
-## 26.11.3.3 - 2026-11-05
-- Recurring invoices: the Make it / Due fields fit the edit window - shorter choices ("Next invoice + Net 30", "On the Next invoice date") under "Due when made early".
-
 ## 26.11.3.2 - 2026-11-05
 - Recurring tickets: the Schedule tab has a time, how long and Remote / Onsite - each ticket it raises is booked on the calendar for its run day at that time, with its agent, and emailed as when work is scheduled on a ticket. "Create it N days before" raises the ticket that many days ahead, already booked for the run day (Next run stays the work date). Or "days before the 1st of its month" (monthly, quarterly, twice-yearly and yearly repeats): every site visit due in a month is made on the same day - 3 makes all of December's on November 28, each booked for its own day. The window says when the next one will be made.
-- Recurring invoices: "Make it N days before" makes the invoice that many days ahead of Next invoice, dated the day it is made. Due: on the Next invoice date, or the client's net terms counted from the Next invoice date (Net 30 clients still get their 30 days).
+- Recurring invoices: "Make it N days before" makes the invoice that many days ahead of Next invoice, dated the day it is made. Due: on the Next invoice date, or the client's net terms counted from the Next invoice date (Net 30 clients still get their 30 days). ("Due when made early" - its choices were shortened to fit the edit window.)
 
 ## 26.11.3.1 - 2026-11-05
 - ITFlow 26.11.3 merged (database 3.5.5): Stripe fees recorded every 15 minutes, transfers no longer counted twice in Transactions' Money in / Money out, faster Transactions / Reconcile / billable expenses, a notice before API keys expire, a Products API update endpoint, and security fixes - other sign-ins end when a password changes, MFA set-up is enforced on every page, restores can't carry access files into uploads.
