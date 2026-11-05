@@ -8,13 +8,18 @@ $sql = mysqli_query(
     $mysqli,
     "SELECT role_is_admin, role_name, user_archived_at, user_avatar, user_config_force_mfa,
         user_config_records_per_page, user_config_theme_dark, user_email, user_name, user_role_id,
-        user_status, user_token, user_type FROM users
+        user_password, user_status, user_token, user_type FROM users
      LEFT JOIN user_settings ON users.user_id = user_settings.user_id
      LEFT JOIN user_roles ON user_role_id = role_id
      WHERE users.user_id = $session_user_id"
 );
 
 $row = mysqli_fetch_assoc($sql);
+
+$session_stamp_current = userSessionStamp($row['user_password'] ?? '');
+if ($row) {
+    unset($row['user_password']);
+}
 
 $session_name = escapeSql($row['user_name']);
 $session_email = $row['user_email'];
@@ -58,22 +63,30 @@ if (function_exists('mitIsServiceUser') && mitIsServiceUser($session_user_id)) {
     redirect("/login.php");
 }
 
-// Mountaineer IT: the password or MFA changed since this sign-in (a reset, the incident-response button) - sign in again
+// Check the password hasn't changed since this session signed in - by them elsewhere,
+// an admin, or the incident-response reset (userSessionStamp())
+if (!hash_equals($session_stamp_current, (string) ($_SESSION['user_session_stamp'] ?? ''))) {
+    session_unset();
+    session_destroy();
+    redirect("/login.php");
+}
+
+// Mountaineer IT: MFA turned on / off / reset since this sign-in (ITFlow's own stamp above covers a password change) - sign in again
 if (function_exists('mitSessionCheck') && !mitSessionCheck($session_user_id)) {
     session_unset();
     session_destroy();
     redirect("/login.php");
 }
 
-// MFA required but not set up yet - only the set up page, enabling MFA and logging out are allowed
-if ($session_user_config_force_mfa === 1 && trim((string) $session_token) === '') {
-    $mfa_script = $_SERVER['SCRIPT_NAME'] ?? '';
-    $mfa_allowed = $mfa_script === '/agent/user/mfa_enforcement.php'
-        || ($mfa_script === '/agent/user/post.php' && (isset($_POST['enable_mfa']) || isset($_GET['logout'])))
-        || ($mfa_script === '/agent/post.php' && isset($_GET['logout']));
-    if (!$mfa_allowed) {
-        redirect("/agent/user/mfa_enforcement.php");
-    }
+// MFA required on this account and not set up yet: setting it up, or signing out, is all
+// this session may do - every other page, modal, AJAX call and POST goes back to the set
+// up page. Signing in only sends them there; this is what keeps them there, including when
+// an admin requires MFA, or resets it, on an agent who is already signed in.
+if ($session_user_config_force_mfa === 1 && trim((string) $session_token) === '' && !requestIsMfaSetup([
+    'agent/user/mfa_enforcement.php' => [[[], []]],
+    'agent/user/post.php' => [[[], ['csrf_token', 'enable_mfa', 'verify_code']], [['logout'], []]],
+])) {
+    redirect("/agent/user/mfa_enforcement.php");
 }
 
 // Load user client permissions (allow + deny lists)
