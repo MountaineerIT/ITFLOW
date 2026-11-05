@@ -156,7 +156,7 @@ function mitOfficeSetUser($user_id, $office_id) {
 function mitOfficePeople() {
     global $mysqli;
     $people = [0 => []];
-    $sql = mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_type = 1 AND user_archived_at IS NULL ORDER BY user_name");
+    $sql = mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_archived_at IS NULL ORDER BY user_name");
     while ($row = mysqli_fetch_row($sql)) {
         $people[mitOfficeIdForUser($row[0])][] = intval($row[0]);
     }
@@ -174,7 +174,7 @@ function mitOfficesSection() {
         return '';
     }
     $names = [];
-    $sql = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1 AND user_archived_at IS NULL ORDER BY user_name");
+    $sql = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_archived_at IS NULL ORDER BY user_name");
     while ($row = mysqli_fetch_row($sql)) {
         $names[intval($row[0])] = $row[1];
     }

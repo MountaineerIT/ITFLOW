@@ -387,4 +387,28 @@ return [
         'watch' => ['notification_action', 'role_is_admin', 'session_is_admin'],
         'overlap' => ['feedback', 'feature_request', 'bug_report', 'suggestion'],
     ],
+    'service_users' => [
+        'name' => 'API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)',
+        'files' => ['functions/mit_service_users.php'],
+        'tests' => ['tests/smoke/96-service-users.spec.js', 'tests/scenarios/scenario-service-users.php'],
+        'assumes' => [
+            'ITFlow\'s API keys act as an agent (api_keys.api_key_user_id) who must be an active agent with a role (apiKeyAgentProblem).',
+            'Agent lists are queries with user_type = 1 on users - each carries one guarded mitServiceUserSql(...) after that condition.',
+            'Agent sign-in is login.php (the user loop) and includes/load_user_session.php on every agent / admin page.',
+        ],
+        'watch' => ['api_key_user_id', 'apiKeyAgentProblem', 'quickPickAgents', 'ticketMentionAgents', 'signInAdmins'],
+        'overlap' => ['service_account', 'api_user', 'user_is_api', 'bot_user'],
+    ],
+    'ticket_add' => [
+        'name' => 'New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time',
+        'files' => ['functions/mit_ticket_add.php'],
+        'tests' => ['tests/smoke/97-ticket-add.spec.js'],
+        'assumes' => [
+            'ITFlow\'s New Ticket window is agent/modals/ticket/ticket_add.php (Assign to select name="assigned_to", then Due, then tags); add_ticket in agent/post/ticket.php inserts the ticket, flashes "created" and redirects to ticket.php.',
+            'ticketPickableStatuses / ticketChangeStatus set a status other than New / Resolved / Closed; ticketScheduleValue + ticketSetSchedule book the work (emails, note, history).',
+            'Dispatch\'s day view is one FullCalendar v7 timeGridDay per agent (agent/js/mit_dispatch.js renderDay); select gives the picked range on the viewer\'s clock.',
+        ],
+        'watch' => ['ticketPickableStatuses', 'ticketChangeStatus', 'ticketScheduleValue', 'name="assigned_to"', 'add_ticket'],
+        'overlap' => ['ticket_add_schedule', 'new_ticket_schedule', 'schedule_on_create'],
+    ],
 ];

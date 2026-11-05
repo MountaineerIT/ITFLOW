@@ -14,6 +14,7 @@ hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
 hook	admin/modals/user/user_form.php	mitCalendarColorField	1
 hook	admin/modals/user/user_form.php	mitOfficeUserField	2
+hook	admin/modals/user/user_form.php	mitServiceUserField	2
 hook	admin/modals/user/user_form.php	mitTsPayTypeField	1
 hook	admin/oauth_microsoft_mail_callback.php	mitMicrosoftTokenFields	1
 hook	admin/oauth_microsoft_mail_callback.php	mit_m365	1
@@ -36,6 +37,7 @@ hook	admin/post/settings_ticket.php	mit_changed	2
 hook	admin/post/users.php	mitInviteExtrasSave	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
+hook	admin/post/users.php	mitServiceUserSave	4
 hook	admin/post/users.php	mitTsSavePayType	2
 hook	admin/settings.php	mitSettingsSummaries	2
 hook	admin/settings_company.php	mitBrandLogoField	2
@@ -55,10 +57,13 @@ hook	admin/update.php	MIT_CHANGELOG	1
 hook	admin/update.php	MountaineerIT	1
 hook	admin/update.php	mitVersion	3
 hook	admin/update.php	mit_changelog_card	1
+hook	admin/users.php	mitServiceUserSql	2
+hook	admin/users.php	mitServiceUsersSection	2
 hook	agent/ajax.php	mitBoardVisibleSql	2
 hook	agent/ajax.php	mitCleanCalendarState	1
 hook	agent/ajax.php	mitLeftBehindAjax	1
 hook	agent/ajax.php	mitQboInvoiceLock	4
+hook	agent/ajax.php	mitServiceUserSql	2
 hook	agent/ajax.php	mitSetUserPreference	1
 hook	agent/ajax.php	mitTicketLayoutAjax	1
 hook	agent/ajax.php	mitTicketPickOptions	2
@@ -94,6 +99,7 @@ hook	agent/calendar.php	mitAgentColor	1
 hook	agent/calendar.php	mitAsset	2
 hook	agent/calendar.php	mitCalendarState	1
 hook	agent/calendar.php	mitLeftBehindCard	2
+hook	agent/calendar.php	mitServiceUserSql	2
 hook	agent/calendar.php	mitViewShifted	2
 hook	agent/calendar.php	mitViewZone	1
 hook	agent/calendar.php	mitZoneNote	2
@@ -101,6 +107,8 @@ hook	agent/calendar.php	mit_calendar	1
 hook	agent/calendar.php	mit_outlook	1
 hook	agent/calendar.php	mit_ticket_techs	1
 hook	agent/calendar.php	mit_zones	1
+hook	agent/client_onboarding/agreement.php	mitServiceUserSql	2
+hook	agent/client_onboarding/kickoff.php	mitServiceUserSql	2
 hook	agent/client_overview.php	mitAlignClientCard	2
 hook	agent/client_overview.php	mitAlignReplacesAttention	1
 hook	agent/client_overview.php	mitCtClientCard	2
@@ -154,6 +162,7 @@ hook	agent/js/ticket_schedule_modal.js	mit_calendar	1
 hook	agent/js/ticket_schedule_modal.js	mit_ticket_tech	1
 hook	agent/modals/asset/asset.php	mitAlignAssetPanel	2
 hook	agent/modals/asset/asset.php	mitNinjaAssetButton	2
+hook	agent/modals/asset/asset_bulk_add_ticket.php	mitServiceUserSql	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
 hook	agent/modals/calendar/calendar_event.php	mitEventQuickAssign	2
@@ -165,25 +174,41 @@ hook	agent/modals/calendar/calendar_event_add.php	mitFromView	3
 hook	agent/modals/calendar/calendar_event_add.php	mit_zones	1
 hook	agent/modals/calendar/calendar_event_form.php	mitEventAssignField	2
 hook	agent/modals/calendar/calendar_event_form.php	mitRepeatOnField	2
+hook	agent/modals/calendar/calendar_event_form.php	mitServiceUserSql	2
 hook	agent/modals/calendar/calendar_event_form.php	mitToView	2
 hook	agent/modals/calendar/calendar_event_form.php	mitViewShifted	2
 hook	agent/modals/calendar/calendar_event_form.php	mitZoneFormHint	2
 hook	agent/modals/calendar/calendar_event_form.php	mit_assign	5
 hook	agent/modals/calendar/calendar_event_form.php	mit_zones	1
+hook	agent/modals/client/client_bulk_add_ticket.php	mitServiceUserSql	2
+hook	agent/modals/contract/contract_form.php	mitServiceUserSql	2
 hook	agent/modals/product/product_form.php	mitProductImageField	2
+hook	agent/modals/project/project_bulk_manager.php	mitServiceUserSql	2
+hook	agent/modals/project/project_export.php	mitServiceUserSql	2
+hook	agent/modals/project/project_form.php	mitServiceUserSql	2
 hook	agent/modals/quote/quote_to_invoice.php	mitProcQuoteConvertFields	1
 hook	agent/modals/recurring_ticket/recurring_ticket_add.php	mitRecurringTicketRepeatOnField	1
+hook	agent/modals/recurring_ticket/recurring_ticket_add.php	mitServiceUserSql	2
+hook	agent/modals/recurring_ticket/recurring_ticket_bulk_agent_edit.php	mitServiceUserSql	2
 hook	agent/modals/recurring_ticket/recurring_ticket_edit.php	mitRecurringTicketRepeatOnField	1
+hook	agent/modals/recurring_ticket/recurring_ticket_edit.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket.php	mitZoneWhen	2
 hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
+hook	agent/modals/ticket/ticket_add.php	mitServiceUserSql	2
+hook	agent/modals/ticket/ticket_add.php	mitTicketAddAssignee	2
+hook	agent/modals/ticket/ticket_add.php	mitTicketAddFields	2
+hook	agent/modals/ticket/ticket_bulk_assign.php	mitServiceUserSql	2
+hook	agent/modals/ticket/ticket_edit.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitAgentCanSeeClient	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleLengths	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
+hook	agent/modals/ticket/ticket_edit_schedule.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitTicketScheduleMinutes	1
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitToView	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitZoneFormHint	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitZoneNow	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mit_zones	1
+hook	agent/modals/ticket/ticket_export.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
@@ -235,6 +260,9 @@ hook	agent/post/ticket.php	mitReplyTimesFromPost	2
 hook	agent/post/ticket.php	mitReplyTimesSavePending	4
 hook	agent/post/ticket.php	mitScheduleLeadChanging	1
 hook	agent/post/ticket.php	mitScheduleNotifyFromPost	2
+hook	agent/post/ticket.php	mitTicketAddAfterCreate	2
+hook	agent/post/ticket.php	mitTicketAddFlash	2
+hook	agent/post/ticket.php	mitTicketAddRedirect	2
 hook	agent/post/ticket.php	mitTicketClientMoved	1
 hook	agent/post/ticket.php	mitTsKeepPublicNotes	2
 hook	agent/post/ticket.php	mitTsReplyTimeGuard	4
@@ -250,11 +278,17 @@ hook	agent/post/trip.php	mitReimbTripLocked	8
 hook	agent/post/trip.php	mitReimbTripWhyLocked	8
 hook	agent/post/trip.php	mit_why	6
 hook	agent/project.php	mitProcProjectCard	1
+hook	agent/projects.php	mitServiceUserSql	2
 hook	agent/quote.php	mitPaperLineExtras	1
 hook	agent/quote.php	mitQuoteProfitBox	2
 hook	agent/quote.php	mit_quotes	1
 hook	agent/quote.php	mit_staff	1
 hook	agent/recurring_invoice.php	mitUsageRecurringCard	2
+hook	agent/recurring_tickets.php	mitServiceUserSql	2
+hook	agent/reports/satisfaction.php	mitServiceUserSql	2
+hook	agent/reports/sla_summary.php	mitServiceUserSql	2
+hook	agent/reports/ticket_aging.php	mitServiceUserSql	2
+hook	agent/reports/time_by_tech.php	mitServiceUserSql	2
 hook	agent/software.php	mitAlignLicenseLine	2
 hook	agent/software.php	mitClientTiles	2
 hook	agent/ticket.php	mitBoardEscalateMenuItem	2
@@ -285,6 +319,7 @@ hook	agent/tickets.php	mitClientTiles	2
 hook	agent/tickets.php	mitListViewResetButton	2
 hook	agent/tickets.php	mitListViewRestore	2
 hook	agent/tickets.php	mitProjectTicketsShows	2
+hook	agent/tickets.php	mitServiceUserSql	2
 hook	agent/unbilled_time.php	mitToBillCard	2
 hook	agent/unbilled_time.php	mitToBillCell	2
 hook	agent/unbilled_time.php	mitToBillHead	2
@@ -362,6 +397,7 @@ hook	functions.php	mit_quick_ticket	1
 hook	functions.php	mit_quotes	1
 hook	functions.php	mit_reply_recipients	1
 hook	functions.php	mit_theme	1
+hook	functions.php	mit_ticket_add	1
 hook	functions.php	mit_ticket_layout	1
 hook	functions.php	mit_timesheets	1
 hook	functions.php	mit_usage	1
@@ -405,12 +441,16 @@ hook	functions/dashboard.php	mitTicketTechDashboardItems	1
 hook	functions/email.php	mitOfficeEmailCompany	2
 hook	functions/expenses.php	mitReimbExpenseWhyLocked	4
 hook	functions/expenses.php	mitReimbReimbursementWhyLocked	2
+hook	functions/expenses.php	mitServiceUserSql	2
+hook	functions/getting_started.php	mitServiceUserSql	2
 hook	functions/income_import.php	mitQboTakesPayments	4
 hook	functions/log_forward.php	mitDevMode	4
 hook	functions/logging.php	mitDevMode	2
+hook	functions/logging.php	mitServiceUserSql	2
 hook	functions/products.php	mitQboInvoiceLock	2
 hook	functions/project.php	mitProjectTicketMoved	4
 hook	functions/reports.php	mitBoardReportEntry	1
+hook	functions/reports.php	mitServiceUserSql	2
 hook	functions/reports.php	mitTsReportEntry	1
 hook	functions/reports.php	mit_boards	2
 hook	functions/reports.php	mit_payroll	1
@@ -422,6 +462,7 @@ hook	functions/search.php	mitBoardVisibleSql	4
 hook	functions/settings.php	mitSettingsFields	2
 hook	functions/settings.php	mitSettingsPages	2
 hook	functions/settings.php	mit_settings_index	1
+hook	functions/sign_in.php	mitServiceUserSql	2
 hook	functions/sla.php	mitProjectSlaOff	2
 hook	functions/sla.php	mitProjectSlaStart	2
 hook	functions/sla.php	mit_projects	1
@@ -450,6 +491,9 @@ hook	functions/ticket.php	mit_schedule_skip_contact	1
 hook	functions/ticket.php	mit_ticket_techs	1
 hook	functions/ticket.php	mit_watchers	4
 hook	functions/ticket_fields.php	mitNotifyOn	8
+hook	functions/ticket_fields.php	mitServiceUserSql	2
+hook	functions/ticket_mention.php	mitServiceUserSql	2
+hook	functions/trips.php	mitServiceUserSql	2
 hook	functions/user.php	mitSessionRestamp	2
 hook	functions/user_invite.php	mitInviteExtrasApply	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
@@ -482,7 +526,9 @@ hook	includes/cron_jobs.php	mit_usage	3
 hook	includes/footer.php	mitVersion	2
 hook	includes/header.php	mitAssetStampStart	2
 hook	includes/header.php	mitThemeHead	2
+hook	includes/load_user_session.php	mitIsServiceUser	2
 hook	includes/load_user_session.php	mitSessionCheck	2
+hook	includes/load_user_session.php	mit_service_users	1
 hook	includes/stripe_init.php	mitDevBlockStripe	2
 hook	includes/top_nav.php	mit_cron_nav	1
 hook	includes/top_nav.php	mit_timers_nav	1
@@ -491,6 +537,7 @@ hook	js/unbilled_time.js	MountaineerIT	1
 hook	js/unbilled_time.js	mitToBillParts	2
 hook	js/unbilled_time.js	mit_to_bill	1
 hook	login.php	mitBrandScreenLogo	2
+hook	login.php	mitIsServiceUser	2
 hook	login.php	mitLoginHead	2
 hook	scripts/restore_cli.php	mitRestoreItflowUpdates	1
 hook	scripts/restore_cli.php	mit_itflow_error	3
@@ -558,6 +605,7 @@ ours	admin/database_updates/mountaineerit/M050.php
 ours	admin/database_updates/mountaineerit/M051.php
 ours	admin/database_updates/mountaineerit/M052.php
 ours	admin/database_updates/mountaineerit/M053.php
+ours	admin/database_updates/mountaineerit/M054.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -735,8 +783,10 @@ ours	functions/mit_recurring.php
 ours	functions/mit_reimbursements.php
 ours	functions/mit_reply_recipients.php
 ours	functions/mit_reply_times.php
+ours	functions/mit_service_users.php
 ours	functions/mit_settings_index.php
 ours	functions/mit_theme.php
+ours	functions/mit_ticket_add.php
 ours	functions/mit_ticket_layout.php
 ours	functions/mit_ticket_picks.php
 ours	functions/mit_ticket_techs.php

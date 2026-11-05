@@ -25,7 +25,7 @@ if ($board_id) {
         }
     }
 }
-$agents = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1 AND user_archived_at IS NULL ORDER BY user_name");
+$agents = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_archived_at IS NULL ORDER BY user_name");
 $agent_list = [];
 while ($row = mysqli_fetch_assoc($agents)) {
     $agent_list[intval($row['user_id'])] = $row['user_name'];

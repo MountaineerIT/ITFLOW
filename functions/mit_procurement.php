@@ -489,7 +489,7 @@ function mitPoApprovers() {
         JOIN user_roles ON role_id = users.user_role_id
         LEFT JOIN user_role_permissions urp ON urp.user_role_id = role_id
             AND urp.module_id = (SELECT module_id FROM modules WHERE module_name = 'module_procurement' LIMIT 1)
-        WHERE user_type = 1 AND user_status = 1 AND user_archived_at IS NULL
+        WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL
         AND (role_is_admin = 1 OR urp.user_role_permission_level >= 3)");
     $approvers = [];
     while ($row = mysqli_fetch_assoc($result)) {

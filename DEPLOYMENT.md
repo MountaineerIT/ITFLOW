@@ -302,6 +302,9 @@ break stock ITFlow, and lists what stops working after a move.
   provider of local embeddings stays in AI Providers (an ordinary ITFlow provider), and Ollama keeps running until removed.
 - **Invites** – Employment / Office picked for an agent invited but not yet joined are kept in `mit_invite_extras`; on stock ITFlow
   the invite still works but the agent joins in the main office with no pay type set.
+- **API / service accounts** – stock ITFlow has no such mark: those logins show in every agent list again (calendar, Dispatch is gone
+  anyway, assign pickers, reports, @mentions) and can sign in to the web pages with their password; their API keys keep working.
+  `mit_service_users` stays unused.
 - **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
   `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
   and phone, and purchase orders go with Procurement.

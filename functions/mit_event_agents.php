@@ -23,7 +23,7 @@ function mitEventAgentChoices(array $keep = []) {
     global $mysqli;
     $keep = array_map('intval', $keep);
     $rows = [];
-    $result = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1 AND user_archived_at IS NULL
+    $result = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_archived_at IS NULL
         AND (user_status = 1 OR user_id IN (0" . ($keep ? ',' . implode(',', $keep) : '') . ")) ORDER BY user_name");
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[intval($row['user_id'])] = $row;

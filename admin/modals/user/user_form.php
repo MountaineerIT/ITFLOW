@@ -122,6 +122,7 @@ $value = function ($key) use ($form) {
         </div>
         <?= mitTsPayTypeField($form_user_id) // Mountaineer IT ?>
         <?= function_exists('mitOfficeUserField') ? mitOfficeUserField($form_user_id) : '' // Mountaineer IT: office ?>
+        <?= function_exists('mitServiceUserField') ? mitServiceUserField($form_user_id) : '' // Mountaineer IT: API / service account ?>
         <?= $is_new ? '' : mitCalendarColorField($form_user_id, 'col-12') // Mountaineer IT ?>
     </div>
 </div>

@@ -1572,6 +1572,28 @@ model: see DEPLOYMENT.md.
   _primary / _open_tickets / _email_client; in Find a setting (`mitSettingsFields`). Smoke `89-quick-ticket.spec.js`.
   The <form> is the `.modal-content` itself (26.10.193): `modal-dialog-scrollable` needs header / body / footer straight inside it - wrapped in a
   form the body never scrolled and a contact with several open tickets pushed Make ticket off the screen (smoke: short-screen test in 89).
+- API / service accounts (Nov 4, 26.11.2.6 - the user's request; the user chose: no browser sign-in, own section on Admin > Users):
+  `functions/mit_service_users.php` (ours, required from mit_common.php), M054 `mit_service_users` (user_id PK FK users CASCADE). ITFlow's API
+  keys act as an active agent with a role, so such a login stays one - marked with the switch `mitServiceUserField` (one line in
+  `admin/modals/user/user_form.php` after Office) / `mitServiceUserSave` (one line each in `admin/post/users.php` add_user / edit_user;
+  `mit_service_present` / `mit_service_user` also ride on invites - `MIT_INVITE_EXTRA_FIELDS`). Left out of agent lists by one guarded
+  `mitServiceUserSql('users.user_id')` right after `user_type = 1` in each ITFlow picker / list query (34 sites: ticket add / edit / bulk /
+  export / schedule / quick picker `quickPickAgents`, recurring tickets, projects, contracts, onboarding, calendar Whose + event agents,
+  reports, trips / expenses drivers, @mentions `ticketMentionAgents`, `get_internal_users`, logging's all-agent notices, `signInAdmins`,
+  getting started's team count) and in ours (Dispatch techs, boards members / round-robin, offices, quick ticket, timesheets people / approvers,
+  procurement approvers, helpers, feedback / cron-health admins). Not filtered on purpose: single-user lookups, roles (`roleAgents`), API keys
+  (`apiKeyAgents`), the parser's agent email match, api/v1/technicians. Sign-in: login.php skips the row (one line in its user loop),
+  `includes/load_user_session.php` ends an existing session. Admin > Users: main list filtered, `mitServiceUsersSection` (one line after the
+  list's card in `admin/users.php`). Scenario `scenario-service-users.php` (lists, notices, API key still works), smoke `96-service-users.spec.js`.
+- New Ticket: Status and Schedule (Nov 4, 26.11.2.6 - the user's request): `functions/mit_ticket_add.php` (ours, required from `functions.php`), no
+  tables. `mitTicketAddFields()` (one line in `agent/modals/ticket/ticket_add.php` before the tags) - Status (`mit_status`: 0 = ITFlow's New / Open, else
+  `ticketPickableStatuses`) and a Schedule fieldset (`mit_schedule` on the viewer's clock, `mit_schedule_minutes`, `mit_schedule_onsite`; GET
+  `mit_schedule_start` / `_end` / `_onsite` fill it). In add_ticket (`agent/post/ticket.php`) three lines: `mitTicketAddAfterCreate` after the Quick ticket
+  line (ticketChangeStatus, then `mitFromView` + ticketSetSchedule - skipped for Quick ticket posts), `mitTicketAddFlash` after ITFlow's "created" flash
+  (adds the booking / clash to it), `mitTicketAddRedirect` before the redirect (`mit_return=dispatch` -> `mit_dispatch.php?date=`). The Assign to list
+  starts on `mitTicketAddAssignee()` (?assigned_to=, else the agent - one condition). Dispatch day view: `selectable: canEdit`, `selectMinDistance: 5`
+  and `select` in `agent/js/mit_dispatch.js` renderDay open the window for the column's agent and the dragged time (and the client filter). Smoke
+  `97-ticket-add.spec.js`.
 - Phase 2 (after the next upstream release is merged): recheck the review findings in files
   upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
   SSRF, broken tag links, Clients/Tickets/dashboard/search performance.

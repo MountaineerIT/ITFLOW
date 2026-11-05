@@ -51,6 +51,13 @@ if ($session_user_archived_at !== null) {
     redirect("/login.php");
 }
 
+// Mountaineer IT: an API / service account can't sign in to the web pages (functions/mit_service_users.php)
+if (function_exists('mitIsServiceUser') && mitIsServiceUser($session_user_id)) {
+    session_unset();
+    session_destroy();
+    redirect("/login.php");
+}
+
 // Mountaineer IT: the password or MFA changed since this sign-in (a reset, the incident-response button) - sign in again
 if (function_exists('mitSessionCheck') && !mitSessionCheck($session_user_id)) {
     session_unset();

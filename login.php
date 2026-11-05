@@ -237,6 +237,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['login']) || isset($_
         while ($r = mysqli_fetch_assoc($sql)) {
 
             $ut = intval($r['user_type']);
+            if ($ut === 1 && function_exists('mitIsServiceUser') && mitIsServiceUser($r['user_id'])) {
+                continue; // Mountaineer IT: an API / service account signs in only through its API keys
+            }
 
             if ($is_login_step) {
                 // Only Step 1 checks password

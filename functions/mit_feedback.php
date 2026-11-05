@@ -125,7 +125,7 @@ function mitFeedbackAdd(array $post, $file = null) {
     // The admins hear about it (not the sender)
     $line = MIT_FEEDBACK_KINDS[$kind] . ' from ' . stripslashes((string) $session_name) . ': ' . $title;
     $admins = mysqli_query($mysqli, "SELECT u.user_id FROM users u JOIN user_roles r ON r.role_id = u.user_role_id
-        WHERE r.role_is_admin = 1 AND u.user_type = 1 AND u.user_status = 1 AND u.user_archived_at IS NULL AND u.user_id != $user_id");
+        WHERE r.role_is_admin = 1 AND u.user_type = 1" . mitServiceUserSql('u.user_id') . " AND u.user_status = 1 AND u.user_archived_at IS NULL AND u.user_id != $user_id");
     while ($row = mysqli_fetch_assoc($admins)) {
         mitFeedbackBell(intval($row['user_id']), $line, $id);
     }

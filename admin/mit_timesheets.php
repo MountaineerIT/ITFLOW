@@ -440,7 +440,7 @@ $company_week = mitTsCompanySchedule();
 
     <?php } elseif ($tab === 'people') {
         $people = mitTsUsers([], true);
-        $result = mysqli_query($mysqli, "SELECT user_id, role_name FROM users LEFT JOIN user_roles ON role_id = user_role_id WHERE user_type = 1");
+        $result = mysqli_query($mysqli, "SELECT user_id, role_name FROM users LEFT JOIN user_roles ON role_id = user_role_id WHERE user_type = 1" . mitServiceUserSql('users.user_id') . "");
         $user_roles = [];
         while ($row = mysqli_fetch_assoc($result)) {
             $user_roles[intval($row['user_id'])] = $row['role_name'];

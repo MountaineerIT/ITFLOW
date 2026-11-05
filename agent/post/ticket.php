@@ -166,6 +166,7 @@ if (isset($_POST['add_ticket'])) {
     applyTicketSla($ticket_id);
     if (function_exists('mitBoardAfterCreate')) { mitBoardAfterCreate($ticket_id, $_POST['mit_board'] ?? ''); } // Mountaineer IT: service boards
     if (function_exists('mitQuickTicketAfterCreate')) { mitQuickTicketAfterCreate($ticket_id, $_POST); } // Mountaineer IT: Quick ticket - status, history, timer
+    if (function_exists('mitTicketAddAfterCreate')) { mitTicketAddAfterCreate($ticket_id, $_POST); } // Mountaineer IT: New Ticket's Status and Schedule
 
     // Tasks come from the editable rows in the modal, which the template pre-fills.
     // Fall back to copying the template directly for a form without that section.
@@ -215,6 +216,7 @@ if (isset($_POST['add_ticket'])) {
     logAudit("Ticket", "Create", "$session_name created ticket $ticket_prefix$ticket_number - $subject", $client_id, $ticket_id);
 
     flashAlert("Ticket <strong>" . escapeHtml($config_ticket_prefix . $ticket_number) . "</strong> created");
+    if (function_exists('mitTicketAddFlash')) { mitTicketAddFlash(); } // Mountaineer IT: the booking, after "created"
 
     // Tell the agent about anything too large for the mail queue to carry
     if (!empty($emailable_attachments['skipped'])) {
@@ -225,6 +227,7 @@ if (isset($_POST['add_ticket'])) {
         flashAlert("Stored on the ticket but too large to email: <strong>" . implode(', ', $skipped_names) . "</strong>", 'error');
     }
 
+    if (function_exists('mitTicketAddRedirect')) { mitTicketAddRedirect($ticket_id, $_POST); } // Mountaineer IT: back to Dispatch when made there
     redirect("ticket.php?client_id=$client_id&ticket_id=$ticket_id");
 
 }
