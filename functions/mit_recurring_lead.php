@@ -253,15 +253,15 @@ function mitRecurringInvoicePlanField($recurring_invoice_id = 0, $client_id = 0)
     }
     $plan = mitRecurringInvoicePlan($recurring_invoice_id);
     $terms = intval($client_id) && function_exists('contractNetTerms') ? intval(contractNetTerms(intval($client_id), date('Y-m-d'))) : null;
-    $terms_label = $terms === null ? "After the client's net terms" : ($terms > 0 ? "Net $terms after the Next invoice date" : 'On the Next invoice date (client is Due on receipt)');
+    $terms_label = $terms === null ? "Next invoice + client's terms" : ($terms > 0 ? "Next invoice + Net $terms" : 'Next invoice (Due on receipt)');
     return '<div class="col-sm-6" data-mit-recurring-invoice-plan><input type="hidden" name="mit_plan_present" value="1">'
-        . '<label class="form-label">Make it</label><div class="input-group"><span class="input-group-text"><i class="fa fa-fw fa-forward"></i></span>'
-        . '<input type="number" class="form-control" name="mit_plan_lead" min="0" max="90" value="' . intval($plan['lead_days']) . '"><span class="input-group-text">days before</span></div>'
-        . '<div class="form-text">0 = on the Next invoice date. Made early, it is dated the day it is made.</div></div>'
-        . '<div class="col-sm-6"><label class="form-label">Due</label><div class="input-group"><span class="input-group-text"><i class="fa fa-fw fa-calendar-check"></i></span>'
+        . '<label class="form-label">Make it</label><div class="input-group"><input type="number" class="form-control" name="mit_plan_lead" min="0" max="90" value="' . intval($plan['lead_days']) . '">'
+        . '<span class="input-group-text">days before</span></div>'
+        . '<div class="form-text">0 = on the Next invoice date. One made early is dated the day it is made.</div></div>'
+        . '<div class="col-sm-6"><label class="form-label">Due when made early</label>'
         . '<select class="form-select" name="mit_plan_due"><option value="terms"' . ($plan['due_mode'] === 'terms' ? ' selected' : '') . '>' . escapeHtml($terms_label) . '</option>'
-        . '<option value="next"' . ($plan['due_mode'] === 'next' ? ' selected' : '') . '>On the Next invoice date</option></select></div>'
-        . '<div class="form-text">Used when it is made early.</div></div>';
+        . '<option value="next"' . ($plan['due_mode'] === 'next' ? ' selected' : '') . '>On the Next invoice date</option></select>'
+        . '<div class="form-text">The client\'s terms count from the Next invoice date.</div></div>';
 }
 
 /** Save the plan from the add / edit form (only when the form had it). */
