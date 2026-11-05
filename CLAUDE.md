@@ -1430,6 +1430,8 @@ model: see DEPLOYMENT.md.
   provider is saved with the full /v1/chat/completions address (as ITFlow's form saves it) and its model on the Tickets use case.
   Tests: scenario `scenario-ai-ask.php` (ticket + passages sent, no canary sent or stored, follow-up history, owner only, client-limited
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
+  Look (26.11.2.7, the user's choice - like Quick ticket): a floating window - `.mit-ai-panel.offcanvas-end` inset .75rem, 16px corners, dark title
+  bar `.mit-ai-head` (`--mit-side`, else #212529) with `.mit-ai-head-btn` buttons - in the style block of `agent/js/mit_ai_helper.js`; smoke: first test of 33.
   The panel's markup is `hidden` until the script has moved it to <body> (26.10.158 - Bootstrap draws an `.offcanvas` inside an expanded navbar
   as part of the bar, so it flashed in the top bar on every page load); smoke: first test of `33-ai-panel.spec.js`.
   Name (26.10.158): `mit_settings` ai_helper_name -> `mitAiName()` (letters / digits / space / . - ' only, 30 max, "AI" when empty) - the

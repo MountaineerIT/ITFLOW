@@ -332,12 +332,12 @@ function mitAiPanelNav() {
         // hidden until the script moves it out of the top bar - Bootstrap shows an offcanvas inside an expanded navbar as part of the bar
         . '<div class="offcanvas offcanvas-end mit-ai-panel" tabindex="-1" id="mitAiPanel" aria-labelledby="mitAiPanelTitle" data-endpoint="/agent/mit_ai_ajax.php" data-name="' . $name . '" hidden'
         . ' data-csrf="' . escapeHtml($_SESSION['csrf_token'] ?? '') . '"' . $ticket . '>'
-        . '<div class="offcanvas-header border-bottom py-2"><h5 class="offcanvas-title me-auto" id="mitAiPanelTitle"><i class="fas fa-robot me-2"></i>Ask ' . $name . '</h5>'
-        . '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-new title="New conversation"><i class="fas fa-plus"></i></button>'
-        . (lookupUserPermission('module_support') >= 2 ? '<button type="button" class="btn btn-sm btn-light me-1" data-mit-ai-writeup title="Write this conversation up as a document" hidden>'
+        . '<div class="offcanvas-header mit-ai-head text-white"><h5 class="offcanvas-title me-auto" id="mitAiPanelTitle"><i class="fas fa-robot me-2"></i>Ask ' . $name . '</h5>'
+        . '<button type="button" class="btn btn-sm mit-ai-head-btn me-1" data-mit-ai-new title="New conversation"><i class="fas fa-plus"></i></button>'
+        . (lookupUserPermission('module_support') >= 2 ? '<button type="button" class="btn btn-sm mit-ai-head-btn me-1" data-mit-ai-writeup title="Write this conversation up as a document" hidden>'
             . '<i class="fas fa-file-medical"></i></button>' : '')
-        . '<button type="button" class="btn btn-sm btn-light me-2" data-mit-ai-history title="Earlier conversations"><i class="fas fa-history"></i></button>'
-        . '<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>'
+        . '<button type="button" class="btn btn-sm mit-ai-head-btn me-2" data-mit-ai-history title="Earlier conversations"><i class="fas fa-history"></i></button>'
+        . '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>'
         . '<div class="offcanvas-body d-flex flex-column p-0">'
         . '<div class="mit-ai-list border-bottom" data-mit-ai-list hidden></div>'
         . '<div class="mit-ai-thread flex-grow-1 overflow-auto p-3" data-mit-ai-thread><div class="text-muted small" data-mit-ai-empty>Ask about a problem - answers come '

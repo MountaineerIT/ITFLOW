@@ -37,7 +37,15 @@
 
     const style = document.createElement('style');
     style.textContent = `
-        .mit-ai-panel { --bs-offcanvas-width: min(34rem, 100vw); }
+        .mit-ai-panel { --bs-offcanvas-width: min(34rem, calc(100vw - 1.5rem)); }
+        /* A floating window like the other windows (Quick ticket): rounded, dark title bar - 26.11.2.7 */
+        .mit-ai-panel.offcanvas-end { top: .75rem; bottom: .75rem; right: .75rem; height: auto; border: 0; border-radius: 16px; overflow: hidden;
+            box-shadow: 0 20px 50px -12px rgba(15, 23, 42, .35); }
+        .mit-ai-panel.offcanvas-end:not(.show):not(.showing), .mit-ai-panel.offcanvas-end.hiding { transform: translateX(calc(100% + 1rem)); }
+        .mit-ai-head { background: var(--mit-side, #212529); padding: 1rem 1.25rem; }
+        .mit-ai-head .offcanvas-title { font-weight: 600; }
+        .mit-ai-head-btn { color: #fff; background: rgba(255, 255, 255, .12); border: 0; }
+        .mit-ai-head-btn:hover, .mit-ai-head-btn:focus-visible { color: #fff; background: rgba(255, 255, 255, .24); }
         .mit-ai-msg { border-radius: .6rem; padding: .55rem .75rem; margin-bottom: .75rem; max-width: 100%; overflow-wrap: anywhere; }
         .mit-ai-msg.mit-ai-question { background: var(--bs-primary-bg-subtle); margin-left: 2.5rem; }
         .mit-ai-msg.mit-ai-answer { background: var(--bs-tertiary-bg); margin-right: 1rem; }

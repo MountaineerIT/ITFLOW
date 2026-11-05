@@ -101,6 +101,21 @@ test('Ask AI panel does not show in the top bar while a page loads', async ({ pa
     await expect(page.locator('#mitAiPanel')).toBeHidden(); // moved out and still shut until Ask AI is pressed
     await page.locator('[data-mit-ai-open]').click();
     await expect(page.locator('#mitAiPanel [data-mit-ai-question]')).toBeVisible();
+    // A floating window like Quick ticket (26.11.2.7): rounded, away from the screen's edges, a dark title bar
+    await page.waitForTimeout(400);
+    const look = await page.locator('#mitAiPanel').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const head = el.querySelector('.offcanvas-header');
+        return { radius: getComputedStyle(el).borderTopLeftRadius, right: window.innerWidth - r.right, top: r.top, head: getComputedStyle(head).backgroundColor };
+    });
+    expect(look.radius, 'rounded corners').toBe('16px');
+    expect(look.right, 'off the right edge').toBeGreaterThan(4);
+    expect(look.top, 'off the top edge').toBeGreaterThan(4);
+    const [r, g, b] = look.head.match(/\d+/g).map(Number);
+    expect(r + g + b, 'dark title bar').toBeLessThan(200);
+    if (process.env.MIT_SHOT) {
+        await page.screenshot({ path: process.env.MIT_SHOT });
+    }
 });
 
 test('Ask AI: question, cited answer, thumbs up, earlier conversations', async ({ page }) => {
