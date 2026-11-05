@@ -409,7 +409,7 @@ if ($tickets_pending_assignment > 0) {
 // raise nothing. recurringTicketRunNow() (functions/ticket.php) is the same code
 // the Raise now button runs.
 $sql_recurring_tickets = mysqli_query($mysqli, "SELECT recurring_ticket_id, recurring_ticket_next_run, recurring_ticket_frequency, recurring_ticket_start_date" . mitRecurringTicketByDayColumn() . " -- Mountaineer IT: + the weekday rule
-    FROM recurring_tickets WHERE recurring_ticket_next_run <= CURDATE() AND recurring_ticket_paused_at IS NULL");
+    FROM recurring_tickets WHERE " . (function_exists('mitRecurringTicketDueSql') ? mitRecurringTicketDueSql() : "recurring_ticket_next_run <= CURDATE()") . " AND recurring_ticket_paused_at IS NULL"); // Mountaineer IT: + days ahead
 
 $recurring_tickets_raised = 0;
 while ($row = mysqli_fetch_assoc($sql_recurring_tickets)) {
@@ -568,12 +568,12 @@ if ($reminder_rules['enabled']) {
 // Invoice Now button runs.
 $sql_recurring_invoices = mysqli_query($mysqli, "SELECT recurring_invoice_id, recurring_invoice_next_date FROM recurring_invoices
     WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL
-    AND recurring_invoice_next_date <= CURDATE() AND recurring_invoice_next_date >= CURDATE() - INTERVAL " . RECURRING_INVOICE_GRACE_DAYS . " DAY
+    AND " . (function_exists('mitRecurringInvoiceDueSql') ? mitRecurringInvoiceDueSql() : "recurring_invoice_next_date <= CURDATE()") . " AND recurring_invoice_next_date >= CURDATE() - INTERVAL " . RECURRING_INVOICE_GRACE_DAYS . " DAY
     ORDER BY recurring_invoice_next_date ASC, recurring_invoice_id ASC");
 
 $recurring_invoices_made = 0;
 while ($row = mysqli_fetch_assoc($sql_recurring_invoices)) {
-    if (recurringInvoiceGenerate($row['recurring_invoice_id'], 'Cron', false, $row['recurring_invoice_next_date'])) {
+    if (recurringInvoiceGenerate($row['recurring_invoice_id'], 'Cron', $row['recurring_invoice_next_date'] > date('Y-m-d'), $row['recurring_invoice_next_date'])) { // Mountaineer IT: early = made days ahead
         $recurring_invoices_made++;
     }
 }

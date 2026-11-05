@@ -2251,6 +2251,7 @@ function recurringInvoiceGenerate($recurring_invoice_id, $by = 'Cron', $early = 
     billingRecalc('invoice', $invoice_id);
     // Mountaineer IT: usage quantities (kept a Draft for review when applied); QuickBooks Online emails invoices itself
     $mit_hold = (function_exists('mitUsageApply') && mitUsageApply($invoice_id, $recurring_invoice_id)) || (function_exists('mitQboHandlesInvoiceMail') && mitQboHandlesInvoiceMail());
+    if (function_exists('mitRecurringInvoiceDue')) { mitRecurringInvoiceDue($invoice_id, $recurring_invoice_id, $due, $date); } // Mountaineer IT: made ahead - due on the run date (+ net terms)
 
     $invoice = billingRow('invoice', $invoice_id, false);
     $invoice_number = billingNumber('invoice', $invoice);

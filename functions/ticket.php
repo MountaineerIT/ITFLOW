@@ -1809,6 +1809,7 @@ function recurringTicketRunNow($row, $by) {
     global $mysqli;
     $recurring_ticket_id = intval($row['recurring_ticket_id']);
     $ticket_id = recurringTicketRaise($recurring_ticket_id, $by);
+    if ($ticket_id && function_exists('mitRecurringTicketBook')) { mitRecurringTicketBook($ticket_id, $row); } // Mountaineer IT: booked for its run day at the set time
     if ($ticket_id) {
         $due = (string) $row['recurring_ticket_next_run'];
         $next_run = recurringTicketNextRun($due, $row['recurring_ticket_frequency'], $row['recurring_ticket_start_date'], max(date('Y-m-d'), substr($due, 0, 10)), $row['recurring_ticket_by_day'] ?? '');

@@ -128,6 +128,7 @@ if (isset($_POST['add_recurring_ticket'])) {
 
     $recurring_ticket_id = mysqli_insert_id($mysqli);
     mitRecurringTicketSaveByDay($recurring_ticket_id, $f['frequency'], $_POST['repeat_on'] ?? '', $start_date); // Mountaineer IT
+    if (function_exists('mitRecurringTicketPlanSave')) { mitRecurringTicketPlanSave($recurring_ticket_id, $_POST); } // Mountaineer IT: time, length, visit, days ahead
 
     recurringTicketSetOtherAssets($recurring_ticket_id, ticketClientOwnedAssetIds($_POST['additional_assets'] ?? [], $client_id, $f['asset_id']));
     recurringTicketSetTasks($recurring_ticket_id);
@@ -173,6 +174,7 @@ if (isset($_POST['edit_recurring_ticket'])) {
         recurring_ticket_contact_id = {$f['contact_id']}, recurring_ticket_category = {$f['category_id']}, recurring_ticket_ticket_template_id = {$f['template_id']}
         WHERE recurring_ticket_id = $recurring_ticket_id");
     mitRecurringTicketSaveByDay($recurring_ticket_id, $f['frequency'], $_POST['repeat_on'] ?? mitByDayFollow($row['recurring_ticket_by_day'] ?? '', $next_run), $next_run); // Mountaineer IT
+    if (function_exists('mitRecurringTicketPlanSave')) { mitRecurringTicketPlanSave($recurring_ticket_id, $_POST); } // Mountaineer IT: time, length, visit, days ahead
 
     // The other assets go with the asset field - an empty multi-select posts nothing
     if (isset($_POST['asset_id'])) {
