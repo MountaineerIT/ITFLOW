@@ -3,6 +3,8 @@
  * Recurring tickets and invoices made ahead (functions/mit_recurring_lead.php, 26.11.3.2, M055), through ITFlow's real nightly job:
  * - a recurring ticket 5 days out with "create 5 days before" and a 9:30 time is raised tonight, booked for its run day at 9:30 for 90 min,
  *   onsite, and its next run moves on a step; one with 0 days ahead is not raised early;
+ * - "before the 1st of its month" (M056): a monthly visit later this month with 3 days before the 1st is made tonight (its month has begun),
+ *   one on the 15th of next month waits for 3 days before next month starts, and a weekly one can't use it;
  * - a recurring invoice 10 days out with "make it 10 days before" is made tonight, dated today, due on the Next invoice date + the client's
  *   net terms ("terms") or on the Next invoice date ("next"); one with 0 days is not made early.
  */
@@ -36,6 +38,16 @@ $recurring_invoice = function ($next) use ($mysqli, $client_id, $tag) {
 };
 
 $t_ahead = $recurring_ticket("$tag ahead", $in5);
+$month_mode = function_exists('mitRecurringLeadModeReady') && mitRecurringLeadModeReady();
+$this_month = min(date('Y-m-d', strtotime('+5 days')), date('Y-m-t')); // a run later this month (or today, on its last day)
+$next_15th = date('Y-m-15', strtotime('first day of next month'));
+$t_month = $recurring_ticket("$tag month", $this_month);
+$t_month_next = $recurring_ticket("$tag month next", $next_15th);
+$t_weekly = $recurring_ticket("$tag weekly", $in5);
+mysqli_query($mysqli, "UPDATE recurring_tickets SET recurring_ticket_frequency = 'Weekly' WHERE recurring_ticket_id = $t_weekly");
+foreach ([$t_month, $t_month_next, $t_weekly] as $id) {
+    mitRecurringTicketPlanSave($id, ['mit_plan_present' => 1, 'mit_plan_time' => '08:00', 'mit_plan_minutes' => 60, 'mit_plan_onsite' => 1, 'mit_plan_lead' => 3, 'mit_plan_lead_mode' => 'month']);
+}
 $t_plain = $recurring_ticket("$tag plain", $in5);
 mitRecurringTicketPlanSave($t_ahead, ['mit_plan_present' => 1, 'mit_plan_time' => '09:30', 'mit_plan_minutes' => 90, 'mit_plan_onsite' => 1, 'mit_plan_lead' => 5]);
 mitRecurringTicketPlanSave($t_plain, ['mit_plan_present' => 1, 'mit_plan_time' => '', 'mit_plan_minutes' => 60, 'mit_plan_onsite' => 0, 'mit_plan_lead' => 0]);
@@ -49,6 +61,11 @@ $terms = intval(contractNetTerms($client_id, $in10));
 
 try {
     scenarioCheck('days ahead kept under one repeat (weekly: at most 6)', mitRecurringLeadClamp(30, 'Weekly'), 6);
+    scenarioCheck('3 days before the 1st of its month: Dec 14 is made Nov 28', mitRecurringTicketCreateOn('2026-12-14', ['lead_mode' => 'month', 'lead_days' => 3]), '2026-11-28');
+    if ($month_mode) {
+        scenarioCheck('a weekly one keeps counting from the run day', mitRecurringTicketPlan($t_weekly)['lead_mode'], 'days');
+        scenarioCheck('a monthly one counts from the 1st', mitRecurringTicketPlan($t_month)['lead_mode'], 'month');
+    }
 
     exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php nightly_tasks.php 2>&1', $out, $code_run);
     scenarioCheck('nightly job ran', $code_run, 0);
@@ -65,6 +82,13 @@ try {
     scenarioCheck('its next run moved on a month', scenarioValue("SELECT recurring_ticket_next_run FROM recurring_tickets WHERE recurring_ticket_id = $t_ahead"),
         date('Y-m-d', strtotime("$in5 +1 month")));
     scenarioCheck('0 days ahead: not made early', intval(scenarioValue("SELECT COUNT(*) FROM tickets WHERE ticket_recurring_ticket_id = $t_plain")), 0);
+    if ($month_mode) {
+        scenarioCheck('before the 1st of its month: this month\'s visit made, booked for its day at 8:00',
+            scenarioValue("SELECT ticket_schedule FROM tickets WHERE ticket_recurring_ticket_id = $t_month"), "$this_month 08:00:00");
+        if (date('Y-m-d') < date('Y-m-d', strtotime(date('Y-m-01', strtotime('first day of next month')) . ' -3 days'))) {
+            scenarioCheck('next month\'s visit waits for 3 days before next month', intval(scenarioValue("SELECT COUNT(*) FROM tickets WHERE ticket_recurring_ticket_id = $t_month_next")), 0);
+        }
+    }
 
     // Invoices
     $inv = function ($rid) use ($mysqli) {
@@ -95,10 +119,10 @@ try {
         mysqli_query($mysqli, "DELETE FROM history WHERE history_recurring_invoice_id = $rid");
         mysqli_query($mysqli, "DELETE FROM recurring_invoices WHERE recurring_invoice_id = $rid");
     }
-    foreach (scenarioColumn("SELECT ticket_id FROM tickets WHERE ticket_recurring_ticket_id IN ($t_ahead, $t_plain)") as $id) {
+    foreach (scenarioColumn("SELECT ticket_id FROM tickets WHERE ticket_recurring_ticket_id IN ($t_ahead, $t_plain, $t_month, $t_month_next, $t_weekly)") as $id) {
         $GLOBALS['scenario_tickets'][] = intval($id);
     }
     scenarioCleanup();
-    mysqli_query($mysqli, "DELETE FROM recurring_tickets WHERE recurring_ticket_id IN ($t_ahead, $t_plain)");
+    mysqli_query($mysqli, "DELETE FROM recurring_tickets WHERE recurring_ticket_id IN ($t_ahead, $t_plain, $t_month, $t_month_next, $t_weekly)");
 }
 exit($GLOBALS['mit_scenario_failed'] ? 1 : 0);

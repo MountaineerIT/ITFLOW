@@ -1,5 +1,5 @@
 // Recurring tickets and invoices made ahead (functions/mit_recurring_lead.php, 26.11.3.2, M055): New Recurring Ticket's Schedule tab takes a
-// time, length, visit and "Create it N days before" (kept, and shown again in Edit); Edit Recurring Invoice takes "Make it N days before"
+// time, length, visit and "Create it N days before" - the run day or the 1st of its month (kept, and shown again in Edit); Edit Recurring Invoice takes "Make it N days before"
 // and the Due rule. What the nightly job then does with them is in tests/scenarios/scenario-recurring-lead.php.
 
 const { test, expect } = require('@playwright/test');
@@ -47,6 +47,19 @@ test('recurring ticket: time, length, visit and days ahead saved and shown again
     await submit(modal, 'edit_recurring_ticket');
     expect(db.val(`SELECT CONCAT_WS('|', IFNULL(schedule_time, 'none'), lead_days) FROM mit_recurring_ticket_plan WHERE recurring_ticket_id = ${made.ticket}`))
         .toBe('none|27');
+
+    // Site visits: 3 days before the 1st of the month the run falls in - the window says when the next one is made
+    modal = await openModal(page, `modals/recurring_ticket/recurring_ticket_edit.php?id=${made.ticket}`, 'lg');
+    await fillForm(modal, { mit_plan_lead: '3', mit_plan_lead_mode: 'month' });
+    await submit(modal, 'edit_recurring_ticket');
+    expect(db.val(`SELECT CONCAT_WS('|', lead_days, lead_mode) FROM mit_recurring_ticket_plan WHERE recurring_ticket_id = ${made.ticket}`)).toBe('3|month');
+    modal = await openModal(page, `modals/recurring_ticket/recurring_ticket_edit.php?id=${made.ticket}`, 'lg');
+    await expect(modal.locator('[name=mit_plan_lead_mode]')).toHaveValue('month');
+    const run = new Date(first.getFullYear(), first.getMonth(), 1);
+    run.setDate(run.getDate() - 3);
+    const day = new Date(Math.max(run.getTime(), new Date(new Date().toDateString()).getTime()));
+    const label = day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    await expect(modal.locator('[data-mit-recurring-made-on]'), 'when the next one is made').toContainText(`Next one is made ${label}`);
     await expectClean(page, errors);
 });
 

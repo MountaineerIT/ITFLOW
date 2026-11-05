@@ -1605,12 +1605,15 @@ model: see DEPLOYMENT.md.
   and `select` in `agent/js/mit_dispatch.js` renderDay open the window for the column's agent and the dragged time (and the client filter). Smoke
   `97-ticket-add.spec.js`.
 - Recurring tickets / invoices made ahead (Nov 5, 26.11.3.2 - the user's request): `functions/mit_recurring_lead.php` (ours, required from `functions.php`),
-  M055 `mit_recurring_ticket_plan` (recurring_ticket_id PK FK CASCADE: schedule_time, schedule_minutes, schedule_onsite, lead_days) and
+  M055 `mit_recurring_ticket_plan` (recurring_ticket_id PK FK CASCADE: schedule_time, schedule_minutes, schedule_onsite, lead_days; M056 lead_mode) and
   `mit_recurring_invoice_plan` (recurring_invoice_id PK FK CASCADE: lead_days, due_mode terms | next). Tickets: "Book the work" on the Schedule tab
   (`mitRecurringTicketPlanField` - one line in each recurring ticket window after the Repeats on line; `mitRecurringTicketPlanSave` - one line each in
   `agent/post/recurring_ticket.php` add / edit); Next run stays the work date (the user's choice) - the nightly query's condition is
   `mitRecurringTicketDueSql()` (next_run <= today + lead days) and `recurringTicketRunNow` books the raised ticket (`mitRecurringTicketBook`: ITFlow's
   ticketSetSchedule for the run day at the time - today when missed -, session name "Recurring ticket" under cron; no time = no booking).
+  "Before the 1st of its month" (M056 `lead_mode` 'month', the user's request for site visits - month-based repeats only, `mitRecurringMonthBased`,
+  0-27 days): the make day is the 1st of the run's month less the days (`mitRecurringTicketCreateOn`); `mitRecurringTicketDueSql` counts from there; the
+  edit window shows "Next one is made <date> for <run>" (`[data-mit-recurring-made-on]`).
   Invoices: "Make it N days before" + "Due" in `agent/modals/billing/billing_form.php` (`mitRecurringInvoicePlanField`; saved by `mitRecurringInvoicePlanSave`
   in `agent/post/recurring_invoice.php` add / edit); the nightly query uses `mitRecurringInvoiceDueSql()` and calls recurringInvoiceGenerate with
   `$early` = next date > today (so the invoice is dated today), and one line after `$mit_hold` in recurringInvoiceGenerate (`mitRecurringInvoiceDue`)

@@ -4,6 +4,7 @@
  * Mountaineer IT - recurring tickets and invoices made ahead (26.11.3.2, the user's request; M055).
  *
  * Recurring tickets: a time, length and visit (remote / onsite) for the work - each ticket raised is booked for its run day at that time
+ * ("before the 1st of its month" - M056 lead_mode 'month', month-based repeats only - makes a month's runs on one day: site visits)
  * with ITFlow's ticketSetSchedule (the usual emails, note, Dispatch) - and "Create it N days before": the nightly job raises the ticket
  * that many days ahead of its Next run, which stays the work date (the user's choice). Table mit_recurring_ticket_plan.
  * Hooks: the condition of the nightly job's recurring-ticket query (mitRecurringTicketDueSql), one line in recurringTicketRunNow
@@ -56,29 +57,54 @@ function mitRecurringLeadClamp($days, $frequency) {
  * ---------- Recurring tickets ----------
  */
 
-/** A recurring ticket's plan: time ('HH:MM' or ''), minutes, onsite, lead days. */
+/** Has M056 run (days ahead counted from the 1st of the run's month)? */
+function mitRecurringLeadModeReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        $ready = mitRecurringLeadReady() && mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM mit_recurring_ticket_plan LIKE 'lead_mode'")) === 1;
+    }
+    return $ready;
+}
+
+/** Month-based repeats - the only ones that may count days ahead from the 1st of the month (a weekly one would make several weeks at once). */
+function mitRecurringMonthBased($frequency) {
+    return isset(RECURRING_TICKET_FREQUENCIES[$frequency]['months']);
+}
+
+/** A recurring ticket's plan: time ('HH:MM' or ''), minutes, onsite, lead days, lead mode ('days' before the run | 'month' = before the 1st of its month). */
 function mitRecurringTicketPlan($recurring_ticket_id) {
     global $mysqli;
-    $plan = ['time' => '', 'minutes' => CALENDAR_TICKET_MINUTES, 'onsite' => 0, 'lead_days' => 0];
+    $plan = ['time' => '', 'minutes' => CALENDAR_TICKET_MINUTES, 'onsite' => 0, 'lead_days' => 0, 'lead_mode' => 'days'];
     if (!mitRecurringLeadReady() || !intval($recurring_ticket_id)) {
         return $plan;
     }
-    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT schedule_time, schedule_minutes, schedule_onsite, lead_days FROM mit_recurring_ticket_plan
-        WHERE recurring_ticket_id = " . intval($recurring_ticket_id)));
+    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT schedule_time, schedule_minutes, schedule_onsite, lead_days"
+        . (mitRecurringLeadModeReady() ? ', lead_mode' : '') . " FROM mit_recurring_ticket_plan WHERE recurring_ticket_id = " . intval($recurring_ticket_id)));
     if ($row) {
         $plan = ['time' => $row['schedule_time'] ? substr($row['schedule_time'], 0, 5) : '', 'minutes' => intval($row['schedule_minutes']),
-            'onsite' => intval($row['schedule_onsite']), 'lead_days' => intval($row['lead_days'])];
+            'onsite' => intval($row['schedule_onsite']), 'lead_days' => intval($row['lead_days']), 'lead_mode' => ($row['lead_mode'] ?? '') === 'month' ? 'month' : 'days'];
     }
     return $plan;
 }
 
-/** The nightly job's condition: due today, missed, or due within its lead days. */
+/** The day the ticket for a run on $run is made under $plan ('Y-m-d'). */
+function mitRecurringTicketCreateOn($run, array $plan) {
+    $run = substr((string) $run, 0, 10);
+    $from = $plan['lead_mode'] === 'month' ? substr($run, 0, 8) . '01' : $run;
+    return date('Y-m-d', strtotime($from . ' -' . intval($plan['lead_days']) . ' days'));
+}
+
+/** The nightly job's condition: due today, missed, or its make-ahead day has come (days before the run, or before the 1st of its month). */
 function mitRecurringTicketDueSql() {
     if (!mitRecurringLeadReady()) {
         return "recurring_ticket_next_run <= CURDATE()";
     }
-    return "recurring_ticket_next_run <= CURDATE() + INTERVAL COALESCE((SELECT p.lead_days FROM mit_recurring_ticket_plan p
-        WHERE p.recurring_ticket_id = recurring_tickets.recurring_ticket_id), 0) DAY";
+    $from = mitRecurringLeadModeReady()
+        ? "IF(p.lead_mode = 'month', DATE_FORMAT(recurring_tickets.recurring_ticket_next_run, '%Y-%m-01'), DATE(recurring_tickets.recurring_ticket_next_run))"
+        : "DATE(recurring_tickets.recurring_ticket_next_run)";
+    return "(recurring_ticket_next_run <= CURDATE() OR EXISTS (SELECT 1 FROM mit_recurring_ticket_plan p
+        WHERE p.recurring_ticket_id = recurring_tickets.recurring_ticket_id AND p.lead_days > 0 AND DATE_SUB($from, INTERVAL p.lead_days DAY) <= CURDATE()))";
 }
 
 /** Time, how long, visit and "create it N days before" on the Schedule tab ($recurring_ticket_id 0 = a new one). */
@@ -96,6 +122,22 @@ function mitRecurringTicketPlanField($recurring_ticket_id = 0) {
     foreach ($lengths as $minutes => $label) {
         $length_options .= '<option value="' . intval($minutes) . '"' . (intval($minutes) === $plan['minutes'] ? ' selected' : '') . '>' . escapeHtml($label) . '</option>';
     }
+    $frequency = '';
+    $next_run = '';
+    if (intval($recurring_ticket_id)) {
+        $rt = mysqli_fetch_row(mysqli_query($GLOBALS['mysqli'], "SELECT recurring_ticket_frequency, recurring_ticket_next_run FROM recurring_tickets WHERE recurring_ticket_id = " . intval($recurring_ticket_id)));
+        [$frequency, $next_run] = [(string) ($rt[0] ?? ''), substr((string) ($rt[1] ?? ''), 0, 10)];
+    }
+    $mode_options = '<option value="days"' . ($plan['lead_mode'] === 'days' ? ' selected' : '') . '>days before the run day</option>';
+    if (mitRecurringLeadModeReady()) {
+        $mode_options .= '<option value="month"' . ($plan['lead_mode'] === 'month' ? ' selected' : '') . '>days before the 1st of its month</option>';
+    }
+    $made_on = '';
+    if ($next_run !== '' && $plan['lead_days'] > 0) {
+        $on = mitRecurringTicketCreateOn($next_run, $plan);
+        $made_on = '<div class="small mt-1" data-mit-recurring-made-on><i class="far fa-calendar-plus me-1"></i>Next one is made '
+            . escapeHtml(date('M j, Y', strtotime(max($on, date('Y-m-d'))))) . ' for ' . escapeHtml(date('M j, Y', strtotime($next_run))) . '.</div>';
+    }
     $zone = function_exists('mitViewShifted') && mitViewShifted(mitViewZone())
         ? '<div class="form-text">Company time (' . escapeHtml($GLOBALS['config_timezone'] ?? date_default_timezone_get()) . ').</div>' : '';
     return '<div class="border rounded p-2 pt-1 mb-3" data-mit-recurring-plan><input type="hidden" name="mit_plan_present" value="1">'
@@ -105,11 +147,12 @@ function mitRecurringTicketPlanField($recurring_ticket_id = 0) {
         . '<div class="col-sm-4"><label class="small">How long</label><select class="form-select" name="mit_plan_minutes">' . $length_options . '</select></div>'
         . '<div class="col-sm-4"><label class="small">Visit</label><select class="form-select" name="mit_plan_onsite"><option value="0"' . ($plan['onsite'] ? '' : ' selected') . '>Remote</option>'
         . '<option value="1"' . ($plan['onsite'] ? ' selected' : '') . '>Onsite</option></select></div>'
-        . '<div class="col-sm-6"><label class="small">Create it</label><div class="input-group"><input type="number" class="form-control" name="mit_plan_lead" min="0" max="90" value="' . intval($plan['lead_days']) . '">'
-        . '<span class="input-group-text">days before</span></div></div>'
+        . '<div class="col-12"><label class="small">Create it</label><div class="input-group"><input type="number" class="form-control" name="mit_plan_lead" min="0" max="90" style="max-width: 7rem" value="' . intval($plan['lead_days']) . '">'
+        . '<select class="form-select" name="mit_plan_lead_mode">' . $mode_options . '</select></div>' . $made_on . '</div>'
         . '</div>'
         . '<div class="form-text">With a time, each ticket is booked for its run day at that time with its agent, and emailed as when it is scheduled on the ticket - '
-        . 'leave the time empty to book nothing. 0 days makes it on the run day; more makes it that many days ahead, booked for the run day (less than one repeat).</div>'
+        . 'leave the time empty to book nothing. 0 days makes it on the run day. "Before the 1st of its month" makes every run in a month on the same day - '
+        . '3 makes all of December\'s on November 28, each booked for its own day (monthly, quarterly, twice-yearly and yearly repeats).</div>'
         . '</div>';
 }
 
@@ -124,10 +167,13 @@ function mitRecurringTicketPlanSave($recurring_ticket_id, array $post) {
     $time = preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', trim((string) ($post['mit_plan_time'] ?? ''))) ? "'" . trim($post['mit_plan_time']) . ":00'" : 'NULL';
     $minutes = max(15, min(24 * 60, intval($post['mit_plan_minutes'] ?? CALENDAR_TICKET_MINUTES)));
     $onsite = intval($post['mit_plan_onsite'] ?? 0) ? 1 : 0;
-    $lead = mitRecurringLeadClamp($post['mit_plan_lead'] ?? 0, $frequency);
+    // Before the 1st of its month: month-based repeats only, 0-27 days (made in the month before at the earliest, never a step early)
+    $mode = ($post['mit_plan_lead_mode'] ?? '') === 'month' && mitRecurringMonthBased($frequency) && mitRecurringLeadModeReady() ? 'month' : 'days';
+    $lead = $mode === 'month' ? max(0, min(27, intval($post['mit_plan_lead'] ?? 0))) : mitRecurringLeadClamp($post['mit_plan_lead'] ?? 0, $frequency);
+    $mode_sql = mitRecurringLeadModeReady() ? ", lead_mode = '$mode'" : '';
     mysqli_query($mysqli, "INSERT INTO mit_recurring_ticket_plan SET recurring_ticket_id = $recurring_ticket_id, schedule_time = $time, schedule_minutes = $minutes,
-        schedule_onsite = $onsite, lead_days = $lead
-        ON DUPLICATE KEY UPDATE schedule_time = $time, schedule_minutes = $minutes, schedule_onsite = $onsite, lead_days = $lead");
+        schedule_onsite = $onsite, lead_days = $lead $mode_sql
+        ON DUPLICATE KEY UPDATE schedule_time = $time, schedule_minutes = $minutes, schedule_onsite = $onsite, lead_days = $lead $mode_sql");
 }
 
 /**
@@ -168,7 +214,7 @@ function mitRecurringTicketPlanText($recurring_ticket_id) {
         $bits[] = 'booked ' . date('g:i a', strtotime('2000-01-01 ' . $plan['time']));
     }
     if ($plan['lead_days']) {
-        $bits[] = 'made ' . $plan['lead_days'] . ' day' . ($plan['lead_days'] === 1 ? '' : 's') . ' ahead';
+        $bits[] = 'made ' . $plan['lead_days'] . ' day' . ($plan['lead_days'] === 1 ? '' : 's') . ($plan['lead_mode'] === 'month' ? ' before the 1st of its month' : ' ahead');
     }
     return $bits ? ucfirst(implode(', ', $bits)) . '.' : '';
 }

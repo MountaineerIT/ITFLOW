@@ -5,7 +5,7 @@ again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > 
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
 ## 26.11.3.2 - 2026-11-05
-- Recurring tickets: the Schedule tab has a time, how long and Remote / Onsite - each ticket it raises is booked on the calendar for its run day at that time, with its agent, and emailed as when work is scheduled on a ticket. "Create it N days before" raises the ticket that many days ahead, already booked for the run day (Next run stays the work date).
+- Recurring tickets: the Schedule tab has a time, how long and Remote / Onsite - each ticket it raises is booked on the calendar for its run day at that time, with its agent, and emailed as when work is scheduled on a ticket. "Create it N days before" raises the ticket that many days ahead, already booked for the run day (Next run stays the work date). Or "days before the 1st of its month" (monthly, quarterly, twice-yearly and yearly repeats): every site visit due in a month is made on the same day - 3 makes all of December's on November 28, each booked for its own day. The window says when the next one will be made.
 - Recurring invoices: "Make it N days before" makes the invoice that many days ahead of Next invoice, dated the day it is made. Due: on the Next invoice date, or the client's net terms counted from the Next invoice date (Net 30 clients still get their 30 days).
 
 ## 26.11.3.1 - 2026-11-05
