@@ -995,7 +995,7 @@ model: see DEPLOYMENT.md.
   invite only after the reassign; our cron mails use `mitMailFrom()` (globals are escaped by nightly_tasks);
   `scripts/install.sh` runs setup before enabling the site, keeps `https_only` with `--ssl none` (mod_remoteip for private
   proxies, `SetEnvIf X-Forwarded-Proto`).
-  Audit B (26.10.73), ours: sign-ins end when the password or MFA changes - `mitSessionStamp` / `mitSessionCheck` /
+  Audit B (26.10.73), ours: sign-ins end when the password or MFA changes (MFA only since 26.11.3.1 - ITFlow does passwords) - `mitSessionStamp` / `mitSessionCheck` /
   `mitSessionRestamp` (mit_common; a fingerprint of `user_password` + `user_token` in `$_SESSION['mit_session_stamp']`, owner
   user id + agent / portal in `mit_session_stamp_owner` - another account signing in re-stamps, no table), hooks in `includes/load_user_session.php`, `client/includes/check_login.php`, `functions/user.php` userSetPassword /
   userResetMfa, `agent/user/post/profile.php` (MFA on), `client/post.php` (own password). Portal Entra sign-in is tied to the
@@ -1517,6 +1517,14 @@ model: see DEPLOYMENT.md.
   3.5.4 (index transfers.transfer_expense_id - nothing of ours on that table). **ITFlow relicensed GPL-3.0 -> AGPL-3.0**; the user accepted
   it for this build (Nov 3): README's license section + badge say AGPL-3.0 and point to this public repository as the source (the AGPL's
   network clause - portal / guest users). Conflicts: README.md (ours kept) and .github/workflows/first-interaction.yml (kept deleted).
+- ITFlow 26.11.3 (Nov 5, 26.11.3.1 - master, 13 commits; database 3.5.4 -> 3.5.5, index on expenses.expense_refund_of_id): Stripe fees by a new
+  cron job, Transactions transfer totals, API key expiry notice, Products API update (`productSave` - our columns not in its model). Overlaps
+  taken as ITFlow's (the user agreed): a password change ends other sessions (`userSessionStamp` / `user_session_stamp`, checked in
+  `includes/load_user_session.php` and `client/includes/check_login.php`) - ours, `mitSessionStamp`, is now MFA only (session keys
+  `mit_session_mfa_stamp[_owner]`; restamped by profile.php MFA on, `userResetMfa`, portal MFA on / off); MFA set-up held on every request
+  (`requestIsMfaSetup` replaces our 26.10.95 check); restore guards for backups / canned_responses / expenses / tmp (`BACKUP_UPLOADS_DENY_GUARD`) -
+  `backupAssertUploadsGuards` keeps our sub-folder sweep and writes only mit_receipts / mit_feedback. The service-account block sits before ITFlow's
+  password check in load_user_session.php. Conflicts: README.md (ours), client/post.php, functions/user.php, includes/load_user_session.php.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

@@ -353,7 +353,7 @@ hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
 hook	client/login_reset.php	mitLoginHead	2
 hook	client/pay.php	mitQboTakesPayments	2
 hook	client/post.php	mitQboGuardPayment	2
-hook	client/post.php	mitSessionRestamp	6
+hook	client/post.php	mitSessionRestamp	4
 hook	client/post.php	mitTicketTechsCopyReply	2
 hook	client/post.php	mit_invoice_id	2
 hook	cron/ai_triage.php	mitDevMode	2
@@ -494,7 +494,7 @@ hook	functions/ticket_fields.php	mitNotifyOn	8
 hook	functions/ticket_fields.php	mitServiceUserSql	2
 hook	functions/ticket_mention.php	mitServiceUserSql	2
 hook	functions/trips.php	mitServiceUserSql	2
-hook	functions/user.php	mitSessionRestamp	2
+hook	functions/user.php	mitSessionRestamp	1
 hook	functions/user_invite.php	mitInviteExtrasApply	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
 hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2

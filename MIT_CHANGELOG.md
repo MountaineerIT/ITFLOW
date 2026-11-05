@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.1 - 2026-11-05
+- ITFlow 26.11.3 merged (database 3.5.5): Stripe fees recorded every 15 minutes, transfers no longer counted twice in Transactions' Money in / Money out, faster Transactions / Reconcile / billable expenses, a notice before API keys expire, a Products API update endpoint, and security fixes - other sign-ins end when a password changes, MFA set-up is enforced on every page, restores can't carry access files into uploads.
+- ITFlow now does the password-change sign-out we added in 26.10.73, so ours only covers MFA being turned on, off or reset. Everyone is signed out once after this update (ITFlow's new check starts fresh).
+
 ## 26.11.2.7 - 2026-11-05
 - Ask AI opens as a floating window like Quick ticket: rounded corners, a dark title bar, and a small gap from the screen's edges.
 
