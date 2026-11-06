@@ -145,7 +145,28 @@ try {
     [$st, $free] = $graph('POST', '/me/events', ['subject' => "$tag free", 'showAs' => 'free',
         'start' => ['dateTime' => $utc("$after 19:00:00"), 'timeZone' => 'UTC'], 'end' => ['dateTime' => $utc("$after 20:00:00"), 'timeZone' => 'UTC']]);
     $made_events[] = $free['id'] ?? '';
+    // All-day events: Outlook makes them Free by default - they come over (shown, no clash); one over three days, one sent the way
+    // Graph gives an all-day event of another zone (Tokyo's midnight in UTC = the day before, 15:00)
+    $after2 = date('Y-m-d', strtotime("$after +2 days"));
+    $after3 = date('Y-m-d', strtotime("$after +3 days"));
+    [$st, $allday] = $graph('POST', '/me/events', ['subject' => "$tag trip", 'showAs' => 'free', 'isAllDay' => true,
+        'start' => ['dateTime' => "{$after}T00:00:00", 'timeZone' => 'UTC'], 'end' => ['dateTime' => "{$after3}T00:00:00", 'timeZone' => 'UTC']]);
+    $made_events[] = $allday['id'] ?? '';
+    [$st, $tokyo] = $graph('POST', '/me/events', ['subject' => "$tag zz tokyo", 'showAs' => 'oof', 'isAllDay' => true,
+        'start' => ['dateTime' => date('Y-m-d', strtotime("$after2 -1 day")) . 'T15:00:00', 'timeZone' => 'UTC'], 'end' => ['dateTime' => "{$after2}T15:00:00", 'timeZone' => 'UTC']]);
+    $made_events[] = $tokyo['id'] ?? '';
     $sync();
+    $days = mysqli_fetch_all(mysqli_query($mysqli, "SELECT starts_at, ends_at, is_all_day, show_as FROM mit_outlook_busy WHERE user_id = $user AND subject IN ('$tag trip', '$tag zz tokyo') ORDER BY subject"), MYSQLI_ASSOC);
+    scenarioCheck('all-day events copied (a free 3-day one, and one given as another zone\'s midnight in UTC)', $days, [
+        ['starts_at' => "$after 00:00:00", 'ends_at' => "$after3 00:00:00", 'is_all_day' => '1', 'show_as' => 'free'],
+        ['starts_at' => "$after2 00:00:00", 'ends_at' => date('Y-m-d', strtotime("$after2 +1 day")) . ' 00:00:00', 'is_all_day' => '1', 'show_as' => 'oof']]);
+    $c = mitScheduleConflicts($user, date('Y-m-d', strtotime("$after +1 day")) . ' 10:00:00', date('Y-m-d', strtotime("$after +1 day")) . ' 11:00:00');
+    scenarioCheck('a free all-day event is not a clash', count(array_filter($c, function ($x) { return strpos($x, 'Outlook:') === 0; })), 0);
+    $c = mitScheduleConflicts($user, "$after2 10:00:00", "$after2 11:00:00");
+    scenarioCheck('an out-of-office all-day event is', count(array_filter($c, function ($x) use ($tag) { return strpos($x, 'Outlook: Out of office') === 0 || strpos($x, "Outlook: $tag zz tokyo") === 0; })), 1);
+    $items = array_values(array_filter(mitOutlookBusyItems("$after 00:00:00", "$after3 00:00:00", ['user_id' => $user]), function ($i) use ($tag) { return $i['title'] === "$tag trip"; }));
+    scenarioCheck('on the calendar as an all-day block over its days', [$items[0]['allDay'] ?? null, $items[0]['start'] ?? '', $items[0]['end'] ?? ''], [true, $after, $after3]);
+    mysqli_query($mysqli, "DELETE FROM mit_outlook_busy WHERE user_id = $user AND subject IN ('$tag trip', '$tag zz tokyo')");
     $busy = mysqli_fetch_all(mysqli_query($mysqli, "SELECT starts_at, ends_at, subject FROM mit_outlook_busy WHERE user_id = $user AND subject LIKE '$tag%'"), MYSQLI_ASSOC);
     scenarioCheck('personal appointment copied in local time; invite copy and free time left out', $busy, [['starts_at' => "$after 12:00:00", 'ends_at' => "$after 12:45:00", 'subject' => "$tag dentist"]]);
     $c = mitScheduleConflicts($user, "$after 12:30:00", "$after 13:30:00");
