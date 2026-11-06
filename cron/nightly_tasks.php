@@ -323,6 +323,17 @@ foreach ($certificateAlertArray as $day) {
 // Logging
 // logAudit("Cron", "Task", "Cron created notifications for certificates expiring");
 
+// API KEYS EXPIRING
+$sql = mysqli_query($mysqli, "SELECT api_key_id, api_key_name, api_key_expire FROM api_keys
+    WHERE api_key_expire = CURDATE() + INTERVAL 7 DAY");
+
+while ($row = mysqli_fetch_assoc($sql)) {
+    $api_key_id = intval($row['api_key_id']);
+    $api_key_name = escapeSql($row['api_key_name']);
+    $api_key_expire = escapeSql($row['api_key_expire']);
+    appNotify("API Key Expiring", "API key $api_key_name will expire in 7 days on $api_key_expire", "/admin/api_keys.php", 0, $api_key_id);
+}
+
 // Asset Warranties Expiring
 
 $warranty_alert_array = [1,7,45];
@@ -398,7 +409,7 @@ if ($tickets_pending_assignment > 0) {
 // raise nothing. recurringTicketRunNow() (functions/ticket.php) is the same code
 // the Raise now button runs.
 $sql_recurring_tickets = mysqli_query($mysqli, "SELECT recurring_ticket_id, recurring_ticket_next_run, recurring_ticket_frequency, recurring_ticket_start_date" . mitRecurringTicketByDayColumn() . " -- Mountaineer IT: + the weekday rule
-    FROM recurring_tickets WHERE recurring_ticket_next_run <= CURDATE() AND recurring_ticket_paused_at IS NULL");
+    FROM recurring_tickets WHERE " . (function_exists('mitRecurringTicketDueSql') ? mitRecurringTicketDueSql() : "recurring_ticket_next_run <= CURDATE()") . " AND recurring_ticket_paused_at IS NULL"); // Mountaineer IT: + days ahead
 
 $recurring_tickets_raised = 0;
 while ($row = mysqli_fetch_assoc($sql_recurring_tickets)) {
@@ -557,12 +568,12 @@ if ($reminder_rules['enabled']) {
 // Invoice Now button runs.
 $sql_recurring_invoices = mysqli_query($mysqli, "SELECT recurring_invoice_id, recurring_invoice_next_date FROM recurring_invoices
     WHERE recurring_invoice_status = 1 AND recurring_invoice_archived_at IS NULL
-    AND recurring_invoice_next_date <= CURDATE() AND recurring_invoice_next_date >= CURDATE() - INTERVAL " . RECURRING_INVOICE_GRACE_DAYS . " DAY
+    AND " . (function_exists('mitRecurringInvoiceDueSql') ? mitRecurringInvoiceDueSql() : "recurring_invoice_next_date <= CURDATE()") . " AND recurring_invoice_next_date >= CURDATE() - INTERVAL " . RECURRING_INVOICE_GRACE_DAYS . " DAY
     ORDER BY recurring_invoice_next_date ASC, recurring_invoice_id ASC");
 
 $recurring_invoices_made = 0;
 while ($row = mysqli_fetch_assoc($sql_recurring_invoices)) {
-    if (recurringInvoiceGenerate($row['recurring_invoice_id'], 'Cron', false, $row['recurring_invoice_next_date'])) {
+    if (recurringInvoiceGenerate($row['recurring_invoice_id'], 'Cron', $row['recurring_invoice_next_date'] > date('Y-m-d'), $row['recurring_invoice_next_date'])) { // Mountaineer IT: early = made days ahead
         $recurring_invoices_made++;
     }
 }
@@ -768,19 +779,7 @@ while ($row = mysqli_fetch_assoc($sql_recurring_payments)) {
     }
 }
 
-/*
- * Stripe fee reconciliation - the fee on each recent card payment that has
- * none recorded yet, as Stripe charged it, once it has settled
- * (paymentProviderRecordFees(), functions/payment_provider.php - the same
- * thing Record fees now on Admin > Payment Providers does). One card payment
- * over several invoices has one fee, taken once. A payment can complete
- * before Stripe settles it; that one is picked up on a later run.
- */
-$stripe_provider = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT payment_provider_name, payment_provider_private_key, payment_provider_account,
-    payment_provider_expense_vendor, payment_provider_expense_category FROM payment_providers WHERE payment_provider_name = 'Stripe' LIMIT 1"));
-if ($stripe_provider) {
-    paymentProviderRecordFees($stripe_provider);
-}
+// Stripe fees are recorded by their own job every few minutes - cron/payment_provider_fees.php
 
 /*
  * Recurring expenses - each running one due today, or missed by up to

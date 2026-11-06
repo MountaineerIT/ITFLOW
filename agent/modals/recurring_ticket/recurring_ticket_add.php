@@ -215,6 +215,8 @@ ob_start();
 
                 <?= mitRecurringTicketRepeatOnField('start_date', '') // Mountaineer IT: or the third Wednesday, the last Friday ?>
 
+                <?= function_exists('mitRecurringTicketPlanField') ? mitRecurringTicketPlanField(0) : '' // Mountaineer IT: time, length, visit, days ahead ?>
+
             </div>
 
             <div class="tab-pane fade" id="pills-add-assets">

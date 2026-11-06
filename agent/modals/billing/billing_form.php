@@ -190,6 +190,7 @@ $form_scope_placeholder = [
                 <div class="form-text text-warning-emphasis">Emailing the invoices recurring invoices make is off in Settings &gt; Notifications - they are made as drafts.</div>
             <?php } ?>
         </div>
+        <?= function_exists('mitRecurringInvoicePlanField') ? mitRecurringInvoicePlanField($form_edit ? intval($form_row['recurring_invoice_id']) : 0, $form_edit ? intval($form_row['recurring_invoice_client_id'] ?? $form_row['client_id'] ?? 0) : intval($form_client_id ?? 0)) : '' // Mountaineer IT: made days ahead, due rule ?>
         <?php if ($form_edit) { ?>
             <div class="col-12">
                 <div class="form-check form-switch">

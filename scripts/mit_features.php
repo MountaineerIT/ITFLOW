@@ -399,6 +399,18 @@ return [
         'watch' => ['api_key_user_id', 'apiKeyAgentProblem', 'quickPickAgents', 'ticketMentionAgents', 'signInAdmins'],
         'overlap' => ['service_account', 'api_user', 'user_is_api', 'bot_user'],
     ],
+    'recurring_lead' => [
+        'name' => 'Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule',
+        'files' => ['functions/mit_recurring_lead.php'],
+        'tests' => ['tests/smoke/98-recurring-lead.spec.js', 'tests/scenarios/scenario-recurring-lead.php'],
+        'assumes' => [
+            'The nightly job (cron/nightly_tasks.php) raises recurring tickets whose recurring_ticket_next_run is due through recurringTicketRunNow, and makes recurring invoices through recurringInvoiceGenerate($id, $by, $early, $run) - $early dates the invoice today.',
+            'recurringInvoiceGenerate inserts the invoice with invoice_due = date + contractNetTerms and keeps $invoice_id / $due / $date in scope after billingRecalc.',
+            'ticketSetSchedule($row, $start, $onsite, $end) books a ticket (emails, note, history); recurring windows are agent/modals/recurring_ticket/recurring_ticket_add.php / _edit.php, recurring invoices use agent/modals/billing/billing_form.php.',
+        ],
+        'watch' => ['recurringTicketRunNow', 'recurringInvoiceGenerate', 'RECURRING_INVOICE_GRACE_DAYS', 'contractNetTerms', 'ticketSetSchedule'],
+        'overlap' => ['lead_days', 'invoice_lead', 'days_before', 'create_ahead', 'recurring_ticket_time'],
+    ],
     'ticket_add' => [
         'name' => 'New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time',
         'files' => ['functions/mit_ticket_add.php'],

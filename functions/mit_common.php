@@ -211,16 +211,17 @@ function mitModulesSave(array $post) {
 }
 
 /**
- * Sign-ins end when the password or MFA changes: each session keeps a fingerprint of the user's password hash and MFA
- * secret (mitSessionStamp), checked on every page (includes/load_user_session.php, client/includes/check_login.php).
- * A password reset - by an admin, the "reset all passwords" button or the person - or MFA turned on / off changes it, so
- * every other sign-in of that person ends at its next click. The session that made its own change is restamped
+ * Sign-ins end when MFA changes: each session keeps a fingerprint of the user's MFA secret (mitSessionStamp), checked on
+ * every page (includes/load_user_session.php, client/includes/check_login.php). MFA turned on / off / reset changes it, so
+ * every other sign-in of that person ends at its next click. (A password change is ITFlow's own since 26.11.3 -
+ * userSessionStamp; ours covered both until then.) The session that made its own change is restamped
  * (mitSessionRestamp) and carries on. No table of its own - the fingerprint comes from ITFlow's users row.
  */
 function mitSessionStamp($user_id) {
     global $mysqli;
-    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_password, user_token FROM users WHERE user_id = " . intval($user_id)));
-    return $row ? substr(hash('sha256', (string) $row[0] . '|' . (string) $row[1]), 0, 32) : '';
+    // MFA only (26.11.3.1): ITFlow 26.11.3 ends sessions on a password change itself (userSessionStamp), so ours covers MFA turned on / off / reset
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_token FROM users WHERE user_id = " . intval($user_id)));
+    return $row ? substr(hash('sha256', 'mfa|' . (string) $row[0]), 0, 32) : '';
 }
 
 /** Whose fingerprint the session holds: the user id and agent / portal (a portal sign-in carries contact_id). */
@@ -236,19 +237,19 @@ function mitSessionStampOwner($user_id) {
 function mitSessionCheck($user_id) {
     $stamp = mitSessionStamp($user_id);
     $owner = mitSessionStampOwner($user_id);
-    if (!isset($_SESSION['mit_session_stamp']) || ($_SESSION['mit_session_stamp_owner'] ?? '') !== $owner) {
-        $_SESSION['mit_session_stamp'] = $stamp;
-        $_SESSION['mit_session_stamp_owner'] = $owner;
+    if (!isset($_SESSION['mit_session_mfa_stamp']) || ($_SESSION['mit_session_mfa_stamp_owner'] ?? '') !== $owner) {
+        $_SESSION['mit_session_mfa_stamp'] = $stamp;
+        $_SESSION['mit_session_mfa_stamp_owner'] = $owner;
         return true;
     }
-    return hash_equals((string) $_SESSION['mit_session_stamp'], $stamp);
+    return hash_equals((string) $_SESSION['mit_session_mfa_stamp'], $stamp);
 }
 
-/** After the signed-in person changed their own password or MFA: this session carries on. */
+/** After the signed-in person changed their own MFA: this session carries on. */
 function mitSessionRestamp($user_id) {
     if (session_status() === PHP_SESSION_ACTIVE && intval($_SESSION['user_id'] ?? 0) === intval($user_id)) {
-        $_SESSION['mit_session_stamp'] = mitSessionStamp($user_id);
-        $_SESSION['mit_session_stamp_owner'] = mitSessionStampOwner($user_id);
+        $_SESSION['mit_session_mfa_stamp'] = mitSessionStamp($user_id);
+        $_SESSION['mit_session_mfa_stamp_owner'] = mitSessionStampOwner($user_id);
     }
 }
 

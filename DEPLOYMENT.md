@@ -305,6 +305,9 @@ break stock ITFlow, and lists what stops working after a move.
 - **API / service accounts** – stock ITFlow has no such mark: those logins show in every agent list again (calendar, Dispatch is gone
   anyway, assign pickers, reports, @mentions) and can sign in to the web pages with their password; their API keys keep working.
   `mit_service_users` stays unused.
+- **Recurring tickets / invoices made ahead** – stock ITFlow raises a recurring ticket on its run day with no booking, and makes a recurring
+  invoice on its Next invoice date with the client's net terms from that day. The time / days-ahead / due settings in `mit_recurring_ticket_plan` /
+  `mit_recurring_invoice_plan` stay unused; tickets and invoices already made keep their bookings and due dates.
 - **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
   `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
   and phone, and purchase orders go with Procurement.

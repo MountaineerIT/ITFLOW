@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 64 | 13 | 7 | 29 | 70 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 173 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 66 | 13 | 7 | 29 | 70 | 40 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 175 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -36,6 +36,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 39 |
+| [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
 
 <a id="platform"></a>
@@ -103,7 +104,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** assets, calendar_events, categories, clients, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_password, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -1426,6 +1427,45 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** service_account, api_user, user_is_api, bot_user
 
 **Our files** `functions/mit_service_users.php`
+
+<a id="recurring_lead"></a>
+## Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule (`recurring_lead`)
+
+**Takes for granted**
+
+- The nightly job (cron/nightly_tasks.php) raises recurring tickets whose recurring_ticket_next_run is due through recurringTicketRunNow, and makes recurring invoices through recurringInvoiceGenerate($id, $by, $early, $run) - $early dates the invoice today.
+- recurringInvoiceGenerate inserts the invoice with invoice_due = date + contractNetTerms and keeps $invoice_id / $due / $date in scope after billingRecalc.
+- ticketSetSchedule($row, $start, $onsite, $end) books a ticket (emails, note, history); recurring windows are agent/modals/recurring_ticket/recurring_ticket_add.php / _edit.php, recurring invoices use agent/modals/billing/billing_form.php.
+
+**Tests** `tests/smoke/98-recurring-lead.spec.js`, `tests/scenarios/scenario-recurring-lead.php`
+
+**Hooks in ITFlow's files**
+
+- `agent/modals/billing/billing_form.php`: mitRecurringInvoicePlanField
+- `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitRecurringTicketPlanField
+- `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitRecurringTicketPlanField
+- `agent/post/recurring_invoice.php`: mitRecurringInvoicePlanSave
+- `agent/post/recurring_ticket.php`: mitRecurringTicketPlanSave
+- `cron/nightly_tasks.php`: mitRecurringInvoiceDueSql, mitRecurringTicketDueSql
+- `functions.php`: mit_recurring_lead
+- `functions/billing.php`: mitRecurringInvoiceDue, mit_hold
+- `functions/ticket.php`: mitRecurringTicketBook
+
+**ITFlow functions it calls**
+
+- `functions/contract_billing.php`: contractNetTerms
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/ticket.php`: ticketRow, ticketSetSchedule
+
+**ITFlow tables** invoices, recurring_invoices, recurring_tickets
+
+**ITFlow columns** config_timezone, invoice_client_id, invoice_due, invoice_id, recurring_invoice_frequency, recurring_invoice_id, recurring_invoice_next_date, recurring_ticket_frequency, recurring_ticket_id, recurring_ticket_next_run
+
+**Watched in ITFlow's code** `recurringTicketRunNow` `recurringInvoiceGenerate` `RECURRING_INVOICE_GRACE_DAYS` `contractNetTerms` `ticketSetSchedule`
+
+**"ITFlow does this too" words** lead_days, invoice_lead, days_before, create_ahead, recurring_ticket_time
+
+**Our files** `functions/mit_recurring_lead.php`
 
 <a id="ticket_add"></a>
 ## New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time (`ticket_add`)
