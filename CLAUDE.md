@@ -481,6 +481,12 @@ model: see DEPLOYMENT.md.
   expense (`mitPoRecordBill`, PO `expense_id`). Hooks: `mitProcInvoiceSummary` + `mitProcInvoiceLineStatus`
   in `agent/invoice.php` (above the items / under each line name), `mitProcProjectCard` in
   `agent/project.php` (left column, under the tabs card).
+  PO lines on a project afterwards (26.11.3.5 - the user found no way to): `mitPoSetProject` / `mitPoProjectChoices` (functions/mit_procurement_extras.php)
+  - "Link to a project" on `agent/mit_purchase_order.php` (`[data-mit-po-project-btn]`, any status but cancelled) and a link per line's For cell
+  (`[data-mit-po-line-project]`, `&line_id=`) open `po_action.php?action=project` (open projects the agent can reach; tick lines), handler
+  `mit_po_set_project`. The line and its procurement item take the project (0 = off); another client's line refused; a line for nobody takes a
+  client project's client only while nothing of it was received; a client's line can't go on a project with no client. PO history + audit.
+  Scenario `scenario-procurement-project.php`, smoke `37-po-project.spec.js`.
   Products API: `api/v1/products/read.php` selects `mitProductApiColumns()` (every column but our cost /
   markup) instead of `*` - two lines.
 - Timesheets (Oct 2026): `functions/mit_timesheets.php` (ours) - per pay period (semi-monthly default;

@@ -385,3 +385,93 @@ function mitProcProjectCard($project_id) {
     }
     return $html . '</div>';
 }
+
+/*
+ * ---------- a PO's lines on a project, after it was made (26.11.3.5, the user's request) ----------
+ *
+ * A line takes its project from its item when the PO is made, and nothing changed it after - so items ordered before the project
+ * was set up never showed on it. "Link to a project" on the PO (po_action.php?action=project, handler mit_po_set_project) puts the
+ * ticked lines - and the items they came from - on a project, or takes them off, at any status but cancelled. A line for another
+ * client can't go on a client's project; a line for nobody takes the project's client while nothing of it has been received
+ * (what was received went to stock or became assets as it was).
+ */
+
+/** Open projects the agent can reach, with their client's name - for the picker. [id => ['label', 'client', 'client_name']]. */
+function mitPoProjectChoices() {
+    global $mysqli;
+    $choices = [];
+    $result = mysqli_query($mysqli, "SELECT project_id, project_prefix, project_number, project_name, project_client_id, client_name FROM projects
+        LEFT JOIN clients ON client_id = project_client_id
+        WHERE project_archived_at IS NULL AND project_completed_at IS NULL" . clientScopeSql('project_client_id') . " ORDER BY client_name, project_number DESC");
+    while ($row = mysqli_fetch_assoc($result)) {
+        $choices[intval($row['project_id'])] = ['label' => $row['project_prefix'] . $row['project_number'] . ' ' . $row['project_name'],
+            'client' => intval($row['project_client_id']), 'client_name' => (string) ($row['client_name'] ?? '')];
+    }
+    return $choices;
+}
+
+/**
+ * Put lines of a PO on a project (0 = none). Returns ['changed' => n, 'problems' => [line name => why]].
+ * $line_ids empty = every line.
+ */
+function mitPoSetProject(array $po, array $line_ids, $project_id) {
+    global $mysqli;
+    $po_id = intval($po['po_id']);
+    $project_id = intval($project_id);
+    $out = ['changed' => 0, 'problems' => []];
+    if ($po['status'] === 'cancelled') {
+        $out['problems']['PO'] = 'it is cancelled';
+        return $out;
+    }
+    $project = null;
+    if ($project_id) {
+        $choices = mitPoProjectChoices();
+        if (!isset($choices[$project_id])) {
+            $out['problems']['Project'] = 'that project is not open, or is for a client you cannot see';
+            return $out;
+        }
+        $project = $choices[$project_id];
+    }
+    $line_ids = array_filter(array_map('intval', $line_ids));
+    $names = [];
+    foreach (mitPoLines($po_id) as $line) {
+        $line_id = intval($line['line_id']);
+        if ($line_ids && !in_array($line_id, $line_ids, true)) {
+            continue;
+        }
+        $client_id = intval($line['client_id']);
+        $new_client = $client_id;
+        if ($project) {
+            if ($project['client'] && $client_id && $client_id !== $project['client']) {
+                $out['problems'][$line['name']] = 'it is for another client';
+                continue;
+            }
+            if ($project['client'] && !$client_id) {
+                if ((float) $line['received_qty'] > 0) {
+                    $out['problems'][$line['name']] = 'it was ordered for no client and some of it has been received already';
+                    continue;
+                }
+                $new_client = $project['client'];
+            }
+            if (!$project['client'] && $client_id) {
+                $out['problems'][$line['name']] = 'it is for a client and the project is not';
+                continue;
+            }
+        }
+        if (intval($line['project_id']) === $project_id && $new_client === $client_id) {
+            continue;
+        }
+        mysqli_query($mysqli, "UPDATE mit_po_lines SET project_id = $project_id, client_id = $new_client WHERE line_id = $line_id AND po_id = $po_id");
+        if (intval($line['proc_item_id'])) {
+            mysqli_query($mysqli, "UPDATE mit_procurement_items SET project_id = $project_id, client_id = $new_client WHERE item_id = " . intval($line['proc_item_id']));
+        }
+        $names[] = $line['name'];
+        $out['changed']++;
+    }
+    if ($names) {
+        $what = $project ? 'put ' . implode(', ', $names) . ' on project ' . $project['label'] : 'took ' . implode(', ', $names) . ' off their project';
+        mitPoLog($po_id, mitProcWho() . ' ' . $what);
+        logAudit('Purchase Order', 'Edit', escapeSql(mitProcWho() . ' ' . $what . ' (' . mitPoReference($po) . ')'), $project ? $project['client'] : 0, $po_id);
+    }
+    return $out;
+}

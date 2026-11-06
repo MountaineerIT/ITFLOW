@@ -180,6 +180,25 @@ if (isset($_POST['mit_po_save_lines'])) {
     redirect();
 }
 
+if (isset($_POST['mit_po_set_project'])) {
+
+    validateCSRFToken();
+    $po = mitPoForRequest($_POST['po_id'] ?? 0, 2);
+    $line_ids = array_map('intval', (array) ($_POST['line_ids'] ?? []));
+    if (!$line_ids) {
+        flashAlert('Tick the lines to put on the project.', 'error');
+        redirect();
+    }
+    $result = mitPoSetProject($po, $line_ids, intval($_POST['project_id'] ?? 0));
+    $problems = [];
+    foreach ($result['problems'] as $name => $why) {
+        $problems[] = escapeHtml($name) . ' - ' . escapeHtml($why);
+    }
+    $message = $result['changed'] ? ($result['changed'] . ' line' . ($result['changed'] === 1 ? '' : 's') . (intval($_POST['project_id'] ?? 0) ? ' put on the project' : ' taken off their project')) : 'Nothing changed';
+    flashAlert($message . ($problems ? '. Left as they were: ' . implode('; ', $problems) : ''), $problems ? 'warning' : 'success');
+    redirect();
+}
+
 if (isset($_GET['mit_po_remove_line'])) {
 
     validateCSRFToken();

@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.5 - 2026-11-06
+- Purchase orders: "Link to a project" on a PO (and a project link beside each line's "For") puts lines on a project - or takes them off - after the PO is made, ordered or received; before, a line kept whatever project its item had when the PO was made. The items they came from follow, and the project's Procurement card then counts them. A line for another client can't go on a client's project, and a line ordered for nobody takes the project's client while none of it has been received.
+
 ## 26.11.3.4 - 2026-11-06
 - Client profitability: Reports > Client Profitability now shows what each client costs - Labor cost (the hours on their tickets at each agent's cost per hour), Parts cost (what the parts and products on their invoices cost us), Profit and Margin - with the totals and a "Losing money" count under ITFlow's figures. Income is invoiced by default (sales before tax on invoices dated in the period); a switch goes back to money received.
 - Break-even hours for flat monthly agreements: beside Recurring / month, each client's hours a month and the hours a month their agreement pays for (the monthly fee, less parts and direct costs, at the cost per hour of the agents who work for them). Clients using more are marked "Over" and counted - the ones to re-price at renewal.
