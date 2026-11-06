@@ -800,9 +800,7 @@ model: see DEPLOYMENT.md.
   `cron/nightly_tasks.php` (after "Invoice Generated from Recurring!") and `agent/post/recurring_invoice.php` force_recurring (after
   the amount update): matches the new invoice's lines to the recurring lines by item_id order (how ITFlow copies them), sets
   qty from the last count on or before `mitUsageSnapshotDate()`, recalculates, writes history, and returning true turns
-  auto-send off (stays a Draft). UI: `mitUsageRecurringCard` (one line in `agent/recurring_invoice.php`'s right-hand column after ITFlow's Seats card,
-  before Costs - 26.11.3.6, was under the invoice; a side card, one `[data-item]` block per line),
-  `mitUsageClientCard` (one line at the end of the billing section in `agent/client_overview.php`), Billing > Usage Review
+  auto-send off (stays a Draft). UI: (the recurring invoice's Usage billing card is gone since 26.11.3.7 - see "Quantity from" below), `mitUsageClientCard` (one line at the end of the billing section in `agent/client_overview.php`), Billing > Usage Review
   `agent/mit_usage_review.php` (override = `mitUsageOverride`; Approve = the QuickBooks approval link), nav entry in
   `agent/includes/mit_billing_nav.php`, handlers `agent/post/mit_usage.php`. API `api/v1/mit_usage/create.php` / `read.php` - one
   line in `api/v1/enforce_api_rbac.php` (`'mit_usage' => 'module_sales'`). Cron job `mit_usage` daily 00:30 (`cron/mit_usage.php`,
@@ -826,6 +824,19 @@ model: see DEPLOYMENT.md.
   `mitUsageIngramBaseOk` (public https, re-checked before the token call), new address needs the secrets again; `mitUsageRunConnectors`
   under `mitLock('usage_connectors')`, each connector in its own try. Usage: tag lines skip deleted / archived tags, `tag:` names refused for
   other sources, previous_qty from the live line of a still-billable invoice, `mitUsageApply` never lets a failure send the invoice.
+  Counted in ITFlow's "Quantity from" (Nov 6, 26.11.3.7 - the user's choice: no review hold, the old card retired): a recurring line's quantity
+  can come from a usage count - ITFlow's seat line with `item_seat_source` 'usage', filter {"metric": name}, minimum in item_seat_minimum.
+  Hooks (one guarded line each): `functions/billing.php` recurringSeatSources (`+ mitUsageSeatSources()` - "Counted by an integration"),
+  recurringSeatFilter (`mitUsageSeatFilter`), recurringSeatCount (`mitUsageSeatCount` = the client's latest count of that name today, null =
+  none -> ITFlow keeps the quantity), recurringSeatDescribe (`mitUsageSeatDescribe` - "Bitwarden users", "Ingram Micro - <product>" via
+  `mitUsageMetricLabel`), billingItemSave's filter (`seat_metric`); `agent/ajax.php` recurring_seat_count (metric + its own "none reported"
+  message); `agent/modals/billing/billing_item.php` (`mitUsageSeatOption` after License seats, `mitUsageSeatField` - `[data-seat-for="usage"]
+  [data-mit-usage-seat]`, a picker of the client's counts "Name (N now)" - before At least). ITFlow then refreshes, shows drift on its Seats
+  card, keeps history and bills the count when the invoice is made, following the recurring invoice's own send setting. M058 moved the old
+  card's lines (`mit_usage_lines`: usage names -> 'usage', contact tags -> ITFlow's 'contacts' {"tag": id}) and removed them; the old engine
+  (`mitUsageApply`, Usage Review) stays for lines still there and past invoices. `api/v1/mit_usage/read.php` lists both (source 'usage'); the
+  client's Usage card lists seat lines too (`mitUsageClientLines`). Scenario `scenario-usage-seats.php`; smoke 11 / 12 set lines in the Edit
+  Line window.
 - Project tickets kept apart (Oct 2026): `functions/mit_projects.php` (ours) - a ticket in a project (ITFlow's
   `ticket_project_id`) is off the Tickets board / client tab (`mitProjectTicketsShows` adds `ticket_project_id = 0` to each
   view of `agent/tickets.php` plus a "Projects" view, unless the Project filter is set), the Dispatch queue + its menu count

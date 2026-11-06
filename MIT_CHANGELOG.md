@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.7 - 2026-11-06
+- Recurring invoices: usage counts are now picked in ITFlow's own Edit Line window - Quantity from "Counted by an integration" lists the client's counts (Bitwarden users, NinjaOne devices, Ingram Micro products, counts sent through the API or typed on the client's Usage card) with today's number. ITFlow then keeps the line's quantity up to date like its other seat lines (Seats card, refresh, history) and bills the count when the invoice is made - no review hold; the invoice follows the recurring invoice's send setting. "At least" sets a minimum.
+- The separate Usage billing card on recurring invoices is gone: its lines were moved into the lines themselves (usage names to "Counted by an integration" with their minimum, contact tags to ITFlow's "Users tagged ...").
+
 ## 26.11.3.6 - 2026-11-06
 - Recurring invoices: the Usage billing card moved from under the invoice to the right-hand column, beside ITFlow's Seats card (where a line's quantity comes from, together near the top), laid out like ITFlow's cards - one block per line: quantity from, usage name or contact tag, minimum.
 

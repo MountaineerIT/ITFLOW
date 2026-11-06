@@ -119,6 +119,7 @@ ob_start();
                             <option value="contacts" <?= $seat_source === 'contacts' ? 'selected' : '' ?>>Users - the client's contacts (<?= intval($seat_options['contacts']) ?> now)</option>
                             <option value="assets" <?= $seat_source === 'assets' ? 'selected' : '' ?>>Devices - the client's devices in use (<?= intval($seat_options['assets']) ?> now)</option>
                             <option value="license" <?= $seat_source === 'license' ? 'selected' : '' ?> <?= $seat_options['licenses'] || $seat_source === 'license' ? '' : 'disabled' ?>>License seats - one of the client's licenses<?= $seat_options['licenses'] ? '' : ' (they have none)' ?></option>
+                            <?= function_exists('mitUsageSeatOption') ? mitUsageSeatOption($client_id, $seat_source) : '' // Mountaineer IT: Bitwarden / NinjaOne / Ingram / API counts ?>
                         </select>
                     </div>
                     <div class="form-text">Counted again each time an invoice is made, so a per-user or per-device line bills what the client has that month. Devices that are lost, stolen or retired aren't counted.</div>
@@ -188,6 +189,7 @@ ob_start();
                         </div>
                     </div>
                 </div>
+                <?= function_exists('mitUsageSeatField') ? mitUsageSeatField($client_id, $seat_source, $seat_filter) : '' // Mountaineer IT: which count ?>
                 <div class="col-sm-4" data-seat-for="any" hidden>
                     <label class="form-label">At least</label>
                     <div class="input-group">

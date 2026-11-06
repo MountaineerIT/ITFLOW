@@ -396,17 +396,32 @@ function mitUsageReviewRows($snapshot) {
     return $invoices;
 }
 
-/** A client's usage lines (on active recurring invoices) with their latest count. */
+/** A client's usage lines (on active recurring invoices) with their latest count - lines counted by an integration in ITFlow's
+ * "Quantity from" (line_source 'usage'), and any left from the old Usage billing card. */
 function mitUsageClientLines($client_id) {
     global $mysqli;
     if (!mitUsageReady()) {
         return [];
     }
     $client_id = intval($client_id);
-    $rows = mysqli_fetch_all(mysqli_query($mysqli, "SELECT l.*, item_name, item_quantity, recurring_invoice_prefix, recurring_invoice_number, recurring_invoice_status, tag_name
+    $rows = mysqli_fetch_all(mysqli_query($mysqli, "SELECT l.recurring_item_id, l.recurring_invoice_id, l.line_source, l.line_metric, l.line_tag_id, l.line_min_qty,
+            item_name, item_quantity, recurring_invoice_prefix, recurring_invoice_number, recurring_invoice_status, tag_name
         FROM mit_usage_lines l JOIN recurring_invoice_items ON recurring_invoice_items.item_id = l.recurring_item_id
         JOIN recurring_invoices ON recurring_invoices.recurring_invoice_id = l.recurring_invoice_id LEFT JOIN tags ON tags.tag_id = l.line_tag_id AND l.line_source = 'tag'
         WHERE recurring_invoice_client_id = $client_id AND recurring_invoice_archived_at IS NULL ORDER BY item_name"), MYSQLI_ASSOC);
+    if (mitColumnReady('recurring_invoice_items', 'item_seat_source')) {
+        $result = mysqli_query($mysqli, "SELECT item_id, item_recurring_invoice_id, item_seat_filter, item_seat_minimum, item_name, item_quantity,
+                recurring_invoice_prefix, recurring_invoice_number, recurring_invoice_status
+            FROM recurring_invoice_items JOIN recurring_invoices ON recurring_invoices.recurring_invoice_id = item_recurring_invoice_id
+            WHERE item_seat_source = 'usage' AND recurring_invoice_client_id = $client_id AND recurring_invoice_archived_at IS NULL ORDER BY item_name");
+        while ($row = mysqli_fetch_assoc($result)) {
+            $filter = mitUsageSeatFilter((array) json_decode((string) $row['item_seat_filter'], true));
+            $rows[] = ['recurring_item_id' => $row['item_id'], 'recurring_invoice_id' => $row['item_recurring_invoice_id'], 'line_source' => 'usage',
+                'line_metric' => $filter['metric'] ?? '', 'line_tag_id' => 0, 'line_min_qty' => $row['item_seat_minimum'], 'item_name' => $row['item_name'],
+                'item_quantity' => $row['item_quantity'], 'recurring_invoice_prefix' => $row['recurring_invoice_prefix'],
+                'recurring_invoice_number' => $row['recurring_invoice_number'], 'recurring_invoice_status' => $row['recurring_invoice_status'], 'tag_name' => null];
+        }
+    }
     foreach ($rows as &$row) {
         $row['latest'] = mitUsageCountAt($client_id, $row['line_metric'], date('Y-m-d', strtotime('+1 day')));
         if ($row['line_source'] === 'tag') {
@@ -447,70 +462,128 @@ function mitUsageQty($qty) {
     return rtrim(rtrim(number_format(floatval($qty), 2, '.', ''), '0'), '.');
 }
 
-/** The Usage card on a recurring invoice (agent/recurring_invoice.php, one line): how each line is billed. */
-function mitUsageRecurringCard($recurring_invoice_id) {
+/*
+ * ---------- counts in ITFlow's own "Quantity from" (26.11.3.7, the user's choice) ----------
+ *
+ * A recurring line's quantity can come from ITFlow's seat counts (Users / Devices / License seats - functions/billing.php). Ours join that
+ * list as one more source, 'usage' - "Counted by an integration": the latest count recorded for the client under a usage name
+ * (mit_usage_counts - Bitwarden, NinjaOne, Ingram through the connectors, or anything through api/v1/mit_usage/create.php). ITFlow then
+ * treats it as its own: counted again each time the invoice is made, on the Seats card with "now N" and Update now, changes in the history.
+ * No review hold (the user's choice) - the invoice follows the recurring invoice's own send setting. The filter is {"metric": "<name>"} in
+ * ITFlow's item_seat_filter; a name with no count yet counts as nothing (the line keeps its quantity, as ITFlow does for a gone license).
+ * Hooks, one guarded line each, in functions/billing.php (recurringSeatSources, recurringSeatFilter, recurringSeatCount,
+ * recurringSeatDescribe, billingItemSave's filter), agent/ajax.php (recurring_seat_count) and agent/modals/billing/billing_item.php
+ * (mitUsageSeatOption, mitUsageSeatField). M058 moved the old Usage billing card's lines here (tag lines to ITFlow's Users tagged ...).
+ */
+
+/** Our seat source, for ITFlow's recurringSeatSources(). */
+function mitUsageSeatSources() {
+    if (!mitUsageReady()) {
+        return [];
+    }
+    return ['usage' => ['label' => 'Counted by an integration', 'unit' => 'count', 'icon' => 'fa-plug']];
+}
+
+/** A usage seat line's filter, cleaned: ['metric' => name] (tag: names are ITFlow's Users tagged now). */
+function mitUsageSeatFilter($filter) {
+    $metric = mitUsageCleanMetric((string) ($filter['metric'] ?? ''));
+    return $metric !== '' && stripos($metric, 'tag:') !== 0 ? ['metric' => $metric] : [];
+}
+
+/** The latest count recorded for the client under the line's usage name, or null when there is none. */
+function mitUsageSeatCount($client_id, array $filter) {
+    if (!mitUsageReady() || empty($filter['metric'])) {
+        return null;
+    }
+    $count = mitUsageCountAt($client_id, $filter['metric'], date('Y-m-d'));
+    return $count ? floatval($count['quantity']) : null;
+}
+
+/** A usage name in words: "Bitwarden users", "NinjaOne workstations", an Ingram product's name, else the name itself. */
+function mitUsageMetricLabel($metric, $note = '') {
+    $known = [
+        'bitwarden:users' => 'Bitwarden users', 'bitwarden:confirmed' => 'Bitwarden users (confirmed)',
+        'ninjaone:workstations' => 'NinjaOne workstations', 'ninjaone:servers' => 'NinjaOne servers',
+        'ninjaone:devices' => 'NinjaOne workstations and servers', 'ninjaone:all' => 'NinjaOne devices (all)',
+    ];
+    if (isset($known[$metric])) {
+        return $known[$metric];
+    }
+    if (stripos($metric, 'ingram:') === 0) {
+        return 'Ingram Micro' . ($note !== '' ? ' - ' . $note : ' - ' . substr($metric, 7));
+    }
+    return $metric;
+}
+
+/** What a usage seat line counts, for ITFlow's recurringSeatDescribe(). */
+function mitUsageSeatDescribe(array $filter) {
+    $metric = (string) ($filter['metric'] ?? '');
+    return $metric === '' ? 'A count - pick one' : mitUsageMetricLabel($metric, mitUsageMetricNote($metric));
+}
+
+/** The note kept with a usage name's latest count anywhere (an Ingram product's name). */
+function mitUsageMetricNote($metric) {
     global $mysqli;
+    if (!mitUsageReady() || stripos($metric, 'ingram:') !== 0) {
+        return '';
+    }
+    return (string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT count_note FROM mit_usage_counts WHERE metric = '" . escapeSql($metric) . "' AND count_note <> '' ORDER BY count_id DESC LIMIT 1"))[0] ?? '');
+}
+
+/** The counts a client has: usage name => ['label', 'quantity', 'as_of', 'source']. Not tag: counts. */
+function mitUsageClientCounts($client_id) {
+    global $mysqli;
+    $counts = [];
+    if (!mitUsageReady()) {
+        return $counts;
+    }
+    $client_id = intval($client_id);
+    $today = date('Y-m-d');
+    $result = mysqli_query($mysqli, "SELECT c.metric, c.quantity, c.as_of, c.count_source, c.count_note FROM mit_usage_counts c
+        JOIN (SELECT metric, MAX(CONCAT(as_of, LPAD(count_id, 12, '0'))) AS k FROM mit_usage_counts WHERE client_id = $client_id AND as_of <= '$today' GROUP BY metric) latest
+            ON latest.metric = c.metric AND CONCAT(c.as_of, LPAD(c.count_id, 12, '0')) = latest.k
+        WHERE c.client_id = $client_id ORDER BY c.metric");
+    while ($row = mysqli_fetch_assoc($result)) {
+        if (stripos($row['metric'], 'tag:') === 0) {
+            continue;
+        }
+        $counts[$row['metric']] = ['label' => mitUsageMetricLabel($row['metric'], (string) $row['count_note']), 'quantity' => floatval($row['quantity']),
+            'as_of' => $row['as_of'], 'source' => $row['count_source']];
+    }
+    return $counts;
+}
+
+/** The <option> for ITFlow's "Quantity from" picker in the Edit Line window. */
+function mitUsageSeatOption($client_id, $seat_source) {
     if (!mitUsageReady()) {
         return '';
     }
-    $recurring_invoice_id = intval($recurring_invoice_id);
-    $items = mysqli_fetch_all(mysqli_query($mysqli, "SELECT item_id, item_name, item_quantity FROM recurring_invoice_items WHERE item_recurring_invoice_id = $recurring_invoice_id
-        ORDER BY item_order, item_id"), MYSQLI_ASSOC);
-    if (!$items) {
+    $n = count(mitUsageClientCounts($client_id));
+    return '<option value="usage"' . ($seat_source === 'usage' ? ' selected' : '') . ($n || $seat_source === 'usage' ? '' : ' disabled') . ' data-mit-usage-option>'
+        . 'Counted by an integration - Bitwarden, NinjaOne, Ingram, the API' . ($n ? '' : ' (none reported for this client yet)') . '</option>';
+}
+
+/** The "Which count" picker shown under "Quantity from" when it is ours. */
+function mitUsageSeatField($client_id, $seat_source, array $seat_filter) {
+    if (!mitUsageReady()) {
         return '';
     }
-    $lines = mitUsageLines($recurring_invoice_id);
-    $can = mitUsageCan(2);
-    $tags = mitUsageContactTags();
-    // Usage names already reported for this client (connectors, the API) to pick from
-    $known = mitUsageKnownMetrics(intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT recurring_invoice_client_id FROM recurring_invoices WHERE recurring_invoice_id = $recurring_invoice_id"))[0] ?? 0));
-    $datalist = '<datalist id="mitUsageMetrics">';
-    foreach ($known as $metric => $label) {
-        $datalist .= '<option value="' . escapeHtml($metric) . '" label="' . escapeHtml($label) . '"></option>';
+    $counts = mitUsageClientCounts($client_id);
+    $current = $seat_source === 'usage' ? (string) ($seat_filter['metric'] ?? '') : '';
+    $options = '';
+    if ($current !== '' && !isset($counts[$current])) {
+        $options .= '<option value="' . escapeHtml($current) . '" selected>' . escapeHtml(mitUsageMetricLabel($current)) . ' (no count now)</option>';
     }
-    $datalist .= '</datalist>';
-    $settings = mitUsageSettings();
-    // A side card like ITFlow's Seats card (agent/recurring_invoice.php's right-hand column): one block per line, its fields stacked
-    $snapshot = $settings['snapshot_day'] . date('S', mktime(0, 0, 0, 1, $settings['snapshot_day']));
-    $html = '<div class="card mb-3 d-print-none" data-mit-usage-card><div class="card-header"><h3 class="card-title mb-0">'
-        . '<i class="fas fa-fw fa-tachometer-alt text-secondary me-2"></i>Usage billing</h3></div>'
-        . '<form action="post.php" method="post"><input type="hidden" name="csrf_token" value="' . escapeHtml($_SESSION['csrf_token']) . '">'
-        . '<input type="hidden" name="recurring_invoice_id" value="' . $recurring_invoice_id . '"><div class="list-group list-group-flush">';
-    foreach ($items as $item) {
-        $id = intval($item['item_id']);
-        $line = $lines[$id] ?? null;
-        $source = $line['line_source'] ?? '';
-        $disabled = $can ? '' : ' disabled';
-        $options = '<option value="">Fixed quantity (' . mitUsageQty($item['item_quantity']) . ')</option>';
-        foreach (MIT_USAGE_SOURCES as $key => $label) {
-            $options .= '<option value="' . $key . '"' . ($source === $key ? ' selected' : '') . '>' . $label . '</option>';
-        }
-        $tag_options = '<option value="0">- contact tag -</option>';
-        foreach ($tags as $tag_id => $tag_name) {
-            $tag_options .= '<option value="' . $tag_id . '"' . (intval($line['line_tag_id'] ?? 0) === $tag_id ? ' selected' : '') . '>' . escapeHtml($tag_name) . '</option>';
-        }
-        $html .= '<div class="list-group-item" data-item="' . $id . '">'
-            . '<div class="fw-semibold text-truncate mb-1" title="' . escapeHtml($item['item_name']) . '">' . escapeHtml($item['item_name']) . '</div>'
-            . '<select class="form-select form-select-sm mb-1" name="usage[' . $id . '][source]" aria-label="Quantity from" data-mit-usage-source' . $disabled . '>' . $options . '</select>'
-            . '<div class="d-flex gap-1" data-mit-usage-detail>'
-            . '<input type="text" class="form-control form-control-sm" name="usage[' . $id . '][metric]" maxlength="100" aria-label="Usage name" placeholder="' . escapeHtml(mitUsageMetricFromName($item['item_name']))
-            . '" value="' . escapeHtml($source === 'tag' ? '' : (string) ($line['line_metric'] ?? '')) . '" list="mitUsageMetrics" data-mit-usage-metric' . $disabled . '>'
-            . '<select class="form-select form-select-sm" name="usage[' . $id . '][tag_id]" aria-label="Contact tag" data-mit-usage-tag' . $disabled . '>' . $tag_options . '</select>'
-            . '<input type="number" min="0" step="0.01" class="form-control form-control-sm" style="max-width: 5.5rem" name="usage[' . $id . '][min]" placeholder="Min" aria-label="Minimum" title="Minimum quantity" value="'
-            . ($line && $line['line_min_qty'] !== null ? mitUsageQty($line['line_min_qty']) : '') . '"' . $disabled . '></div></div>';
+    foreach ($counts as $metric => $count) {
+        $options .= '<option value="' . escapeHtml($metric) . '"' . ($metric === $current ? ' selected' : '') . '>' . escapeHtml($count['label'])
+            . ' (' . mitUsageQty($count['quantity']) . ' now)</option>';
     }
-    $html .= '</div>' . $datalist;
-    if ($can) {
-        $html .= '<div class="card-body py-2 border-top"><button type="submit" name="mit_usage_save_lines" class="btn btn-primary btn-sm"><i class="fas fa-check me-1"></i>Save usage</button></div>';
-    }
-    $html .= '</form><div class="card-footer small text-body-secondary">Lines billed by a count: set from the count on the snapshot day (the ' . $snapshot
-        . ') when the invoice is made, then checked in Billing &gt; Usage Review. Connectors and other systems report counts under a usage name '
-        . '(api/v1/mit_usage/create.php).</div></div>'
-        . '<script>document.querySelectorAll("[data-mit-usage-card] [data-item]").forEach(function (row) {'
-        . 'var s = row.querySelector("[data-mit-usage-source]"), d = row.querySelector("[data-mit-usage-detail]"), m = row.querySelector("[data-mit-usage-metric]"), t = row.querySelector("[data-mit-usage-tag]");'
-        . 'function show() { d.classList.toggle("d-none", s.value === ""); m.classList.toggle("d-none", s.value === "tag"); t.classList.toggle("d-none", s.value !== "tag"); }'
-        . 's.addEventListener("change", show); show(); });</script>';
-    return $html;
+    return '<div class="col-12" data-seat-for="usage" data-mit-usage-seat hidden>'
+        . '<label class="form-label">Which count</label>'
+        . '<div class="input-group"><span class="input-group-text"><i class="fa fa-fw fa-plug"></i></span>'
+        . '<select class="form-select" name="seat_metric" data-seat-input>' . ($options ?: '<option value="">None reported for this client yet</option>') . '</select></div>'
+        . '<div class="form-text">The latest count for this client - Bitwarden, NinjaOne and Ingram Micro report nightly (Admin &gt; Integrations &gt; Usage connectors), '
+        . 'anything else through the API (usage name). Counted again each time an invoice is made.</div></div>';
 }
 
 /** The Usage card on a client's overview (agent/client_overview.php, one line): usage lines, latest counts, typing a count. */
@@ -529,7 +602,8 @@ function mitUsageClientCard($client_id) {
     foreach ($lines as $line) {
         $latest = $line['latest'];
         $from = $line['line_source'] === 'tag' ? 'Tag ' . escapeHtml((string) $line['tag_name']) . ' <span class="text-muted">(now ' . intval($line['live']) . ')</span>'
-            : escapeHtml(MIT_USAGE_SOURCES[$line['line_source']] ?? $line['line_source']) . '<div class="small text-muted">' . escapeHtml($line['line_metric']) . '</div>';
+            : ($line['line_source'] === 'usage' ? escapeHtml(mitUsageMetricLabel($line['line_metric'], mitUsageMetricNote($line['line_metric'])))
+                : escapeHtml(MIT_USAGE_SOURCES[$line['line_source']] ?? $line['line_source'])) . '<div class="small text-muted">' . escapeHtml($line['line_metric']) . '</div>';
         $html .= '<tr data-metric="' . escapeHtml($line['line_metric']) . '"><td>' . escapeHtml($line['item_name']) . '<div class="small text-muted">'
             . escapeHtml($line['recurring_invoice_prefix'] . $line['recurring_invoice_number']) . (intval($line['recurring_invoice_status']) ? '' : ' (inactive)') . '</div></td>'
             . '<td class="small">' . $from . '</td><td class="text-end">' . ($latest ? '<strong>' . mitUsageQty($latest['quantity']) . '</strong><div class="small text-muted">'
