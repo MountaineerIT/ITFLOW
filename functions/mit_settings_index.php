@@ -4,7 +4,7 @@
  * Mountaineer IT - our settings on ITFlow's Admin > Settings (26.10.189). ITFlow lists its settings pages in settingsPages() and every
  * setting in settingsFields() (functions/settings.php) - the Settings menu, the overview's tiles and Find a setting (and the top bar's
  * search) all come from those. Ours join them:
- *  - mitSettingsPages(): Procurement, Timesheets and Boards (our own pages) as tiles in "Work" and entries in the Settings menu - one
+ *  - mitSettingsPages(): Procurement, Timesheets, Boards and Labor costs (our own pages) as tiles in "Work" and entries in the Settings menu - one
  *    `+` at the end of settingsPages(); a page whose module of ours is off is left out.
  *  - mitSettingsSummaries(): their "how it is set now" line on the overview - one line after $summaries in admin/settings.php.
  *  - mitSettingsFields(): the settings on our cards inside ITFlow's pages (Tickets, Quotes, Invoices, Projects, Company Details,
@@ -27,6 +27,10 @@ function mitSettingsPages() {
         $pages['mit_boards'] = ['group' => 'work', 'title' => 'Boards', 'icon' => 'fa-columns', 'url' => 'mit_boards.php', 'module' => 'ticketing',
             'about' => 'Service boards (Service Desk, Tier 1, Tier 2 ...), who is on them, routing rules and round-robin auto-assign.'];
     }
+    if (function_exists('mitProfitReady')) {
+        $pages['mit_labor_costs'] = ['group' => 'work', 'title' => 'Labor costs', 'icon' => 'fa-user-tag', 'url' => 'mit_labor_costs.php', 'module' => 'accounting',
+            'about' => 'What an hour of each agent costs, with the date it counts from - for Reports > Client Profitability.'];
+    }
     return $pages;
 }
 
@@ -45,6 +49,8 @@ function mitSettingsSummaries() {
             } elseif ($key === 'mit_timesheets') {
                 $period = (string) mitSetting('timesheet_period', 'semi_monthly');
                 $summaries[$key] = escapeHtml(strtok(MIT_TS_PERIODS[$period] ?? $period, ' (')) . ' periods · approval ' . $on_off(mitTsSettings()['approval']);
+            } elseif ($key === 'mit_labor_costs') {
+                $summaries[$key] = mitProfitSettingsSummary();
             } elseif ($key === 'mit_boards') {
                 $boards = mitBoards();
                 $summaries[$key] = count($boards) . ' board' . (count($boards) === 1 ? '' : 's');

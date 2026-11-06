@@ -1622,9 +1622,29 @@ model: see DEPLOYMENT.md.
   sets invoice_due = the run date (next) or the run date + contractNetTerms (terms - the user's "hybrid"), only when made early under a plan with lead
   days. The field's own script widens its window to modal-lg (ajax-modal opens it at the default width, where the choices were cut off). Lead days stay under one repeat (`mitRecurringLeadClamp`: weekly 6, monthly 27, max 90). A client's own QuickBooks term (mitQboApplyTerms) still
   wins in QuickBooks. Scenario `scenario-recurring-lead.php` (the real nightly job), smoke `98-recurring-lead.spec.js`.
-- Phase 2 (after the next upstream release is merged): recheck the review findings in files
-  upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
-  SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
+- Client profitability (Nov 6, 26.11.3.4 - the user's request and choices: in ITFlow's report, per-agent cost with history, invoiced by default):
+  `functions/mit_profit.php` (ours, required from `functions.php`), M057 `mit_agent_cost_rates` (user_id FK users CASCADE, effective_from - unique
+  per agent and day -, hourly_cost; a new rate is a new row, the first one also covers earlier time) + `mit_settings` profit_default_cost (agents
+  with no rate; empty = uncosted, said on the report). Admin > Settings > Labor costs `admin/mit_labor_costs.php` (handlers
+  `admin/post/mit_labor_costs.php` - audit lines name the agent, never the amount; on ITFlow's Settings menu / overview through `mitSettingsPages()`).
+  Hooks in ITFlow's `agent/reports/client_profitability.php`, one line each: `mitProfitAdd($clients, $client, $period, $with_tickets)` before net
+  is worked out (invoiced income = lines before tax less the invoice discount on Sent / Viewed / Partial / Paid invoices dated in the period, plus
+  revenues - `?basis=paid` keeps ITFlow's payments; labor = each agent's hours by reply date at `mitProfitRateOn`; parts = a billed ticket part's
+  unit_cost, else product_cost, x quantity on those invoices), `mitProfitColumns` (Labor cost, Parts cost, Profit = net - labor - parts, Margin -
+  after Net), `mitProfitTotals`, `mitProfitControls` (Invoiced / Paid, appended to `$target_control`), `mitProfitSummary` (our figures under ITFlow's,
+  `[data-mit-profit-summary]`, warnings for uncosted hours). Break-even hours (the user bills flat monthly agreements, unlimited hours):
+  `mitProfitBreakEven` - Hours / month (period hours / months) and Break-even h / month = (ITFlow's Recurring / month - (direct costs + parts) a
+  month) / the cost per hour of the agents who worked for the client (their labor / costed hours; none = the report's blended rate, else the
+  default), "Over" badge + "Over break-even" count; columns after Recurring / month. Still Financial-only, as ITFlow has it. Scenario `scenario-client-profit.php`,
+  smoke `36-client-profit.spec.js`.
+- Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
+  (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
+  merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template
+  (`aiCleanHtml` -> `documentHtmlPurify`), kanban CSRF, rack unit / archive, service links (`linkAdd` same-client), trips (`tripCanEdit` /
+  `tripCanManage`), quote -> invoice on a missing quote - all ITFlow's own now. Tag links: rebuilt upstream (`tagPills` / `tagFilterBase`) -
+  every kind's pill was followed on the test install and opens its list filtered to the tag. Performance: our indexes M030 / M041 / M050.
+  Left as ITFlow's design: the certificate check connects to any host and port typed (internal names like fw01 on purpose - checking a
+  client's internal certificates), Support edit only.
 
 ## "Pull in ITFlow's updates"
 1. `git remote add upstream https://github.com/itflow-org/itflow.git` (if missing);

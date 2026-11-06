@@ -92,6 +92,7 @@ while ($row = mysqli_fetch_assoc($sql)) {
     }
 }
 
+if (function_exists('mitProfitAdd')) { mitProfitAdd($clients, $client, $period, $with_tickets); } // Mountaineer IT - labor / parts cost, invoiced income
 foreach ($clients as &$row) {
     $row['net'] = $row['income'] - $row['costs'];
     $row['hours'] = $row['seconds'] / 3600;
@@ -153,6 +154,7 @@ foreach ($clients as &$row) {
     $row['billable_share'] = reportShare($row['billable_seconds'], $row['seconds']);
 }
 unset($row);
+if (function_exists('mitProfitColumns')) { $columns = mitProfitColumns($columns, $clients); } // Mountaineer IT - labor, parts, profit, margin
 
 $income = array_sum(array_column($clients, 'income'));
 $costs = array_sum(array_column($clients, 'costs'));
@@ -161,6 +163,7 @@ $overall_rate = $seconds ? ($income - $costs) / ($seconds / 3600) : null;
 $totals = ['client' => 'Total', 'income' => $income, 'costs' => $costs, 'net' => $income - $costs, 'seconds' => $seconds,
     'rate' => $overall_rate, 'tickets' => array_sum(array_column($clients, 'tickets')), 'mrr' => array_sum(array_column($clients, 'mrr')),
     'billable_share' => reportShare(array_sum(array_column($clients, 'billable_seconds')), $seconds)];
+if (function_exists('mitProfitTotals')) { $totals = mitProfitTotals($totals, $clients); } // Mountaineer IT
 
 if (reportExporting()) {
     reportCsv('Client Profitability ' . $period['start'] . ' to ' . $period['end'], $columns, $clients, $totals);
@@ -178,6 +181,7 @@ $target_control = '<div class="col-sm-6 col-lg-2"><div class="input-group" title
     . '<span class="input-group-text"><i class="fas fa-fw fa-bullseye"></i></span>'
     . '<input type="text" inputmode="decimal" class="form-control" name="target" value="' . ($target > 0 ? escapeHtml(number_format($target, 2, '.', '')) : '') . '" placeholder="Target per hour" aria-label="Target per hour" data-report-autosubmit>'
     . '</div></div>';
+$target_control .= function_exists('mitProfitControls') ? mitProfitControls() : ''; // Mountaineer IT - Invoiced / Paid
 
 ?>
 
@@ -197,6 +201,8 @@ $target_control = '<div class="col-sm-6 col-lg-2"><div class="input-group" title
         ['label' => 'Clients to look at', 'value' => reportCount(count($flagged)), 'tone' => $flagged ? 'danger' : 'success',
             'sub' => '<span class="text-body-tertiary">Below target, or time with no income</span>'],
     ]) ?>
+
+    <?= function_exists('mitProfitSummary') ? mitProfitSummary($clients, $totals) : '' ?>
 
     <?php if ($with_tickets && $chart_rows) { ?>
         <?= reportSectionOpen('Earned per hour', 'The ' . count($chart_rows) . ' clients you spent the most time on - red is below target') ?>

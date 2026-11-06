@@ -411,6 +411,18 @@ return [
         'watch' => ['recurringTicketRunNow', 'recurringInvoiceGenerate', 'RECURRING_INVOICE_GRACE_DAYS', 'contractNetTerms', 'ticketSetSchedule'],
         'overlap' => ['lead_days', 'invoice_lead', 'days_before', 'create_ahead', 'recurring_ticket_time'],
     ],
+    'client_profit' => [
+        'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
+        'files' => ['functions/mit_profit.php', 'admin/mit_labor_costs.php', 'admin/post/mit_labor_costs.php'],
+        'tests' => ['tests/smoke/36-client-profit.spec.js', 'tests/scenarios/scenario-client-profit.php'],
+        'assumes' => [
+            'ITFlow\'s agent/reports/client_profitability.php builds $clients rows through the $client closure (client_id, client_name, client_abbreviation), works out net = income - costs, then $columns (with a \'net\' key), $totals and $target_control, and draws reportStats / reportTable.',
+            'Hours there are ticket_replies.ticket_reply_time_worked dated by ticket_reply_created_at; reportRangeSql / reportSegmentControl / reportShare are ITFlow\'s report helpers.',
+            'Invoices count as sold in Sent / Viewed / Partial / Paid; products.product_cost is ITFlow\'s product cost.',
+        ],
+        'watch' => ['client_profitability', 'reportRangeSql', 'reportSegmentControl', 'dashboardRevenueSql', 'product_cost'],
+        'overlap' => ['labor_cost', 'cost_rate', 'hourly_cost', 'profit_margin', 'user_cost'],
+    ],
     'ticket_add' => [
         'name' => 'New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time',
         'files' => ['functions/mit_ticket_add.php'],

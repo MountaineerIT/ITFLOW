@@ -290,6 +290,11 @@ hook	agent/quote.php	mit_quotes	1
 hook	agent/quote.php	mit_staff	1
 hook	agent/recurring_invoice.php	mitUsageRecurringCard	2
 hook	agent/recurring_tickets.php	mitServiceUserSql	2
+hook	agent/reports/client_profitability.php	mitProfitAdd	2
+hook	agent/reports/client_profitability.php	mitProfitColumns	2
+hook	agent/reports/client_profitability.php	mitProfitControls	2
+hook	agent/reports/client_profitability.php	mitProfitSummary	2
+hook	agent/reports/client_profitability.php	mitProfitTotals	2
 hook	agent/reports/satisfaction.php	mitServiceUserSql	2
 hook	agent/reports/sla_summary.php	mitServiceUserSql	2
 hook	agent/reports/ticket_aging.php	mitServiceUserSql	2
@@ -398,6 +403,7 @@ hook	functions.php	mit_no_response	1
 hook	functions.php	mit_notifications	1
 hook	functions.php	mit_offices	1
 hook	functions.php	mit_procurement	1
+hook	functions.php	mit_profit	1
 hook	functions.php	mit_projects	1
 hook	functions.php	mit_qbo	1
 hook	functions.php	mit_quick_ticket	1
@@ -617,6 +623,8 @@ ours	admin/database_updates/mountaineerit/M052.php
 ours	admin/database_updates/mountaineerit/M053.php
 ours	admin/database_updates/mountaineerit/M054.php
 ours	admin/database_updates/mountaineerit/M055.php
+ours	admin/database_updates/mountaineerit/M056.php
+ours	admin/database_updates/mountaineerit/M057.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -635,6 +643,7 @@ ours	admin/mit_ai_helper.php
 ours	admin/mit_align.php
 ours	admin/mit_boards.php
 ours	admin/mit_customer_thermometer.php
+ours	admin/mit_labor_costs.php
 ours	admin/mit_ninjaone.php
 ours	admin/mit_procurement_settings.php
 ours	admin/mit_qbo.php
@@ -657,6 +666,7 @@ ours	admin/post/mit_calendar_settings.php
 ours	admin/post/mit_cron_health.php
 ours	admin/post/mit_customer_thermometer.php
 ours	admin/post/mit_feedback_settings.php
+ours	admin/post/mit_labor_costs.php
 ours	admin/post/mit_m365.php
 ours	admin/post/mit_ninjaone.php
 ours	admin/post/mit_no_response_settings.php
@@ -783,6 +793,7 @@ ours	functions/mit_outlook.php
 ours	functions/mit_procurement.php
 ours	functions/mit_procurement_extras.php
 ours	functions/mit_procurement_parts.php
+ours	functions/mit_profit.php
 ours	functions/mit_projects.php
 ours	functions/mit_qbo.php
 ours	functions/mit_qbo_accounts.php
