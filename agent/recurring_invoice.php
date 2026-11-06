@@ -213,7 +213,6 @@ $paper = [
     <!-- The invoice it makes -->
     <div class="col-xl-8 itflow-paper-col">
         <?php require "../includes/billing_paper.php"; ?>
-        <?= function_exists('mitUsageRecurringCard') ? mitUsageRecurringCard($recurring_invoice_id) : '' // Mountaineer IT: usage billing ?>
     </div>
 
     <div class="col-xl-4 d-print-none">
@@ -306,6 +305,8 @@ $paper = [
                 <div class="card-footer small text-body-secondary">Counted again each time an invoice is made<?= $seat_drift ? ' - the next one bills the new counts' : '' ?>.</div>
             </div>
         <?php } ?>
+
+        <?= function_exists('mitUsageRecurringCard') ? mitUsageRecurringCard($recurring_invoice_id) : '' // Mountaineer IT: usage billing, beside ITFlow's Seats ?>
 
         <?php if ($costs) { ?>
             <!-- What it costs us: the recurring expenses it covers, and the margin left -->

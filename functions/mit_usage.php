@@ -470,18 +470,18 @@ function mitUsageRecurringCard($recurring_invoice_id) {
     }
     $datalist .= '</datalist>';
     $settings = mitUsageSettings();
-    $html = '<div class="card mb-3 d-print-none" data-mit-usage-card><div class="card-header text-bold"><i class="fas fa-fw fa-tachometer-alt me-2"></i>Usage billing'
-        . '<span class="small text-muted fw-normal ms-2">Lines billed by a count - quantities set from the count on the snapshot day (the ' . $settings['snapshot_day']
-        . date('S', mktime(0, 0, 0, 1, $settings['snapshot_day'])) . ') when the invoice is made, then reviewed in Billing &gt; Usage Review.</span></div>'
-        . '<div class="card-body p-2"><form action="post.php" method="post"><input type="hidden" name="csrf_token" value="' . escapeHtml($_SESSION['csrf_token']) . '">'
-        . '<input type="hidden" name="recurring_invoice_id" value="' . $recurring_invoice_id . '"><div class="table-responsive"><table class="table table-sm align-middle mb-2">'
-        . '<thead><tr><th>Line</th><th>Quantity from</th><th>Usage name / tag</th><th style="width: 8rem">Minimum</th></tr></thead><tbody>';
+    // A side card like ITFlow's Seats card (agent/recurring_invoice.php's right-hand column): one block per line, its fields stacked
+    $snapshot = $settings['snapshot_day'] . date('S', mktime(0, 0, 0, 1, $settings['snapshot_day']));
+    $html = '<div class="card mb-3 d-print-none" data-mit-usage-card><div class="card-header"><h3 class="card-title mb-0">'
+        . '<i class="fas fa-fw fa-tachometer-alt text-secondary me-2"></i>Usage billing</h3></div>'
+        . '<form action="post.php" method="post"><input type="hidden" name="csrf_token" value="' . escapeHtml($_SESSION['csrf_token']) . '">'
+        . '<input type="hidden" name="recurring_invoice_id" value="' . $recurring_invoice_id . '"><div class="list-group list-group-flush">';
     foreach ($items as $item) {
         $id = intval($item['item_id']);
         $line = $lines[$id] ?? null;
         $source = $line['line_source'] ?? '';
         $disabled = $can ? '' : ' disabled';
-        $options = '<option value="">Fixed (' . mitUsageQty($item['item_quantity']) . ')</option>';
+        $options = '<option value="">Fixed quantity (' . mitUsageQty($item['item_quantity']) . ')</option>';
         foreach (MIT_USAGE_SOURCES as $key => $label) {
             $options .= '<option value="' . $key . '"' . ($source === $key ? ' selected' : '') . '>' . $label . '</option>';
         }
@@ -489,22 +489,26 @@ function mitUsageRecurringCard($recurring_invoice_id) {
         foreach ($tags as $tag_id => $tag_name) {
             $tag_options .= '<option value="' . $tag_id . '"' . (intval($line['line_tag_id'] ?? 0) === $tag_id ? ' selected' : '') . '>' . escapeHtml($tag_name) . '</option>';
         }
-        $html .= '<tr data-item="' . $id . '"><td>' . escapeHtml($item['item_name']) . '</td>'
-            . '<td><select class="form-select form-select-sm" name="usage[' . $id . '][source]" data-mit-usage-source' . $disabled . '>' . $options . '</select></td>'
-            . '<td><input type="text" class="form-control form-control-sm" name="usage[' . $id . '][metric]" maxlength="100" placeholder="' . escapeHtml(mitUsageMetricFromName($item['item_name']))
+        $html .= '<div class="list-group-item" data-item="' . $id . '">'
+            . '<div class="fw-semibold text-truncate mb-1" title="' . escapeHtml($item['item_name']) . '">' . escapeHtml($item['item_name']) . '</div>'
+            . '<select class="form-select form-select-sm mb-1" name="usage[' . $id . '][source]" aria-label="Quantity from" data-mit-usage-source' . $disabled . '>' . $options . '</select>'
+            . '<div class="d-flex gap-1" data-mit-usage-detail>'
+            . '<input type="text" class="form-control form-control-sm" name="usage[' . $id . '][metric]" maxlength="100" aria-label="Usage name" placeholder="' . escapeHtml(mitUsageMetricFromName($item['item_name']))
             . '" value="' . escapeHtml($source === 'tag' ? '' : (string) ($line['line_metric'] ?? '')) . '" list="mitUsageMetrics" data-mit-usage-metric' . $disabled . '>'
-            . '<select class="form-select form-select-sm" name="usage[' . $id . '][tag_id]" data-mit-usage-tag' . $disabled . '>' . $tag_options . '</select></td>'
-            . '<td><input type="number" min="0" step="0.01" class="form-control form-control-sm" name="usage[' . $id . '][min]" value="'
-            . ($line && $line['line_min_qty'] !== null ? mitUsageQty($line['line_min_qty']) : '') . '"' . $disabled . '></td></tr>';
+            . '<select class="form-select form-select-sm" name="usage[' . $id . '][tag_id]" aria-label="Contact tag" data-mit-usage-tag' . $disabled . '>' . $tag_options . '</select>'
+            . '<input type="number" min="0" step="0.01" class="form-control form-control-sm" style="max-width: 5.5rem" name="usage[' . $id . '][min]" placeholder="Min" aria-label="Minimum" title="Minimum quantity" value="'
+            . ($line && $line['line_min_qty'] !== null ? mitUsageQty($line['line_min_qty']) : '') . '"' . $disabled . '></div></div>';
     }
-    $html .= '</tbody></table></div>' . $datalist;
+    $html .= '</div>' . $datalist;
     if ($can) {
-        $html .= '<button type="submit" name="mit_usage_save_lines" class="btn btn-primary btn-sm"><i class="fas fa-check me-1"></i>Save usage</button>'
-            . '<span class="small text-muted ms-2">API lines: other systems report counts under the usage name (POST api/v1/mit_usage/create.php).</span>';
+        $html .= '<div class="card-body py-2 border-top"><button type="submit" name="mit_usage_save_lines" class="btn btn-primary btn-sm"><i class="fas fa-check me-1"></i>Save usage</button></div>';
     }
-    $html .= '</form></div></div><script>document.querySelectorAll("[data-mit-usage-card] tr[data-item]").forEach(function (row) {'
-        . 'var s = row.querySelector("[data-mit-usage-source]"), m = row.querySelector("[data-mit-usage-metric]"), t = row.querySelector("[data-mit-usage-tag]");'
-        . 'function show() { m.classList.toggle("d-none", s.value === "" || s.value === "tag"); t.classList.toggle("d-none", s.value !== "tag"); }'
+    $html .= '</form><div class="card-footer small text-body-secondary">Lines billed by a count: set from the count on the snapshot day (the ' . $snapshot
+        . ') when the invoice is made, then checked in Billing &gt; Usage Review. Connectors and other systems report counts under a usage name '
+        . '(api/v1/mit_usage/create.php).</div></div>'
+        . '<script>document.querySelectorAll("[data-mit-usage-card] [data-item]").forEach(function (row) {'
+        . 'var s = row.querySelector("[data-mit-usage-source]"), d = row.querySelector("[data-mit-usage-detail]"), m = row.querySelector("[data-mit-usage-metric]"), t = row.querySelector("[data-mit-usage-tag]");'
+        . 'function show() { d.classList.toggle("d-none", s.value === ""); m.classList.toggle("d-none", s.value === "tag"); t.classList.toggle("d-none", s.value !== "tag"); }'
         . 's.addEventListener("change", show); show(); });</script>';
     return $html;
 }
