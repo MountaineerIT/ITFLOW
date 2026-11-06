@@ -2,7 +2,7 @@
 
 /*
  * Mountaineer IT - the smaller forms on a purchase order (agent/mit_purchase_order.php):
- * ?action= approve | reject | ordered | email | tracking | details | bill. Handlers in agent/post/mit_procurement.php.
+ * ?action= approve | reject | ordered | email | tracking | details | bill | project. Handlers in agent/post/mit_procurement.php.
  */
 
 require_once '../../../includes/modal_header.php';
@@ -10,7 +10,7 @@ require_once '../../../includes/modal_header.php';
 mitModuleRequire('procurement', true);
 
 $action = (string) ($_GET['action'] ?? '');
-$levels = ['approve' => 3, 'reject' => 3, 'ordered' => 2, 'email' => 2, 'tracking' => 2, 'details' => 2, 'bill' => 2];
+$levels = ['approve' => 3, 'reject' => 3, 'ordered' => 2, 'email' => 2, 'tracking' => 2, 'details' => 2, 'bill' => 2, 'project' => 2];
 if (!isset($levels[$action])) {
     exit(json_encode(['error' => 'Unknown action.']));
 }
@@ -35,6 +35,7 @@ $titles = [
     'tracking' => ['fa-shipping-fast', "Add tracking to $reference"],
     'details' => ['fa-pen', "$reference details"],
     'bill' => ['fa-file-invoice', "Record the vendor bill for $reference"],
+    'project' => ['fa-project-diagram', "Link $reference to a project"],
 ];
 [$icon, $title] = $titles[$action];
 
@@ -160,6 +161,34 @@ ob_start();
                 <label class="form-label">Note to the vendor <span class="text-muted small">(on the PDF)</span></label>
                 <textarea class="form-control" name="note" rows="2"><?= escapeHtml($po['note']) ?></textarea>
             </div>
+        <?php } elseif ($action === 'project') {
+            $lines = mitPoLines($po_id);
+            $choices = mitPoProjectChoices();
+            $current = array_values(array_unique(array_map('intval', array_column($lines, 'project_id'))));
+            $picked = count($current) === 1 ? $current[0] : 0;
+            $only = intval($_GET['line_id'] ?? 0); ?>
+            <div class="mb-3" data-mit-po-project>
+                <label class="form-label">Project</label>
+                <select class="form-select select2" name="project_id">
+                    <option value="0">- No project (take them off) -</option>
+                    <?php foreach ($choices as $id => $choice) { ?>
+                        <option value="<?= $id ?>" <?= $id === $picked ? 'selected' : '' ?>><?= escapeHtml($choice['label'] . ' · ' . ($choice['client_name'] !== '' ? $choice['client_name'] : 'no client')) ?></option>
+                    <?php } ?>
+                </select>
+                <div class="form-text">Open projects only. A line for another client can't go on a client's project.</div>
+            </div>
+            <label class="form-label">Lines</label>
+            <div class="border rounded p-2" data-mit-po-project-lines>
+                <?php foreach ($lines as $line) {
+                    $line_id = intval($line['line_id']); ?>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="line_ids[]" value="<?= $line_id ?>" id="mitPoProjLine<?= $line_id ?>" <?= !$only || $only === $line_id ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="mitPoProjLine<?= $line_id ?>">
+                            <?= escapeHtml($line['name']) ?> <span class="small text-muted">× <?= mitQty($line['quantity']) ?><?= $line['client_name'] ? ' · ' . escapeHtml($line['client_name']) : '' ?><?= $line['project_name'] ? ' · now on ' . escapeHtml($line['project_prefix'] . $line['project_number']) : '' ?></span>
+                        </label>
+                    </div>
+                <?php } ?>
+            </div>
         <?php } elseif ($action === 'bill') {
             $categories = mysqli_fetch_all(mysqli_query($mysqli, "SELECT category_id, category_name FROM categories WHERE category_type = 'Expense' AND category_archived_at IS NULL ORDER BY category_name"), MYSQLI_ASSOC);
             $accounts = mysqli_fetch_all(mysqli_query($mysqli, "SELECT account_id, account_name FROM accounts WHERE account_archived_at IS NULL ORDER BY account_name"), MYSQLI_ASSOC); ?>
@@ -219,6 +248,7 @@ ob_start();
             'tracking' => ['mit_po_tracking_add', 'btn-primary', 'Add'],
             'details' => ['mit_po_details', 'btn-primary', 'Save'],
             'bill' => ['mit_po_bill', 'btn-primary', 'Record expense'],
+            'project' => ['mit_po_set_project', 'btn-primary', 'Save'],
         ];
         [$name, $class, $label] = $buttons[$action]; ?>
         <button type="submit" name="<?= $name ?>" class="btn <?= $class ?> text-bold"><i class="fas fa-check me-2"></i><?= $label ?></button>

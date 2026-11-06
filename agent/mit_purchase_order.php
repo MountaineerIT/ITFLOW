@@ -82,6 +82,9 @@ $at = $order[$status] ?? 0;
                 <?php if ($level >= 2 && $can_bill && !$expense && in_array($status, ['ordered', 'partial', 'received'], true)) { ?>
                     <a href="#" <?= $modal('bill') ?> class="ajax-modal btn btn-light border"><i class="fas fa-file-invoice me-2"></i>Record vendor bill</a>
                 <?php } ?>
+                <?php if ($level >= 2 && $status !== 'cancelled' && $lines) { ?>
+                    <a href="#" <?= $modal('project') ?> class="ajax-modal btn btn-light border" data-mit-po-project-btn><i class="fas fa-project-diagram me-2"></i>Link to a project</a>
+                <?php } ?>
                 <?php if ($level >= 2 && !in_array($status, ['received', 'cancelled'], true)) { ?>
                     <div class="dropdown">
                         <button class="btn btn-light border" type="button" data-bs-toggle="dropdown" aria-label="More"><i class="fas fa-ellipsis-v"></i></button>
@@ -173,7 +176,7 @@ $at = $order[$status] ?? 0;
                                 $want = (float) $line['quantity']; ?>
                                 <tr class="border-bottom">
                                     <td><strong><?= escapeHtml($line['name']) ?></strong><?php if ($line['description']) { ?><div class="small text-muted"><?= nl2br(escapeHtml($line['description'])) ?></div><?php } ?></td>
-                                    <td class="small"><?= mitProcForHtml($line) ?></td>
+                                    <td class="small"><?= mitProcForHtml($line) ?><?php if ($level >= 2 && $status !== 'cancelled') { ?> <a href="#" class="ajax-modal btn btn-link btn-sm text-muted p-0 ms-1 align-baseline" data-modal-url="modals/mit_procurement/po_action.php?po_id=<?= $po_id ?>&amp;action=project&amp;line_id=<?= $line_id ?>" title="<?= intval($line['project_id']) ? 'Change its project' : 'Put it on a project' ?>" data-mit-po-line-project="<?= $line_id ?>"><i class="fas fa-project-diagram"></i></a><?php } ?></td>
                                     <?php if ($is_draft && $level >= 2) { ?>
                                         <td><input type="text" inputmode="decimal" class="form-control form-control-sm text-center" name="lines[<?= $line_id ?>][qty]" value="<?= mitQty($want) ?>" aria-label="Quantity"></td>
                                         <td><input type="text" inputmode="decimal" class="form-control form-control-sm text-end" name="lines[<?= $line_id ?>][cost]" value="<?= number_format((float) $line['unit_cost'], 2, '.', '') ?>" aria-label="Unit cost"></td>
