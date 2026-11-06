@@ -357,6 +357,7 @@ function billingItemSave($type, $doc_id, array $in, $item_id = 0, &$error = '') 
             $seat_filter = recurringSeatFilter($seat_source, [
                 'tag' => $in['seat_tag'] ?? 0, 'types' => (array) ($in['seat_types'] ?? []),
                 'software_id' => $in['seat_software_id'] ?? 0, 'count' => $in['seat_count'] ?? 'used',
+                'metric' => $in['seat_metric'] ?? '', // Mountaineer IT: a usage count's name
             ]);
             $seat_minimum = billingNumberInput($in['seat_minimum'] ?? '0');
             if ($seat_minimum === null || $seat_minimum < 0) {
@@ -1982,7 +1983,7 @@ function recurringSeatSources() {
         'contacts' => ['label' => 'Users', 'unit' => 'user', 'icon' => 'fa-user'],
         'assets' => ['label' => 'Devices', 'unit' => 'device', 'icon' => 'fa-desktop'],
         'license' => ['label' => 'License seats', 'unit' => 'seat', 'icon' => 'fa-cube'],
-    ];
+    ] + (function_exists('mitUsageSeatSources') ? mitUsageSeatSources() : []); // Mountaineer IT: counts from Bitwarden / NinjaOne / Ingram / the API
 }
 
 /** Device statuses that are not billed - gone, or out of use. */
@@ -2012,6 +2013,7 @@ function recurringSeatFilter($source, $filter) {
         $clean['software_id'] = intval($filter['software_id'] ?? 0);
         $clean['count'] = ($filter['count'] ?? '') === 'total' ? 'total' : 'used';
     }
+    if ($source === 'usage' && function_exists('mitUsageSeatFilter')) { $clean = mitUsageSeatFilter($filter); } // Mountaineer IT
     return $clean;
 }
 
@@ -2022,6 +2024,7 @@ function recurringSeatFilter($source, $filter) {
 function recurringSeatCount($client_id, $source, array $filter) {
     global $mysqli;
     $client_id = intval($client_id);
+    if ($source === 'usage' && function_exists('mitUsageSeatCount')) { return mitUsageSeatCount($client_id, $filter); } // Mountaineer IT
     $tag = intval($filter['tag'] ?? 0);
     if ($source === 'contacts') {
         $tag_sql = $tag ? "AND contact_id IN (SELECT contact_id FROM contact_tags WHERE tag_id = $tag)" : '';
@@ -2049,6 +2052,7 @@ function recurringSeatCount($client_id, $source, array $filter) {
 /** What a seat line counts, in words - "Users tagged VIP", "Desktops and laptops", "Seats on Microsoft 365 in use". */
 function recurringSeatDescribe($source, array $filter) {
     global $mysqli;
+    if ($source === 'usage' && function_exists('mitUsageSeatDescribe')) { return mitUsageSeatDescribe($filter); } // Mountaineer IT
     $tag = intval($filter['tag'] ?? 0);
     $tag_name = $tag ? (string) getFieldById('tags', $tag, 'tag_name') : '';
     if ($source === 'contacts') {

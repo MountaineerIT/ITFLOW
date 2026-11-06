@@ -166,6 +166,8 @@ hook	agent/modals/asset/asset_bulk_add_ticket.php	mitServiceUserSql	2
 hook	agent/modals/billing/billing_form.php	mitRecurringInvoicePlanField	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
+hook	agent/modals/billing/billing_item.php	mitUsageSeatField	2
+hook	agent/modals/billing/billing_item.php	mitUsageSeatOption	2
 hook	agent/modals/calendar/calendar_event.php	mitEventQuickAssign	2
 hook	agent/modals/calendar/calendar_event.php	mitZoneWhenText	2
 hook	agent/modals/calendar/calendar_event.php	mit_assign	5
@@ -288,7 +290,6 @@ hook	agent/quote.php	mitPaperLineExtras	1
 hook	agent/quote.php	mitQuoteProfitBox	2
 hook	agent/quote.php	mit_quotes	1
 hook	agent/quote.php	mit_staff	1
-hook	agent/recurring_invoice.php	mitUsageRecurringCard	2
 hook	agent/recurring_tickets.php	mitServiceUserSql	2
 hook	agent/reports/client_profitability.php	mitProfitAdd	2
 hook	agent/reports/client_profitability.php	mitProfitColumns	2
@@ -424,6 +425,10 @@ hook	functions/billing.php	mitQboHandlesInvoiceMail	2
 hook	functions/billing.php	mitQboTagTimeLines	2
 hook	functions/billing.php	mitRecurringInvoiceDue	2
 hook	functions/billing.php	mitUsageApply	2
+hook	functions/billing.php	mitUsageSeatCount	2
+hook	functions/billing.php	mitUsageSeatDescribe	2
+hook	functions/billing.php	mitUsageSeatFilter	2
+hook	functions/billing.php	mitUsageSeatSources	2
 hook	functions/billing.php	mit_hold	2
 hook	functions/billing_pay.php	mitQboCardPaymentBooked	2
 hook	functions/billing_pdf.php	mitQuotePdfImage	2
@@ -625,6 +630,7 @@ ours	admin/database_updates/mountaineerit/M054.php
 ours	admin/database_updates/mountaineerit/M055.php
 ours	admin/database_updates/mountaineerit/M056.php
 ours	admin/database_updates/mountaineerit/M057.php
+ours	admin/database_updates/mountaineerit/M058.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php

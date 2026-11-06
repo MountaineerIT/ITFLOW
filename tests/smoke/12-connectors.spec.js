@@ -1,7 +1,7 @@
 // Usage connectors against the test install's stand-ins (usage-mock - never real accounts): NinjaOne device counts, a Bitwarden
 // client organization (a wrong key refused, the right one linked: 3 users, 2 confirmed), Ingram Micro (login, read customers,
-// link one, its subscriptions counted per part number), and a recurring invoice line picking an Ingram product from the list and
-// billing its quantity (12 + 3 on two subscriptions = 15). Skipped unless the stand-ins are installed (MIT_BITWARDEN_* /
+// link one, its subscriptions counted per part number), and a recurring invoice line counted by an Ingram product (ITFlow's Quantity from,
+// "Counted by an integration") billing its quantity (12 + 3 on two subscriptions = 15). Skipped unless the stand-ins are installed (MIT_BITWARDEN_* /
 // MIT_INGRAM_API_BASE in config.php - see README). Deletes its client, recurring invoice and invoice, puts settings back.
 
 const { test, expect } = require('@playwright/test');
@@ -90,13 +90,7 @@ test('Ingram Micro: login, read customers, link, count subscriptions', async ({ 
 
 test('a recurring line picks the Ingram product and bills its quantity', async ({ page }) => {
     test.skip(!made.clientId || !made.ingram, 'not set up');
-    test.skip(today.getDate() > 28, 'the snapshot day can only be 1-28 - run again tomorrow');
     const errors = watch(page);
-    await visit(page, 'admin/settings_invoice.php', errors);
-    made.snapshotDay = await page.locator('input[name=mit_usage_snapshot_day]').inputValue();
-    await page.fill('input[name=mit_usage_snapshot_day]', String(today.getDate()));
-    await submit(page.locator('form:has(button[name=mit_edit_usage_settings])'), 'mit_edit_usage_settings');
-
     await visit(page, 'agent/recurring_invoices.php', errors);
     const modal = await openModal(page, `modals/recurring_invoice/recurring_invoice_add.php?client_id=${made.clientId}`);
     await modal.locator('select[name=category]').selectOption({ index: 1 });
@@ -108,13 +102,17 @@ test('a recurring line picks the Ingram product and bills its quantity', async (
     await post(page, '/agent/post.php', { billing_item_save: '1', type: 'recurring', doc_id: String(made.recurringId), name: 'Smoke M365 Basic', description: '', qty: '1', price: '6', tax_id: '0' });
 
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
-    await expect(page.locator(`#mitUsageMetrics option[value="ingram:${MPN}"]`), 'the Ingram product offered').toHaveAttribute('label', 'Microsoft 365 Business Basic');
-    await expect(page.locator('#mitUsageMetrics option[value="bitwarden:users"]'), 'Bitwarden offered').toHaveCount(1);
-    const row = page.locator('[data-mit-usage-card] [data-item]', { hasText: 'Smoke M365 Basic' });
-    await row.locator('[data-mit-usage-source]').selectOption('api');
-    await row.locator('[data-mit-usage-metric]').fill(`ingram:${MPN}`);
-    await submit(page.locator('[data-mit-usage-card] form'), 'mit_usage_save_lines');
-    expect(await flash(page)).toContain('Usage billing saved');
+    // ITFlow's Edit Line window: Quantity from "Counted by an integration", the Ingram product picked from the client's counts
+    const edit = page.locator('#items tr', { hasText: 'Smoke M365 Basic' }).locator('a[data-modal-url*="billing_item.php"]').first();
+    const modal2 = await openModal(page, await edit.getAttribute('data-modal-url'), 'lg');
+    await modal2.locator('select[name=seat_source]').selectOption('usage');
+    const metric = modal2.locator('[data-mit-usage-seat] select[name=seat_metric]');
+    await expect(metric.locator(`option[value="ingram:${MPN}"]`), 'the Ingram product offered, by name').toContainText('Microsoft 365 Business Basic');
+    await expect(metric.locator('option[value="bitwarden:users"]'), 'Bitwarden offered').toContainText('Bitwarden users');
+    await metric.selectOption(`ingram:${MPN}`);
+    await expect(modal2.locator('[data-seat-preview]'), 'ITFlow\'s live count').toContainText('15', { timeout: 5000 });
+    await Promise.all([page.waitForNavigation(), modal2.locator('form[data-billing-line-form]').evaluate((form) => form.requestSubmit())]);
+    await expect(page.locator('#items tr', { hasText: 'Smoke M365 Basic' }), 'quantity from Ingram').toContainText('15');
 
     await action(page, `force_recurring=${made.recurringId}`, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`);
     await visit(page, `agent/invoices.php?client_id=${made.clientId}`, errors);

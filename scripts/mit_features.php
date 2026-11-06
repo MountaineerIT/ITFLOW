@@ -327,12 +327,13 @@ return [
         'name' => 'Usage billing (counts on recurring lines, connectors, API)',
         'files' => ['functions/mit_usage*.php', 'agent/mit_usage_review.php', 'agent/post/mit_usage.php', 'admin/includes/mit_usage_card.php',
             'admin/post/mit_usage_*.php', 'admin/mit_usage_connectors.php', 'api/v1/mit_usage/*.php', 'cron/mit_usage.php'],
-        'tests' => ['tests/smoke/11-usage.spec.js', 'tests/smoke/12-connectors.spec.js', 'tests/scenarios/scenario-usage.php'],
+        'tests' => ['tests/smoke/11-usage.spec.js', 'tests/smoke/12-connectors.spec.js', 'tests/scenarios/scenario-usage.php', 'tests/scenarios/scenario-usage-seats.php'],
         'assumes' => [
             'recurringInvoiceGenerate copies recurring lines in item_order; usage sets their quantity before auto-send.',
             'api/v1/enforce_api_rbac.php maps endpoints to modules.',
+            'Seat lines (26.11.3.7): ITFlow\'s recurringSeatSources / recurringSeatFilter / recurringSeatCount / recurringSeatDescribe take our "usage" source (filter {"metric": name}); billingItemSave posts seat_metric; the Edit Line window shows [data-seat-for=<source>] sections and live-counts through ajax.php recurring_seat_count; a null count leaves the quantity.',
         ],
-        'watch' => ['item_order', 'item_seat_source', 'enforce_api_rbac'],
+        'watch' => ['item_order', 'item_seat_source', 'enforce_api_rbac', 'recurringSeatSources', 'recurringSeatFilter', 'recurringSeatCount', 'recurringSeatDescribe', 'recurringInvoiceRefresh', 'data-seat-for', 'recurring_seat_count'],
         'overlap' => ['usage_line', 'usage_count', 'seat', 'metered', 'quantity_source'],
     ],
     'ninjaone' => [

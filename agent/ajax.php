@@ -1686,10 +1686,10 @@ if (isset($_GET['recurring_seat_count'])) {
         exit;
     }
     $filter = recurringSeatFilter($source, ['tag' => $_GET['seat_tag'] ?? 0, 'types' => (array) ($_GET['seat_types'] ?? []),
-        'software_id' => $_GET['seat_software_id'] ?? 0, 'count' => $_GET['seat_count'] ?? 'used']);
+        'software_id' => $_GET['seat_software_id'] ?? 0, 'count' => $_GET['seat_count'] ?? 'used', 'metric' => $_GET['seat_metric'] ?? '']); // Mountaineer IT: metric
     $count = recurringSeatCount(intval($recurring['client_id']), $source, $filter);
     if ($count === null) {
-        echo json_encode(['error' => "Pick one of the client's licenses."]);
+        echo json_encode(['error' => $source === 'usage' ? 'Pick a count - none has been reported for that name yet.' : "Pick one of the client's licenses."]); // Mountaineer IT: usage wording
         exit;
     }
     $minimum = billingNumberInput($_GET['seat_minimum'] ?? '0');

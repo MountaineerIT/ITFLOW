@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 67 | 13 | 7 | 29 | 70 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 179 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 68 | 13 | 7 | 30 | 73 | 40 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 180 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -29,7 +29,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 9 | 16 | 14 | 71 | 25 |
-| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 3 | 15 | 13 | 48 | 7 |
+| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 14 | 13 | 50 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
@@ -103,9 +103,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 
-**ITFlow tables** assets, calendar_events, categories, clients, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
+**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -1133,24 +1133,24 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - recurringInvoiceGenerate copies recurring lines in item_order; usage sets their quantity before auto-send.
 - api/v1/enforce_api_rbac.php maps endpoints to modules.
+- Seat lines (26.11.3.7): ITFlow's recurringSeatSources / recurringSeatFilter / recurringSeatCount / recurringSeatDescribe take our "usage" source (filter {"metric": name}); billingItemSave posts seat_metric; the Edit Line window shows [data-seat-for=<source>] sections and live-counts through ajax.php recurring_seat_count; a null count leaves the quantity.
 
-**Tests** `tests/smoke/11-usage.spec.js`, `tests/smoke/12-connectors.spec.js`, `tests/scenarios/scenario-usage.php`
+**Tests** `tests/smoke/11-usage.spec.js`, `tests/smoke/12-connectors.spec.js`, `tests/scenarios/scenario-usage.php`, `tests/scenarios/scenario-usage-seats.php`
 
 **Hooks in ITFlow's files**
 
 - `admin/settings_invoice.php`: mit_usage_card
 - `agent/client_overview.php`: mitUsageClientCard
-- `agent/recurring_invoice.php`: mitUsageRecurringCard
+- `agent/modals/billing/billing_item.php`: mitUsageSeatField, mitUsageSeatOption
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `functions.php`: mit_usage
-- `functions/billing.php`: mitUsageApply, mit_hold
+- `functions/billing.php`: mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, mit_hold
 - `includes/cron_jobs.php`: mit_qbo_billing, mit_usage
 
 **ITFlow functions it calls**
 
 - `api/v1/enforce_api_rbac.php`: apiClientScopeSql
 - `cron/includes/cron_lock.php`: cronJobStop
-- `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql, enforceClientAccess, enforceUserPermission, lookupUserPermission
 - `functions/billing.php`: billingLineTax, billingRecalc
 - `functions/logging.php`: logAudit
@@ -1160,9 +1160,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** clients, contact_tags, contacts, history, invoice_items, invoices, products, recurring_invoice_items, recurring_invoices, settings, tags, taxes, users
 
-**ITFlow columns** client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_client_id, contact_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_id, invoice_number, invoice_prefix, invoice_status, item_archived_at, item_id, item_invoice_id, item_name, item_order, item_price, item_quantity, item_recurring_invoice_id, item_seat_source, item_subtotal, item_tax, item_tax_id, item_total, recurring_invoice_archived_at, recurring_invoice_client_id, recurring_invoice_id, recurring_invoice_number, recurring_invoice_prefix, recurring_invoice_status, tag_archived_at, tag_id, tag_name, tag_type, tax_id, tax_percent, user_id, user_name
+**ITFlow columns** client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_client_id, contact_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_id, invoice_number, invoice_prefix, invoice_status, item_archived_at, item_id, item_invoice_id, item_name, item_order, item_price, item_quantity, item_recurring_invoice_id, item_seat_filter, item_seat_minimum, item_seat_source, item_subtotal, item_tax, item_tax_id, item_total, recurring_invoice_archived_at, recurring_invoice_client_id, recurring_invoice_id, recurring_invoice_number, recurring_invoice_prefix, recurring_invoice_status, tag_archived_at, tag_id, tag_name, tag_type, tax_id, tax_percent, user_id, user_name
 
-**Watched in ITFlow's code** `item_order` `item_seat_source` `enforce_api_rbac`
+**Watched in ITFlow's code** `item_order` `item_seat_source` `enforce_api_rbac` `recurringSeatSources` `recurringSeatFilter` `recurringSeatCount` `recurringSeatDescribe` `recurringInvoiceRefresh` `data-seat-for` `recurring_seat_count`
 
 **"ITFlow does this too" words** usage_line, usage_count, seat, metered, quantity_source
 

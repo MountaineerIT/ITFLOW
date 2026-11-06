@@ -306,8 +306,6 @@ $paper = [
             </div>
         <?php } ?>
 
-        <?= function_exists('mitUsageRecurringCard') ? mitUsageRecurringCard($recurring_invoice_id) : '' // Mountaineer IT: usage billing, beside ITFlow's Seats ?>
-
         <?php if ($costs) { ?>
             <!-- What it costs us: the recurring expenses it covers, and the margin left -->
             <div class="card mb-3">

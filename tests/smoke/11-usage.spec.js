@@ -1,8 +1,8 @@
-// Usage billing end to end: a recurring invoice with one line counted from contacts with a tag and one reported through the
-// API (a temporary API key), Force -> the new invoice's quantities follow the counts on the snapshot day and it stays a Draft,
-// Usage Review flags the big change, an override keeps its reason, and the invoice is approved; the client's Usage card takes a
-// typed count. The snapshot day is set to today for the run and put back. Makes and deletes its own client, tag, API key,
-// recurring invoice and invoice.
+// Usage counts in ITFlow's own "Quantity from" (26.11.3.7): a recurring invoice with one line counted from contacts with a tag (ITFlow's
+// Users tagged ...) and one "Counted by an integration" from a count reported through the API (a temporary API key), both set in ITFlow's
+// Edit Line window; Force -> the invoice's quantities follow the counts, with no review hold (nothing in Usage Review); read.php lists the
+// line; the client's Usage card takes a typed count and the Seats card then shows the new number. The snapshot day is set to today for the
+// run and put back. Makes and deletes its own client, tag, API key, recurring invoice and invoice.
 
 const { test, expect } = require('@playwright/test');
 const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean, csrf } = require('./helpers');
@@ -29,6 +29,18 @@ async function post(page, url, fields) {
     expect(status, `POST ${url}`).toBeLessThan(400);
     expect(text, `PHP error after POST ${url}`).not.toMatch(/Fatal error|Warning:|Notice:|Deprecated:/);
     return text;
+}
+
+// ITFlow's Edit Line window for a recurring invoice's line (by its name), filled and saved
+async function editLine(page, name, values) {
+    const edit = page.locator('#items tr', { hasText: name }).locator('a[data-modal-url*="billing_item.php"]').first();
+    const url = await edit.getAttribute('data-modal-url');
+    const modal = await openModal(page, url, 'lg');
+    await fillForm(modal, values);
+    await page.waitForTimeout(400); // the live count
+    await Promise.all([page.waitForNavigation(), modal.locator('form[data-billing-line-form]').evaluate((form) => form.requestSubmit())]);
+    await expectClean(page);
+    return modal;
 }
 
 async function api(page, path, body) {
@@ -89,23 +101,17 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
         await post(page, '/agent/post.php', { billing_item_save: '1', type: 'recurring', doc_id: String(made.recurringId), name, description: '', qty: '1', price, tax_id: '0' });
     }
 
+    // Billable users: ITFlow's own Users tagged ... in the line's Quantity from
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
-    const card = page.locator('[data-mit-usage-card]');
-    await expect(card).toHaveCount(1);
-    const users = card.locator('[data-item]', { hasText: 'Smoke billable users' });
-    await users.locator('[data-mit-usage-source]').selectOption('tag');
-    await users.locator('[data-mit-usage-tag]').selectOption(String(made.tagId));
-    const stations = card.locator('[data-item]', { hasText: 'Smoke workstations' });
-    await stations.locator('[data-mit-usage-source]').selectOption('api');
-    await stations.locator('[data-mit-usage-metric]').fill(made.metric);
-    await submit(card.locator('form'), 'mit_usage_save_lines');
-    expect(await flash(page)).toContain('Usage billing saved');
-    await expect(page.locator('[data-mit-usage-card] [data-item]', { hasText: 'Smoke workstations' }).locator('[data-mit-usage-metric]')).toHaveValue(made.metric);
+    await expect(page.locator('[data-mit-usage-card]'), 'the old Usage billing card is gone').toHaveCount(0);
+    await editLine(page, 'Smoke billable users', { seat_source: 'contacts', seat_tag: String(made.tagId) });
+    await expect(page.locator('#items tr', { hasText: 'Smoke billable users' }), 'two tagged contacts').toContainText('2');
     await expectClean(page, errors);
 });
 
-test('the API reports a count; a bad one is refused', async ({ page }) => {
+test('the API reports a count, a line is counted by it in ITFlow\'s Quantity from; a bad count is refused', async ({ page }) => {
     test.skip(!made.recurringId || !made.apiKey, 'not set up');
+    const errors = watch(page);
     await visit(page, 'agent/dashboard.php');
     let answer = await api(page, '/api/v1/mit_usage/create.php', { client_id: made.clientId, metric: made.metric, quantity: 7 });
     expect(answer.status, JSON.stringify(answer.json)).toBe(200);
@@ -113,19 +119,32 @@ test('the API reports a count; a bad one is refused', async ({ page }) => {
     answer = await api(page, '/api/v1/mit_usage/create.php', { client_id: made.clientId, metric: made.metric, quantity: -3 });
     expect(answer.status).toBe(400);
     expect(answer.json.message).toContain('quantity');
-    // Tag lines' names are kept for the daily tag count - the API can't write over them
     answer = await api(page, '/api/v1/mit_usage/create.php', { client_id: made.clientId, metric: `tag:${made.tagId}`, quantity: 99 });
     expect(answer.status, 'tag: name refused').toBe(400);
+
+    // ITFlow's Edit Line window offers the count
+    await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
+    const edit = page.locator('#items tr', { hasText: 'Smoke workstations' }).locator('a[data-modal-url*="billing_item.php"]').first();
+    const modal = await openModal(page, await edit.getAttribute('data-modal-url'), 'lg');
+    await expect(modal.locator('select[name=seat_source] option[value=usage]'), 'Counted by an integration').toBeEnabled();
+    await modal.locator('select[name=seat_source]').selectOption('usage');
+    await expect(modal.locator('[data-mit-usage-seat] select[name=seat_metric] option', { hasText: made.metric }), 'the count, with its number').toContainText('7 now');
+    await modal.locator('[data-mit-usage-seat] select[name=seat_metric]').selectOption(made.metric);
+    await expect(modal.locator('[data-seat-preview]'), 'ITFlow\'s live count').toContainText('7', { timeout: 5000 });
+    await Promise.all([page.waitForNavigation(), modal.locator('form[data-billing-line-form]').evaluate((form) => form.requestSubmit())]);
+    await expect(page.locator('#items tr', { hasText: 'Smoke workstations' }), 'quantity from the count').toContainText('7');
+    await expect(page.locator('body'), 'on ITFlow\'s Seats card').toContainText(made.metric);
+    await expectClean(page, errors);
+
     // The read endpoint lists the line to report for, with its latest count
     const read = await page.evaluate(async ({ key, client }) => {
         const response = await fetch(`/api/v1/mit_usage/read.php?client_id=${client}`, { headers: { 'X-API-Key': key } });
         return response.json();
     }, { key: made.apiKey, client: made.clientId });
     const line = (read.data || []).find((l) => l.metric === made.metric);
-    expect(line, 'the API line in read.php').toBeTruthy();
-    expect(Number(line.latest_quantity)).toBe(7);
+    expect(line, 'the line in read.php').toBeTruthy();
+    expect([line.source, Number(line.latest_quantity)]).toEqual(['usage', 7]);
     // A body that is not JSON (a form post) is answered with ITFlow's JSON refusal - it was an empty 500
-    // (count(null) in api/v1/*_output.php once the key came from the header)
     const form = await page.evaluate(async ({ key }) => {
         const response = await fetch('/api/v1/clients/delete.php', { method: 'POST', headers: { 'X-API-Key': key, 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'client_id=0' });
         return { status: response.status, text: await response.text() };
@@ -134,7 +153,7 @@ test('the API reports a count; a bad one is refused', async ({ page }) => {
     expect(() => JSON.parse(form.text), 'answered in JSON').not.toThrow();
 });
 
-test('Force: quantities follow the counts, the invoice stays a Draft, Usage Review flags it, override and approve', async ({ page }) => {
+test('Force: quantities follow the counts, with no review hold', async ({ page }) => {
     test.skip(!made.recurringId, 'not set up');
     const errors = watch(page);
     await action(page, `force_recurring=${made.recurringId}`, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`);
@@ -144,47 +163,26 @@ test('Force: quantities follow the counts, the invoice stays a Draft, Usage Revi
     expect(made.invoiceId, 'the invoice made').toBeGreaterThan(0);
 
     await visit(page, `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoiceId}`, errors);
-    await expect(page.locator('body')).toContainText('Draft');
     await expect(page.locator('#items tr', { hasText: 'Smoke billable users' })).toContainText('2');
     await expect(page.locator('#items tr', { hasText: 'Smoke workstations' })).toContainText('7');
     await expect(page.locator('body'), '2 x 10 + 7 x 50').toContainText('370.00');
-
-    await visit(page, 'agent/mit_usage_review.php', errors);
-    const box = page.locator(`[data-mit-usage-invoice="${made.invoiceId}"]`);
-    await expect(box, 'flagged for review').toHaveCount(1);
-    const stations = box.locator('tr', { hasText: 'Smoke workstations' });
-    await expect(stations.locator('[data-flag="big_change"]')).toHaveCount(1);
-    await stations.locator('input[name=quantity]').fill('6');
-    await stations.locator('input[name=reason]').fill('One workstation retired on the 1st');
-    await submit(stations.locator('form'), 'mit_usage_override');
-    expect(await flash(page)).toContain('Quantity changed');
     await visit(page, 'agent/mit_usage_review.php?show=all', errors);
-    const after = page.locator(`[data-mit-usage-invoice="${made.invoiceId}"] tr`, { hasText: 'Smoke workstations' });
-    await expect(after.locator('[data-qty]')).toContainText('6');
-    await expect(after).toContainText('One workstation retired');
-
-    const approve = page.locator(`[data-mit-usage-invoice="${made.invoiceId}"] a`, { hasText: 'Approve' });
-    if (await approve.count()) {
-        await Promise.all([page.waitForNavigation(), approve.click()]);
-        await expect(page.locator(`[data-mit-usage-invoice="${made.invoiceId}"] .badge`, { hasText: 'Approved' })).toHaveCount(1);
-    }
-    await visit(page, `agent/invoice.php?client_id=${made.clientId}&invoice_id=${made.invoiceId}`, errors);
-    await expect(page.locator('body'), '2 x 10 + 6 x 50').toContainText('320.00');
+    await expect(page.locator(`[data-mit-usage-invoice="${made.invoiceId}"]`), 'nothing held for review').toHaveCount(0);
     await expectClean(page, errors);
 });
 
-test('the client\'s Usage card shows the lines and takes a typed count', async ({ page }) => {
+test('the client\'s Usage card takes a typed count, and ITFlow\'s Seats card sees it', async ({ page }) => {
     test.skip(!made.recurringId, 'not set up');
     const errors = watch(page);
     await visit(page, `agent/client_overview.php?client_id=${made.clientId}`, errors);
-    const card = page.locator('[data-mit-usage-client]');
-    await expect(card.locator('tr', { hasText: 'Smoke billable users' })).toContainText('now 2');
-    const row = card.locator(`tr[data-metric="${made.metric}"]`);
+    const row = page.locator(`[data-mit-usage-client] tr[data-metric="${made.metric}"]`);
     await expect(row).toContainText('7');
     await row.locator('input[name=quantity]').fill('9');
     await submit(row.locator('form'), 'mit_usage_count');
     expect(await flash(page)).toContain('Count saved');
     await expect(page.locator(`[data-mit-usage-client] tr[data-metric="${made.metric}"]`)).toContainText('9');
+    await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
+    await expect(page.locator('.list-group-item', { hasText: 'Smoke workstations' }), 'the Seats card: now 9').toContainText('now 9');
     await expectClean(page, errors);
 });
 
