@@ -1637,9 +1637,14 @@ model: see DEPLOYMENT.md.
   month) / the cost per hour of the agents who worked for the client (their labor / costed hours; none = the report's blended rate, else the
   default), "Over" badge + "Over break-even" count; columns after Recurring / month. Still Financial-only, as ITFlow has it. Scenario `scenario-client-profit.php`,
   smoke `36-client-profit.spec.js`.
-- Phase 2 (after the next upstream release is merged): recheck the review findings in files
-  upstream rewrote – ticket merge/move/link client checks, AI summary XSS, certificate-check
-  SSRF, broken tag links, Clients/Tickets/dashboard/search performance.
+- Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
+  (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
+  merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template
+  (`aiCleanHtml` -> `documentHtmlPurify`), kanban CSRF, rack unit / archive, service links (`linkAdd` same-client), trips (`tripCanEdit` /
+  `tripCanManage`), quote -> invoice on a missing quote - all ITFlow's own now. Tag links: rebuilt upstream (`tagPills` / `tagFilterBase`) -
+  every kind's pill was followed on the test install and opens its list filtered to the tag. Performance: our indexes M030 / M041 / M050.
+  Left as ITFlow's design: the certificate check connects to any host and port typed (internal names like fw01 on purpose - checking a
+  client's internal certificates), Support edit only.
 
 ## "Pull in ITFlow's updates"
 1. `git remote add upstream https://github.com/itflow-org/itflow.git` (if missing);
