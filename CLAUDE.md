@@ -800,7 +800,8 @@ model: see DEPLOYMENT.md.
   `cron/nightly_tasks.php` (after "Invoice Generated from Recurring!") and `agent/post/recurring_invoice.php` force_recurring (after
   the amount update): matches the new invoice's lines to the recurring lines by item_id order (how ITFlow copies them), sets
   qty from the last count on or before `mitUsageSnapshotDate()`, recalculates, writes history, and returning true turns
-  auto-send off (stays a Draft). UI: `mitUsageRecurringCard` (one line in `agent/recurring_invoice.php` before History),
+  auto-send off (stays a Draft). UI: `mitUsageRecurringCard` (one line in `agent/recurring_invoice.php`'s right-hand column after ITFlow's Seats card,
+  before Costs - 26.11.3.6, was under the invoice; a side card, one `[data-item]` block per line),
   `mitUsageClientCard` (one line at the end of the billing section in `agent/client_overview.php`), Billing > Usage Review
   `agent/mit_usage_review.php` (override = `mitUsageOverride`; Approve = the QuickBooks approval link), nav entry in
   `agent/includes/mit_billing_nav.php`, handlers `agent/post/mit_usage.php`. API `api/v1/mit_usage/create.php` / `read.php` - one

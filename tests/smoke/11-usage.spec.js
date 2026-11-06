@@ -92,15 +92,15 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
     const card = page.locator('[data-mit-usage-card]');
     await expect(card).toHaveCount(1);
-    const users = card.locator('tr', { hasText: 'Smoke billable users' });
+    const users = card.locator('[data-item]', { hasText: 'Smoke billable users' });
     await users.locator('[data-mit-usage-source]').selectOption('tag');
     await users.locator('[data-mit-usage-tag]').selectOption(String(made.tagId));
-    const stations = card.locator('tr', { hasText: 'Smoke workstations' });
+    const stations = card.locator('[data-item]', { hasText: 'Smoke workstations' });
     await stations.locator('[data-mit-usage-source]').selectOption('api');
     await stations.locator('[data-mit-usage-metric]').fill(made.metric);
     await submit(card.locator('form'), 'mit_usage_save_lines');
     expect(await flash(page)).toContain('Usage billing saved');
-    await expect(page.locator('[data-mit-usage-card] tr', { hasText: 'Smoke workstations' }).locator('[data-mit-usage-metric]')).toHaveValue(made.metric);
+    await expect(page.locator('[data-mit-usage-card] [data-item]', { hasText: 'Smoke workstations' }).locator('[data-mit-usage-metric]')).toHaveValue(made.metric);
     await expectClean(page, errors);
 });
 

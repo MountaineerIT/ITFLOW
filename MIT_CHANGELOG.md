@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.6 - 2026-11-06
+- Recurring invoices: the Usage billing card moved from under the invoice to the right-hand column, beside ITFlow's Seats card (where a line's quantity comes from, together near the top), laid out like ITFlow's cards - one block per line: quantity from, usage name or contact tag, minimum.
+
 ## 26.11.3.5 - 2026-11-06
 - Purchase orders: "Link to a project" on a PO (and a project link beside each line's "For") puts lines on a project - or takes them off - after the PO is made, ordered or received; before, a line kept whatever project its item had when the PO was made. The items they came from follow, and the project's Procurement card then counts them. A line for another client can't go on a client's project, and a line ordered for nobody takes the project's client while none of it has been received.
 

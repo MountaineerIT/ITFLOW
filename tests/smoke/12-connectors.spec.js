@@ -110,7 +110,7 @@ test('a recurring line picks the Ingram product and bills its quantity', async (
     await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
     await expect(page.locator(`#mitUsageMetrics option[value="ingram:${MPN}"]`), 'the Ingram product offered').toHaveAttribute('label', 'Microsoft 365 Business Basic');
     await expect(page.locator('#mitUsageMetrics option[value="bitwarden:users"]'), 'Bitwarden offered').toHaveCount(1);
-    const row = page.locator('[data-mit-usage-card] tr', { hasText: 'Smoke M365 Basic' });
+    const row = page.locator('[data-mit-usage-card] [data-item]', { hasText: 'Smoke M365 Basic' });
     await row.locator('[data-mit-usage-source]').selectOption('api');
     await row.locator('[data-mit-usage-metric]').fill(`ingram:${MPN}`);
     await submit(page.locator('[data-mit-usage-card] form'), 'mit_usage_save_lines');
