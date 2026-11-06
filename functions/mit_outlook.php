@@ -31,6 +31,8 @@ const MIT_OUTLOOK_CATEGORY = 'ITFlow';
 const MIT_OUTLOOK_BUSY_MINUTES = 5;
 const MIT_OUTLOOK_BUSY_PAST_DAYS = 7;
 const MIT_OUTLOOK_BUSY_AHEAD_DAYS = 56;
+/** Outlook "show as" values that block time (clashes); free / working elsewhere all-day events are copied too, just shown. */
+const MIT_OUTLOOK_BUSY_KINDS = ['busy', 'tentative', 'oof'];
 const MIT_OUTLOOK_SCOPES = 'offline_access openid profile email https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read';
 
 /*
@@ -493,11 +495,16 @@ function mitOutlookRefreshBusy($token, $user_id) {
         }
         foreach ($response['json']['value'] ?? [] as $event) {
             $show_as = strtolower((string) ($event['showAs'] ?? 'busy'));
-            // Not busy time: ITFlow's own events, and invites ITFlow emailed for a ticket booking (ticket-<id>@..., a helper's ticket-<id>-tech-<user>@...)
+            // Not busy time: ITFlow's own events, and invites ITFlow emailed for a ticket booking (ticket-<id>@..., a helper's ticket-<id>-tech-<user>@...).
+            // All-day / multi-day events come over whatever they show as - Outlook makes them Free by default (shown, but not a clash).
             if (isset($ours[$event['id'] ?? '']) || in_array(MIT_OUTLOOK_CATEGORY, $event['categories'] ?? [], true)
                 || preg_match('/^ticket-\d+(-tech-\d+)?@/', (string) ($event['iCalUId'] ?? ''))
-                || !empty($event['isCancelled']) || !in_array($show_as, ['busy', 'tentative', 'oof'], true)) {
+                || !empty($event['isCancelled'])
+                || (empty($event['isAllDay']) && !in_array($show_as, MIT_OUTLOOK_BUSY_KINDS, true))) {
                 continue;
+            }
+            if (!in_array($show_as, array_merge(MIT_OUTLOOK_BUSY_KINDS, ['free', 'workingelsewhere']), true)) {
+                $show_as = 'free';
             }
             $start_raw = substr((string) ($event['start']['dateTime'] ?? ''), 0, 19);
             $end_raw = substr((string) ($event['end']['dateTime'] ?? ''), 0, 19);
@@ -505,9 +512,10 @@ function mitOutlookRefreshBusy($token, $user_id) {
                 continue;
             }
             if (!empty($event['isAllDay'])) {
-                // All-day events have no time zone - just the days
-                $starts = substr($start_raw, 0, 10) . ' 00:00:00';
-                $ends = substr($end_raw, 0, 10) . ' 00:00:00';
+                // All-day events are just days. Graph may give them as the event zone's midnight moved to UTC
+                // (Tokyo's Nov 5 = Nov 4 15:00 UTC), so take the nearest midnight
+                $starts = mitOutlookAllDayDate($start_raw) . ' 00:00:00';
+                $ends = mitOutlookAllDayDate($end_raw) . ' 00:00:00';
             } else {
                 $starts = date('Y-m-d H:i:s', strtotime("$start_raw UTC"));
                 $ends = date('Y-m-d H:i:s', strtotime("$end_raw UTC"));
@@ -548,10 +556,15 @@ function mitOutlookRefreshBusy($token, $user_id) {
     return count($rows);
 }
 
+/** The day an all-day event's start / end ("2026-11-04T15:00:00") stands for: its nearest midnight. */
+function mitOutlookAllDayDate($raw) {
+    return gmdate('Y-m-d', strtotime(substr($raw, 0, 19) . ' UTC') + 12 * 3600);
+}
+
 /** What a busy time says on the calendar: the person sees their own titles, everyone else Busy. */
 function mitOutlookBusyTitle(array $row) {
     global $session_user_id;
-    $label = ['tentative' => 'Tentative', 'oof' => 'Out of office'][$row['show_as']] ?? 'Busy';
+    $label = ['tentative' => 'Tentative', 'oof' => 'Out of office', 'free' => 'Free', 'workingelsewhere' => 'Working elsewhere'][$row['show_as']] ?? 'Busy';
     if (intval($row['user_id']) === intval($session_user_id) && !intval($row['is_private']) && trim($row['subject']) !== '') {
         return $row['subject'];
     }
@@ -613,7 +626,8 @@ function mitOutlookBusyConflicts($user_id, $start, $end) {
     $end = escapeSql($end);
     $lines = [];
     try {
-        $result = mysqli_query($mysqli, "SELECT user_id, starts_at, ends_at, is_all_day, subject, is_private, show_as FROM mit_outlook_busy WHERE user_id = $user_id AND starts_at < '$end' AND ends_at > '$start' ORDER BY starts_at");
+        $result = mysqli_query($mysqli, "SELECT user_id, starts_at, ends_at, is_all_day, subject, is_private, show_as FROM mit_outlook_busy WHERE user_id = $user_id AND starts_at < '$end' AND ends_at > '$start'
+            AND show_as IN ('" . implode("', '", MIT_OUTLOOK_BUSY_KINDS) . "') ORDER BY starts_at");
     } catch (Throwable $e) {
         return [];  // database update pending
     }

@@ -321,7 +321,9 @@ model: see DEPLOYMENT.md.
   a key from config.php. Cron job `mit_outlook_sync` (`cron/mit_outlook_sync.php`, one entry
   added to `includes/cron_jobs.php`) pushes changed bookings every minute and checks Outlook
   for edits every 15 min (ITFlow wins). Side-nav entry in `agent/user/includes/user_side_nav.php`.
-  Step 2: Outlook busy times copied every 5 min into `mit_outlook_busy` (M005; also
+  Step 2 (26.11.3.3: all-day events come over whatever they show as - Outlook makes them Free -, kept with their show_as; only
+  `MIT_OUTLOOK_BUSY_KINDS` busy / tentative / oof are clashes; all-day dates = nearest midnight, `mitOutlookAllDayDate`):
+  Outlook busy times copied every 5 min into `mit_outlook_busy` (M005; also
   `mit_outlook_links.busy_refreshed_at`) by the same job. Shown as the `outlook_busy` calendar
   source - hooks in `functions/calendar.php` (calendarSources `+=`, calendarSourceItems early
   return), striped via `[data-kind="outlook_busy"]` CSS in `agent/calendar.php`; counted in
