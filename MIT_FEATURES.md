@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 66 | 13 | 7 | 29 | 70 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 175 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 67 | 13 | 7 | 29 | 70 | 40 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 177 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -37,6 +37,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 39 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
+| [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
 
 <a id="platform"></a>
@@ -1466,6 +1467,42 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** lead_days, invoice_lead, days_before, create_ahead, recurring_ticket_time
 
 **Our files** `functions/mit_recurring_lead.php`
+
+<a id="client_profit"></a>
+## Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report (`client_profit`)
+
+**Takes for granted**
+
+- ITFlow's agent/reports/client_profitability.php builds $clients rows through the $client closure (client_id, client_name, client_abbreviation), works out net = income - costs, then $columns (with a 'net' key), $totals and $target_control, and draws reportStats / reportTable.
+- Hours there are ticket_replies.ticket_reply_time_worked dated by ticket_reply_created_at; reportRangeSql / reportSegmentControl / reportShare are ITFlow's report helpers.
+- Invoices count as sold in Sent / Viewed / Partial / Paid; products.product_cost is ITFlow's product cost.
+
+**Tests** `tests/smoke/36-client-profit.spec.js`, `tests/scenarios/scenario-client-profit.php`
+
+**Hooks in ITFlow's files**
+
+- `agent/reports/client_profitability.php`: mitProfitAdd, mitProfitColumns, mitProfitControls, mitProfitSummary, mitProfitTotals
+- `functions.php`: mit_profit
+
+**ITFlow functions it calls**
+
+- `functions/auth.php`: clientScopeSql
+- `functions/dashboard.php`: dashboardRevenueSql
+- `functions/logging.php`: logAudit
+- `functions/reports.php`: reportCount, reportHours, reportMoney, reportPercent, reportRangeSql, reportSegmentControl, reportShare, reportStats
+- `functions/request.php`: flashAlert, redirect
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/security.php`: validateCSRFToken
+
+**ITFlow tables** clients, invoice_items, invoices, payments, products, revenues, taxes, ticket_replies, tickets, users
+
+**ITFlow columns** client_abbreviation, client_id, client_name, invoice_client_id, invoice_date, invoice_discount_amount, invoice_id, invoice_status, item_archived_at, item_id, item_invoice_id, item_product_id, item_quantity, item_subtotal, product_cost, product_id, revenue_amount, revenue_client_id, revenue_date, ticket_client_id, ticket_id, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_time_worked, user_archived_at, user_id, user_name, user_type
+
+**Watched in ITFlow's code** `client_profitability` `reportRangeSql` `reportSegmentControl` `dashboardRevenueSql` `product_cost`
+
+**"ITFlow does this too" words** labor_cost, cost_rate, hourly_cost, profit_margin, user_cost
+
+**Our files** `functions/mit_profit.php`, `admin/mit_labor_costs.php`, `admin/post/mit_labor_costs.php`
 
 <a id="ticket_add"></a>
 ## New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time (`ticket_add`)

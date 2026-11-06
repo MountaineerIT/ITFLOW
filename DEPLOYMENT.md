@@ -308,6 +308,9 @@ break stock ITFlow, and lists what stops working after a move.
 - **Recurring tickets / invoices made ahead** – stock ITFlow raises a recurring ticket on its run day with no booking, and makes a recurring
   invoice on its Next invoice date with the client's net terms from that day. The time / days-ahead / due settings in `mit_recurring_ticket_plan` /
   `mit_recurring_invoice_plan` stay unused; tickets and invoices already made keep their bookings and due dates.
+- **Client profitability costs** – stock ITFlow's Reports > Client Profitability goes back to income (paid) less expenses per hour: the
+  Labor cost / Parts cost / Profit / Margin columns and the Invoiced / Paid switch go, and agents' costs per hour stay unused in
+  `mit_agent_cost_rates` (Admin > Settings > Labor costs is ours).
 - **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
   `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
   and phone, and purchase orders go with Procurement.
