@@ -586,6 +586,98 @@ function mitUsageSeatField($client_id, $seat_source, array $seat_filter) {
         . 'anything else through the API (usage name). Counted again each time an invoice is made.</div></div>';
 }
 
+/*
+ * "Not tagged ..." on ITFlow's Users / Devices seat lines (26.11.3.8, the user's request: placeholder contacts - shared mailboxes,
+ * scanners - tagged so they are not billed as users). The same tag picker in the Edit Line window offers "Not tagged X" as the tag's id
+ * negated; the line's filter keeps it as {"not_tag": id}. "Not tagged at all" (26.11.3.8) - value 'untagged', kept as {"untagged": 1} -
+ * counts only the ones with no (unarchived) tag. Hooks, one guarded line each, in functions/billing.php: recurringSeatFilter
+ * (mitSeatNotTagFilter), recurringSeatCount's contacts / assets queries (mitSeatNotTagSql), recurringSeatDescribe (mitSeatNotTagDescribe);
+ * agent/modals/billing/billing_item.php (mitSeatNotTagOptions, both tag pickers). Stock ITFlow ignores not_tag and counts every one.
+ */
+
+/** Keep "not tagged" in a cleaned Users / Devices filter: a negative tag from the picker, or not_tag as stored. */
+function mitSeatNotTagFilter($source, array $filter, array $clean) {
+    if (!in_array($source, ['contacts', 'assets'], true)) {
+        return $clean;
+    }
+    if (($filter['tag'] ?? '') === 'untagged' || !empty($filter['untagged'])) {
+        unset($clean['tag'], $clean['not_tag']);
+        $clean['untagged'] = 1;
+        return $clean;
+    }
+    $tag = intval($filter['tag'] ?? 0);
+    $not = $tag < 0 ? -$tag : intval($filter['not_tag'] ?? 0);
+    if ($tag < 0) {
+        unset($clean['tag']);
+    }
+    if ($not > 0 && empty($clean['tag'])) {
+        $clean['not_tag'] = $not;
+    }
+    return $clean;
+}
+
+/** The SQL that leaves out contacts / devices with the line's "not tagged" tag. */
+function mitSeatNotTagSql($source, array $filter) {
+    if (!empty($filter['untagged'])) { // no tag at all (archived tags don't count)
+        if ($source === 'contacts') {
+            return " AND contact_id NOT IN (SELECT ct.contact_id FROM contact_tags ct JOIN tags t ON t.tag_id = ct.tag_id WHERE t.tag_archived_at IS NULL)";
+        }
+        if ($source === 'assets') {
+            return " AND asset_id NOT IN (SELECT at.asset_tag_asset_id FROM asset_tags at JOIN tags t ON t.tag_id = at.asset_tag_tag_id WHERE t.tag_archived_at IS NULL)";
+        }
+        return '';
+    }
+    $not = intval($filter['not_tag'] ?? 0);
+    if ($not <= 0) {
+        return '';
+    }
+    if ($source === 'contacts') {
+        return " AND contact_id NOT IN (SELECT contact_id FROM contact_tags WHERE tag_id = $not)";
+    }
+    if ($source === 'assets') {
+        return " AND asset_id NOT IN (SELECT asset_tag_asset_id FROM asset_tags WHERE asset_tag_tag_id = $not)";
+    }
+    return '';
+}
+
+/** "Contacts not tagged Placeholder", "Desktop and Laptop not tagged Spare in use" - or null when the line has no "not tagged". */
+function mitSeatNotTagDescribe($source, array $filter) {
+    if (!empty($filter['untagged']) && in_array($source, ['contacts', 'assets'], true)) {
+        unset($filter['untagged']);
+        return $source === 'contacts' ? 'Contacts with no tags' : preg_replace('/ in use$/', '', recurringSeatDescribe('assets', $filter)) . ' with no tags in use';
+    }
+    $not = intval($filter['not_tag'] ?? 0);
+    if ($not <= 0 || !in_array($source, ['contacts', 'assets'], true)) {
+        return null;
+    }
+    $name = (string) getFieldById('tags', $not, 'tag_name');
+    $name = $name !== '' ? $name : 'a tag that no longer exists';
+    unset($filter['not_tag']);
+    if ($source === 'contacts') {
+        return "Contacts not tagged $name";
+    }
+    $base = recurringSeatDescribe('assets', $filter);
+    return preg_replace('/ in use$/', '', $base) . " not tagged $name in use";
+}
+
+/** "Not tagged X" choices for a tag picker in the Edit Line window ($tags = ITFlow's seat options for that kind). */
+function mitSeatNotTagOptions($client_id, $kind, $seat_source, array $seat_filter, array $tags) {
+    $current = $seat_source === $kind ? intval($seat_filter['not_tag'] ?? 0) : 0;
+    if ($current && !isset($tags[$current]) && ($row = tagRow($current))) {
+        $tags[$current] = ['tag_id' => $current, 'tag_name' => $row['tag_name'] . ($row['tag_archived_at'] ? ' (archived)' : ''), 'n' => 0];
+    }
+    $untagged = $seat_source === $kind && !empty($seat_filter['untagged']);
+    $html = '<optgroup label="Leave out tagged ones" data-mit-seat-not-tag>'
+        . '<option value="untagged"' . ($untagged ? ' selected' : '') . '>Not tagged at all'
+        . ($kind === 'contacts' ? ' (' . intval(recurringSeatCount($client_id, 'contacts', ['untagged' => 1])) . ')' : '') . '</option>';
+    foreach ($tags as $tag_id => $tag) {
+        $tag_id = intval($tag_id);
+        $n = $kind === 'contacts' ? ' (' . intval(recurringSeatCount($client_id, 'contacts', ['not_tag' => $tag_id])) . ')' : '';
+        $html .= '<option value="-' . $tag_id . '"' . ($current === $tag_id ? ' selected' : '') . '>Not tagged ' . escapeHtml($tag['tag_name']) . $n . '</option>';
+    }
+    return $html . '</optgroup>';
+}
+
 /** The Usage card on a client's overview (agent/client_overview.php, one line): usage lines, latest counts, typing a count. */
 function mitUsageClientCard($client_id) {
     if (!mitUsageReady() || !mitUsageCan(1)) {

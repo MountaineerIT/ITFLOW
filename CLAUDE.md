@@ -837,6 +837,14 @@ model: see DEPLOYMENT.md.
   (`mitUsageApply`, Usage Review) stays for lines still there and past invoices. `api/v1/mit_usage/read.php` lists both (source 'usage'); the
   client's Usage card lists seat lines too (`mitUsageClientLines`). Scenario `scenario-usage-seats.php`; smoke 11 / 12 set lines in the Edit
   Line window.
+  "Not tagged ..." (Nov 6, 26.11.3.8 - the user's request: placeholder contacts tagged so they are not billed as users): ITFlow's Users / Devices
+  tag pickers in the Edit Line window also offer "Not tagged X" (`mitSeatNotTagOptions`, one line in each picker of billing_item.php - value = the
+  tag id negated, `[data-mit-seat-not-tag]` optgroup); the filter keeps {"not_tag": id} (`mitSeatNotTagFilter` - one line before
+  recurringSeatFilter's return), the count leaves those out (`mitSeatNotTagSql` - one line after each `$tag_sql` in recurringSeatCount),
+  `mitSeatNotTagDescribe` ("Contacts not tagged X", one line in recurringSeatDescribe). Functions in functions/mit_usage.php. Scenario: part 4b of
+  `scenario-usage-seats.php`; smoke 11 checks the choice.
+  "Not tagged at all" (26.11.3.8 - the user's follow-up: any tag leaves a contact out): option value 'untagged' first in the same optgroup, kept as
+  {"untagged": 1}; counts only contacts / devices with no unarchived tag (same three functions). Scenario and smoke 11 cover it.
 - Project tickets kept apart (Oct 2026): `functions/mit_projects.php` (ours) - a ticket in a project (ITFlow's
   `ticket_project_id`) is off the Tickets board / client tab (`mitProjectTicketsShows` adds `ticket_project_id = 0` to each
   view of `agent/tickets.php` plus a "Projects" view, unless the Project filter is set), the Dispatch queue + its menu count

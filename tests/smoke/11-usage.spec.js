@@ -127,6 +127,8 @@ test('the API reports a count, a line is counted by it in ITFlow\'s Quantity fro
     const edit = page.locator('#items tr', { hasText: 'Smoke workstations' }).locator('a[data-modal-url*="billing_item.php"]').first();
     const modal = await openModal(page, await edit.getAttribute('data-modal-url'), 'lg');
     await expect(modal.locator('select[name=seat_source] option[value=usage]'), 'Counted by an integration').toBeEnabled();
+    await expect(modal.locator(`[data-seat-for=contacts] option[value="-${made.tagId}"]`), 'Users: "Not tagged" - the one contact without the tag').toContainText(`Not tagged ${made.tagName} (1)`);
+    await expect(modal.locator('[data-seat-for=contacts] option[value=untagged]'), 'Users: "Not tagged at all"').toContainText('Not tagged at all (1)');
     await modal.locator('select[name=seat_source]').selectOption('usage');
     await expect(modal.locator('[data-mit-usage-seat] select[name=seat_metric] option', { hasText: made.metric }), 'the count, with its number').toContainText('7 now');
     await modal.locator('[data-mit-usage-seat] select[name=seat_metric]').selectOption(made.metric);

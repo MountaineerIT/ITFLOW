@@ -166,6 +166,7 @@ hook	agent/modals/asset/asset_bulk_add_ticket.php	mitServiceUserSql	2
 hook	agent/modals/billing/billing_form.php	mitRecurringInvoicePlanField	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
+hook	agent/modals/billing/billing_item.php	mitSeatNotTagOptions	4
 hook	agent/modals/billing/billing_item.php	mitUsageSeatField	2
 hook	agent/modals/billing/billing_item.php	mitUsageSeatOption	2
 hook	agent/modals/calendar/calendar_event.php	mitEventQuickAssign	2
@@ -424,12 +425,16 @@ hook	functions/billing.php	mitProcQuoteConvertGroups	2
 hook	functions/billing.php	mitQboHandlesInvoiceMail	2
 hook	functions/billing.php	mitQboTagTimeLines	2
 hook	functions/billing.php	mitRecurringInvoiceDue	2
+hook	functions/billing.php	mitSeatNotTagDescribe	2
+hook	functions/billing.php	mitSeatNotTagFilter	2
+hook	functions/billing.php	mitSeatNotTagSql	4
 hook	functions/billing.php	mitUsageApply	2
 hook	functions/billing.php	mitUsageSeatCount	2
 hook	functions/billing.php	mitUsageSeatDescribe	2
 hook	functions/billing.php	mitUsageSeatFilter	2
 hook	functions/billing.php	mitUsageSeatSources	2
 hook	functions/billing.php	mit_hold	2
+hook	functions/billing.php	mit_not	2
 hook	functions/billing_pay.php	mitQboCardPaymentBooked	2
 hook	functions/billing_pdf.php	mitQuotePdfImage	2
 hook	functions/calendar.php	mitAgentColor	1

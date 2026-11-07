@@ -2014,6 +2014,7 @@ function recurringSeatFilter($source, $filter) {
         $clean['count'] = ($filter['count'] ?? '') === 'total' ? 'total' : 'used';
     }
     if ($source === 'usage' && function_exists('mitUsageSeatFilter')) { $clean = mitUsageSeatFilter($filter); } // Mountaineer IT
+    if (function_exists('mitSeatNotTagFilter')) { $clean = mitSeatNotTagFilter($source, $filter, $clean); } // Mountaineer IT: "not tagged"
     return $clean;
 }
 
@@ -2028,12 +2029,14 @@ function recurringSeatCount($client_id, $source, array $filter) {
     $tag = intval($filter['tag'] ?? 0);
     if ($source === 'contacts') {
         $tag_sql = $tag ? "AND contact_id IN (SELECT contact_id FROM contact_tags WHERE tag_id = $tag)" : '';
+        $tag_sql .= function_exists('mitSeatNotTagSql') ? mitSeatNotTagSql('contacts', $filter) : ''; // Mountaineer IT: "not tagged"
         return intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM contacts WHERE contact_client_id = $client_id AND contact_archived_at IS NULL $tag_sql"))[0]);
     }
     if ($source === 'assets') {
         $skip = "'" . implode("', '", array_map('escapeSql', recurringSeatAssetSkipStatuses())) . "'";
         $types_sql = !empty($filter['types']) ? "AND asset_type IN ('" . implode("', '", array_map('escapeSql', $filter['types'])) . "')" : '';
         $tag_sql = $tag ? "AND asset_id IN (SELECT asset_tag_asset_id FROM asset_tags WHERE asset_tag_tag_id = $tag)" : '';
+        $tag_sql .= function_exists('mitSeatNotTagSql') ? mitSeatNotTagSql('assets', $filter) : ''; // Mountaineer IT: "not tagged"
         return intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM assets WHERE asset_client_id = $client_id AND asset_archived_at IS NULL
             AND (asset_status IS NULL OR asset_status NOT IN ($skip)) $types_sql $tag_sql"))[0]);
     }
@@ -2053,6 +2056,7 @@ function recurringSeatCount($client_id, $source, array $filter) {
 function recurringSeatDescribe($source, array $filter) {
     global $mysqli;
     if ($source === 'usage' && function_exists('mitUsageSeatDescribe')) { return mitUsageSeatDescribe($filter); } // Mountaineer IT
+    if (function_exists('mitSeatNotTagDescribe') && ($mit_not = mitSeatNotTagDescribe($source, $filter)) !== null) { return $mit_not; } // Mountaineer IT
     $tag = intval($filter['tag'] ?? 0);
     $tag_name = $tag ? (string) getFieldById('tags', $tag, 'tag_name') : '';
     if ($source === 'contacts') {

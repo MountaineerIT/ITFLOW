@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.8 - 2026-11-06
+- Recurring invoices: a line counting Users (or Devices) can now leave out the ones with a tag - "Not tagged Placeholder" in the Edit Line window's "Which contacts" picker. Tag shared mailboxes, scanners and other placeholder contacts, and they are no longer billed as users; tagging or untagging someone changes the count at the next refresh / invoice.
+- Recurring invoices: Users (and Devices) lines can count only the ones with no tags at all - "Not tagged at all" in the Edit Line window's "Which contacts" picker. Tag a placeholder with anything and it stops being billed, without picking that tag on each line. Archived tags don't count as tagged.
+
 ## 26.11.3.7 - 2026-11-06
 - Recurring invoices: usage counts are now picked in ITFlow's own Edit Line window - Quantity from "Counted by an integration" lists the client's counts (Bitwarden users, NinjaOne devices, Ingram Micro products, counts sent through the API or typed on the client's Usage card) with today's number. ITFlow then keeps the line's quantity up to date like its other seat lines (Seats card, refresh, history) and bills the count when the invoice is made - no review hold; the invoice follows the recurring invoice's send setting. "At least" sets a minimum.
 - The separate Usage billing card on recurring invoices is gone: its lines were moved into the lines themselves (usage names to "Counted by an integration" with their minimum, contact tags to ITFlow's "Users tagged ...").

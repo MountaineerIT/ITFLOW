@@ -29,7 +29,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 9 | 16 | 14 | 71 | 25 |
-| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 14 | 13 | 50 | 7 |
+| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 18 | 15 | 53 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
@@ -1141,26 +1141,28 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `admin/settings_invoice.php`: mit_usage_card
 - `agent/client_overview.php`: mitUsageClientCard
-- `agent/modals/billing/billing_item.php`: mitUsageSeatField, mitUsageSeatOption
+- `agent/modals/billing/billing_item.php`: mitSeatNotTagOptions, mitUsageSeatField, mitUsageSeatOption
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `functions.php`: mit_usage
-- `functions/billing.php`: mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, mit_hold
+- `functions/billing.php`: mitSeatNotTagDescribe, mitSeatNotTagFilter, mitSeatNotTagSql, mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, mit_hold, mit_not
 - `includes/cron_jobs.php`: mit_qbo_billing, mit_usage
 
 **ITFlow functions it calls**
 
 - `api/v1/enforce_api_rbac.php`: apiClientScopeSql
 - `cron/includes/cron_lock.php`: cronJobStop
+- `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql, enforceClientAccess, enforceUserPermission, lookupUserPermission
-- `functions/billing.php`: billingLineTax, billingRecalc
+- `functions/billing.php`: billingLineTax, billingRecalc, recurringSeatCount, recurringSeatDescribe
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
+- `functions/tags.php`: tagRow
 
-**ITFlow tables** clients, contact_tags, contacts, history, invoice_items, invoices, products, recurring_invoice_items, recurring_invoices, settings, tags, taxes, users
+**ITFlow tables** asset_tags, assets, clients, contact_tags, contacts, history, invoice_items, invoices, products, recurring_invoice_items, recurring_invoices, settings, tags, taxes, users
 
-**ITFlow columns** client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_client_id, contact_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_id, invoice_number, invoice_prefix, invoice_status, item_archived_at, item_id, item_invoice_id, item_name, item_order, item_price, item_quantity, item_recurring_invoice_id, item_seat_filter, item_seat_minimum, item_seat_source, item_subtotal, item_tax, item_tax_id, item_total, recurring_invoice_archived_at, recurring_invoice_client_id, recurring_invoice_id, recurring_invoice_number, recurring_invoice_prefix, recurring_invoice_status, tag_archived_at, tag_id, tag_name, tag_type, tax_id, tax_percent, user_id, user_name
+**ITFlow columns** asset_id, asset_tag_asset_id, asset_tag_tag_id, client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_client_id, contact_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_id, invoice_number, invoice_prefix, invoice_status, item_archived_at, item_id, item_invoice_id, item_name, item_order, item_price, item_quantity, item_recurring_invoice_id, item_seat_filter, item_seat_minimum, item_seat_source, item_subtotal, item_tax, item_tax_id, item_total, recurring_invoice_archived_at, recurring_invoice_client_id, recurring_invoice_id, recurring_invoice_number, recurring_invoice_prefix, recurring_invoice_status, tag_archived_at, tag_id, tag_name, tag_type, tax_id, tax_percent, user_id, user_name
 
 **Watched in ITFlow's code** `item_order` `item_seat_source` `enforce_api_rbac` `recurringSeatSources` `recurringSeatFilter` `recurringSeatCount` `recurringSeatDescribe` `recurringInvoiceRefresh` `data-seat-for` `recurring_seat_count`
 

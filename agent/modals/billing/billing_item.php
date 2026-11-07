@@ -133,6 +133,7 @@ ob_start();
                             <?php foreach ($seat_options['contact_tags'] as $tag_id => $tag) { ?>
                                 <option value="<?= $tag_id ?>" <?= $seat_source === 'contacts' && intval($seat_filter['tag'] ?? 0) === $tag_id ? 'selected' : '' ?>>Tagged <?= escapeHtml($tag['tag_name']) ?> (<?= intval($tag['n']) ?>)</option>
                             <?php } ?>
+                            <?= function_exists('mitSeatNotTagOptions') ? mitSeatNotTagOptions($client_id, 'contacts', $seat_source, $seat_filter, $seat_options['contact_tags']) : '' // Mountaineer IT: "not tagged" ?>
                         </select>
                     </div>
                     <div class="form-text">Tag the contacts you bill for - "Licensed user", "Staff" - to leave out the rest.</div>
@@ -157,6 +158,7 @@ ob_start();
                             <?php foreach ($seat_options['asset_tags'] as $tag_id => $tag) { ?>
                                 <option value="<?= $tag_id ?>" <?= $seat_source === 'assets' && intval($seat_filter['tag'] ?? 0) === $tag_id ? 'selected' : '' ?>>Tagged <?= escapeHtml($tag['tag_name']) ?> (<?= intval($tag['n']) ?>)</option>
                             <?php } ?>
+                            <?= function_exists('mitSeatNotTagOptions') ? mitSeatNotTagOptions($client_id, 'assets', $seat_source, $seat_filter, $seat_options['asset_tags']) : '' // Mountaineer IT: "not tagged" ?>
                         </select>
                     </div>
                     <div class="form-text">No types ticked counts every device - tick Desktop and Laptop for a per-workstation line, Server and Virtual Machine for per-server.</div>
