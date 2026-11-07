@@ -258,8 +258,8 @@ break stock ITFlow, and lists what stops working after a move.
   stay unused in `mit_qbo_client_terms` / `mit_qbo_invoice_terms`.
 - **Usage billing** – recurring invoices bill the fixed quantity on their lines again (update it by hand each month): a line
   whose Quantity from is "Counted by an integration" (`item_seat_source` 'usage') keeps its last quantity on stock ITFlow and
-  shows an unknown source - set it back to Typed in. A Users / Devices line set to "Not tagged ..." counts every contact / device
-  there (stock ITFlow ignores `not_tag`) - pick a tag the billed ones carry instead. The counts, `api/v1/mit_usage/` and Usage Review go (the data stays in `mit_usage_*`). Invoices already made keep their
+  shows an unknown source - set it back to Typed in. A Users / Devices line set to "Not tagged ..." or "Not tagged at all" counts every contact / device
+  there (stock ITFlow ignores `not_tag` / `untagged`) - pick a tag the billed ones carry instead. The counts, `api/v1/mit_usage/` and Usage Review go (the data stays in `mit_usage_*`). Invoices already made keep their
   quantities. Systems reporting counts through the API get "resource not mapped" errors - switch them off. The usage
   connectors (NinjaOne, Bitwarden, Ingram Micro) stop too; their Bitwarden keys and Ingram login stay encrypted in
   `mit_usage_links` / `mit_settings` - delete those rows if you leave for good.

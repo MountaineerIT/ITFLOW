@@ -115,6 +115,23 @@ try {
     scenarioCheck('tagging one more takes it off at the next refresh', floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_not")), floatval($all));
     scenarioCheck('devices: not_tag kept too', recurringSeatFilter('assets', ['tag' => -$ph, 'types' => ['Laptop']]), ['types' => ['Laptop'], 'not_tag' => $ph]);
     scenarioCheck('devices described', recurringSeatDescribe('assets', ['types' => ['Laptop'], 'not_tag' => $ph]), "Laptop not tagged ZZ scen placeholder $stamp in use");
+    // "Not tagged at all" (26.11.3.9): any tag leaves a contact out
+    $untagged_before = intval($q1("SELECT COUNT(*) FROM contacts c WHERE contact_client_id = $client_id AND contact_archived_at IS NULL
+        AND contact_id NOT IN (SELECT ct.contact_id FROM contact_tags ct JOIN tags t ON t.tag_id = ct.tag_id WHERE t.tag_archived_at IS NULL)"));
+    scenarioCheck('"Not tagged at all" is kept as untagged', recurringSeatFilter('contacts', ['tag' => 'untagged']), ['untagged' => 1]);
+    [$l_none, $error] = $save(['name' => 'ZZ scen users with no tags', 'qty' => '1', 'price' => '3', 'seat_source' => 'contacts', 'seat_tag' => 'untagged']);
+    scenarioCheck("saved through ITFlow ($error)", [json_decode((string) $q1("SELECT item_seat_filter FROM recurring_invoice_items WHERE item_id = $l_none"), true),
+        floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_none"))], [['untagged' => 1], floatval($untagged_before)]);
+    scenarioCheck('described in words', recurringSeatLines($rid, $client_id)[$l_none]['seat_label'] ?? '', 'Contacts with no tags');
+    mysqli_query($mysqli, "INSERT INTO contacts SET contact_name = 'ZZ scen untagged $stamp', contact_client_id = $client_id");
+    $plain = $made['contacts'][] = mysqli_insert_id($mysqli);
+    scenarioCheck('a new contact with no tag counts', recurringSeatCount($client_id, 'contacts', ['untagged' => 1]), $untagged_before + 1);
+    mysqli_query($mysqli, "INSERT INTO contact_tags SET contact_id = $plain, tag_id = $tag");
+    scenarioCheck('any tag at all leaves it out', recurringSeatCount($client_id, 'contacts', ['untagged' => 1]), $untagged_before);
+    mysqli_query($mysqli, "UPDATE tags SET tag_archived_at = NOW() WHERE tag_id = $tag");
+    scenarioCheck('an archived tag no longer counts as tagged', recurringSeatCount($client_id, 'contacts', ['untagged' => 1]), $untagged_before + 1);
+    mysqli_query($mysqli, "UPDATE tags SET tag_archived_at = NULL WHERE tag_id = $tag");
+    scenarioCheck('devices with no tags described', recurringSeatDescribe('assets', ['types' => ['Laptop'], 'untagged' => 1]), 'Laptop with no tags in use');
     scenarioCheck('a usage line keeps no not_tag', recurringSeatFilter('usage', ['metric' => $bw, 'tag' => -$ph]), ['metric' => $bw]);
 
     // 5. The client's Usage card lists the line with its count

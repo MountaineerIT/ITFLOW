@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.3.9 - 2026-11-06
+- Recurring invoices: Users (and Devices) lines can count only the ones with no tags at all - "Not tagged at all" in the Edit Line window's "Which contacts" picker. Tag a placeholder with anything and it stops being billed, without picking that tag on each line. Archived tags don't count as tagged.
+
 ## 26.11.3.8 - 2026-11-06
 - Recurring invoices: a line counting Users (or Devices) can now leave out the ones with a tag - "Not tagged Placeholder" in the Edit Line window's "Which contacts" picker. Tag shared mailboxes, scanners and other placeholder contacts, and they are no longer billed as users; tagging or untagging someone changes the count at the next refresh / invoice.
 
