@@ -115,7 +115,7 @@ try {
     scenarioCheck('tagging one more takes it off at the next refresh', floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_not")), floatval($all));
     scenarioCheck('devices: not_tag kept too', recurringSeatFilter('assets', ['tag' => -$ph, 'types' => ['Laptop']]), ['types' => ['Laptop'], 'not_tag' => $ph]);
     scenarioCheck('devices described', recurringSeatDescribe('assets', ['types' => ['Laptop'], 'not_tag' => $ph]), "Laptop not tagged ZZ scen placeholder $stamp in use");
-    // "Not tagged at all" (26.11.3.9): any tag leaves a contact out
+    // "Not tagged at all" (26.11.3.8): any tag leaves a contact out
     $untagged_before = intval($q1("SELECT COUNT(*) FROM contacts c WHERE contact_client_id = $client_id AND contact_archived_at IS NULL
         AND contact_id NOT IN (SELECT ct.contact_id FROM contact_tags ct JOIN tags t ON t.tag_id = ct.tag_id WHERE t.tag_archived_at IS NULL)"));
     scenarioCheck('"Not tagged at all" is kept as untagged', recurringSeatFilter('contacts', ['tag' => 'untagged']), ['untagged' => 1]);

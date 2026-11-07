@@ -589,7 +589,7 @@ function mitUsageSeatField($client_id, $seat_source, array $seat_filter) {
 /*
  * "Not tagged ..." on ITFlow's Users / Devices seat lines (26.11.3.8, the user's request: placeholder contacts - shared mailboxes,
  * scanners - tagged so they are not billed as users). The same tag picker in the Edit Line window offers "Not tagged X" as the tag's id
- * negated; the line's filter keeps it as {"not_tag": id}. "Not tagged at all" (26.11.3.9) - value 'untagged', kept as {"untagged": 1} -
+ * negated; the line's filter keeps it as {"not_tag": id}. "Not tagged at all" (26.11.3.8) - value 'untagged', kept as {"untagged": 1} -
  * counts only the ones with no (unarchived) tag. Hooks, one guarded line each, in functions/billing.php: recurringSeatFilter
  * (mitSeatNotTagFilter), recurringSeatCount's contacts / assets queries (mitSeatNotTagSql), recurringSeatDescribe (mitSeatNotTagDescribe);
  * agent/modals/billing/billing_item.php (mitSeatNotTagOptions, both tag pickers). Stock ITFlow ignores not_tag and counts every one.
