@@ -5,6 +5,7 @@
  *    count for the client - Bitwarden's here), describes it ("Bitwarden users"), refreshes it (history) and bills it when the invoice is made;
  *    the minimum wins over a smaller count; a name with no count can't be saved and a line whose count is gone keeps its quantity;
  *  - no review hold: the invoice follows the recurring invoice's send setting, nothing in the old Usage Review;
+ *  - "Not tagged ..." on Users / Devices lines (26.11.3.8): placeholder contacts left out, kept as {"not_tag": id}, follows a new tag;
  *  - M058 moves the old Usage billing card's lines: a usage-name line -> 'usage' with its minimum, a contact-tag line -> ITFlow's
  *    Users tagged ...; the moved rows leave mit_usage_lines; running it twice changes nothing.
  */
@@ -91,6 +92,31 @@ try {
     $run();
     scenarioCheck('running it twice changes nothing', $q1("SELECT item_seat_source FROM recurring_invoice_items WHERE item_id = $old_api"), 'usage');
 
+    // 4b. "Not tagged ..." (26.11.3.8): placeholder contacts tagged so they are not billed
+    mysqli_query($mysqli, "INSERT INTO tags SET tag_name = 'ZZ scen placeholder $stamp', tag_type = 3, tag_color = '#000'");
+    $ph = $made['tags'][] = mysqli_insert_id($mysqli);
+    $all = intval($q1("SELECT COUNT(*) FROM contacts WHERE contact_client_id = $client_id AND contact_archived_at IS NULL"));
+    foreach (['ZZ scen real user', 'ZZ scen shared mailbox'] as $i => $name) {
+        mysqli_query($mysqli, "INSERT INTO contacts SET contact_name = '$name $stamp', contact_client_id = $client_id");
+        $cid = $made['contacts'][] = mysqli_insert_id($mysqli);
+        if ($i === 1) {
+            mysqli_query($mysqli, "INSERT INTO contact_tags SET contact_id = $cid, tag_id = $ph");
+        }
+    }
+    scenarioCheck('the picker\'s "Not tagged" (a negative tag) is kept as not_tag', recurringSeatFilter('contacts', ['tag' => -$ph]), ['not_tag' => $ph]);
+    scenarioCheck('stored not_tag reads back', recurringSeatFilter('contacts', json_encode(['not_tag' => $ph])), ['not_tag' => $ph]);
+    scenarioCheck('counts every contact but the tagged one', recurringSeatCount($client_id, 'contacts', ['not_tag' => $ph]), $all + 1);
+    [$l_not, $error] = $save(['name' => 'ZZ scen users not placeholders', 'qty' => '1', 'price' => '3', 'seat_source' => 'contacts', 'seat_tag' => (string) -$ph]);
+    scenarioCheck("saved through ITFlow ($error)", [json_decode((string) $q1("SELECT item_seat_filter FROM recurring_invoice_items WHERE item_id = $l_not"), true),
+        floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_not"))], [['not_tag' => $ph], floatval($all + 1)]);
+    scenarioCheck('described in words', recurringSeatLines($rid, $client_id)[$l_not]['seat_label'] ?? '', "Contacts not tagged ZZ scen placeholder $stamp");
+    mysqli_query($mysqli, "INSERT INTO contact_tags SET contact_id = " . intval($made['contacts'][0]) . ", tag_id = $ph");
+    recurringInvoiceRefresh($rid, 'Scenario');
+    scenarioCheck('tagging one more takes it off at the next refresh', floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_not")), floatval($all));
+    scenarioCheck('devices: not_tag kept too', recurringSeatFilter('assets', ['tag' => -$ph, 'types' => ['Laptop']]), ['types' => ['Laptop'], 'not_tag' => $ph]);
+    scenarioCheck('devices described', recurringSeatDescribe('assets', ['types' => ['Laptop'], 'not_tag' => $ph]), "Laptop not tagged ZZ scen placeholder $stamp in use");
+    scenarioCheck('a usage line keeps no not_tag', recurringSeatFilter('usage', ['metric' => $bw, 'tag' => -$ph]), ['metric' => $bw]);
+
     // 5. The client's Usage card lists the line with its count
     $lines = array_values(array_filter(mitUsageClientLines($client_id), function ($l) use ($l_bw) { return intval($l['recurring_item_id']) === $l_bw; }));
     scenarioCheck('the client card lists it with the latest count', [$lines[0]['line_source'] ?? '', floatval($lines[0]['latest']['quantity'] ?? 0)], ['usage', 16.0]);
@@ -106,6 +132,10 @@ try {
         mysqli_query($mysqli, "DELETE FROM recurring_invoice_items WHERE item_recurring_invoice_id = " . intval($id));
         mysqli_query($mysqli, "DELETE FROM history WHERE history_recurring_invoice_id = " . intval($id));
         mysqli_query($mysqli, "DELETE FROM recurring_invoices WHERE recurring_invoice_id = " . intval($id));
+    }
+    foreach ($made['contacts'] as $id) {
+        mysqli_query($mysqli, "DELETE FROM contact_tags WHERE contact_id = " . intval($id));
+        mysqli_query($mysqli, "DELETE FROM contacts WHERE contact_id = " . intval($id));
     }
     foreach ($made['tags'] as $id) {
         mysqli_query($mysqli, "DELETE FROM tags WHERE tag_id = " . intval($id));
