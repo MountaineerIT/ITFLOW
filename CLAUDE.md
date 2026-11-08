@@ -120,8 +120,9 @@ model: see DEPLOYMENT.md.
   One line each at the top of `includes/header.php` and `client/includes/header.php` (after ITFlow's own ob_start there); ITFlow's tags are
   untouched. Not on login.php / modals loaded by ajax. Smoke `90-asset-stamps.spec.js`.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
-  `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (Release
-  shows it with "ITFlow <APP_VERSION>" under it, and requires `admin/includes/mit_changelog_card.php` under the version row).
+  `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (since 26.11.4.1 - ITFlow's
+  rebuilt page: This install's Version row shows it with "ITFlow <APP_VERSION>" under it, the branch checks name `MountaineerIT-ITFLOW`, and
+  `admin/includes/mit_changelog_card.php` is required at the end of the main column).
   `includes/app_version.php` stays ITFlow's.
 - Removed `.github/workflows/first-interaction.yml` (upstream's welcome bot – it points people
   to ITFlow's forum). If an upstream merge brings it back, delete it again.
@@ -1553,6 +1554,20 @@ model: see DEPLOYMENT.md.
   (`requestIsMfaSetup` replaces our 26.10.95 check); restore guards for backups / canned_responses / expenses / tmp (`BACKUP_UPLOADS_DENY_GUARD`) -
   `backupAssertUploadsGuards` keeps our sub-folder sweep and writes only mit_receipts / mit_feedback. The service-account block sits before ITFlow's
   password check in load_user_session.php. Conflicts: README.md (ours), client/post.php, functions/user.php, includes/load_user_session.php.
+- ITFlow 26.11.4 (Nov 8, 26.11.4.1 - master, 18 commits; database 3.5.5 -> 3.6.2): card fee paid by clients (Stripe, `billingCardFeeCents` /
+  `billingCardFeeAdd` - a "Card Fee" line added when the payment is booked), Skyetel texting (`functions/sms.php`, Texts to clients section on
+  Notifications, text log, Text Messages cron job), API tickets from templates / recurring_invoices / portal_invites, lead -> client on payment
+  (`invoicePaidFollowUp`), shared IT documentation PDF links, a rebuilt Maintenance > Update page (`updateCheckDetails`, release notes from the
+  changelog), cron on by default for new installs, phone formats (`functions/phone_formats.php`), dropdowns with Popper's fixed strategy
+  (`js/bootstrap_defaults.js`), managed mode (`functions/managed.php`) and demo mode (`functions/demo.php`) - both off unless config.php turns them on.
+  No name clashes; the report's "overlaps" (managed seats / health, sms acknowledge) were false matches. Conflicts: README.md (ours), functions.php
+  (theirs' requires, then ours), admin/settings_notification.php (their Texts to clients section, then `mitNotificationSections`),
+  agent/post/payment.php (Charge Saved Card: our balance left + lock + `updateInvoiceStatusFromPayments` + idempotency key over their fee cents /
+  metadata), cron/nightly_tasks.php (theirs), agent/post/ticket.php (our To-line branch, then their `smsTicketReplyNotify` when emailed),
+  admin/update.php (theirs, re-hooked: `MountaineerIT-ITFLOW` as the release branch in its three branch checks, `mitVersion()` with "ITFlow
+  <APP_VERSION>" under it in This install's Version row, `mit_changelog_card.php` at the end of the main column). The user's choices: card fee and
+  QuickBooks left as they come (a card payment on an approved, unbatched invoice shows "changed since approval"); ITFlow's texts stay apart from
+  our booking-email ticks.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
