@@ -54,7 +54,7 @@ hook	admin/settings_ticket.php	mitServiceTicketColor	1
 hook	admin/settings_ticket.php	mit_calendar_card	1
 hook	admin/settings_ticket.php	mit_no_response_card	1
 hook	admin/update.php	MIT_CHANGELOG	1
-hook	admin/update.php	MountaineerIT	1
+hook	admin/update.php	MountaineerIT	3
 hook	admin/update.php	mitVersion	3
 hook	admin/update.php	mit_changelog_card	1
 hook	admin/users.php	mitServiceUserSql	2

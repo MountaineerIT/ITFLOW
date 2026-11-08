@@ -30,9 +30,9 @@ test('Billing menu: To Bill (ITFlow\'s Unbilled Time with parts), no separate Un
 test('Admin > Update and the admin footer: our version, ITFlow\'s under it, our release notes', async ({ page }) => {
     const errors = watch(page);
     await visit(page, 'admin/update.php', errors);
-    const release = page.locator('.col-md-3:has(small:text-is("Release"))');
-    await expect(release.locator('.h5'), 'our build\'s version').toHaveText(MIT_VERSION);
-    await expect(release, 'ITFlow\'s version under it').toContainText(`ITFlow ${APP_VERSION}`);
+    // ITFlow's This install card (26.11.4's rebuilt page): Version row
+    await expect(page.locator('[data-update-install] [data-mit-version]'), 'our build\'s version').toHaveText(MIT_VERSION);
+    await expect(page.locator('[data-update-install] [data-mit-itflow-version]'), 'ITFlow\'s version under it').toHaveText(`ITFlow ${APP_VERSION}`);
     await expect(page.locator(`#mit-release-${MIT_VERSION.replace(/\./g, '\\.')}`), 'our release notes, this version first').toHaveCount(1);
     await expect(page.locator('footer.app-footer'), 'the admin footer').toContainText(`ITFlow ${MIT_VERSION}`);
     await expectClean(page, errors);

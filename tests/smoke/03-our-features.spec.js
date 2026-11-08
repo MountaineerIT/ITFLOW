@@ -255,10 +255,9 @@ test('description ticked Read stays folded away, untick shows it again', async (
 test('our version (ITFlow release + iteration) and its release notes on Admin > Update', async ({ page }) => {
     const errors = watch(page);
     await visit(page, 'admin/update.php', errors);
-    const release = page.locator('small', { hasText: /^Release$/ }).locator('xpath=..');
-    const version = (await release.locator('.h5').innerText()).trim();
+    const version = (await page.locator('[data-update-install] [data-mit-version]').innerText()).trim();
     expect(version, 'version like 26.10.1, or 26.11.1.1 on an ITFlow patch release').toMatch(/^\d{2}\.\d{1,2}(\.\d+){1,2}$/);
-    const itflow = (await release.locator('small', { hasText: /^ITFlow / }).innerText()).replace('ITFlow ', '').trim();
+    const itflow = (await page.locator('[data-update-install] [data-mit-itflow-version]').innerText()).replace('ITFlow ', '').trim();
     expect(version.startsWith(`${itflow}.`), `our version ${version} follows ITFlow ${itflow} (start again at .1 after merging an ITFlow release)`).toBeTruthy();
     await expect(page.locator(`[id="mit-release-${version}"]`), 'release notes for the running version (MIT_CHANGELOG.md)').toContainText('Running');
     await expect(page.locator('footer')).toContainText(`ITFlow ${version}`);

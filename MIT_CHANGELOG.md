@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.4.1 - 2026-11-08
+- ITFlow 26.11.4 merged (database 3.5.5 -> 3.6.2): clients can pay the card fee (Stripe, Admin > Payment Providers), text messaging through Skyetel (two-way ticket texting, visit and invoice texts with per-contact opt-in - nothing goes until texting is set up), API tickets from ticket templates and recurring invoices / portal invites through the API, a lead that pays an invoice becomes a client, secure links for a client's IT documentation PDF, a rebuilt Maintenance > Update page, cron on by default for new installs, international phone formats, row menus no longer cut off on short lists. Managed mode and demo mode stay off.
+- Ours on the new pieces: Charge Saved Card keeps charging the balance left (not the whole invoice) and works out Paid / Partial from the payments, now with ITFlow's card fee on top; an emailed reply sent through our "To" line also gets ITFlow's "a reply was emailed" text; the Update page shows our version (with ITFlow's under it), treats MountaineerIT-ITFLOW as the release branch and keeps our release notes.
+
 ## 26.11.3.8 - 2026-11-06
 - Recurring invoices: a line counting Users (or Devices) can now leave out the ones with a tag - "Not tagged Placeholder" in the Edit Line window's "Which contacts" picker. Tag shared mailboxes, scanners and other placeholder contacts, and they are no longer billed as users; tagging or untagging someone changes the count at the next refresh / invoice.
 - Recurring invoices: Users (and Devices) lines can count only the ones with no tags at all - "Not tagged at all" in the Edit Line window's "Which contacts" picker. Tag a placeholder with anything and it stops being billed, without picking that tag on each line. Archived tags don't count as tagged.

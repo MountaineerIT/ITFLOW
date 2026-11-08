@@ -123,6 +123,12 @@
                 </li>
                 <?php require __DIR__ . '/mit_integrations_nav.php'; // Mountaineer IT: NinjaOne ?>
                 <li class="nav-item">
+                    <a href="/admin/text_messaging.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'text_messaging.php' ? 'active' : '') ?>">
+                        <i class="nav-icon fas fa-sms"></i>
+                        <p>Text Messaging</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="/admin/custom_links.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'custom_links.php' ? 'active' : '') ?>">
                         <i class="nav-icon fas fa-external-link-alt"></i>
                         <p>Custom Links</p>
@@ -181,6 +187,34 @@
                     </li>
                 <?php } ?>
 
+                <!-- One ITFlow managing others (functions/managed.php) - each side only when config.php turns it on -->
+                <?php if (managerEnabled() || managedEnabled()) { ?>
+                    <li class="nav-header">MANAGEMENT</li>
+                <?php } ?>
+
+                <?php if (managerEnabled()) { ?>
+                    <li class="nav-item">
+                        <a href="/admin/managed_instances.php" class="nav-link <?= (in_array(basename($_SERVER['PHP_SELF']), ['managed_instances.php', 'managed_instance.php']) ? 'active' : '') ?>">
+                            <i class="nav-icon fas fa-network-wired"></i>
+                            <p>
+                                Managed Instances
+                                <?php $nav_managed_offline = managedOfflineCount(); ?>
+                                <?php if ($nav_managed_offline) { ?>
+                                    <span class="right badge text-bg-danger" data-bs-toggle="tooltip" title="Not checking in" data-nav-managed-offline><?= $nav_managed_offline ?></span>
+                                <?php } ?>
+                            </p>
+                        </a>
+                    </li>
+                <?php } ?>
+                <?php if (managedEnabled()) { ?>
+                    <li class="nav-item">
+                        <a href="/admin/managed_by.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'managed_by.php' ? 'active' : '') ?>">
+                            <i class="nav-icon fas fa-handshake"></i>
+                            <p>Managed By</p>
+                        </a>
+                    </li>
+                <?php } ?>
+
                 <li class="nav-header">MAINTENANCE</li>
 
                 <li class="nav-item">
@@ -201,6 +235,20 @@
                         </p>
                     </a>
                 </li>
+                <?php if (smsProvider()) { ?>
+                    <li class="nav-item">
+                        <a href="/admin/text_messages.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'text_messages.php' ? 'active' : '') ?>">
+                            <i class="nav-icon fas fa-comment-dots"></i>
+                            <p>
+                                Text Messages
+                                <?php $nav_sms_failed = smsFailedRecently(); ?>
+                                <?php if ($nav_sms_failed) { ?>
+                                    <span class="right badge text-bg-danger" data-bs-toggle="tooltip" title="Failed to send in the last week" data-nav-sms-failed><?= $nav_sms_failed ?></span>
+                                <?php } ?>
+                            </p>
+                        </a>
+                    </li>
+                <?php } ?>
                 <li class="nav-item">
                     <a href="/admin/audit_logs.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'audit_logs.php' ? 'active' : '') ?>">
                         <i class="nav-icon fas fa-history"></i>
