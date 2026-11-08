@@ -458,7 +458,7 @@ $hero = [
             <ul class="list-group list-group-flush small" data-update-install>
                 <li class="list-group-item d-flex justify-content-between gap-3">
                     <span class="text-body-secondary">Version</span>
-                    <span class="fw-semibold text-end"><?= escapeHtml(function_exists('mitVersion') ? mitVersion() : APP_VERSION) // Mountaineer IT: our build's version ?><?= $new_release !== '' ? ' <span class="text-primary-emphasis fw-normal">&rarr; ' . escapeHtml($new_release) . '</span>' : '' ?><?php if (function_exists('mitVersion')) { ?><span class="d-block text-body-secondary fw-normal">ITFlow <?= escapeHtml(APP_VERSION) ?></span><?php } ?></span>
+                    <span class="fw-semibold text-end"><span data-mit-version><?= escapeHtml(function_exists('mitVersion') ? mitVersion() : APP_VERSION) // Mountaineer IT: our build's version ?></span><?= $new_release !== '' ? ' <span class="text-primary-emphasis fw-normal">&rarr; ' . escapeHtml($new_release) . '</span>' : '' ?><?php if (function_exists('mitVersion')) { ?><span class="d-block text-body-secondary fw-normal" data-mit-itflow-version>ITFlow <?= escapeHtml(APP_VERSION) ?></span><?php } ?></span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between gap-3">
                     <span class="text-body-secondary">Updates from</span>
