@@ -1114,10 +1114,23 @@ model: see DEPLOYMENT.md.
   CASCADE, the `ticket_resolved_at` of that resolution). Resolved, not closed (the user's choice): ITFlow's nightly auto-close closes it
   (sends nothing), a client reply reopens it. Customer Thermometer skips it: `mitNoResponseNotSql('t')` in `mitCtDueTickets`
   (`resolved_at <=> ticket_resolved_at`, so a later normal resolution is surveyed). Card `admin/includes/mit_no_response_card.php` (one
-  require at the end of `admin/settings_ticket.php`, "Messages when resolving"), handler `admin/post/mit_no_response_settings.php`.
+  require at the end of `admin/settings_ticket.php`, "Messages to clients" since 26.11.5.2 - was "Messages when resolving"), handler `admin/post/mit_no_response_settings.php`.
   The "Ticket resolved" email is ITFlow's own (26.10.195, the user's choice): our wording for it (`mit_settings` resolved_message,
   `mitResolvedMailContent` in ticketMailResolved) is gone - it only reached the Resolve button, not a reply resolving the ticket. A saved
   resolved_message row is left unused. Smoke `24-no-response.spec.js`.
+- Statuses that meet the SLA response target (Nov 10, 26.11.5.2 - the user's request: assigning out a ticket and emailing the client counts as the
+  response): `functions/mit_status_response.php` (ours, required from mit_no_response.php), M059 `mit_ticket_status_response` (ticket_status_id PK FK
+  ticket_statuses CASCADE, send_email) and `mit_ticket_status_seen` (ticket_id PK FK tickets CASCADE, status_id - each ticket's last status seen, kept only
+  while some status has the setting; every open ticket seeded when the first status is switched on, so tickets already in it are not emailed; `mit_settings`
+  status_response_since). Admin > Ticket Statuses: "SLA response target" - No / Yes after emailing the client / Yes without an email - on Open, On Hold and
+  our own statuses (never New / Resolved / Closed): `mitStatusResponseField($s_id)` (one line in `admin/modals/ticket_status/ticket_status_form.php` after
+  the resolution clock), `mitStatusResponseSave` (one line each in `admin/post/ticket_status.php` add / edit; `mit_status_response_present`). A ticket moved
+  INTO such a status with no first response yet: the "ticket assigned" message (`mit_settings` status_response_message, placeholders incl. [Tech] / [Status]
+  / [Company]; edited in the "Messages to clients" card beside Resolve - no response) as a public note + ITFlow's ticketMailSend to contact / watchers
+  (client notifications must be on), then ITFlow's `setTicketFirstResponse` - nobody emailed = not counted (note removed, history says why). Hook: one
+  guarded line at the start of ITFlow's `syncTicketSlaClock` in `functions/sla.php` (`mitStatusResponseCheck` - claims the move on the seen row first, so
+  it can't email twice); paths that skip the sync (API replies, texts, parser reopen, direct updates) are swept every minute by cron `mit_boards`
+  (`mitStatusResponseSweep`). Scenario `scenario-status-response.php`, smoke `38-status-response.spec.js`.
 - Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
   Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
   section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),

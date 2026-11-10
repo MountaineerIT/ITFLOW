@@ -85,6 +85,8 @@ $s_reply = $s ? (intval($s['ticket_status_client_reply'] ?? 1) === 0 ? 0 : 1) : 
         </small>
     </div>
 
+    <?php if (function_exists('mitStatusResponseField')) { echo mitStatusResponseField($s_id); } // Mountaineer IT: meets the SLA response target ?>
+
     <div class="mb-1">
         <label class="form-label">When the client replies</label>
         <div class="input-group">

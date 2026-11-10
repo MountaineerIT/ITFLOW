@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.5.2 - 2026-11-10
+- Ticket statuses can meet the SLA response target: in Admin > Ticket Statuses, Open, On Hold or a status of your own (an "Assigned" status, say) can be set so a ticket moved into it before anyone replied counts as answered - after emailing the client the "ticket assigned" message, or without an email. Only a move into the status counts, once per ticket; tickets already in it when you switch it on are left alone; if nobody can be emailed it does not count.
+- The "ticket assigned" message is edited on Admin > Settings > Tickets, in the card beside "Resolve - no response" (now called "Messages to clients"), with placeholders like [Tech] and [Status]. It is also kept on the ticket as a public note.
+
 ## 26.11.5.1 - 2026-11-09
 - ITFlow 26.11.5 merged (no database update): ITFlow now puts a version on every script and stylesheet it links, so browsers pick up an update without a hard refresh; a ticket page that isn't found no longer throws a script error.
 - Our own version-stamp filter (from 26.10.197) is retired - ITFlow does the same job now. Our scripts keep their own versions.

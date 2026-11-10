@@ -208,6 +208,19 @@ return [
             'ticket-timer-running-', 'fa-sliders-h', 'fa-layer-group', 'fa-map-marker-alt', 'ticket-actions', 'bulkActionButton', 'itflow-ticket-trips'],
         'overlap' => ['ticket_layout', 'no_response', 'ticket_timer', 'time_tracking', 'list_view', 'saved_view'],
     ],
+    'status_response' => [
+        'name' => 'Statuses that meet the SLA response target ("ticket assigned" email)',
+        'files' => ['functions/mit_status_response.php'],
+        'tests' => ['tests/scenarios/scenario-status-response.php', 'tests/smoke/38-status-response.spec.js'],
+        'assumes' => [
+            'ITFlow calls syncTicketSlaClock after a status change (our check runs at its start); a few paths (API replies, texts, the parser\'s reopen) do not - cron mit_boards sweeps for them.',
+            'setTicketFirstResponse records the first response once and judges it against ticket_response_due_at.',
+            'New / Resolved / Closed are statuses 1 / 4 / 5 (TICKET_STATUS_*); the status form sets $s_id; add_ticket_status / edit_ticket_status save it.',
+            'ticketMailSend / ticketEmailContent build the client email; config_ticket_client_general_notifications switches client emails.',
+        ],
+        'watch' => ['syncTicketSlaClock', 'setTicketFirstResponse', 'ticket_first_response_at', 'ticketStatusCreate', 'ticketStatusUpdate', 'config_ticket_client_general_notifications'],
+        'overlap' => ['first_response', 'response_target', 'status_response', 'assigned_email', 'ticket_assigned'],
+    ],
     'reply_recipients' => [
         'name' => 'Email reply "To" line (internal notes use ITFlow\'s @mentions)',
         'files' => ['functions/mit_reply_recipients.php', 'agent/js/mit_reply_recipients.js'],

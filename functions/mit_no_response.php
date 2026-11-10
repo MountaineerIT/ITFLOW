@@ -12,6 +12,8 @@
  * (admin/includes/mit_no_response_card.php, handler admin/post/mit_no_response_settings.php).
  */
 
+require_once __DIR__ . '/mit_status_response.php';
+
 const MIT_NO_RESPONSE_DEFAULT = "Hello [First Name],\n\n"
     . "We have reached out a few times about this ticket ([Ticket] - [Subject]) but have not heard back, so we are marking it as resolved for now.\n\n"
     . "If you still need help, just reply to this email and we will pick it up again.\n\n"

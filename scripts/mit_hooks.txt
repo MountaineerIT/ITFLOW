@@ -12,6 +12,7 @@ hook	admin/debug.php	mit_feedback_card	1
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
+hook	admin/modals/ticket_status/ticket_status_form.php	mitStatusResponseField	2
 hook	admin/modals/user/user_form.php	mitCalendarColorField	1
 hook	admin/modals/user/user_form.php	mitOfficeUserField	2
 hook	admin/modals/user/user_form.php	mitServiceUserField	2
@@ -34,6 +35,7 @@ hook	admin/post/settings_notification.php	mitNotificationsSave	2
 hook	admin/post/settings_notification.php	mit_changed	2
 hook	admin/post/settings_ticket.php	mitQuickTicketSettingsSave	2
 hook	admin/post/settings_ticket.php	mit_changed	2
+hook	admin/post/ticket_status.php	mitStatusResponseSave	4
 hook	admin/post/users.php	mitInviteExtrasSave	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
@@ -490,6 +492,7 @@ hook	functions/settings.php	mit_settings_index	1
 hook	functions/sign_in.php	mitServiceUserSql	2
 hook	functions/sla.php	mitProjectSlaOff	2
 hook	functions/sla.php	mitProjectSlaStart	2
+hook	functions/sla.php	mitStatusResponseCheck	2
 hook	functions/sla.php	mit_projects	1
 hook	functions/ticket.php	mitByDayDate	1
 hook	functions/ticket.php	mitByDayRule	2
@@ -635,6 +638,7 @@ ours	admin/database_updates/mountaineerit/M055.php
 ours	admin/database_updates/mountaineerit/M056.php
 ours	admin/database_updates/mountaineerit/M057.php
 ours	admin/database_updates/mountaineerit/M058.php
+ours	admin/database_updates/mountaineerit/M059.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -818,6 +822,7 @@ ours	functions/mit_reply_recipients.php
 ours	functions/mit_reply_times.php
 ours	functions/mit_service_users.php
 ours	functions/mit_settings_index.php
+ours	functions/mit_status_response.php
 ours	functions/mit_theme.php
 ours	functions/mit_ticket_add.php
 ours	functions/mit_ticket_layout.php
