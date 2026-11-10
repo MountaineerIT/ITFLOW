@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 68 | 13 | 7 | 30 | 73 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 180 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 69 | 13 | 7 | 31 | 74 | 38 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 182 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -20,7 +20,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 4 | 42 | 17 | 71 | 15 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 20 | 9 | 17 | 9 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 9 |
+| [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
@@ -101,9 +102,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 
-**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, tickets, user_invites, user_role_permissions, user_roles, users
+**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, ticket_statuses, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, ticket_status_id, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -711,10 +712,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketForModal, ticketForRequest, ticketIsOpen, ticketMailSend, ticketOpenTaskCount, ticketReference, ticketReplyEmailed, ticketResolve, ticketRow
+- `functions/ticket_status.php`: ticketStatusRow
 
-**ITFlow tables** credentials, history, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
+**ITFlow tables** clients, credentials, history, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
 
-**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, user_id, watcher_ticket_id
+**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status_name, ticket_subject, user_id, watcher_ticket_id
 
 **ITFlow page ids / classes its scripts and styles use** `#public_reply_type_opt1` `#replyAudience` `#replyComposer` `#replySubmitLabel` `#startStopTimer` `#ticket_add_reply` `.itflow-ticket-trips`
 
@@ -723,6 +725,48 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** ticket_layout, no_response, ticket_timer, time_tracking, list_view, saved_view
 
 **Our files** `functions/mit_ticket_layout.php`, `agent/js/mit_ticket_layout.js`, `includes/mit_timers_nav.php`, `js/mit_timers.js`, `functions/mit_list_views.php`, `functions/mit_no_response.php`, `agent/modals/mit_no_response/no_response.php`, `agent/post/mit_no_response.php`, `admin/includes/mit_no_response_card.php`, `admin/post/mit_no_response_settings.php`
+
+<a id="status_response"></a>
+## Statuses that meet the SLA response target ("ticket assigned" email) (`status_response`)
+
+**Takes for granted**
+
+- ITFlow calls syncTicketSlaClock after a status change (our check runs at its start); a few paths (API replies, texts, the parser's reopen) do not - cron mit_boards sweeps for them.
+- setTicketFirstResponse records the first response once and judges it against ticket_response_due_at.
+- New / Resolved / Closed are statuses 1 / 4 / 5 (TICKET_STATUS_*); the status form sets $s_id; add_ticket_status / edit_ticket_status save it.
+- ticketMailSend / ticketEmailContent build the client email; config_ticket_client_general_notifications switches client emails.
+
+**Tests** `tests/scenarios/scenario-status-response.php`, `tests/smoke/38-status-response.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `admin/modals/ticket_status/ticket_status_form.php`: mitStatusResponseField
+- `admin/post/ticket_status.php`: mitStatusResponseSave
+- `admin/settings_ticket.php`: mit_no_response_card
+- `functions.php`: mit_boards
+- `functions/reports.php`: mit_boards
+- `functions/sla.php`: mitStatusResponseCheck
+- `includes/cron_jobs.php`: mit_boards
+
+**ITFlow functions it calls**
+
+- `functions/billing.php`: billingCompany
+- `functions/email.php`: emailReady
+- `functions/logging.php`: logAudit, logTicketHistory
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/sla.php`: setTicketFirstResponse
+- `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketMailSend, ticketReference, ticketReplyEmailed, ticketRow
+- `functions/ticket_status.php`: ticketStatusRow
+
+**ITFlow tables** clients, history, settings, ticket_replies, tickets
+
+**ITFlow columns** client_name, company_id, company_name, config_ticket_client_general_notifications, contact_email, contact_name, ticket_archived_at, ticket_assigned_to, ticket_closed_at, ticket_created_at, ticket_first_response_at, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, user_name
+
+**Watched in ITFlow's code** `syncTicketSlaClock` `setTicketFirstResponse` `ticket_first_response_at` `ticketStatusCreate` `ticketStatusUpdate` `config_ticket_client_general_notifications`
+
+**"ITFlow does this too" words** first_response, response_target, status_response, assigned_email, ticket_assigned
+
+**Our files** `functions/mit_status_response.php`
 
 <a id="reply_recipients"></a>
 ## Email reply "To" line (internal notes use ITFlow's @mentions) (`reply_recipients`)

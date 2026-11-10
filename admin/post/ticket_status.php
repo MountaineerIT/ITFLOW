@@ -30,12 +30,14 @@ if (isset($_POST['add_ticket_status']) || isset($_POST['edit_ticket_status'])) {
     if ($row) {
         $ticket_status_id = intval($row['ticket_status_id']);
         $changes = ticketStatusUpdate($row, $fields);
+        if (function_exists('mitStatusResponseSave')) { mitStatusResponseSave($ticket_status_id, $_POST); } // Mountaineer IT: meets the SLA response target
         if ($changes) {
             logAudit("Ticket Status", "Edit", "$session_name changed ticket status " . escapeSql($row['ticket_status_name']) . ": " . escapeSql(implode('; ', $changes)), 0, $ticket_status_id);
         }
         flashAlert("Status <strong>" . escapeHtml($fields['name']) . "</strong> saved");
     } else {
         $ticket_status_id = ticketStatusCreate($fields);
+        if (function_exists('mitStatusResponseSave')) { mitStatusResponseSave($ticket_status_id, $_POST); } // Mountaineer IT: meets the SLA response target
         logAudit("Ticket Status", "Create", "$session_name added ticket status " . escapeSql($fields['name']) . ($fields['pauses_sla'] ? ' (pauses the resolution clock)' : ''), 0, $ticket_status_id);
         flashAlert("Status <strong>" . escapeHtml($fields['name']) . "</strong> added - at the end of the order");
     }

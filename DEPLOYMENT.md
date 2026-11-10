@@ -316,6 +316,9 @@ break stock ITFlow, and lists what stops working after a move.
 - **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
   `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
   and phone, and purchase orders go with Procurement.
+- **Statuses that meet the response target** – the "SLA response target" choice goes from Admin > Ticket Statuses and moving a ticket
+  into such a status no longer emails the client or records the first response; first responses already recorded stay
+  (`mit_ticket_status_response` / `mit_ticket_status_seen` are left behind).
 - **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
   public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
   email goes back to ITFlow's own wording.
@@ -460,7 +463,7 @@ approve the PR → update production on a day you pick.
   approver and time zone (People tab). Timesheets - and California rules for hourly people - start on the promotion day;
   earlier days are left as they were.
 - Admin > Roles: give each role its Procurement / Timesheets / Dispatch level, and the boards it sees.
-- Admin > Settings > Boards, Notifications, Ticket (calendar colours, "Resolve - no response" wording).
+- Admin > Settings > Boards, Notifications, Ticket (calendar colours, "Resolve - no response" and "ticket assigned" wording), Ticket Statuses (SLA response target).
 - Integrations (Microsoft 365, NinjaOne, QuickBooks, Customer Thermometer, MSP Align, AI helper) stay off until set up -
   each has its own section in this file.
 

@@ -372,6 +372,7 @@ function syncTicketSlaClock($ticket_id)
     global $mysqli;
 
     $ticket_id = intval($ticket_id);
+    if (function_exists('mitStatusResponseCheck')) mitStatusResponseCheck($ticket_id); // Mountaineer IT: a status that meets the response target
 
     $sql = mysqli_query($mysqli, "SELECT ticket_sla_id, ticket_created_at, ticket_resolved_at, ticket_closed_at, ticket_archived_at, ticket_resolution_sla_alert_stage, sla_resolution_minutes, ticket_status_pauses_sla
         FROM tickets
