@@ -629,8 +629,8 @@ $hours_text = function ($hours) {
 
 <?php } ?>
 
-<script src="/js/billing_items.js"></script>
-<script src="/js/unbilled_time.js"></script>
+<script src="<?= staticFileUrl('/js/billing_items.js') ?>"></script>
+<script src="<?= staticFileUrl('/js/unbilled_time.js') ?>"></script>
 <?= function_exists('mitToBillScript') ? mitToBillScript() : '' // Mountaineer IT: the parts in the total ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

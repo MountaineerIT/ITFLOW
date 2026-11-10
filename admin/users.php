@@ -556,7 +556,7 @@ $csrf = $_SESSION['csrf_token'];
 </div>
 <?= function_exists('mitServiceUsersSection') ? mitServiceUsersSection() : '' // Mountaineer IT: API / service accounts ?>
 
-<script src="../js/bulk_actions.js"></script>
+<script src="<?= staticFileUrl('/js/bulk_actions.js') ?>"></script>
 
 <?php
 require_once "../includes/footer.php";

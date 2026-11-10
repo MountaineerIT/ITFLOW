@@ -1209,7 +1209,7 @@ if (mysqli_num_rows($sql) == 0) {
         });
     </script>
 
-    <script src="../js/bulk_actions.js"></script>
+    <script src="<?= staticFileUrl('/js/bulk_actions.js') ?>"></script>
 
 <?php
 }

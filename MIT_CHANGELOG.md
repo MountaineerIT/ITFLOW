@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.5.1 - 2026-11-09
+- ITFlow 26.11.5 merged (no database update): ITFlow now puts a version on every script and stylesheet it links, so browsers pick up an update without a hard refresh; a ticket page that isn't found no longer throws a script error.
+- Our own version-stamp filter (from 26.10.197) is retired - ITFlow does the same job now. Our scripts keep their own versions.
+
 ## 26.11.4.1 - 2026-11-08
 - ITFlow 26.11.4 merged (database 3.5.5 -> 3.6.2): clients can pay the card fee (Stripe, Admin > Payment Providers), text messaging through Skyetel (two-way ticket texting, visit and invoice texts with per-contact opt-in - nothing goes until texting is set up), API tickets from ticket templates and recurring invoices / portal invites through the API, a lead that pays an invoice becomes a client, secure links for a client's IT documentation PDF, a rebuilt Maintenance > Update page, cron on by default for new installs, international phone formats, row menus no longer cut off on short lists. Managed mode and demo mode stay off.
 - Ours on the new pieces: Charge Saved Card keeps charging the balance left (not the whole invoice) and works out Paid / Partial from the payments, now with ITFlow's card fee on top; an emailed reply sent through our "To" line also gets ITFlow's "a reply was emailed" text; the Update page shows our version (with ITFlow's under it), treats MountaineerIT-ITFLOW as the release branch and keeps our release notes.
