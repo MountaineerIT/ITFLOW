@@ -55,6 +55,8 @@ hook	admin/settings_ticket.php	mit_calendar_card	1
 hook	admin/settings_ticket.php	mit_no_response_card	1
 hook	admin/update.php	MIT_CHANGELOG	1
 hook	admin/update.php	MountaineerIT	3
+hook	admin/update.php	data-mit-itflow-version	1
+hook	admin/update.php	data-mit-version	1
 hook	admin/update.php	mitVersion	3
 hook	admin/update.php	mit_changelog_card	1
 hook	admin/users.php	mitServiceUserSql	2
@@ -96,7 +98,6 @@ hook	agent/calendar.php	mit-cal-agent	1
 hook	agent/calendar.php	mit-cal-when	3
 hook	agent/calendar.php	mit-tech-dot	1
 hook	agent/calendar.php	mitAgentColor	1
-hook	agent/calendar.php	mitAsset	2
 hook	agent/calendar.php	mitCalendarState	1
 hook	agent/calendar.php	mitLeftBehindCard	2
 hook	agent/calendar.php	mitServiceUserSql	2
@@ -359,7 +360,6 @@ hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
 hook	api/v1/products/read.php	mitProductApiColumns	2
 hook	client/includes/check_login.php	mitSessionCheck	2
 hook	client/includes/footer.php	mit_portal_tables	1
-hook	client/includes/header.php	mitAssetStampStart	2
 hook	client/login_microsoft.php	mitPortalEntraTenant	1
 hook	client/login_microsoft.php	mitPortalEntraTenantOk	1
 hook	client/login_reset.php	mitLoginHead	2
@@ -550,7 +550,6 @@ hook	includes/cron_jobs.php	mit_qbo_sync	2
 hook	includes/cron_jobs.php	mit_timesheets	3
 hook	includes/cron_jobs.php	mit_usage	3
 hook	includes/footer.php	mitVersion	2
-hook	includes/header.php	mitAssetStampStart	2
 hook	includes/header.php	mitThemeHead	2
 hook	includes/load_user_session.php	mitIsServiceUser	2
 hook	includes/load_user_session.php	mitSessionCheck	2

@@ -789,14 +789,14 @@ $show_login_form = (!$show_role_choice && !$show_mfa_form);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
 
-    <link rel="stylesheet" href="libs/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="<?= staticFileUrl('/libs/fontawesome-free/css/all.min.css') ?>">
 
     <?php if(file_exists('uploads/favicon.ico')) { ?>
         <link rel="icon" type="image/x-icon" href="/uploads/favicon.ico">
     <?php } ?>
 
-    <link rel="stylesheet" href="libs/adminlte/css/adminlte.min.css">
-    <link rel="stylesheet" href="css/itflow_custom.css">
+    <link rel="stylesheet" href="<?= staticFileUrl('/libs/adminlte/css/adminlte.min.css') ?>">
+    <link rel="stylesheet" href="<?= staticFileUrl('/css/itflow_custom.css') ?>">
     <?= function_exists('mitLoginHead') ? mitLoginHead() : '' // Mountaineer IT: sign-in backdrop ?>
 </head>
 <body class="hold-transition login-page">
@@ -949,9 +949,9 @@ if (!$config_whitelabel_enabled) {
 }
 ?>
 
-<script src="libs/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="libs/adminlte/js/adminlte.min.js"></script>
-<script src="js/login_prevent_resubmit.js"></script>
+<script src="<?= staticFileUrl('/libs/bootstrap/js/bootstrap.bundle.min.js') ?>"></script>
+<script src="<?= staticFileUrl('/libs/adminlte/js/adminlte.min.js') ?>"></script>
+<script src="<?= staticFileUrl('/js/login_prevent_resubmit.js') ?>"></script>
 
 </body>
 </html>

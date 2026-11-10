@@ -114,11 +114,10 @@ model: see DEPLOYMENT.md.
   Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
   itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
-- Version stamps on ITFlow's scripts / styles (26.10.197, the user's choice - ITFlow links them with no version, so browsers kept the old
-  js/app.js after the 3.5.3 merge and @mentions did nothing until a hard refresh): `mitAssetStampStart()` / `mitAssetStamp()` in
-  `functions/mit_common.php` - an output filter (HTML only) adding `?v=<file time>` to every local src / href ending .js / .css without one.
-  One line each at the top of `includes/header.php` and `client/includes/header.php` (after ITFlow's own ob_start there); ITFlow's tags are
-  untouched. Not on login.php / modals loaded by ajax. Smoke `90-asset-stamps.spec.js`.
+- Version stamps on scripts / styles: ITFlow does it itself since 26.11.5 (`staticFileUrl()` in functions/app.php on every tag). Our output
+  filter for it (26.10.197, `mitAssetStamp` / `mitAssetStampStart`, one line in each header) was retired in 26.11.5.1 - the user's choice. Our
+  own tags keep `mitAsset()`; a hook line of ours in ITFlow's files that links a file uses `staticFileUrl()` like theirs. Smoke `90-asset-stamps.spec.js`
+  checks no local script / stylesheet goes without a version.
 - Version and release notes: `includes/mit_version.php` + `MIT_CHANGELOG.md` (ours; `mitVersion()` / `mitChangelog()` in
   `functions/mit_common.php`). Hooks: `includes/footer.php` (admin footer shows `mitVersion()`), `admin/update.php` (since 26.11.4.1 - ITFlow's
   rebuilt page: This install's Version row shows it with "ITFlow <APP_VERSION>" under it, the branch checks name `MountaineerIT-ITFLOW`, and
@@ -1568,6 +1567,11 @@ model: see DEPLOYMENT.md.
   <APP_VERSION>" under it in This install's Version row, `mit_changelog_card.php` at the end of the main column). The user's choices: card fee and
   QuickBooks left as they come (a card payment on an approved, unbatched invoice shows "changed since approval"); ITFlow's texts stay apart from
   our booking-email ticks.
+- ITFlow 26.11.5 (Nov 9, 26.11.5.1 - master, 3 commits, no database update): every script / stylesheet tag through `staticFileUrl()` (and
+  `js/tinymce_defaults.js` for TinyMCE's own files); ticket collision detection only on a shown ticket. Overlap: our asset-stamp filter -
+  retired (see Version stamps above). Conflicts, all a hook of ours beside a re-tagged line: agent/calendar.php (theirs - calendar.js now versioned
+  by staticFileUrl, our mitAsset line dropped), agent/unbilled_time.php (theirs + mitToBillScript), client/includes/footer.php (theirs + our
+  portal tables script through staticFileUrl), client/login_reset.php / login.php (theirs + mitLoginHead), includes/header.php (theirs + mitThemeHead).
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

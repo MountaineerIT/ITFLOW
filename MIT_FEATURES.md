@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 68 | 13 | 7 | 30 | 73 | 40 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 68 | 13 | 7 | 30 | 73 | 38 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 180 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
@@ -60,8 +60,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `admin/post/settings_module.php`: mitModulesSave, mit_lines
 - `admin/settings.php`: mitSettingsSummaries
 - `admin/settings_module.php`: mit_modules_fields
-- `admin/update.php`: MIT_CHANGELOG, mitVersion, mit_changelog_card, MountaineerIT
-- `agent/calendar.php`: mitAsset, mit_zones
+- `admin/update.php`: MIT_CHANGELOG, mitVersion, mit_changelog_card, data-mit-itflow-version, data-mit-version, MountaineerIT
+- `agent/calendar.php`: mit_zones
 - `agent/includes/get_side_nav_counts.php`: mitNavCachedCount, mit_to_bill
 - `agent/includes/side_nav.php`: mit_billing_nav, mit_to_bill
 - `agent/js/calendar.js`: mit_zones
@@ -74,7 +74,6 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/user/post/profile.php`: mitSessionRestamp
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `client/includes/check_login.php`: mitSessionCheck
-- `client/includes/header.php`: mitAssetStampStart
 - `client/login_microsoft.php`: mitPortalEntraTenant, mitPortalEntraTenantOk
 - `client/post.php`: mitSessionRestamp
 - `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
@@ -86,7 +85,6 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/user.php`: mitSessionRestamp
 - `includes/cron_jobs.php`: mit_ai_helper, mit_align, mit_boards, mit_customer_thermometer, mit_ninjaone, mit_qbo_billing, mit_timesheets, mit_usage
 - `includes/footer.php`: mitVersion
-- `includes/header.php`: mitAssetStampStart
 - `includes/load_user_session.php`: mitSessionCheck, mit_service_users
 - `js/unbilled_time.js`: mit_to_bill, MountaineerIT
 - `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_updates_applied

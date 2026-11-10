@@ -1,12 +1,11 @@
-// Version stamps on ITFlow's own scripts and styles (functions/mit_common.php mitAssetStamp, started in includes/header.php): every local
-// script / stylesheet the page links gets ?v=<file time>, so a browser fetches the new file after an update instead of keeping the old one
-// (26.10.196's @mentions sat unused in browsers that kept the old js/app.js). The preload of itflow_select.js carries the same stamp as its
-// script tag, so the preload is still used; libraries are stamped too; links that had a version keep theirs.
+// Version stamps on scripts and styles: ITFlow 26.11.5 adds ?v=<file time> to every script / stylesheet tag (staticFileUrl in
+// functions/app.php); ours carry theirs through mitAsset(). Our own output filter for this (26.10.197 - mitAssetStamp) was retired in
+// 26.11.5.1 - this test checks that no local script or stylesheet on the page goes without a version, ours or ITFlow's.
 
 const { test, expect } = require('@playwright/test');
 const { watch, visit, expectClean } = require('./helpers');
 
-test('ITFlow\'s scripts and styles carry a version stamp', async ({ page }) => {
+test('every local script and stylesheet carries a version stamp', async ({ page }) => {
     const errors = watch(page);
     await visit(page, 'agent/dashboard.php', errors);
     const unstamped = await page.evaluate(() => [...document.querySelectorAll('script[src^="/"], link[href^="/"][rel="stylesheet"], link[rel="preload"][href^="/"]')]
