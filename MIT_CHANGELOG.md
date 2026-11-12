@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.7.1 - 2026-11-12
+- ITFlow 26.11.7 merged (database 3.6.2 -> 3.6.5): a faster dashboard and menu counts on long histories (new indexes), every ITFlow table brought to one collation with a "Repair collations" check in Admin > Debug (what blanked beta's dashboard in October), a Client portal view in Admin > Users listing every portal login, a contacts export with the client, a restyled product picker on invoices / quotes, a pasted copied picture kept as a picture, the contract form's pickers, and fixes: a saved card can only be charged for its own client, audit log / history text with odd characters, mail sending on fresh Microsoft 365 / Google installs, lists past 10,000 pages.
+- Ours: our collation repair now looks only at our own tables (ITFlow does its own), and three of our ticket indexes that ITFlow's new ones duplicate are removed (database update M060).
+
 ## 26.11.5.3 - 2026-11-10
 - Fixed: saving an SLA, the SLA settings or a closure day (or changing a ticket's priority) no longer sends the "SLA breached" emails again for tickets that were already breached. ITFlow set every open ticket back to "not alerted yet", so its SLA job emailed each breach again a minute later. A ticket still past due now stays breached; one whose deadline moved into the future starts over.
 

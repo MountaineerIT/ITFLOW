@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 69 | 13 | 7 | 31 | 74 | 38 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 70 | 13 | 7 | 31 | 74 | 38 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 183 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |

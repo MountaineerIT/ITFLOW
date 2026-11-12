@@ -639,6 +639,7 @@ ours	admin/database_updates/mountaineerit/M056.php
 ours	admin/database_updates/mountaineerit/M057.php
 ours	admin/database_updates/mountaineerit/M058.php
 ours	admin/database_updates/mountaineerit/M059.php
+ours	admin/database_updates/mountaineerit/M060.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
