@@ -4,6 +4,12 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.7.2 - 2026-11-12
+- After the ITFlow 26.11.7 merge, every feature was used end to end on four copies of the test install (tickets, billing, timesheets, admin). Nothing was broken; these small things were fixed:
+- Office names keep a backslash in the audit log, and connecting QuickBooks no longer logs the admin's name with a stray backslash before an apostrophe.
+- Restoring a backup from Admin > Backup now gets the same collation repair as ITFlow's own updater, and the database updater also puts right a single column of ours that is on another collation (ITFlow's repair only covers its own columns). The nightly consistency check now notices such a column too.
+- API / service accounts: an archived one shows on Admin > Users' Archived view (so it can be restored), our section no longer shows under the Client portal list, and they are left out of the ticket template "Assign to" list and the Getting started team step.
+
 ## 26.11.7.1 - 2026-11-12
 - ITFlow 26.11.7 merged (database 3.6.2 -> 3.6.5): a faster dashboard and menu counts on long histories (new indexes), every ITFlow table brought to one collation with a "Repair collations" check in Admin > Debug (what blanked beta's dashboard in October), a Client portal view in Admin > Users listing every portal login, a contacts export with the client, a restyled product picker on invoices / quotes, a pasted copied picture kept as a picture, the contract form's pickers, and fixes: a saved card can only be charged for its own client, audit log / history text with odd characters, mail sending on fresh Microsoft 365 / Google installs, lists past 10,000 pages.
 - Ours: our collation repair now looks only at our own tables (ITFlow does its own), and three of our ticket indexes that ITFlow's new ones duplicate are removed (database update M060).

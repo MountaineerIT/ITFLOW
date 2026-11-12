@@ -9,10 +9,12 @@ hook	admin/cron.php	mit_cron_card	1
 hook	admin/database_updates.php	mitBeforeItflowUpdate	2
 hook	admin/database_updates.php	mit_db_upgrade	3
 hook	admin/debug.php	mit_feedback_card	1
+hook	admin/getting_started/team.php	mitServiceUserSql	2
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
 hook	admin/modals/ticket_status/ticket_status_form.php	mitStatusResponseField	2
+hook	admin/modals/ticket_template/ticket_template_form.php	mitServiceUserSql	2
 hook	admin/modals/user/user_form.php	mitCalendarColorField	1
 hook	admin/modals/user/user_form.php	mitOfficeUserField	2
 hook	admin/modals/user/user_form.php	mitServiceUserField	2
@@ -61,7 +63,7 @@ hook	admin/update.php	data-mit-itflow-version	1
 hook	admin/update.php	data-mit-version	1
 hook	admin/update.php	mitVersion	3
 hook	admin/update.php	mit_changelog_card	1
-hook	admin/users.php	mitServiceUserSql	2
+hook	admin/users.php	mitServiceUserListSql	2
 hook	admin/users.php	mitServiceUsersSection	2
 hook	agent/ajax.php	mitBoardVisibleSql	2
 hook	agent/ajax.php	mitCleanCalendarState	1

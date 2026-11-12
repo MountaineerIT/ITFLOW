@@ -339,21 +339,53 @@ function mitRestoreItflowUpdates() {
         }
     }
     uksort($files, 'version_compare');
+    // ITFlow 26.11.7's runner gives every table db.sql's collation before each update and after the last (databaseCollationRepair,
+    // a table that can't be changed is not tried again) - the same here, logged to App Logs as ITFlow does
+    is_file(__DIR__ . '/database_collation.php') && !function_exists('databaseCollationRepair') && require_once __DIR__ . '/database_collation.php';
+    $collations = ['changed' => [], 'failed' => []];
+    $collation_pass = function () use (&$collations) {
+        if (!function_exists('databaseCollationRepair')) {
+            return;
+        }
+        try {
+            $pass = databaseCollationRepair(array_keys($collations['failed']));
+            $collations = ['changed' => array_values(array_unique(array_merge($collations['changed'], $pass['changed'] ?? []))),
+                'failed' => $collations['failed'] + ($pass['failed'] ?? [])];
+        } catch (Throwable $e) {
+            error_log("Restore: checking collations failed: " . $e->getMessage());
+        }
+    };
+    $applied = 0;
+    $error = '';
     foreach ($files as $version => $file) {
         if (version_compare($version, $current, '<=')) {
             continue;
         }
+        $collation_pass();
         try {
             mitBeforeItflowUpdate($version);
             require $file;
         } catch (Throwable $e) {
             error_log("ITFlow database update to version $version failed: " . $e->getMessage());
-            return "$version: " . $e->getMessage();
+            $error = "$version: " . $e->getMessage();
+            break;
         }
         mysqli_query($mysqli, "UPDATE `settings` SET `config_current_database_version` = '" . escapeSql($version) . "'");
         $current = $version;
+        $applied++;
     }
-    return '';
+    if ($applied && $error === '') {
+        $collation_pass();
+    }
+    if (function_exists('logApp')) {
+        if ($collations['changed']) {
+            logApp('Database Update', 'info', "Gave " . count($collations['changed']) . " table(s) the collation db.sql has during the restore's database update: " . implode(', ', $collations['changed'])); // logApp escapes it
+        }
+        foreach ($collations['failed'] as $table => $why) {
+            logApp('Database Update', 'warning', "The table $table doesn't have the collation db.sql has, and the restore's database update could not give it: $why");
+        }
+    }
+    return $error;
 }
 
 /**

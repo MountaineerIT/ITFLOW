@@ -62,6 +62,18 @@ function mitServiceUserSql($column = 'user_id') {
     return " AND $column NOT IN (" . implode(',', $ids) . ")";
 }
 
+/**
+ * Admin > Users' agent list: service accounts left out, except on the Archived view - an archived one must still be found there to be
+ * restored (mitServiceUsersSection lists only those not archived).
+ */
+function mitServiceUserListSql($column = 'users.user_id', $archived_column = 'users.user_archived_at') {
+    $ids = mitServiceUserIds();
+    if (!$ids || !preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $column) || !preg_match('/^[A-Za-z_][A-Za-z0-9_.]*$/', $archived_column)) {
+        return '';
+    }
+    return " AND ($archived_column IS NOT NULL OR $column NOT IN (" . implode(',', $ids) . "))";
+}
+
 /** An array of agents keyed by user id with the service accounts taken out. */
 function mitServiceUsersOut(array $agents) {
     foreach (mitServiceUserIds() as $user_id) {
@@ -113,7 +125,8 @@ function mitServiceUserSave($user_id, array $post) {
 function mitServiceUsersSection() {
     global $mysqli;
     $ids = mitServiceUserIds();
-    if (!$ids) {
+    // Beside the agent views only - not ITFlow's Client portal list, invites or the archived (where they show with the others)
+    if (!$ids || in_array((string) ($_GET['show'] ?? ''), ['portal', 'invited', 'archived'], true)) {
         return '';
     }
     $result = mysqli_query($mysqli, "SELECT u.user_id, u.user_name, u.user_email, u.user_status, u.user_archived_at, r.role_name,

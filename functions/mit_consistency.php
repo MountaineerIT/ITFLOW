@@ -78,6 +78,15 @@ function mitConsistencyDatabase(callable $add) {
     if ($mixed) {
         $add('Database', 'warn', 'Tables not on ITFlow\'s collation (joins with them can fail - ITFlow\'s Admin > Debug > Repair collations fixes its tables, our database runner ours).', $mixed);
     }
+    // A column on another collation inside a table whose default is right fails the same way (26.11.7.1)
+    $columns = array_map(function ($row) {
+        return $row['TABLE_NAME'] . '.' . $row['COLUMN_NAME'];
+    }, mitConsistencyRows("SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND COLLATION_NAME LIKE 'utf8mb4\\_%'
+        AND COLLATION_NAME <> 'utf8mb4_general_ci' AND COLLATION_NAME NOT LIKE '%\\_bin'
+        AND TABLE_NAME IN (SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_COLLATION = 'utf8mb4_general_ci')"));
+    if ($columns) {
+        $add('Database', 'warn', 'Columns not on ITFlow\'s collation (joins with them can fail - Admin > Debug > Repair collations fixes ITFlow\'s, php scripts/update_cli.php --update_db ours).', $columns);
+    }
 }
 
 /** Mileage and purchases paid with payroll (functions/mit_reimbursements.php) against ITFlow's reimbursements and expenses. */

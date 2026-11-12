@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 70 | 13 | 7 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 183 | 2 | 2 | 15 | 40 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 70 | 14 | 9 | 31 | 74 | 38 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 184 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -36,7 +36,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
 | [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
-| [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 39 |
+| [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
 | [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
@@ -51,7 +51,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Module rows (module_*) and roleModuleInfo() are how permissions work; Admin > Settings > Modules form posts to settings_module.php.
 - Our menus hang off ITFlow's side_nav.php sections (INTEGRATIONS, BILLING, SUPPORT); our settings pages join settingsPages() / settingsFields() / the overview's $summaries (functions/settings.php, admin/settings.php), which feed the Settings menu, overview and Find a setting.
 
-**Tests** `tests/smoke/01-pages.spec.js`, `tests/smoke/90-asset-stamps.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/scenarios/scenario-api-key-ways.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
+**Tests** `tests/scenarios/scenario-collation-columns.php`, `tests/smoke/01-pages.spec.js`, `tests/smoke/90-asset-stamps.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/scenarios/scenario-api-key-ways.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -98,6 +98,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql
+- `functions/database_collation.php`: databaseCollationRepair
+- `functions/logging.php`: logApp
 - `functions/products.php`: productStockMove
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
@@ -1418,9 +1420,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
+- `admin/getting_started/team.php`: mitServiceUserSql
+- `admin/modals/ticket_template/ticket_template_form.php`: mitServiceUserSql
 - `admin/modals/user/user_form.php`: mitServiceUserField
 - `admin/post/users.php`: mitServiceUserSave
-- `admin/users.php`: mitServiceUserSql, mitServiceUsersSection
+- `admin/users.php`: mitServiceUserListSql, mitServiceUsersSection
 - `agent/ajax.php`: mitServiceUserSql
 - `agent/calendar.php`: mitServiceUserSql
 - `agent/client_onboarding/agreement.php`: mitServiceUserSql
