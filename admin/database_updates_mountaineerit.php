@@ -53,7 +53,9 @@ if (!function_exists('mitIndexExists')) {
  * utf8mb4_uca1400_ai_ci. A query joining such a table with the others then fails ("Illegal mix of collations", ITFlow 26.11's
  * productRepriceCount took the dashboard, Products and quotes down on beta). A table holding a deliberate *_bin column is left and
  * reported. Defined here, not in functions/, so an updater that loaded the old functions.php before pulling still has it.
- * Returns ["converted <table>", ...] and adds problems to $problems.
+ * Our own mit_ tables only since 26.11.7.1 (the user's choice): ITFlow 26.11.7 repairs its tables itself (database 3.6.5, and
+ * databaseCollationRepair before / after every update it applies), column by column with *_bin columns kept, but it looks only at
+ * the tables db.sql has. Returns ["converted <table>", ...] and adds problems to $problems.
  */
 if (!function_exists('mitCollationRepair')) {
     function mitCollationRepair($mysqli, array &$problems = []) {
@@ -62,7 +64,8 @@ if (!function_exists('mitCollationRepair')) {
                 (SELECT COUNT(*) FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.COLLATION_NAME LIKE '%\\_bin') AS bin_columns
             FROM information_schema.TABLES t
             WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE' AND t.TABLE_COLLATION LIKE 'utf8mb4\\_%'
-                AND t.TABLE_COLLATION <> 'utf8mb4_general_ci' AND t.TABLE_COLLATION NOT LIKE '%\\_bin'");
+                AND t.TABLE_COLLATION <> 'utf8mb4_general_ci' AND t.TABLE_COLLATION NOT LIKE '%\\_bin'
+                AND t.TABLE_NAME LIKE 'mit\\_%'");
         while ($result && $row = mysqli_fetch_assoc($result)) {
             $table = str_replace('`', '', $row['name']);
             if (intval($row['bin_columns']) > 0) {

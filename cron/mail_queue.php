@@ -452,7 +452,9 @@ if (mysqli_num_rows($sql_queue) > 0) {
             // Scrub the body on delivery - it can carry share decryption keys and temporary passwords
             mysqli_query($mysqli, "UPDATE email_queue SET email_status = 3, email_sent_at = NOW(), email_attempts = 1, email_content = '', email_cal_str = '', email_attachments = ''" . mailQueueErrorSql(null) . " WHERE email_id = $email_id");
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            // Anything that stops this one email - not only PHPMailer's own Exception, which is what Exception names
+            // in this file. An Error used to end the whole run with this email left as Sending and the rest unsent.
             mysqli_query($mysqli, "UPDATE email_queue SET email_status = 2, email_failed_at = NOW(), email_attempts = 1" . mailQueueErrorSql($e->getMessage()) . " WHERE email_id = $email_id");
 
             $email_recipient_logging = escapeSql($rowq['email_recipient']);
@@ -532,7 +534,7 @@ if (mysqli_num_rows($sql_failed_queue) > 0) {
             // Scrub the body on delivery - it can carry share decryption keys and temporary passwords
             mysqli_query($mysqli, "UPDATE email_queue SET email_status = 3, email_sent_at = NOW(), email_attempts = $email_attempts, email_content = '', email_cal_str = '', email_attachments = ''" . mailQueueErrorSql(null) . " WHERE email_id = $email_id");
 
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             mysqli_query($mysqli, "UPDATE email_queue SET email_status = 2, email_failed_at = NOW(), email_attempts = $email_attempts" . mailQueueErrorSql($e->getMessage()) . " WHERE email_id = $email_id");
 
             $email_recipient_logging = escapeSql($rowf['email_recipient']);

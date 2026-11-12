@@ -76,7 +76,7 @@ function mitConsistencyDatabase(callable $add) {
     $mixed = array_column(mitConsistencyRows("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_COLLATION <> 'utf8mb4_general_ci'
         AND TABLE_NAME NOT IN (SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND COLLATION_NAME LIKE '%\\_bin')"), 'TABLE_NAME');
     if ($mixed) {
-        $add('Database', 'warn', 'Tables not on ITFlow\'s collation (joins with them can fail - our database runner converts them; run it).', $mixed);
+        $add('Database', 'warn', 'Tables not on ITFlow\'s collation (joins with them can fail - ITFlow\'s Admin > Debug > Repair collations fixes its tables, our database runner ours).', $mixed);
     }
 }
 
