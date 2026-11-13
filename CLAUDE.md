@@ -1606,6 +1606,15 @@ model: see DEPLOYMENT.md.
   Admin > Users (archived ones stay on the Archived view), our section only beside the agent views, filter added to
   `admin/modals/ticket_template/ticket_template_form.php` and `admin/getting_started/team.php`. Test copies: each `tests/.smoke_tN/.env` must
   point at its own copy (two pointed at itflow-beta.test), and the stand-ins at 127.0.0.1 are the main install's - shared between copies.
+- ITFlow 26.11.8 (Nov 13, 26.11.8.1 - master, 11 commits; database 3.6.5 -> 3.6.6, audit log / ticket / invoice / income indexes): lines added
+  and changed on the billing page itself (`agent/ajax.php` billing_item_add / billing_item_set -> `billingItemSave` / `billingItemSetField`,
+  `js/billing_items.js` rewritten, one add field `[data-billing-add]`); Maintenance > Backup / Cron and Admin > SLAs rebuilt. The user's choices:
+  our add-row fields (`mitPaperAddFields`, form `billingAddLine`) retired - a quote line added from a product takes its cost / pricing / picture
+  through `mitQuoteItemSave($item_id, $_POST, [], true)` (one guarded line in billing_item_add); M061 drops `mit_logs_user_type` / `mit_logs_type`
+  where ITFlow's `log_user_type` / `log_type` exist. The new add / set path refuses invoices in a QuickBooks batch (`mitQboInvoiceLock`, JSON with
+  reload - one line before it). Conflicts: admin/backup.php (theirs; `mitRestoreRowButton` before Download in each row's actions, and the Restoring
+  box shows our `mit_restore_card.php` instead of ITFlow's "not from this page" sentence), admin/cron.php (our card, then their auto_reload
+  script), includes/billing_paper.php (theirs + `mitPaperLineImage` before the editable name). Smoke 60 adds a line through the new field.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

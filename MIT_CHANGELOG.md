@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.8.1 - 2026-11-13
+- ITFlow 26.11.8 merged (database 3.6.5 -> 3.6.6): lines on invoices, quotes and recurring invoices are added and changed on the page itself - type a product and press Enter, click a name, quantity or price to change it; Maintenance > Backup, Maintenance > Cron and Admin > SLAs rebuilt with status cards; SLA targets shown in business time; faster Audit Logs, Sign-ins, Users, Transactions, Income, Invoices and Reconcile.
+- Ours: a quote line added on the page from a product takes the product's cost, pricing and picture (our boxes on the old add row are gone - cost and markup are changed in the Edit Line window as before); invoices in a QuickBooks batch stay locked on the new page too; Restore and Development mode sit in the new Backup page's Restoring box, and our cron alerts card on the new Cron page; two of our audit-log indexes that ITFlow's new ones duplicate are removed (database update M061).
+
 ## 26.11.7.2 - 2026-11-12
 - After the ITFlow 26.11.7 merge, every feature was used end to end on four copies of the test install (tickets, billing, timesheets, admin). Nothing was broken; these small things were fixed:
 - Office names keep a backslash in the audit log, and connecting QuickBooks no longer logs the admin's name with a stray backslash before an apostrophe.

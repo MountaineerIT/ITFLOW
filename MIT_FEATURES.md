@@ -7,7 +7,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 70 | 14 | 9 | 31 | 74 | 38 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 71 | 14 | 9 | 31 | 74 | 38 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 184 | 2 | 2 | 15 | 40 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
@@ -24,7 +24,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 15 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 16 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 9 | 29 | 26 | 148 | 18 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
@@ -865,6 +865,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `admin/settings_quote.php`: mit_quote_card
+- `agent/ajax.php`: mitQuoteItemSave
 - `agent/invoice.php`: mitPaperLineExtras, mit_quotes, mit_staff
 - `agent/modals/billing/billing_item.php`: mitQuoteLineFields
 - `agent/modals/product/product_form.php`: mitProductImageField
@@ -878,7 +879,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions.php`: mit_quotes
 - `functions/backup.php`: mit_feedback
 - `functions/billing_pdf.php`: mitQuotePdfImage
-- `includes/billing_paper.php`: mitPaperAddFields, mitPaperLineExtras, mitPaperLineImage
+- `includes/billing_paper.php`: mitPaperLineExtras, mitPaperLineImage
 
 **ITFlow functions it calls**
 
@@ -893,7 +894,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, quote_currency_code, quote_discount_amount, quote_id
 
-**Watched in ITFlow's code** `billing_item_save` `billingAddLine` `billing_paper` `product_cost`
+**Watched in ITFlow's code** `billing_item_save` `billing_item_add` `billing_paper` `product_cost`
 
 **"ITFlow does this too" words** margin, markup, item_cost, product_cost, item_image, product_image, price_method
 
@@ -1120,7 +1121,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `agent/ajax.php`: mitQboInvoiceLock
+- `agent/ajax.php`: mitQboInvoiceLock, mit_why
 - `agent/invoice.php`: mitQboInvoiceBar
 - `agent/invoices.php`: mitQboListBadge, mit_qbo_ids
 - `agent/modals/billing/billing_item.php`: mitQboLineCategoryField
