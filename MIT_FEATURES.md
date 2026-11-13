@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 71 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 185 | 2 | 2 | 15 | 41 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 186 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -17,7 +17,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 18 | 28 | 10 | 40 | 30 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 19 |
-| [Dispatch board, Workload, This week](#dispatch) | 6 | 4 | 42 | 17 | 71 | 15 |
+| [Dispatch board, Workload, This week](#dispatch) | 6 | 5 | 42 | 17 | 71 | 15 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 9 |
@@ -530,7 +530,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).
 - ticketSlaState for SLA counts; Admin > SLA working hours.
 
-**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`
+**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`, `tests/scenarios/scenario-dispatch-hours.php`
 
 **Hooks in ITFlow's files**
 

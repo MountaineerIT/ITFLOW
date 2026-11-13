@@ -23,14 +23,25 @@ const MIT_DISPATCH_LENGTHS = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480];
 /** The board's working hours, from Admin > SLA's business days and hours: FullCalendar businessHours. */
 function mitDispatchBusinessHours() {
     $sla = getSlaSettings();
+    // No business days (or no usable hours) = ITFlow's SLA clocks run around the clock (functions/sla.php addBusinessMinutes) - every hour is working time
+    if (mitDispatchAroundTheClock()) {
+        return ['daysOfWeek' => [0, 1, 2, 3, 4, 5, 6], 'startTime' => '00:00', 'endTime' => '24:00'];
+    }
     $time = function ($value, $fallback) {
         return preg_match('/^\d{1,2}:\d{2}/', (string) $value) ? substr((string) $value, 0, 5) : $fallback;
     };
     // ISO weekdays (Mon 1 .. Sun 7) to FullCalendar's (Sun 0 .. Sat 6)
     $days = array_map(function ($day) {
         return $day % 7;
-    }, $sla['business_days'] ?: [1, 2, 3, 4, 5]);
+    }, $sla['business_days']);
     return ['daysOfWeek' => array_values($days), 'startTime' => $time($sla['business_hours_start'], '08:00'), 'endTime' => $time($sla['business_hours_end'], '17:00')];
+}
+
+/** True when Admin > SLAs has no business days / hours set, so ITFlow's SLA clocks run around the clock (the same test as its addBusinessMinutes). */
+function mitDispatchAroundTheClock() {
+    $sla = getSlaSettings();
+    return empty($sla['business_days']) || empty($sla['business_hours_start']) || empty($sla['business_hours_end'])
+        || $sla['business_hours_start'] >= $sla['business_hours_end'];
 }
 
 /**

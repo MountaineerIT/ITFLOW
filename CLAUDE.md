@@ -1623,6 +1623,8 @@ model: see DEPLOYMENT.md.
   `admin/includes/mit_restore_card.php` now sits in ITFlow's narrow Restoring column: fields stacked (col-12); while its upload runs it adds a
   hidden `.swal2-container[data-mit-upload-busy]` so ITFlow's `js/auto_reload.js` (10 s reload while a backup is Pending / Running) waits
   (smoke 16 "not cut off by ITFlow's auto reload").
+  Dispatch: `mitDispatchAroundTheClock()` (no business days / unusable hours - ITFlow's addBusinessMinutes test) -> `mitDispatchBusinessHours`
+  gives all week 00:00-24:00 and `mitDispatchWorkingDay` an 8-hour weekday for capacity (`scenario-dispatch-hours.php`).
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
