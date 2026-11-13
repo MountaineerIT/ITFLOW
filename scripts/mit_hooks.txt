@@ -1,6 +1,7 @@
 # Mountaineer IT hook manifest - written by: php scripts/mit_hook_check.php --update
 # Our names in ITFlow's files (file, name, times used) and our own files. Update it after a deliberate change, never to
 # make a failing check pass after a merge without finding out why the hook went.
+hook	.htaccess	MIT_API	2
 hook	.htaccess	MIT_CHANGELOG	2
 hook	.htaccess	MIT_FEATURES	2
 hook	admin/backup.php	mitRestoreRowButton	3
