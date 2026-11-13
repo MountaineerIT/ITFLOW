@@ -177,6 +177,14 @@ function mitConsistencyParts(callable $add) {
             return "part {$r['part_id']} {$r['name']}: invoice {$r['invoice_id']}, line {$r['invoice_item_id']}";
         }, $rows));
     }
+    // A line billed from parts carries their quantity (26.11.8.1 refuses changing it on the invoice; earlier it could)
+    $rows = mitConsistencyRows("SELECT i.item_id, i.item_invoice_id, i.item_name, i.item_quantity, SUM(p.quantity) AS parts FROM mit_ticket_parts p
+        JOIN invoice_items i ON i.item_id = p.invoice_item_id WHERE p.invoice_item_id > 0 GROUP BY i.item_id HAVING ROUND(i.item_quantity, 2) <> ROUND(SUM(p.quantity), 2)");
+    if ($rows) {
+        $add('Parts', 'warn', 'Invoice lines billed from ticket parts with another quantity than the parts (the stock follows the parts - fix the line or the part).', array_map(function ($r) {
+            return "invoice {$r['item_invoice_id']} line {$r['item_id']} {$r['item_name']}: line " . (float) $r['item_quantity'] . ", parts " . (float) $r['parts'];
+        }, $rows));
+    }
 }
 
 /** Usage billing: the quantity on a still-draft invoice line is what usage set (or its override). */

@@ -262,7 +262,7 @@ return [
             'agent/mit_unbilled_parts.php', 'agent/modals/mit_procurement/*.php', 'agent/post/mit_procurement*.php', 'agent/includes/mit_procurement_nav.php',
             'admin/mit_procurement_settings.php', 'admin/includes/mit_procurement_card.php', 'admin/post/mit_procurement_settings.php',
             'cron/mit_procurement_tidy.php', 'functions/mit_to_bill.php', 'js/mit_to_bill.js'],
-        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js',
+        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js', 'tests/scenarios/scenario-part-line-qty.php',
             'tests/smoke/85-to-bill.spec.js', 'tests/smoke/37-po-project.spec.js',
             'tests/scenarios/scenario-procurement-*.php', 'tests/scenarios/scenario-contract-terms.php'],
         'assumes' => [

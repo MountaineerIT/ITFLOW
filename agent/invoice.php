@@ -279,8 +279,8 @@ $paper = [
 
     <!-- The invoice, as the client sees it -->
     <div class="col-xl-8 itflow-paper-col">
-        <?= function_exists('mitQboInvoiceBar') ? mitQboInvoiceBar($invoice_id) : '' // Mountaineer IT: QuickBooks approval / batch / lock ?>
-        <?= mitProcInvoiceSummary($invoice_id) // Mountaineer IT: procurement status ?>
+        <div data-billing-live="mit-invoice"><?= function_exists('mitQboInvoiceBar') ? mitQboInvoiceBar($invoice_id) : '' // Mountaineer IT: QuickBooks approval / batch / lock ?>
+        <?= mitProcInvoiceSummary($invoice_id) // Mountaineer IT: procurement status - both redrawn with ITFlow's live parts after an edit on the page ?></div>
         <?php require "../includes/billing_paper.php"; ?>
     </div>
 

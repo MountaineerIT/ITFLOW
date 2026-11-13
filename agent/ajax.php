@@ -1738,6 +1738,7 @@ if (isset($_POST['billing_item_add']) || isset($_POST['billing_item_set'])) {
             logAudit($audit_type, 'Edit', escapeSql("$session_name added line " . trim((string) ($_POST['name'] ?? '')) . " to $number"), $client_id, $doc_id);
         }
     } else {
+        if (($_POST['field'] ?? '') === 'qty' && function_exists('mitPartLineQtyProblem') && ($mit_why = mitPartLineQtyProblem($type, intval($_POST['item_id'] ?? 0), $_POST['value'] ?? '')) !== '') { echo json_encode(['status' => 'error', 'message' => $mit_why]); exit; } // Mountaineer IT: a ticket part's line keeps the part's quantity
         $item_id = billingItemSetField($type, $doc_id, intval($_POST['item_id'] ?? 0), (string) ($_POST['field'] ?? ''), $_POST['value'] ?? '', $error, $change);
         if ($item_id && $change !== '') {
             $name = (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_name FROM " . billingType($type)['items'] . " WHERE item_id = " . intval($item_id)))[0];

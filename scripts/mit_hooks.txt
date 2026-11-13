@@ -68,6 +68,7 @@ hook	admin/users.php	mitServiceUsersSection	2
 hook	agent/ajax.php	mitBoardVisibleSql	2
 hook	agent/ajax.php	mitCleanCalendarState	1
 hook	agent/ajax.php	mitLeftBehindAjax	1
+hook	agent/ajax.php	mitPartLineQtyProblem	2
 hook	agent/ajax.php	mitQboInvoiceLock	6
 hook	agent/ajax.php	mitQuoteItemSave	2
 hook	agent/ajax.php	mitServiceUserSql	2
@@ -93,7 +94,7 @@ hook	agent/ajax.php	mit_ticket_layout	2
 hook	agent/ajax.php	mit_ticket_techs	1
 hook	agent/ajax.php	mit_timer_tickets	1
 hook	agent/ajax.php	mit_timers	1
-hook	agent/ajax.php	mit_why	2
+hook	agent/ajax.php	mit_why	4
 hook	agent/asset.php	mitAlignAssetPanel	2
 hook	agent/asset.php	mitNinjaAssetButton	2
 hook	agent/assets.php	mitAlignAssetBadge	2
@@ -143,6 +144,7 @@ hook	agent/includes/side_nav.php	mit_logo_only	2
 hook	agent/includes/side_nav.php	mit_procurement_nav	1
 hook	agent/includes/side_nav.php	mit_timesheet_nav	1
 hook	agent/includes/side_nav.php	mit_to_bill	1
+hook	agent/invoice.php	mit-invoice	1
 hook	agent/invoice.php	mitPaperLineExtras	1
 hook	agent/invoice.php	mitProcInvoiceMenuItem	1
 hook	agent/invoice.php	mitProcInvoiceSummary	1
@@ -226,6 +228,7 @@ hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
+hook	agent/post/billing.php	mitPartLineQtyProblem	2
 hook	agent/post/billing.php	mitQboGuardInvoice	10
 hook	agent/post/billing.php	mitQboInvoiceLock	2
 hook	agent/post/billing.php	mitQboLineCategorySave	2
@@ -234,6 +237,7 @@ hook	agent/post/billing.php	mitQuoteItemSave	2
 hook	agent/post/billing.php	mitToBillAfter	4
 hook	agent/post/billing.php	mitToBillFlash	4
 hook	agent/post/billing.php	mitToBillMerge	2
+hook	agent/post/billing.php	mit_why	2
 hook	agent/post/client.php	mitQboGuardClientDelete	2
 hook	agent/post/client.php	mitQuoteImagesDelete	1
 hook	agent/post/client.php	mitTicketPartsDeleting	1

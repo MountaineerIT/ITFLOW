@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 71 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 184 | 2 | 2 | 15 | 40 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 185 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -25,7 +25,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 16 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 9 | 29 | 26 | 148 | 18 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 10 | 29 | 26 | 148 | 19 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
@@ -137,7 +137,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** assets, clients, contacts, documents, expenses, invoice_items, invoices, payments, products, records, reimbursements, settings, tickets, trips, users
 
-**ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
+**ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_invoice_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
 **Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`
 
@@ -911,16 +911,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow 3.5.0: rates and net terms come from the client's contract (contractTicketRate / contractClientRate / contractNetTerms) - clients.client_rate / client_net_terms are gone.
 - To Bill: ITFlow's Unbilled Time page builds its clients with billingUnbilledByClient / expenseUnbilledMerge / tripUnbilledMerge and bills them with expenseBillWithTime (agent/post/billing.php); js/unbilled_time.js's update() runs on changes to [data-unbilled-expense-pick] / [data-unbilled-expense-price].
 
-**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-contract-terms.php`
+**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-contract-terms.php`
 
 **Hooks in ITFlow's files**
 
+- `agent/ajax.php`: mitPartLineQtyProblem, mit_why
 - `agent/includes/client_side_nav.php`: mitToBillPartsCount, mit_client_parts
 - `agent/includes/get_side_nav_counts.php`: mitToBillPartsCount, mit_to_bill
 - `agent/includes/side_nav.php`: mit_procurement_nav, mit_to_bill
-- `agent/invoice.php`: mitProcInvoiceMenuItem, mitProcInvoiceSummary, mit_quotes
+- `agent/invoice.php`: mitProcInvoiceMenuItem, mitProcInvoiceSummary, mit_quotes, mit-invoice
 - `agent/modals/quote/quote_to_invoice.php`: mitProcQuoteConvertFields
-- `agent/post/billing.php`: mitToBillAfter, mitToBillFlash, mitToBillMerge
+- `agent/post/billing.php`: mitPartLineQtyProblem, mitToBillAfter, mitToBillFlash, mitToBillMerge, mit_why
 - `agent/post/client.php`: mitTicketPartsDeleting
 - `agent/post/quote.php`: mitProcAfterQuoteConvert
 - `agent/project.php`: mitProcProjectCard
@@ -1122,10 +1123,10 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mitQboInvoiceLock, mit_why
-- `agent/invoice.php`: mitQboInvoiceBar
+- `agent/invoice.php`: mitQboInvoiceBar, mit-invoice
 - `agent/invoices.php`: mitQboListBadge, mit_qbo_ids
 - `agent/modals/billing/billing_item.php`: mitQboLineCategoryField
-- `agent/post/billing.php`: mitQboGuardInvoice, mitQboInvoiceLock, mitQboLineCategorySave
+- `agent/post/billing.php`: mitQboGuardInvoice, mitQboInvoiceLock, mitQboLineCategorySave, mit_why
 - `agent/post/client.php`: mitQboGuardClientDelete
 - `agent/post/expense.php`: mitQboGuardInvoice
 - `agent/post/invoice.php`: mitQboGuardEmail, mitQboGuardInvoice
