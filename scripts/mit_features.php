@@ -253,7 +253,7 @@ return [
             'products.product_cost / product_vendor_id are ITFlow\'s (0 = none); quote_items keep our item_cost / price method / image.',
             'PDFs by functions/billing_pdf.php.',
         ],
-        'watch' => ['billing_item_save', 'billingAddLine', 'billing_paper', 'product_cost'],
+        'watch' => ['billing_item_save', 'billing_item_add', 'billing_paper', 'product_cost'],
         'overlap' => ['margin', 'markup', 'item_cost', 'product_cost', 'item_image', 'product_image', 'price_method'],
     ],
     'procurement' => [
