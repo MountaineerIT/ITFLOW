@@ -1620,6 +1620,9 @@ model: see DEPLOYMENT.md.
   `mitConsistencyParts` warns about lines that already differ (`scenario-part-line-qty.php`); the QuickBooks strip + procurement summary in
   `agent/invoice.php` sit in `<div data-billing-live="mit-invoice">` so ITFlow's refetch redraws them; `mitQboInvoiceBar` sets
   `#items [data-line-field] { pointer-events: none }` on a batched invoice (smoke 10 checks both).
+  `admin/includes/mit_restore_card.php` now sits in ITFlow's narrow Restoring column: fields stacked (col-12); while its upload runs it adds a
+  hidden `.swal2-container[data-mit-upload-busy]` so ITFlow's `js/auto_reload.js` (10 s reload while a backup is Pending / Running) waits
+  (smoke 16 "not cut off by ITFlow's auto reload").
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
