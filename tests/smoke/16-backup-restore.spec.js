@@ -112,6 +112,38 @@ test('restore: pieces a proxy refuses (BunkerWeb / nginx 403) are sent again sma
     await page.unroute('**/admin/post.php');
 });
 
+test('restore: an upload is not cut off by ITFlow\'s auto reload while a backup is queued', async ({ page }) => {
+    test.setTimeout(90000);
+    const db = require('./db');
+    const file = path.join(test.info().outputDir, 'slow.zip');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, 'this is not a zip');
+    // A backup waiting for cron: ITFlow's status card then reloads the page every 10 seconds (js/auto_reload.js)
+    db.rows("INSERT INTO backups SET backup_type = 'full', backup_file_name = 'smoke-reload-wait.zip', backup_status = 'Pending', backup_source = 'Manual'");
+    const waitingId = db.value("SELECT MAX(backup_id) FROM backups WHERE backup_file_name = 'smoke-reload-wait.zip'");
+    try {
+        // Each piece takes 14 seconds to answer - longer than the reload
+        await page.route('**/admin/post.php', async (route) => {
+            if ((route.request().postData() || '').includes('name="mit_backup_chunk"\r\n')) {
+                await new Promise((r) => setTimeout(r, 14000));
+            }
+            return route.continue();
+        });
+        await visit(page, 'admin/backup.php');
+        await expect(page.locator('[data-itflow-reload-seconds]'), 'the page is set to reload').toHaveCount(1);
+        let loads = 0;
+        page.on('load', () => loads++);
+        const form = page.locator('form:has(button[name=mit_backup_upload])');
+        await form.locator('input[name=backup_file]').setInputFiles(file);
+        await form.locator('button[name=mit_backup_upload]').click();
+        await expect(form.locator('[data-mit-upload-text]')).toContainText('not a backup that can be read', { timeout: 40000 });
+        expect(loads, 'no reload while the upload was going').toBe(0);
+    } finally {
+        await page.unroute('**/admin/post.php');
+        db.rows(`DELETE FROM backups WHERE backup_id = ${Number(waitingId) || 0}`);
+    }
+});
+
 test('restore: a big backup goes up in pieces and is put back together', async ({ page }) => {
     const errors = watch(page);
     const list = await backups(page);

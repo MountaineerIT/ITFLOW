@@ -856,3 +856,27 @@ function mitProcTidy() {
     }
     return $log;
 }
+
+/**
+ * An invoice line billed from ticket parts (mit_ticket_parts.invoice_item_id) keeps the parts' quantity: its stock was taken (or
+ * ordered) by the part, and the line carries no product (ITFlow would not move stock for it), so a quantity changed on the invoice -
+ * in ITFlow 26.11.8's page or the Edit Line window - would bill units nobody took. '' = fine, else why (change the part on the ticket).
+ * Price, name, description and tax stay free to change.
+ */
+function mitPartLineQtyProblem($type, $item_id, $new_qty) {
+    global $mysqli;
+    $item_id = intval($item_id);
+    if ($type !== 'invoice' || !$item_id || !mitTicketPartsReady()) {
+        return '';
+    }
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT SUM(quantity), COUNT(*) FROM mit_ticket_parts WHERE invoice_item_id = $item_id"));
+    if (!$row || intval($row[1]) === 0) {
+        return '';
+    }
+    $new_qty = round((float) str_replace(',', '', (string) $new_qty), 2);
+    if (abs($new_qty - round((float) $row[0], 2)) < 0.005) {
+        return '';
+    }
+    return 'This line was billed from parts on a ticket (' . rtrim(rtrim(number_format((float) $row[0], 2, '.', ''), '0'), '.') . ' of them) - change the part on the ticket, not the quantity here.';
+}
+

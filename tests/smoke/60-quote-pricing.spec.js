@@ -1,5 +1,5 @@
-// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js): the add-a-line row works the price out
-// from our cost and markup and saves them; the Edit Line window switches to margin and takes an image upload; the profit box adds
+// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js): a line added on the page from a product (ITFlow
+// 26.11.8's one add field) takes the product's cost; cost and markup are saved; the Edit Line window switches to margin and takes an image upload; the profit box adds
 // up; the client's copy (guest link) and the PDF show the picture but never our cost; and the quote -> invoice window's
 // "Send to procurement" for a stock-tracked product with none on the shelf (ITFlow alone refuses the conversion).
 // Makes its own quote / product and removes them (and what the conversion made).
@@ -38,24 +38,30 @@ test.afterAll(() => {
     }
 });
 
-test('add-a-line row: price worked out from cost + markup, cost saved', async ({ page }) => {
+test('a line added on the page from a product takes its cost; cost + markup work the price out', async ({ page }) => {
     const errors = watch(page);
     await visit(page, quotePage(), errors);
-    const row = page.locator('#add-line');
-    await expect(row.locator('[data-mit-cost]'), 'our cost box on the add row').toBeVisible();
-    await row.locator('input[name=name]').fill('Smoke 60 firewall');
-    await row.locator('input[name=qty]').fill('2');
-    await row.locator('select[name=item_price_method]').selectOption('markup');
-    await row.locator('[data-mit-pct]').fill('25');
-    await row.locator('[data-mit-cost]').fill('100');
-    await row.locator('[data-mit-cost]').dispatchEvent('input');
-    await expect(row.locator('input[name=price]'), 'price from cost 100 + 25%').toHaveValue('125.00');
-    await Promise.all([page.waitForNavigation(), page.evaluate(() => document.getElementById('billingAddLine').requestSubmit())]);
+    // ITFlow 26.11.8: one field under the lines - type a product, Enter adds it (agent/ajax.php billing_item_add, no reload)
+    const add = page.locator('[data-billing-add]');
+    await expect(add, 'the add field').toBeVisible();
+    await add.fill('Smoke 60 tracked');
+    await expect(page.locator('.itflow-ac-panel').first(), 'the product list').toBeVisible();
+    await add.press('Enter');
+    await expect.poll(() => Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_product_id = ${made.productId}`)), { message: 'line added from the product' }).toBe(1);
+    const picked = db.one(`SELECT item_id, item_price, item_cost, item_price_method FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_product_id = ${made.productId}`);
+    expect([Number(picked.item_price), Number(picked.item_cost), picked.item_price_method], "the product's price and cost (our pricing filled in)").toEqual([1200, 950, 'price']);
+    db.exec(`DELETE FROM quote_items WHERE item_id = ${picked.item_id}`); // the later tests add their own product lines
     await expectClean(page, errors);
+
+    // Cost + markup set in the Edit Line window's save (agent/post.php billing_item_save with our fields)
+    const token = await csrf(page);
+    await db.pagePost(page, 'post.php', { csrf_token: token, billing_item_save: '1', type: 'quote', doc_id: String(made.quoteId), name: 'Smoke 60 firewall', description: '',
+        qty: '2', price: '125', tax_id: '0', product_id: '0', frequency: '', mit_pricing_present: '1', item_cost: '100', item_price_method: 'markup', item_price_percent: '25' });
     const line = db.one(`SELECT item_id, item_price, item_cost, item_price_method, item_price_percent, item_quantity FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 firewall'`);
     expect(line, 'the line was saved').toBeTruthy();
     made.lineId = Number(line.item_id);
     expect([Number(line.item_price), Number(line.item_cost), line.item_price_method, Number(line.item_price_percent)]).toEqual([125, 100, 'markup', 25]);
+    await visit(page, quotePage(), errors);
     // Staff see the cost under the line and the profit box: cost 200, price 250, profit 50, margin 20%
     await expect(page.locator('[data-mit-line-cost]').first()).toContainText('100.00');
     const box = page.locator('[data-mit-profit-box]');

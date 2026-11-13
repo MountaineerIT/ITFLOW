@@ -23,6 +23,9 @@ const MIT_DISPATCH_QUIET_DAYS = 3;
 
 /** Working minutes a day and the working weekdays (ISO 1-7), from Admin > SLA. */
 function mitDispatchWorkingDay() {
+    if (mitDispatchAroundTheClock()) {
+        return [480, [1, 2, 3, 4, 5]]; // cover around the clock - a person's capacity is still an 8-hour weekday
+    }
     $hours = mitDispatchBusinessHours();
     [$sh, $sm] = array_map('intval', explode(':', $hours['startTime']));
     [$eh, $em] = array_map('intval', explode(':', $hours['endTime']));

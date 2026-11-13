@@ -496,34 +496,6 @@ function mitQuoteLineFields($quote_id, array $item) {
         . (mitQuoteSettings()['show_images'] ? mitImageField('item_image', $extra['item_image'] ?? '') : '') . '</div>';
 }
 
-/**
- * ITFlow 26.11's add-a-line row on a quote (includes/billing_paper.php): our cost, price by and % beside the Price box, on
- * the row's own form (billingAddLine). js/mit_quote_pricing.js works the price out and fills them from a picked product.
- */
-function mitPaperAddFields(array $paper) {
-    if (!mitQuoteColumnsReady() || empty($paper['edit'])) {
-        return '';
-    }
-    $settings = mitQuoteSettings();
-    $fmt = rtrim(rtrim(number_format((float) $settings['percent'], 2, '.', ''), '0'), '.');
-    global $session_company_currency;
-    $html = '<input type="hidden" name="mit_pricing_present" value="1" form="billingAddLine">'
-        . '<div class="itflow-paper-add-price" data-mit-add-pricing data-mit-currency="' . escapeHtml($session_company_currency ?? 'USD') . '">'
-        . '<label class="form-label small text-warning-emphasis mb-0" title="Only staff see this">Our cost</label>'
-        . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_cost" form="billingAddLine" inputmode="decimal" placeholder="0.00" data-mit-cost></div>'
-        . '<div class="itflow-paper-add-seat"><label class="form-label small text-warning-emphasis mb-0">Price by</label>'
-        . '<select class="form-select form-select-sm border-warning-subtle bg-warning-subtle" name="item_price_method" form="billingAddLine" data-mit-method>';
-    foreach (MIT_PRICE_METHODS as $value => $label) {
-        $html .= '<option value="' . $value . '"' . ($value === $settings['method'] ? ' selected' : '') . '>' . $label . '</option>';
-    }
-    return $html . '</select></div>'
-        . '<div class="itflow-paper-add-qty"><label class="form-label small text-warning-emphasis mb-0">%</label>'
-        . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_price_percent" form="billingAddLine" inputmode="decimal" value="' . escapeHtml($fmt) . '" data-mit-pct></div>'
-        . '<div class="small text-body-secondary" style="order: 99; flex-basis: 100%" data-mit-hint data-mit-quiet data-mit-currency="' . escapeHtml($session_company_currency ?? 'USD') . '"></div>'
-        . '<script>window.mitProductPricing = ' . mitProductsPricingJson() . ';</script>'
-        . '<script src="' . mitAsset('/js/mit_quote_pricing.js') . '"></script>';
-}
-
 /** Hook in a quote copy: the new line gets the old one's product, cost, method, % and its own copy of the image. */
 function mitQuoteItemCopy($from_item_id, $to_item_id) {
     global $mysqli;

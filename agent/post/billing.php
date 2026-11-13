@@ -119,6 +119,7 @@ if (isset($_POST['billing_item_save'])) {
     $item_id = intval($_POST['item_id'] ?? 0);
     $row = billingPostDocument($type, $doc_id);
     if ($type === 'invoice' && function_exists('mitQboGuardInvoice')) { mitQboGuardInvoice($doc_id); } // Mountaineer IT: locked while in a QuickBooks batch
+    if (function_exists('mitPartLineQtyProblem') && ($mit_why = mitPartLineQtyProblem($type, $item_id, $_POST['qty'] ?? 1)) !== '') { flashAlert(escapeHtml($mit_why), 'error'); redirect(); } // Mountaineer IT: a ticket part's line keeps the part's quantity
     $number = billingNumber($type, $row);
 
     $saved = billingItemSave($type, $doc_id, $_POST, $item_id, $error);

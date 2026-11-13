@@ -21,6 +21,8 @@
   &nbsp;·&nbsp;
   <a href="MIT_FEATURES.md">Feature map</a>
   &nbsp;·&nbsp;
+  <a href="MIT_API.md">API</a>
+  &nbsp;·&nbsp;
   <a href="https://github.com/MountaineerIT/ITFLOW/issues">Report a bug</a>
   &nbsp;·&nbsp;
   <a href="#security">Security</a>
@@ -46,8 +48,8 @@ ITFlow keeps an MSP's client documentation, tickets, quotes, invoices and expens
 follows ITFlow's releases and adds what we need to run our own service desk. Everything ITFlow does still works the same way;
 our additions sit beside it and can be switched off.
 
-Each version is ITFlow's release plus our own number (for example **26.11.1.8** = ITFlow 26.11.1, our 8th update on it). Admin >
-Update shows both, with the release notes. This build is on ITFlow **26.11**.
+Each version is ITFlow's release plus our own number (for example **26.11.8.2** = ITFlow 26.11.8, our 2nd update on it). Admin >
+Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 
 ## A look around
 
@@ -85,7 +87,10 @@ Update shows both, with the release notes. This build is on ITFlow **26.11**.
 - Dispatch board - techs side by side for a day or a week, drag tickets from the queue, a workload view and weekly stats
 - One Schedule window for a booking: the ticket's title, client, contact, assets, priority, status, board and SLA, who gets
   emailed, and the contact's other open tickets - merge a duplicate there and then
-- Outlook calendar sync per tech, with Outlook busy times shown in ITFlow
+- Outlook calendar sync per tech, with Outlook busy times (all-day events too) shown in ITFlow
+- Each tech's own time zone - the calendar, Dispatch and their booking emails show their clock, with the office's beside it
+- New Ticket can set a status and book the work as it is made; drag over empty time on Dispatch to raise a ticket for that slot
+- Recurring tickets booked at a set time when they are raised, and made days ahead (or before the 1st of the month for site visits)
 - "Left behind" list of open tickets whose booking has passed; repeats like "the third Wednesday"
 
 **Tickets**
@@ -94,6 +99,8 @@ Update shows both, with the release notes. This build is on ITFlow **26.11**.
 - Pick who gets each email reply (ITFlow's own @mentions tell agents about internal notes)
 - Start and end times on notes, a running-timers list in the top bar, a customisable ticket page layout
 - "Resolve - no response" with its own wording, and per-event notification switches
+- Statuses that meet the SLA response target - moving a new ticket to "Assigned" (say) emails the client a "ticket assigned"
+  message you write, and counts as the first response
 - Project tickets kept off the service queue and SLA
 
 **Time and payroll**
@@ -103,18 +110,28 @@ Update shows both, with the release notes. This build is on ITFlow **26.11**.
 
 **Quotes, procurement and billing**
 - Quote pricing from cost (markup, margin or set price), a staff-only profit card, and images on lines and products
-- Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts
+- Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts; PO lines
+  can be put on a project at any time
 - Several offices - each agent's trips start from their office, their ticket emails show its address and phone, and POs ship to any office
 - Parts on tickets, billed from To Bill on the same invoice as the ticket's time, expenses and travel
 - QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back; each line goes to the income
   account of its category (hardware and labor on one invoice land in both), missing items are made, and terms go with every
   invoice - a client default (Net 30, Due on the 1st ...) that one invoice can change
-- Usage billing - recurring lines billed by a count (manual, API, tags, NinjaOne, Bitwarden, Ingram Micro)
+- Usage billing in ITFlow's own "Quantity from" - a recurring line billed by a count from NinjaOne, Bitwarden, Ingram Micro or
+  the API; Users / Devices lines can leave out placeholders ("Not tagged ...", or not tagged at all)
+- Recurring invoices made days ahead of their date, due on that date or on the client's terms from it
+- Client profitability - labor cost (each agent's cost per hour, with history), parts cost, profit, margin and break-even hours
+  for flat monthly agreements, in ITFlow's own report
 
 **Integrations**
 - Microsoft 365 - creates its own app with a certificate; mail sent and read through Microsoft Graph
 - NinjaOne asset sync with live device status, MSP Align client health, Customer Thermometer surveys
 - AI helper - asks questions of past tickets and documents and drafts write-ups, with a hard wall around passwords and secrets
+
+**API**
+- The key in an `X-API-Key` or `Authorization: Bearer` header as well as ITFlow's ways, usage counts reported through
+  `/api/v1/mit_usage/`, and API / service accounts - logins an API key acts as, kept out of every list of people and unable to
+  sign in from a browser. Details in [MIT_API.md](MIT_API.md).
 
 **Running it**
 - One-line Debian installer, restore from Admin > Backup (large backups too, also through a proxy or firewall that limits
@@ -125,6 +142,11 @@ Update shows both, with the release notes. This build is on ITFlow **26.11**.
 
 The full list, with where each piece lives in the code, is in [MIT_FEATURES.md](MIT_FEATURES.md). Release notes for every
 version are in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) (ITFlow's own are in [CHANGELOG.md](CHANGELOG.md)).
+
+## API
+
+ITFlow's REST API works here as it does on stock ITFlow. What this build adds or changes - other ways to send the key, the usage
+counts endpoint, service accounts, and the few places where our features refuse a change - is in [MIT_API.md](MIT_API.md).
 
 ## Getting started
 

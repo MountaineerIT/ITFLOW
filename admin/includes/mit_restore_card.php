@@ -30,37 +30,37 @@ $mit_restore_last = mitRestoreLastStatus();
         It is kept in this server's config.php, so a restore cannot switch it off. Never turn it on in production.</p>
     <form action="post.php" method="post" class="row g-2 align-items-end" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-        <div class="col-md-3">
-            <div class="form-check form-switch mb-2">
+        <div class="col-12">
+            <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" name="dev_mode" value="1" id="mitDevMode" <?= mitDevMode() ? 'checked' : '' ?>>
                 <label class="form-check-label" for="mitDevMode">Development mode</label>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-12">
             <label class="form-label small mb-1">Test inbox - every email goes here</label>
             <input type="email" class="form-control" name="dev_mail_to" value="<?= escapeHtml(mitDevMailTo()) ?>" placeholder="dev@yourcompany.com">
         </div>
-        <div class="col-md-3">
+        <div class="col-12">
             <button type="submit" name="mit_dev_mode_save" class="btn btn-outline-danger w-100"><i class="fas fa-fw fa-check me-2"></i>Save</button>
         </div>
     </form>
 </div>
-<p><strong>From here</strong> - press <span class="badge text-bg-warning"><i class="fas fa-fw fa-undo"></i></span> on a backup above, or upload one
+<p><strong>From here</strong> - press <span class="badge text-bg-warning"><i class="fas fa-fw fa-undo"></i></span> on a backup in the list, or upload one
     (a backup from this or another ITFlow server, up to <?= escapeHtml(backupFormatBytes(MIT_RESTORE_MAX_BYTES)) ?> - it is sent in pieces). You see what
     is in it before anything changes; a Full backup of the system as it is now is kept as "Before restore", and everyone signs in again afterwards.
     A restore needs free disk of about three times the backup's size.</p>
 <form action="post.php" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mb-4" autocomplete="off" data-mit-backup-upload
       data-max="<?= MIT_RESTORE_MAX_BYTES ?>">
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-    <div class="col-md-5">
+    <div class="col-12">
         <label class="form-label small mb-1">Backup file (.zip)</label>
         <input type="file" class="form-control" name="backup_file" accept=".zip,application/zip" required>
     </div>
-    <div class="col-md-4">
+    <div class="col-12">
         <label class="form-label small mb-1">Its encryption key <span class="text-muted">(blank = this install's)</span></label>
         <input type="password" class="form-control" name="restore_key" autocomplete="off">
     </div>
-    <div class="col-md-3">
+    <div class="col-12">
         <button type="submit" name="mit_backup_upload" class="btn btn-outline-primary w-100"><i class="fas fa-fw fa-upload me-2"></i>Upload to restore</button>
     </div>
     <div class="col-12 d-none" data-mit-upload-progress>
@@ -128,6 +128,14 @@ $mit_restore_last = mitRestoreLastStatus();
         }
         button.disabled = true;
         box.classList.remove('d-none');
+        // ITFlow's js/auto_reload.js reloads the page every few seconds while a backup is waiting / running, unless a window or a
+        // confirmation is open - this marker tells it one is, so the upload is not cut off part way
+        var busy = document.createElement('div');
+        busy.className = 'swal2-container';
+        busy.hidden = true;
+        busy.style.setProperty('display', 'none', 'important');
+        busy.setAttribute('data-mit-upload-busy', '');
+        document.body.appendChild(busy);
         var key = form.querySelector('[name=restore_key]').value, id, size;
         post({ mit_backup_chunk_start: 1, name: file.name, size: file.size }).then(function (start) {
             id = start.id;
@@ -158,6 +166,7 @@ $mit_restore_last = mitRestoreLastStatus();
         }).then(function (done) {
             window.location.href = done.redirect;
         }).catch(function (err) {
+            busy.remove();
             button.disabled = false;
             bar.classList.add('bg-danger');
             text.textContent = 'Upload stopped: ' + err.message;

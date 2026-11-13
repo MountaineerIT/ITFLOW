@@ -112,6 +112,19 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
     await expectClean(page, errors);
     await expect(bar(page)).toContainText('Approved');
 
+    // A quantity changed where it sits (ITFlow 26.11.8, no reload): the strip follows with ITFlow's live parts
+    const setQty = async (value) => {
+        await page.locator('#items tr', { hasText: 'Smoke test labour' }).locator('[data-line-field="qty"]').click();
+        const editor = page.locator('#items tr', { hasText: 'Smoke test labour' }).locator('input').first();
+        await editor.fill(value);
+        await editor.press('Enter');
+    };
+    await setQty('3');
+    await expect(bar(page), 'the strip redrawn without a reload').toContainText('Changed since approval', { timeout: 10000 });
+    await setQty('2');
+    await expect(bar(page), 'back as approved: approved again on its own').toContainText('Approved', { timeout: 10000 });
+    await expect(bar(page)).not.toContainText('Changed since approval');
+
     // Changing it after approval sends it back for approval
     await post(page, '/agent/post.php', { billing_item_save: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test extra', description: '', qty: '1', price: '10', tax_id: '0', product_id: '0' });
     await visit(page, invoicePage(), errors);
@@ -144,6 +157,10 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
         const shown = await page.locator(hidden).evaluateAll((els) => els.filter((el) => el.offsetParent !== null).length);
         expect(shown, `${hidden} hidden while locked`).toBe(0);
     }
+    // ITFlow 26.11.8's in-place line editors don't open
+    const fields = await page.locator('#items [data-line-field]').evaluateAll((els) => els.map((el) => getComputedStyle(el).pointerEvents));
+    expect(fields.length, 'line fields drawn').toBeGreaterThan(0);
+    expect(fields.every((p) => p === 'none'), 'line fields not clickable while locked').toBe(true);
     await post(page, '/agent/post.php', { billing_item_save: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test refused', description: '', qty: '1', price: '1', tax_id: '0', product_id: '0' });
     await visit(page, invoicePage(), errors);
     await expect(page.locator('body')).not.toContainText('Smoke test refused');

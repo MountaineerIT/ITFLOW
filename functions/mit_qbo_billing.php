@@ -985,11 +985,13 @@ function mitQboInvoiceBar($invoice_id) {
             '[data-modal-url*="invoice_mark_sent.php"]', '#items .drag-handle', '[data-modal-url*="payment_add.php"]', '[data-modal-url*="payment_saved_method_add.php"]',
             '[data-modal-url*="invoice_add_ticket"]', '[data-modal-url*="invoice_add_expense"]', '[data-modal-url*="invoice_add_trip"]']);
     }
+    // ITFlow 26.11.8 edits a line's name / quantity / price where it sits - not on a locked invoice (the handler refuses anyway)
+    $no_edit = $entry ? '<style>#items [data-line-field] { pointer-events: none; cursor: default; }</style>' : '';
     // The invoice's QuickBooks terms (functions/mit_qbo_terms.php) - a picker until it is in a batch
     $terms = $invoice && !$manual && function_exists('mitQboInvoiceTermField') ? mitQboInvoiceTermField($invoice, (bool) $entry || !$can) : '';
     return '<div class="alert alert-light border d-flex flex-wrap align-items-center gap-2 py-2 d-print-none" data-mit-qbo-bar>'
         . '<i class="fas fa-file-export text-success"></i><strong class="me-1">QuickBooks</strong><span class="me-auto">' . implode(' ', $parts) . '</span>' . $terms . $buttons . '</div>'
-        . ($hide ? '<style>' . implode(', ', $hide) . ' { display: none !important; }</style>' : '')
+        . ($hide ? '<style>' . implode(', ', $hide) . ' { display: none !important; }</style>' : '') . $no_edit
         . ($entry ? '<script>document.addEventListener("DOMContentLoaded", function () { var n = document.getElementById("billingNotes") || document.getElementById("invoiceNotes"); if (n) { n.readOnly = true; n.title = "Locked while in a QuickBooks batch"; } });</script>' : '');
 }
 

@@ -145,6 +145,8 @@ test('a contact with many open tickets on a short screen: the window keeps its t
     const modal = page.locator('#mitQuickTicket');
     await expect(modal.locator('[data-mit-quick-open-list]')).toBeVisible();
     expect(await modal.locator('[data-mit-quick-open-ticket]').count(), 'every open ticket listed').toBeGreaterThanOrEqual(made.more.length + 1);
+    // Bootstrap slides the window in from above - measure once it has settled
+    await expect.poll(() => page.evaluate(() => document.querySelector('#mitQuickTicket .modal-title').getBoundingClientRect().top), { timeout: 3000 }).toBeGreaterThanOrEqual(0);
     const box = await page.evaluate(() => {
         const m = document.getElementById('mitQuickTicket');
         const rect = (el) => el.getBoundingClientRect();

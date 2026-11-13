@@ -129,7 +129,7 @@ $paper = [
 </ol>
 
 <!-- What it is, where it stands, and the next thing to do -->
-<div class="card mb-3 d-print-none">
+<div class="card mb-3 d-print-none" data-billing-live="head">
     <div class="card-body d-flex flex-wrap align-items-center gap-3">
         <?= billingTile('invoice', 'lg') ?>
 
@@ -273,19 +273,19 @@ $paper = [
     </div>
 </div>
 
-<?= taxDocWarning('invoice', $invoice_id, $client_id, $items, billingLinesOpen('invoice', $status), $can_edit) ?>
+<div data-billing-live="warning"><?= taxDocWarning('invoice', $invoice_id, $client_id, $items, billingLinesOpen('invoice', $status), $can_edit) ?></div>
 
 <div class="row g-3">
 
     <!-- The invoice, as the client sees it -->
     <div class="col-xl-8 itflow-paper-col">
-        <?= function_exists('mitQboInvoiceBar') ? mitQboInvoiceBar($invoice_id) : '' // Mountaineer IT: QuickBooks approval / batch / lock ?>
-        <?= mitProcInvoiceSummary($invoice_id) // Mountaineer IT: procurement status ?>
+        <div data-billing-live="mit-invoice"><?= function_exists('mitQboInvoiceBar') ? mitQboInvoiceBar($invoice_id) : '' // Mountaineer IT: QuickBooks approval / batch / lock ?>
+        <?= mitProcInvoiceSummary($invoice_id) // Mountaineer IT: procurement status - both redrawn with ITFlow's live parts after an edit on the page ?></div>
         <?php require "../includes/billing_paper.php"; ?>
     </div>
 
     <!-- Money, tickets and what has happened -->
-    <div class="col-xl-4 d-print-none">
+    <div class="col-xl-4 d-print-none" data-billing-live="side">
 
         <div class="card mb-3">
             <div class="card-header">
@@ -601,7 +601,6 @@ $paper = [
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     itflowBillingItems({
-        products: <?= $can_edit_lines ? getProductsForAutocomplete($mysqli, intval($invoice['client_id'])) : '[]' ?>,
         csrf: <?= json_encode($csrf) ?>,
         currency: <?= json_encode($currency) ?>,
         locale: <?= json_encode(str_replace('_', '-', (string) $session_company_locale)) ?>

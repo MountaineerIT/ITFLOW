@@ -1606,6 +1606,25 @@ model: see DEPLOYMENT.md.
   Admin > Users (archived ones stay on the Archived view), our section only beside the agent views, filter added to
   `admin/modals/ticket_template/ticket_template_form.php` and `admin/getting_started/team.php`. Test copies: each `tests/.smoke_tN/.env` must
   point at its own copy (two pointed at itflow-beta.test), and the stand-ins at 127.0.0.1 are the main install's - shared between copies.
+- ITFlow 26.11.8 (Nov 13, 26.11.8.1 - master, 11 commits; database 3.6.5 -> 3.6.6, audit log / ticket / invoice / income indexes): lines added
+  and changed on the billing page itself (`agent/ajax.php` billing_item_add / billing_item_set -> `billingItemSave` / `billingItemSetField`,
+  `js/billing_items.js` rewritten, one add field `[data-billing-add]`); Maintenance > Backup / Cron and Admin > SLAs rebuilt. The user's choices:
+  our add-row fields (`mitPaperAddFields`, form `billingAddLine`) retired - a quote line added from a product takes its cost / pricing / picture
+  through `mitQuoteItemSave($item_id, $_POST, [], true)` (one guarded line in billing_item_add); M061 drops `mit_logs_user_type` / `mit_logs_type`
+  where ITFlow's `log_user_type` / `log_type` exist. The new add / set path refuses invoices in a QuickBooks batch (`mitQboInvoiceLock`, JSON with
+  reload - one line before it). Conflicts: admin/backup.php (theirs; `mitRestoreRowButton` before Download in each row's actions, and the Restoring
+  box shows our `mit_restore_card.php` instead of ITFlow's "not from this page" sentence), admin/cron.php (our card, then their auto_reload
+  script), includes/billing_paper.php (theirs + `mitPaperLineImage` before the editable name). Smoke 60 adds a line through the new field.
+  Functional pass (26.11.8.1): a line billed from ticket parts keeps the parts' quantity - `mitPartLineQtyProblem` (functions/mit_procurement_parts.php)
+  refuses another one in `agent/ajax.php` billing_item_set (field qty) and `agent/post/billing.php` billing_item_save (one line each), and
+  `mitConsistencyParts` warns about lines that already differ (`scenario-part-line-qty.php`); the QuickBooks strip + procurement summary in
+  `agent/invoice.php` sit in `<div data-billing-live="mit-invoice">` so ITFlow's refetch redraws them; `mitQboInvoiceBar` sets
+  `#items [data-line-field] { pointer-events: none }` on a batched invoice (smoke 10 checks both).
+  `admin/includes/mit_restore_card.php` now sits in ITFlow's narrow Restoring column: fields stacked (col-12); while its upload runs it adds a
+  hidden `.swal2-container[data-mit-upload-busy]` so ITFlow's `js/auto_reload.js` (10 s reload while a backup is Pending / Running) waits
+  (smoke 16 "not cut off by ITFlow's auto reload").
+  Dispatch: `mitDispatchAroundTheClock()` (no business days / unusable hours - ITFlow's addBusinessMinutes test) -> `mitDispatchBusinessHours`
+  gives all week 00:00-24:00 and `mitDispatchWorkingDay` an 8-hour weekday for capacity (`scenario-dispatch-hours.php`).
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

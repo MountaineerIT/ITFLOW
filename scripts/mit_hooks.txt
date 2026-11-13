@@ -1,6 +1,7 @@
 # Mountaineer IT hook manifest - written by: php scripts/mit_hook_check.php --update
 # Our names in ITFlow's files (file, name, times used) and our own files. Update it after a deliberate change, never to
 # make a failing check pass after a merge without finding out why the hook went.
+hook	.htaccess	MIT_API	2
 hook	.htaccess	MIT_CHANGELOG	2
 hook	.htaccess	MIT_FEATURES	2
 hook	admin/backup.php	mitRestoreRowButton	3
@@ -68,7 +69,9 @@ hook	admin/users.php	mitServiceUsersSection	2
 hook	agent/ajax.php	mitBoardVisibleSql	2
 hook	agent/ajax.php	mitCleanCalendarState	1
 hook	agent/ajax.php	mitLeftBehindAjax	1
-hook	agent/ajax.php	mitQboInvoiceLock	4
+hook	agent/ajax.php	mitPartLineQtyProblem	2
+hook	agent/ajax.php	mitQboInvoiceLock	6
+hook	agent/ajax.php	mitQuoteItemSave	2
 hook	agent/ajax.php	mitServiceUserSql	2
 hook	agent/ajax.php	mitSetUserPreference	1
 hook	agent/ajax.php	mitTicketLayoutAjax	1
@@ -92,6 +95,7 @@ hook	agent/ajax.php	mit_ticket_layout	2
 hook	agent/ajax.php	mit_ticket_techs	1
 hook	agent/ajax.php	mit_timer_tickets	1
 hook	agent/ajax.php	mit_timers	1
+hook	agent/ajax.php	mit_why	4
 hook	agent/asset.php	mitAlignAssetPanel	2
 hook	agent/asset.php	mitNinjaAssetButton	2
 hook	agent/assets.php	mitAlignAssetBadge	2
@@ -141,6 +145,7 @@ hook	agent/includes/side_nav.php	mit_logo_only	2
 hook	agent/includes/side_nav.php	mit_procurement_nav	1
 hook	agent/includes/side_nav.php	mit_timesheet_nav	1
 hook	agent/includes/side_nav.php	mit_to_bill	1
+hook	agent/invoice.php	mit-invoice	1
 hook	agent/invoice.php	mitPaperLineExtras	1
 hook	agent/invoice.php	mitProcInvoiceMenuItem	1
 hook	agent/invoice.php	mitProcInvoiceSummary	1
@@ -224,6 +229,7 @@ hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
+hook	agent/post/billing.php	mitPartLineQtyProblem	2
 hook	agent/post/billing.php	mitQboGuardInvoice	10
 hook	agent/post/billing.php	mitQboInvoiceLock	2
 hook	agent/post/billing.php	mitQboLineCategorySave	2
@@ -232,6 +238,7 @@ hook	agent/post/billing.php	mitQuoteItemSave	2
 hook	agent/post/billing.php	mitToBillAfter	4
 hook	agent/post/billing.php	mitToBillFlash	4
 hook	agent/post/billing.php	mitToBillMerge	2
+hook	agent/post/billing.php	mit_why	2
 hook	agent/post/client.php	mitQboGuardClientDelete	2
 hook	agent/post/client.php	mitQuoteImagesDelete	1
 hook	agent/post/client.php	mitTicketPartsDeleting	1
@@ -529,7 +536,6 @@ hook	functions/user.php	mitSessionRestamp	1
 hook	functions/user_invite.php	mitInviteExtrasApply	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
 hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
-hook	includes/billing_paper.php	mitPaperAddFields	2
 hook	includes/billing_paper.php	mitPaperLineExtras	2
 hook	includes/billing_paper.php	mitPaperLineImage	2
 hook	includes/cron_jobs.php	mit_ai_helper	1
@@ -642,6 +648,7 @@ ours	admin/database_updates/mountaineerit/M057.php
 ours	admin/database_updates/mountaineerit/M058.php
 ours	admin/database_updates/mountaineerit/M059.php
 ours	admin/database_updates/mountaineerit/M060.php
+ours	admin/database_updates/mountaineerit/M061.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php

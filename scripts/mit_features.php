@@ -43,7 +43,7 @@ return [
     'checks' => [
         'name' => 'Our checks (hooks, consistency, portability, AI wall, verify, feature map)',
         'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'scripts/mit_hook_proof_switch.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
-            'MIT_FEATURES.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
+            'MIT_FEATURES.md', 'MIT_API.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
         'tests' => ['tests/smoke/30-checks.spec.js', 'tests/scenarios/scenario-cron-registry.php'],
         'assumes' => ['ITFlow\'s cron dispatcher (includes/cron_jobs.php) runs our jobs.'],
         'watch' => [],
@@ -159,7 +159,7 @@ return [
     'dispatch' => [
         'name' => 'Dispatch board, Workload, This week',
         'files' => ['functions/mit_dispatch*.php', 'agent/mit_dispatch*.php', 'agent/js/mit_dispatch.js', 'agent/includes/mit_dispatch_nav.php'],
-        'tests' => ['tests/smoke/14-dispatch-role.spec.js', 'tests/smoke/51-dispatch-flow.spec.js', 'tests/smoke/92-dispatch-dialog.spec.js', 'tests/scenarios/scenario-sched-workload.php'],
+        'tests' => ['tests/smoke/14-dispatch-role.spec.js', 'tests/smoke/51-dispatch-flow.spec.js', 'tests/smoke/92-dispatch-dialog.spec.js', 'tests/scenarios/scenario-sched-workload.php', 'tests/scenarios/scenario-dispatch-hours.php'],
         'assumes' => [
             'Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).',
             'ticketSlaState for SLA counts; Admin > SLA working hours.',
@@ -253,7 +253,7 @@ return [
             'products.product_cost / product_vendor_id are ITFlow\'s (0 = none); quote_items keep our item_cost / price method / image.',
             'PDFs by functions/billing_pdf.php.',
         ],
-        'watch' => ['billing_item_save', 'billingAddLine', 'billing_paper', 'product_cost'],
+        'watch' => ['billing_item_save', 'billing_item_add', 'billing_paper', 'product_cost'],
         'overlap' => ['margin', 'markup', 'item_cost', 'product_cost', 'item_image', 'product_image', 'price_method'],
     ],
     'procurement' => [
@@ -262,7 +262,7 @@ return [
             'agent/mit_unbilled_parts.php', 'agent/modals/mit_procurement/*.php', 'agent/post/mit_procurement*.php', 'agent/includes/mit_procurement_nav.php',
             'admin/mit_procurement_settings.php', 'admin/includes/mit_procurement_card.php', 'admin/post/mit_procurement_settings.php',
             'cron/mit_procurement_tidy.php', 'functions/mit_to_bill.php', 'js/mit_to_bill.js'],
-        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js',
+        'tests' => ['tests/smoke/62-procurement-roles.spec.js', 'tests/smoke/63-parts-and-invoice-orders.spec.js', 'tests/smoke/60-quote-pricing.spec.js', 'tests/scenarios/scenario-part-line-qty.php',
             'tests/smoke/85-to-bill.spec.js', 'tests/smoke/37-po-project.spec.js',
             'tests/scenarios/scenario-procurement-*.php', 'tests/scenarios/scenario-contract-terms.php'],
         'assumes' => [
