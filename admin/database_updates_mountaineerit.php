@@ -53,7 +53,10 @@ if (!function_exists('mitIndexExists')) {
  * utf8mb4_uca1400_ai_ci. A query joining such a table with the others then fails ("Illegal mix of collations", ITFlow 26.11's
  * productRepriceCount took the dashboard, Products and quotes down on beta). A table holding a deliberate *_bin column is left and
  * reported. Defined here, not in functions/, so an updater that loaded the old functions.php before pulling still has it.
- * Returns ["converted <table>", ...] and adds problems to $problems.
+ * Our own mit_ tables only since 26.11.7.1 (the user's choice): ITFlow 26.11.7 repairs its tables itself (database 3.6.5, and
+ * databaseCollationRepair before / after every update it applies), column by column with *_bin columns kept, but it looks only at
+ * the tables db.sql has - and only their columns, so ours on ITFlow's tables are put right here too (26.11.7.1). Returns
+ * ["converted <table>", ...] and adds problems to $problems.
  */
 if (!function_exists('mitCollationRepair')) {
     function mitCollationRepair($mysqli, array &$problems = []) {
@@ -62,7 +65,8 @@ if (!function_exists('mitCollationRepair')) {
                 (SELECT COUNT(*) FROM information_schema.COLUMNS c WHERE c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.COLLATION_NAME LIKE '%\\_bin') AS bin_columns
             FROM information_schema.TABLES t
             WHERE t.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE' AND t.TABLE_COLLATION LIKE 'utf8mb4\\_%'
-                AND t.TABLE_COLLATION <> 'utf8mb4_general_ci' AND t.TABLE_COLLATION NOT LIKE '%\\_bin'");
+                AND t.TABLE_COLLATION <> 'utf8mb4_general_ci' AND t.TABLE_COLLATION NOT LIKE '%\\_bin'
+                AND t.TABLE_NAME LIKE 'mit\\_%'");
         while ($result && $row = mysqli_fetch_assoc($result)) {
             $table = str_replace('`', '', $row['name']);
             if (intval($row['bin_columns']) > 0) {
@@ -75,6 +79,42 @@ if (!function_exists('mitCollationRepair')) {
             } catch (Throwable $e) {
                 $problems[] = "collation: $table - " . $e->getMessage();
                 error_log("Mountaineer IT collation repair of $table failed: " . $e->getMessage());
+            }
+        }
+
+        // Columns: ours on ITFlow's tables (product_image, item_price_method, recurring_ticket_by_day ...) - ITFlow's repair only looks at
+        // the columns db.sql has, so a text column left on another collation is ours - and a single column of a mit_ table whose default is
+        // right (the table pass above misses it). Each one MODIFYd from its own SHOW CREATE TABLE
+        // line with only the collation replaced (type, NULL and default kept; *_bin columns left alone)
+        $result = mysqli_query($mysqli, "SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND COLLATION_NAME LIKE 'utf8mb4\\_%'
+                AND COLLATION_NAME <> 'utf8mb4_general_ci' AND COLLATION_NAME NOT LIKE '%\\_bin'
+                AND TABLE_NAME IN (SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE')");
+        $columns = [];
+        while ($result && $row = mysqli_fetch_assoc($result)) {
+            $columns[$row['t']][] = $row['c'];
+        }
+        foreach ($columns as $table => $names) {
+            $table = str_replace('`', '', $table);
+            try {
+                $create = (string) (mysqli_fetch_row(mysqli_query($mysqli, "SHOW CREATE TABLE `$table`"))[1] ?? '');
+                $modify = [];
+                foreach (preg_split('/\R/', $create) as $line) {
+                    $line = rtrim(trim($line), ',');
+                    if (preg_match('/^`([^`]+)`\s/', $line, $m) && in_array($m[1], $names, true)) {
+                        $line = preg_replace('/\s+COLLATE[ =]+[a-z0-9_]+/i', '', $line);
+                        $line = preg_replace('/\s+CHARACTER SET[ =]+[a-z0-9_]+/i', '', $line);
+                        $line = preg_replace('/^(`[^`]+`\s+\S+(\s+unsigned)?)/i', '$1 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci', $line);
+                        $modify[] = "MODIFY $line";
+                    }
+                }
+                if ($modify) {
+                    mysqli_query($mysqli, "ALTER TABLE `$table` " . implode(', ', $modify));
+                    $done[] = "collation $table (" . implode(', ', $names) . ")";
+                }
+            } catch (Throwable $e) {
+                $problems[] = "collation: $table columns - " . $e->getMessage();
+                error_log("Mountaineer IT collation repair of $table columns failed: " . $e->getMessage());
             }
         }
         return $done;

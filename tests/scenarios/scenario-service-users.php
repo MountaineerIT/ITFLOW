@@ -47,6 +47,23 @@ try {
     scenarioCheck('its API key still works: 200', $call[0], 200);
     scenarioCheck('its API key still works: success', $call[1]['success'] ?? null, 'True');
     scenarioCheck('Admin > Users lists it in its own section', strpos(mitServiceUsersSection(), 'ZZ Scen API User') !== false, true);
+    // 26.11.7.1: kept off ITFlow's agent views - but shown on the Archived view once archived (to be restored), and the section of ours
+    // stays off ITFlow's Client portal list
+    $listed = function ($archived_view) use ($user) {
+        global $mysqli;
+        return intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM users WHERE users.user_id = $user" . mitServiceUserListSql('users.user_id', 'users.user_archived_at')
+            . ($archived_view ? ' AND user_archived_at IS NOT NULL' : ' AND user_archived_at IS NULL')))[0]) === 1;
+    };
+    scenarioCheck('off the agent list', $listed(false), false);
+    mysqli_query($mysqli, "UPDATE users SET user_archived_at = NOW() WHERE user_id = $user");
+    scenarioCheck('archived: on the Archived view', $listed(true), true);
+    scenarioCheck('... and out of our section', strpos(mitServiceUsersSection(), 'ZZ Scen API User') === false, true);
+    mysqli_query($mysqli, "UPDATE users SET user_archived_at = NULL WHERE user_id = $user");
+    $_GET['show'] = 'portal';
+    scenarioCheck('our section is not under the Client portal list', mitServiceUsersSection(), '');
+    unset($_GET['show']);
+    $team = mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL");
+    scenarioCheck('off pickers built like the ticket template / Getting started team lists', in_array((string) $user, array_column(mysqli_fetch_all($team), 0), true), false);
 
     mitServiceUserSave($user, ['mit_service_present' => 1]);
     scenarioCheck('unmarked: back on Dispatch', $in(mitDispatchTechs()), true);

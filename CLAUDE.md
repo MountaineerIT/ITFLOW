@@ -1589,6 +1589,23 @@ model: see DEPLOYMENT.md.
   retired (see Version stamps above). Conflicts, all a hook of ours beside a re-tagged line: agent/calendar.php (theirs - calendar.js now versioned
   by staticFileUrl, our mitAsset line dropped), agent/unbilled_time.php (theirs + mitToBillScript), client/includes/footer.php (theirs + our
   portal tables script through staticFileUrl), client/login_reset.php / login.php (theirs + mitLoginHead), includes/header.php (theirs + mitThemeHead).
+- ITFlow 26.11.7 (Nov 12, 26.11.7.1 - master, 21 commits; database 3.6.2 -> 3.6.5): 3.6.3 drops `contract_templates.company_id` (our M046 skips
+  when it is gone), 3.6.4 adds ticket / reply / invoice / expense indexes, 3.6.5 + `databaseCollationRepair` (functions/database_collation.php, run
+  around every update; Admin > Debug "Repair collations") put ITFlow's tables on utf8mb4_general_ci, `databaseConnectionCollation()` at the end of
+  functions.php; logSqlText in the log / history writers; Admin > Users "Client portal" view. Overlaps decided by the user: our `mitCollationRepair`
+  only for `mit_` tables now (ITFlow's looks at db.sql's tables only); M060 drops our mit_tickets_created / _resolved / _unbilled where ITFlow's
+  ticket_created_at / ticket_resolved_at / ticket_billable exist. Taken as ITFlow's: the pager past 10,000 pages (ours of 26.10.173), the mail
+  queue's string host and Throwable catch, the saved-card client check. Conflicts: README.md (ours), admin/users.php and contract_form.php (theirs +
+  our service-account filter), agent/post/payment.php, functions.php (our requires, then theirs), functions/logging.php (theirs + our two hooks).
+  Functional pass (26.11.7.2, 4 testers on t1-t4): logSqlText reads text as escaped - raw text loses backslashes, so every logAudit / history text
+  of ours goes through escapeSql (offices fixed; `stripslashes($session_name)` inside escapeSql, not escapeSql of the escaped name - QuickBooks
+  callback fixed; ITFlow's own settingsSave logs O\'Admin, theirs). `mitCollationRepair` also MODIFYs single text columns not on general_ci in any
+  table (ours on ITFlow's tables, a column of a mit_ table whose default is right - from SHOW CREATE TABLE, collation only;
+  `scenario-collation-columns.php`), `mitConsistencyDatabase` warns about such columns, and `mitRestoreItflowUpdates`' web loop runs
+  databaseCollationRepair before each update and after, logged to App Logs like ITFlow's runner. Service accounts: `mitServiceUserListSql` on
+  Admin > Users (archived ones stay on the Archived view), our section only beside the agent views, filter added to
+  `admin/modals/ticket_template/ticket_template_form.php` and `admin/getting_started/team.php`. Test copies: each `tests/.smoke_tN/.env` must
+  point at its own copy (two pointed at itflow-beta.test), and the stand-ins at 127.0.0.1 are the main install's - shared between copies.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

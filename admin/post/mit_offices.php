@@ -17,7 +17,7 @@ if (isset($_POST['mit_office_save'])) {
         redirect();
     }
     $name = mitOffice($office_id)['name'] ?? '';
-    logAudit("Settings", $is_new ? "Create" : "Edit", stripslashes($session_name) . ($is_new ? " added the office " : " edited the office ") . $name);
+    logAudit("Settings", $is_new ? "Create" : "Edit", escapeSql(stripslashes($session_name) . ($is_new ? " added the office " : " edited the office ") . $name));
     flashAlert("Office " . escapeHtml($name) . " saved");
     redirect('settings_company.php#section-mit-offices');
 
@@ -30,7 +30,7 @@ if (isset($_GET['mit_office_remove'])) {
     $office_id = intval($_GET['mit_office_remove']);
     $name = mitOffice($office_id)['name'] ?? '';
     if ($office_id && mitOfficeRemove($office_id)) {
-        logAudit("Settings", "Delete", stripslashes($session_name) . " removed the office $name");
+        logAudit("Settings", "Delete", escapeSql(stripslashes($session_name) . " removed the office $name"));
         flashAlert("Office " . escapeHtml($name) . " removed - its people are in the main office now");
     }
     redirect('settings_company.php#section-mit-offices');
