@@ -1,5 +1,5 @@
-// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js): a line added on the page from a product (ITFlow
-// 26.11.8's one add field) takes the product's cost; cost and markup are saved; the Edit Line window switches to margin and takes an image upload; the profit box adds
+// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js, js/mit_billing_add.js): ITFlow 26.11.7's add row
+// brought back (item + description, qty, billed, our cost, price by, %, price, tax) - a product picked fills it and takes the product's cost, a typed line keeps cost / markup; cost and markup are saved; the Edit Line window switches to margin and takes an image upload; the profit box adds
 // up; the client's copy (guest link) and the PDF show the picture but never our cost; and the quote -> invoice window's
 // "Send to procurement" for a stock-tracked product with none on the shelf (ITFlow alone refuses the conversion).
 // Makes its own quote / product and removes them (and what the conversion made).
@@ -41,16 +41,46 @@ test.afterAll(() => {
 test('a line added on the page from a product takes its cost; cost + markup work the price out', async ({ page }) => {
     const errors = watch(page);
     await visit(page, quotePage(), errors);
-    // ITFlow 26.11.8: one field under the lines - type a product, Enter adds it (agent/ajax.php billing_item_add, no reload)
-    const add = page.locator('[data-billing-add]');
-    await expect(add, 'the add field').toBeVisible();
-    await add.fill('Smoke 60 tracked');
+    // ITFlow 26.11.7's add row brought back (mitPaperAddRow, js/mit_billing_add.js) in place of 26.11.8's one field
+    const row = page.locator('form[data-mit-add-row]');
+    await expect(row, 'the add row').toBeVisible();
+    await expect(page.locator('[data-billing-add]'), "ITFlow 26.11.8's one field is replaced").toHaveCount(0);
+    for (const field of ['name', 'description', 'qty', 'frequency', 'item_cost', 'item_price_method', 'item_price_percent', 'price', 'tax_id']) {
+        await expect(row.locator(`[name=${field}]`), `${field} on the row`).toHaveCount(1);
+    }
+    const fieldBox = async (f) => row.locator(`[name=${f}]`).boundingBox();
+    expect((await fieldBox('description')).y, 'the description under the item').toBeGreaterThan((await fieldBox('name')).y);
+
+    // A product picked fills the row (price, our cost) and adds nothing until Add
+    await row.locator('[name=name]').fill('Smoke 60 tracked');
     await expect(page.locator('.itflow-ac-panel').first(), 'the product list').toBeVisible();
-    await add.press('Enter');
+    await page.locator('.itflow-ac-panel .itflow-select-option, .itflow-ac-panel [role=option]').first().click();
+    await expect(row.locator('[name=price]')).toHaveValue('1200.00');
+    await expect(row.locator('[name=item_cost]'), "the product's cost").toHaveValue('950.00');
+    expect(Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId}`)), 'nothing added on the pick').toBe(0);
+    await row.locator('[name=qty]').fill('2');
+    await row.locator('[name=description]').fill('Picked, then the quantity typed');
+    await row.locator('[data-mit-add-go]').click();
     await expect.poll(() => Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_product_id = ${made.productId}`)), { message: 'line added from the product' }).toBe(1);
-    const picked = db.one(`SELECT item_id, item_price, item_cost, item_price_method FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_product_id = ${made.productId}`);
-    expect([Number(picked.item_price), Number(picked.item_cost), picked.item_price_method], "the product's price and cost (our pricing filled in)").toEqual([1200, 950, 'price']);
+    const picked = db.one(`SELECT item_id, item_price, item_quantity, item_description, item_cost, item_price_method FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_product_id = ${made.productId}`);
+    expect([Number(picked.item_price), Number(picked.item_quantity), picked.item_description, Number(picked.item_cost), picked.item_price_method], "the product's price and cost, our quantity and description").toEqual([1200, 2, 'Picked, then the quantity typed', 950, 'price']);
+    await expect(page.locator('#items tr', { hasText: 'Picked, then the quantity typed' }), 'drawn without a reload').toHaveCount(1);
+    await expect(row.locator('[name=name]'), 'the row is empty again').toHaveValue('');
     db.exec(`DELETE FROM quote_items WHERE item_id = ${picked.item_id}`); // the later tests add their own product lines
+
+    // A line of its own: name, billed monthly, cost, markup works the price out - Enter adds it
+    await row.locator('[name=name]').fill('Smoke 60 typed cable');
+    await row.locator('[name=name]').press('Escape');
+    await row.locator('[name=frequency]').selectOption('month');
+    await row.locator('[name=item_price_method]').selectOption('markup');
+    await row.locator('[name=item_price_percent]').fill('50');
+    await row.locator('[name=item_cost]').fill('10');
+    await expect(row.locator('[name=price]'), 'cost + 50% markup').toHaveValue('15.00');
+    await row.locator('[name=price]').press('Enter');
+    await expect.poll(() => Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`)), { message: 'typed line added' }).toBe(1);
+    const typed = db.one(`SELECT item_id, item_price, item_cost, item_price_method, item_price_percent, item_product_id, item_frequency FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`);
+    expect([Number(typed.item_price), Number(typed.item_cost), typed.item_price_method, Number(typed.item_price_percent), Number(typed.item_product_id), typed.item_frequency]).toEqual([15, 10, 'markup', 50, 0, 'month']);
+    db.exec(`DELETE FROM quote_items WHERE item_id = ${typed.item_id}`);
     await expectClean(page, errors);
 
     // Cost + markup set in the Edit Line window's save (agent/post.php billing_item_save with our fields)
@@ -191,4 +221,28 @@ test('product picture: uploaded on the product, copied onto a new quote line fro
     expect(db.val(`SELECT product_image FROM products WHERE product_id = ${made.productId}`), 'product image removed').toBeNull();
     expect((await db.pageGet(page, '/' + image)).status, 'its file is gone').toBe(404);
     expect((await db.pageGet(page, '/' + lineImage)).status, "the line's copy stays").toBe(200);
+});
+
+test("an invoice's add row: item, description, qty, price and tax - no cost (customer price only)", async ({ page }) => {
+    const errors = watch(page);
+    const n = Number(db.val('SELECT COALESCE(MAX(invoice_number), 0) + 1 FROM invoices'));
+    const invoiceId = db.insert(`INSERT INTO invoices SET invoice_prefix = 'INV-', invoice_number = ${n}, invoice_scope = 'Smoke 60 add row', invoice_date = CURDATE(),
+        invoice_due = CURDATE(), invoice_amount = 0, invoice_currency_code = 'USD', invoice_status = 'Draft', invoice_url_key = 'smoke60', invoice_client_id = ${CLIENT}, invoice_category_id = 0`);
+    made.invoiceIds.push(invoiceId);
+    await visit(page, `agent/invoice.php?client_id=${CLIENT}&invoice_id=${invoiceId}`, errors);
+    const row = page.locator('form[data-mit-add-row]');
+    await expect(row).toBeVisible();
+    await expect(row.locator('[name=item_cost]'), 'no cost on invoices').toHaveCount(0);
+    await expect(row.locator('[name=frequency]'), 'no Billed on invoices').toHaveCount(0);
+    await row.locator('[name=name]').fill('Smoke 60 invoice labour');
+    await row.locator('[name=name]').press('Escape');
+    await row.locator('[name=description]').fill('Two hours on site');
+    await row.locator('[name=qty]').fill('2');
+    await row.locator('[name=price]').fill('95');
+    await row.locator('[data-mit-add-go]').click();
+    await expect(page.locator('#items tr', { hasText: 'Smoke 60 invoice labour' }), 'drawn without a reload').toHaveCount(1);
+    const line = db.one(`SELECT item_quantity, item_price, item_description FROM invoice_items WHERE item_invoice_id = ${invoiceId}`);
+    expect([Number(line.item_quantity), Number(line.item_price), line.item_description]).toEqual([2, 95, 'Two hours on site']);
+    expect(Number(db.val(`SELECT invoice_amount FROM invoices WHERE invoice_id = ${invoiceId}`)), 'the invoice total follows').toBe(190);
+    await expectClean(page, errors);
 });

@@ -232,6 +232,33 @@ $at = $order[$status] ?? 0;
             </form>
         </div>
 
+        <?php $receipts = in_array($status, ['ordered', 'partial', 'received'], true) ? mitPoReceipts($po_id) : [];
+        if ($receipts) { ?>
+            <div class="card" data-mit-po-receipts>
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-fw fa-dolly me-2"></i>Receipts</h3></div>
+                <div class="list-group list-group-flush">
+                    <?php foreach ($receipts as $receipt) {
+                        $receipt_assets = count(array_filter(explode(',', (string) ($receipt['asset_ids'] ?? '')))); ?>
+                        <div class="list-group-item d-flex flex-wrap align-items-center gap-2" data-mit-receipt="<?= intval($receipt['receipt_id']) ?>">
+                            <div class="me-auto">
+                                <strong><?= escapeHtml(mitQty($receipt['quantity'])) ?> × <?= escapeHtml($receipt['line_name']) ?></strong>
+                                <div class="small text-muted">
+                                    <?= escapeHtml(date('M j, Y g:i A', strtotime($receipt['received_at']))) ?><?= $receipt['user_name'] ? ' - ' . escapeHtml($receipt['user_name']) : '' ?>
+                                    <?= trim((string) $receipt['serials']) !== '' ? ' - serials ' . escapeHtml(str_replace("\n", ', ', $receipt['serials'])) : '' ?>
+                                    <?= $receipt_assets ? ' - ' . $receipt_assets . ' asset' . ($receipt_assets === 1 ? '' : 's') : '' ?>
+                                    <?= (float) ($receipt['stock_qty'] ?? 0) > 0 ? ' - ' . escapeHtml(mitQty($receipt['stock_qty'])) . ' into stock' : '' ?>
+                                </div>
+                            </div>
+                            <?php if ($level >= 2) { ?>
+                                <a class="btn btn-sm btn-outline-danger confirm-link" data-mit-receipt-undo href="post.php?mit_po_undo_receipt=<?= intval($receipt['receipt_id']) ?>&csrf_token=<?= $csrf ?>"
+                                    title="Received by mistake? Puts it back to waiting<?= $receipt_assets ? ' and deletes the assets it made' : '' ?>"><i class="fas fa-undo me-1"></i>Undo</a>
+                            <?php } ?>
+                        </div>
+                    <?php } ?>
+                </div>
+            </div>
+        <?php } ?>
+
         <?php if (in_array($status, ['approved', 'ordered', 'partial', 'received'], true) || $tracking) { ?>
             <div class="card">
                 <div class="card-header d-flex align-items-center">

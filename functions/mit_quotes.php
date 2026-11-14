@@ -917,6 +917,80 @@ function mitPaperLineExtras(array $paper, array $item) {
     return '';
 }
 
+/**
+ * The add row on an invoice, quote or recurring invoice the agent is editing, as it was in ITFlow 26.11.7 (includes/billing_paper.php, in
+ * place of ITFlow 26.11.8's one "type a product" field - the user's choice): Item with the description under it (the item box searches
+ * the products - a pick fills the row in, adds nothing), Qty, Billed (quote) / Counted (recurring), on a quote our cost, Price by and %,
+ * Price, Tax, the line's total and Add. js/mit_billing_add.js sends it to ITFlow's own ajax.php billing_item_add and redraws through
+ * ITFlow's js/billing_items.js (no reload). A line's picture is added in the Edit Line window, as before. '' when not being edited.
+ */
+function mitPaperAddRow(array $paper) {
+    if (empty($paper['edit'])) {
+        return '';
+    }
+    $type = (string) ($paper['type'] ?? '');
+    $row = (array) ($paper['row'] ?? []);
+    $client_id = intval($row['client_id'] ?? 0);
+    $col = (string) (billingType($type)['col'] ?? '');
+    $quote = $type === 'quote';
+    $seats = in_array($type, ['recurring', 'quote'], true);
+    // ITFlow 26.11.7's add row, as it was (its markup and classes; their styles went in 26.11.8, so they come with it below)
+    $html = '<form data-mit-add-row data-type="' . escapeHtml($type) . '" autocomplete="off" novalidate>'
+        . '<input type="hidden" name="csrf_token" value="' . escapeHtml((string) ($paper['csrf'] ?? ($_SESSION['csrf_token'] ?? ''))) . '">'
+        . '<input type="hidden" name="type" value="' . escapeHtml($type) . '"><input type="hidden" name="doc_id" value="' . intval($row[$col . '_id'] ?? 0) . '">'
+        . '<input type="hidden" name="product_id" value="0">'
+        . '<div class="itflow-paper-add-grid' . ($seats ? ' itflow-paper-add-grid-seats' : '') . '">'
+        . '<div class="itflow-paper-add-item">'
+        . '<input type="text" class="form-control form-control-sm mb-1" name="name" placeholder="' . (!empty($paper['items']) ? 'Add a line - type a product, or anything' : 'First line - type a product, or anything') . '" maxlength="200" data-billing-add-name aria-label="Item">'
+        . '<textarea class="form-control form-control-sm" name="description" rows="1" placeholder="Description (optional)" aria-label="Description" data-mit-add-description></textarea></div>'
+        . '<div class="itflow-paper-add-qty"><label class="form-label small text-body-secondary mb-0">Qty</label>'
+        . '<input type="text" class="form-control form-control-sm text-end" name="qty" inputmode="decimal" placeholder="1" value="1"></div>';
+    if ($type === 'recurring') {
+        $html .= '<div class="itflow-paper-add-seat"><label class="form-label small text-body-secondary mb-0">Counted</label>'
+            . '<select class="form-select form-select-sm" name="seat_source" title="Bill per user or per device - counted again for each invoice">'
+            . '<option value="">As typed</option><option value="contacts">Per user</option><option value="assets">Per device</option></select></div>';
+    } elseif ($quote) {
+        $html .= '<div class="itflow-paper-add-seat"><label class="form-label small text-body-secondary mb-0">Billed</label>'
+            . '<select class="form-select form-select-sm" name="frequency" title="Billed once, or each month, quarter or year - those go on a recurring invoice when the quote is invoiced">';
+        foreach (quoteFrequencies() as $value => $label) {
+            $html .= '<option value="' . escapeHtml($value) . '">' . escapeHtml($label) . '</option>';
+        }
+        $html .= '</select></div>';
+    }
+    if ($quote && mitQuoteColumnsReady()) {
+        // Staff only - our cost and markup (as on 26.11.7's row)
+        $settings = mitQuoteSettings();
+        $currency = escapeHtml($row['quote_currency_code'] ?? 'USD');
+        $html .= '<input type="hidden" name="mit_pricing_present" value="1">'
+            . '<div class="itflow-paper-add-price" data-mit-currency="' . $currency . '"><label class="form-label small text-warning-emphasis mb-0" title="Only staff see this">Our cost</label>'
+            . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_cost" inputmode="decimal" placeholder="0.00" data-mit-cost data-mit-price-field="price"></div>'
+            . '<div class="itflow-paper-add-seat"><label class="form-label small text-warning-emphasis mb-0">Price by</label>'
+            . '<select class="form-select form-select-sm border-warning-subtle bg-warning-subtle" name="item_price_method" data-mit-method>';
+        foreach (MIT_PRICE_METHODS as $value => $label) {
+            $html .= '<option value="' . $value . '"' . ($value === $settings['method'] ? ' selected' : '') . '>' . $label . '</option>';
+        }
+        $html .= '</select></div><div class="itflow-paper-add-qty"><label class="form-label small text-warning-emphasis mb-0">%</label>'
+            . '<input type="text" class="form-control form-control-sm text-end border-warning-subtle bg-warning-subtle" name="item_price_percent" inputmode="decimal" value="'
+            . escapeHtml(rtrim(rtrim(number_format((float) $settings['percent'], 2, '.', ''), '0'), '.')) . '" data-mit-pct></div>';
+    }
+    $html .= '<div class="itflow-paper-add-price"><label class="form-label small text-body-secondary mb-0">Price</label>'
+        . '<input type="text" class="form-control form-control-sm text-end" name="price" inputmode="decimal" placeholder="0.00"></div>'
+        . '<div class="itflow-paper-add-tax"><label class="form-label small text-body-secondary mb-0">Tax</label>'
+        . '<select class="form-select form-select-sm" name="tax_id">' . taxOptionsHtml($paper['taxes'] ?? [], taxDefaultFor($client_id)) . '</select></div>'
+        . '<div class="itflow-paper-add-go"><span class="small text-body-secondary text-nowrap" data-line-preview></span>'
+        . '<button type="submit" class="btn btn-sm btn-primary text-nowrap" title="Add the line" data-mit-add-go><i class="fas fa-plus me-1"></i>Add</button></div>';
+    if ($quote && mitQuoteColumnsReady()) {
+        $html .= '<div class="small text-body-secondary" style="order: 99; flex-basis: 100%" data-mit-hint data-mit-quiet data-mit-currency="' . escapeHtml($row['quote_currency_code'] ?? 'USD') . '"></div>'
+            . '<script>window.mitProductPricing = ' . mitProductsPricingJson() . ';</script><script src="' . mitAsset('/js/mit_quote_pricing.js') . '"></script>';
+    }
+    return $html . '</div></form><style>'
+        . '.itflow-paper-add-grid{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.5rem}.itflow-paper-add-item{flex:1 1 15rem}'
+        . '.itflow-paper-add-qty{flex:0 0 4.5rem}.itflow-paper-add-price{flex:0 0 7rem}.itflow-paper-add-seat{flex:0 0 7.5rem}'
+        . '.itflow-paper-add-grid-seats .itflow-paper-add-item{flex-basis:100%}.itflow-paper-add-tax{flex:0 1 9rem}'
+        . '.itflow-paper-add-go{display:flex;align-items:center;gap:.5rem;margin-left:auto}'
+        . '</style><script src="' . mitAsset('/js/mit_billing_add.js') . '"></script>';
+}
+
 /** The quote PDF (TCPDF): a line's picture above its name, or ''. */
 function mitQuotePdfImage($quote_id, $item_id) {
     if (!mitQuoteSettings()['show_images']) {

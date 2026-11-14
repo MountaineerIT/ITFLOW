@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 71 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 187 | 2 | 2 | 15 | 41 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 72 | 14 | 9 | 31 | 74 | 38 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 188 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -24,8 +24,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 16 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 10 | 29 | 26 | 148 | 19 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 12 | 9 | 16 | 17 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
@@ -879,26 +879,30 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions.php`: mit_quotes
 - `functions/backup.php`: mit_feedback
 - `functions/billing_pdf.php`: mitQuotePdfImage
-- `includes/billing_paper.php`: mitPaperLineExtras, mitPaperLineImage
+- `includes/billing_paper.php`: mitPaperAddRow, mitPaperLineExtras, mitPaperLineImage, mit_quotes, mit_add_row
+- `js/billing_items.js`: mitBillingRefresh, mit_billing_add
 
 **ITFlow functions it calls**
 
 - `functions/app.php`: getFieldById
-- `functions/billing.php`: billingMoney, quoteFrequency
+- `functions/billing.php`: billingMoney, billingType, quoteFrequencies, quoteFrequency
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml
 - `functions/security.php`: validateCSRFToken
+- `functions/tax.php`: taxDefaultFor, taxOptionsHtml
 
-**ITFlow tables** files, products, quote_items, quotes, settings
+**ITFlow tables** assets, contacts, credentials, files, products, quote_items, quotes, settings, taxes
 
-**ITFlow columns** invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, quote_currency_code, quote_discount_amount, quote_id
+**ITFlow columns** client_id, invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, product_name, quote_currency_code, quote_discount_amount, quote_id, tax_id
+
+**ITFlow page ids / classes its scripts and styles use** `#add-line`
 
 **Watched in ITFlow's code** `billing_item_save` `billing_item_add` `billing_paper` `product_cost`
 
 **"ITFlow does this too" words** margin, markup, item_cost, product_cost, item_image, product_image, price_method
 
-**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `admin/includes/mit_quote_card.php`, `admin/post/mit_quote_settings.php`
+**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `js/mit_billing_add.js`, `admin/includes/mit_quote_card.php`, `admin/post/mit_quote_settings.php`
 
 <a id="procurement"></a>
 ## Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills) (`procurement`)
@@ -911,7 +915,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow 3.5.0: rates and net terms come from the client's contract (contractTicketRate / contractClientRate / contractNetTerms) - clients.client_rate / client_net_terms are gone.
 - To Bill: ITFlow's Unbilled Time page builds its clients with billingUnbilledByClient / expenseUnbilledMerge / tripUnbilledMerge and bills them with expenseBillWithTime (agent/post/billing.php); js/unbilled_time.js's update() runs on changes to [data-unbilled-expense-pick] / [data-unbilled-expense-price].
 
-**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-contract-terms.php`
+**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-procurement-undo-receipt.php`, `tests/scenarios/scenario-contract-terms.php`
 
 **Hooks in ITFlow's files**
 
@@ -932,6 +936,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions.php`: mit_offices, mit_procurement, mit_quotes
 - `functions/billing.php`: mitProcQuoteConvertGroups
 - `functions/ticket.php`: mitTicketPartsDeleting
+- `includes/billing_paper.php`: mit_quotes
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
 - `js/unbilled_time.js`: mitToBillParts, mit_to_bill
 
@@ -942,6 +947,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/auth.php`: clientScopeSql, enforceUserPermission, hasClientAccess, lookupUserPermission
 - `functions/billing.php`: billingInvoiceCreate, billingItems, billingLineTax, billingMoney, billingRecalc
 - `functions/contract_billing.php`: contractClientRate, contractNetTerms
+- `functions/credential.php`: credentialsForget
 - `functions/expenses.php`: expenseSave
 - `functions/format.php`: formatPhoneNumber, timeAgo
 - `functions/logging.php`: logAudit, logTicketHistory
@@ -951,9 +957,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: randomString, validateCSRFToken
 - `functions/ticket.php`: ticketForModal, ticketForRequest, ticketReference
 
-**ITFlow tables** accounts, asset_notes, assets, categories, clients, companies, expenses, history, invoice_items, invoices, modules, notifications, product_stock, products, projects, quote_items, settings, taxes, ticket_assets, ticket_replies, tickets, trips, user_role_permissions, user_roles, users, vendors
+**ITFlow tables** accounts, asset_notes, assets, categories, clients, companies, expenses, history, invoice_items, invoices, modules, notifications, product_stock, products, projects, quote_items, rack_units, settings, taxes, ticket_assets, ticket_replies, tickets, trips, user_role_permissions, user_roles, users, vendors
 
-**ITFlow columns** account_archived_at, account_id, account_name, asset_archived_at, asset_client_id, asset_id, asset_invoice_id, asset_invoice_item_id, asset_make, asset_model, asset_name, asset_notes, asset_product_id, asset_purchase_date, asset_purchase_reference, asset_serial, asset_status, asset_type, asset_vendor_id, category_archived_at, category_id, category_name, category_type, client_abbreviation, client_archived_at, client_id, client_name, company_address, company_city, company_email, company_id, company_logo, company_name, company_phone, company_phone_country_code, company_state, company_zip, config_enable_cron, config_invoice_next_number, expense_account_id, expense_amount, expense_archived_at, expense_category_id, expense_client_id, expense_currency_code, expense_date, expense_description, expense_id, expense_reference, expense_vendor_id, history_description, history_id, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, invoice_url_key, item_description, item_frequency, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_quote_id, item_subtotal, item_tax, item_tax_id, item_total, module_id, module_name, notification_action, notification_entity_id, notification_type, notification_user_id, product_archived_at, product_cost, product_description, product_id, product_name, product_price, product_tax_id, product_track_stock, product_type, product_vendor_id, project_archived_at, project_client_id, project_completed_at, project_id, project_name, project_number, project_prefix, role_id, role_is_admin, stock_expense_id, stock_invoice_id, stock_item_id, stock_note, stock_product_id, stock_qty, stock_type, tax_archived_at, tax_id, tax_name, tax_percent, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, user_archived_at, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type, vendor_account_number, vendor_archived_at, vendor_client_id, vendor_contact_email, vendor_contact_name, vendor_email, vendor_id, vendor_name, vendor_phone
+**ITFlow columns** account_archived_at, account_id, account_name, asset_archived_at, asset_client_id, asset_id, asset_invoice_id, asset_invoice_item_id, asset_make, asset_model, asset_name, asset_notes, asset_product_id, asset_purchase_date, asset_purchase_reference, asset_serial, asset_status, asset_type, asset_vendor_id, category_archived_at, category_id, category_name, category_type, client_abbreviation, client_archived_at, client_id, client_name, company_address, company_city, company_email, company_id, company_logo, company_name, company_phone, company_phone_country_code, company_state, company_zip, config_enable_cron, config_invoice_next_number, expense_account_id, expense_amount, expense_archived_at, expense_category_id, expense_client_id, expense_currency_code, expense_date, expense_description, expense_id, expense_reference, expense_vendor_id, history_description, history_id, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, invoice_url_key, item_description, item_frequency, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_quote_id, item_subtotal, item_tax, item_tax_id, item_total, module_id, module_name, notification_action, notification_entity_id, notification_type, notification_user_id, product_archived_at, product_cost, product_description, product_id, product_name, product_price, product_tax_id, product_track_stock, product_type, product_vendor_id, project_archived_at, project_client_id, project_completed_at, project_id, project_name, project_number, project_prefix, rack_units, role_id, role_is_admin, stock_expense_id, stock_invoice_id, stock_item_id, stock_note, stock_product_id, stock_qty, stock_type, tax_archived_at, tax_id, tax_name, tax_percent, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, unit_asset_id, user_archived_at, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type, vendor_account_number, vendor_archived_at, vendor_client_id, vendor_contact_email, vendor_contact_name, vendor_email, vendor_id, vendor_name, vendor_phone
 
 **Watched in ITFlow's code** `productStockMove` `quoteConvert` `quoteLineGroups` `billingInvoiceCreate` `expenseSave` `productStockShortfall` `expenseUnbilledMerge` `tripUnbilledMerge` `expenseBillWithTime` `data-unbilled-expense-pick` `itflowUnbilledTime`
 

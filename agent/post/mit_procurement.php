@@ -413,6 +413,19 @@ if (isset($_GET['mit_po_pdf'])) {
 
 // ---------- receiving ----------
 
+// Undo a receipt (received by mistake) - from the PO page's Receipts card
+if (isset($_GET['mit_po_undo_receipt'])) {
+
+    validateCSRFToken();
+    enforceUserPermission('module_procurement', 2);
+
+    mitProcLock('receive');
+    [$ok, $message] = mitPoUndoReceipt(intval($_GET['mit_po_undo_receipt']));
+    mitProcUnlock('receive');
+    flashAlert(escapeHtml($message), $ok ? 'success' : 'error');
+    redirect();
+}
+
 if (isset($_POST['mit_po_receive'])) {
 
     validateCSRFToken();

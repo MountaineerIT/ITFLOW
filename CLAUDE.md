@@ -491,6 +491,15 @@ model: see DEPLOYMENT.md.
   `mit_po_set_project`. The line and its procurement item take the project (0 = off); another client's line refused; a line for nobody takes a
   client project's client only while nothing of it was received; a client's line can't go on a project with no client. PO history + audit.
   Scenario `scenario-procurement-project.php`, smoke `37-po-project.spec.js`.
+  Undo a receipt (26.11.8.3, M062 - the user found a wrong receive could not be taken back): mit_po_receipts keeps what each receipt did (`tracked`,
+  stock_product_id / stock_qty, return_product_id / return_qty / return_invoice_id / return_item_id, cleared_item_id, note_reply_id - written by a
+  `$remember` closure in mitProcAfterReceive). `mitPoUndoReceipt($receipt_id)` (functions/mit_procurement_extras.php, under the receive lock, one
+  transaction): assets it made deleted as ITFlow's delete_asset does (rack units, ticket_assets, credentialsForget; needs Support 3), stock taken off
+  (a negative 'received' move), an invoice line's returned stock taken again (negative 'returned' with the invoice / line) and its item_product_id put
+  back, ticket parts' asset_id cleared, an internal note on the ticket, received_qty down, the receipt deleted, mitPoRecalc (PO and items back to
+  ordered / partial). Refused on cancelled POs; stock changes need Sales edit. Receipts before M062 (tracked 0) don't know their stock - undone with a
+  reminder. UI: Receipts card on `agent/mit_purchase_order.php` (`[data-mit-po-receipts]`, Undo `[data-mit-receipt-undo]`, Procurement Edit), handler
+  GET `mit_po_undo_receipt` in `agent/post/mit_procurement.php`. Scenario `scenario-procurement-undo-receipt.php`, smoke: last test of 37.
   Products API: `api/v1/products/read.php` selects `mitProductApiColumns()` (every column but our cost /
   markup) instead of `*` - two lines.
 - Timesheets (Oct 2026): `functions/mit_timesheets.php` (ours) - per pay period (semi-monthly default;
@@ -1610,7 +1619,7 @@ model: see DEPLOYMENT.md.
   and changed on the billing page itself (`agent/ajax.php` billing_item_add / billing_item_set -> `billingItemSave` / `billingItemSetField`,
   `js/billing_items.js` rewritten, one add field `[data-billing-add]`); Maintenance > Backup / Cron and Admin > SLAs rebuilt. The user's choices:
   our add-row fields (`mitPaperAddFields`, form `billingAddLine`) retired - a quote line added from a product takes its cost / pricing / picture
-  through `mitQuoteItemSave($item_id, $_POST, [], true)` (one guarded line in billing_item_add); M061 drops `mit_logs_user_type` / `mit_logs_type`
+  through `mitQuoteItemSave($item_id, $_POST, $_FILES, true)` (one guarded line in billing_item_add); M061 drops `mit_logs_user_type` / `mit_logs_type`
   where ITFlow's `log_user_type` / `log_type` exist. The new add / set path refuses invoices in a QuickBooks batch (`mitQboInvoiceLock`, JSON with
   reload - one line before it). Conflicts: admin/backup.php (theirs; `mitRestoreRowButton` before Download in each row's actions, and the Restoring
   box shows our `mit_restore_card.php` instead of ITFlow's "not from this page" sentence), admin/cron.php (our card, then their auto_reload
@@ -1625,6 +1634,15 @@ model: see DEPLOYMENT.md.
   (smoke 16 "not cut off by ITFlow's auto reload").
   Dispatch: `mitDispatchAroundTheClock()` (no business days / unusable hours - ITFlow's addBusinessMinutes test) -> `mitDispatchBusinessHours`
   gives all week 00:00-24:00 and `mitDispatchWorkingDay` an 8-hour weekday for capacity (`scenario-dispatch-hours.php`).
+  Add row as in 26.11.7 (26.11.8.3, the user's choice - not a fan of ITFlow 26.11.8's one "type a product" box; a one-line full row was tried and
+  turned down): `mitPaperAddRow($paper)` (functions/mit_quotes.php) replaces the add field in `includes/billing_paper.php` (one if / else around
+  ITFlow's `.itflow-paper-add-field`; Write it with AI stays under it) with `form[data-mit-add-row]` built as ITFlow 26.11.7's row was - its
+  `itflow-paper-add-*` classes (their CSS went in 26.11.8, so the function prints it): Item + Description under it, Qty, Billed (quote, quoteFrequencies)
+  / Counted (recurring: As typed / Per user / Per device), on quotes our Our cost / Price by / % (as 26.11.7's mitPaperAddFields), Price, Tax, the line
+  total, Add. Item searches the products (itflowAutocomplete with ITFlow's itflowBillingProductMatch / Row); a pick fills the row and adds nothing
+  (js/mit_quote_pricing.js fills a quote's cost through window.mitProductPricing). `js/mit_billing_add.js` posts to ITFlow's ajax.php billing_item_add
+  (our hook there passes `$_FILES` to mitQuoteItemSave) and redraws through `window.mitBillingRefresh` - one line in `js/billing_items.js` exposing its
+  refresh() - no reload. Pictures stay in the Edit Line window. Smoke: first and last tests of 60, the quote step of 06.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

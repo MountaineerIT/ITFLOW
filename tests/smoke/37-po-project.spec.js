@@ -68,3 +68,20 @@ test('an ordered PO goes on a project from its page', async ({ page }) => {
     await expect(page.locator('body'), 'on the project\'s Procurement card').toContainText(`${po.po_prefix}${po.po_number}`);
     await expectClean(page, errors);
 });
+
+test('a receipt made by mistake is undone from the PO page (26.11.8.3)', async ({ page }) => {
+    const errors = watch(page);
+    const cable = Number(db.val(`SELECT line_id FROM mit_po_lines WHERE po_id = ${made.po} AND name = 'Smoke PO cable'`));
+    db.php(`mitPoReceive([${cable} => ['qty' => 2]], []);`);
+    expect(db.val(`SELECT ROUND(received_qty) FROM mit_po_lines WHERE line_id = ${cable}`), 'received 2').toBe('2');
+    await visit(page, `agent/mit_purchase_order.php?po_id=${made.po}`, errors);
+    const receipts = page.locator('[data-mit-po-receipts]');
+    await expect(receipts, 'the Receipts card').toContainText('2 × Smoke PO cable');
+    await receipts.locator('[data-mit-receipt-undo]').first().click();
+    await Promise.all([page.waitForNavigation(), page.locator('.swal2-confirm').click()]);
+    expect(await flash(page)).toContain('undone');
+    expect(db.val(`SELECT ROUND(received_qty) FROM mit_po_lines WHERE line_id = ${cable}`), 'back to waiting').toBe('0');
+    expect(db.val(`SELECT status FROM mit_purchase_orders WHERE po_id = ${made.po}`), 'the PO is ordered again').toBe('ordered');
+    await expect(page.locator('[data-mit-po-receipts]'), 'no receipts left').toHaveCount(0);
+    await expectClean(page, errors);
+});

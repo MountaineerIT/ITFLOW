@@ -246,7 +246,7 @@ return [
     ],
     'quotes' => [
         'name' => 'Quote pricing (cost, markup / margin) and line images',
-        'files' => ['functions/mit_quotes.php', 'js/mit_quote_pricing.js', 'admin/includes/mit_quote_card.php', 'admin/post/mit_quote_settings.php'],
+        'files' => ['functions/mit_quotes.php', 'js/mit_quote_pricing.js', 'js/mit_billing_add.js', 'admin/includes/mit_quote_card.php', 'admin/post/mit_quote_settings.php'],
         'tests' => ['tests/smoke/60-quote-pricing.spec.js', 'tests/smoke/65-quote-images.spec.js', 'tests/scenarios/scenario-quote-*.php'],
         'assumes' => [
             'Quotes / invoices / recurring are one page: lines saved by agent/post/billing.php (billing_item_save ...), drawn by includes/billing_paper.php.',
