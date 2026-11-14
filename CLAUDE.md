@@ -491,6 +491,15 @@ model: see DEPLOYMENT.md.
   `mit_po_set_project`. The line and its procurement item take the project (0 = off); another client's line refused; a line for nobody takes a
   client project's client only while nothing of it was received; a client's line can't go on a project with no client. PO history + audit.
   Scenario `scenario-procurement-project.php`, smoke `37-po-project.spec.js`.
+  Undo a receipt (26.11.8.3, M062 - the user found a wrong receive could not be taken back): mit_po_receipts keeps what each receipt did (`tracked`,
+  stock_product_id / stock_qty, return_product_id / return_qty / return_invoice_id / return_item_id, cleared_item_id, note_reply_id - written by a
+  `$remember` closure in mitProcAfterReceive). `mitPoUndoReceipt($receipt_id)` (functions/mit_procurement_extras.php, under the receive lock, one
+  transaction): assets it made deleted as ITFlow's delete_asset does (rack units, ticket_assets, credentialsForget; needs Support 3), stock taken off
+  (a negative 'received' move), an invoice line's returned stock taken again (negative 'returned' with the invoice / line) and its item_product_id put
+  back, ticket parts' asset_id cleared, an internal note on the ticket, received_qty down, the receipt deleted, mitPoRecalc (PO and items back to
+  ordered / partial). Refused on cancelled POs; stock changes need Sales edit. Receipts before M062 (tracked 0) don't know their stock - undone with a
+  reminder. UI: Receipts card on `agent/mit_purchase_order.php` (`[data-mit-po-receipts]`, Undo `[data-mit-receipt-undo]`, Procurement Edit), handler
+  GET `mit_po_undo_receipt` in `agent/post/mit_procurement.php`. Scenario `scenario-procurement-undo-receipt.php`, smoke: last test of 37.
   Products API: `api/v1/products/read.php` selects `mitProductApiColumns()` (every column but our cost /
   markup) instead of `*` - two lines.
 - Timesheets (Oct 2026): `functions/mit_timesheets.php` (ours) - per pay period (semi-monthly default;

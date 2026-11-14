@@ -93,6 +93,12 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
     $proc = intval($line['proc_item_id']) ? mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT item_id, source, ticket_id, product_id, invoice_id, invoice_item_id FROM mit_procurement_items WHERE item_id = " . intval($line['proc_item_id']))) : null;
     $po_reference = $line['po_prefix'] . $line['po_number'];
     $client_id = intval($line['client_id']);
+    // What this receipt does is kept on it, so it can be undone exactly (M062, mitPoUndoReceipt)
+    $remember = function ($set) use ($mysqli, $receipt_id) {
+        if (mitColumnReady('mit_po_receipts', 'tracked')) {
+            mysqli_query($mysqli, "UPDATE mit_po_receipts SET $set WHERE receipt_id = " . intval($receipt_id));
+        }
+    };
 
     // A client's hardware: one asset per unit, each with its serial
     if (!empty($options['assets']) && $client_id && floor($qty) == $qty) {
@@ -147,6 +153,7 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
     // Our stock: into the product's stock (not a ticket's part - that goes to the ticket, even one without a client)
     if (!empty($options['stock']) && !$client_id && $proc && $proc['source'] !== 'ticket' && intval($proc['product_id']) && mitProductTracksStock(intval($proc['product_id']))) {
         mitStockMove(intval($proc['product_id']), round($qty, 2), 'received', "Received on $po_reference", ['unit_cost' => $line['unit_cost'] ?? null]);
+        $remember("stock_product_id = " . intval($proc['product_id']) . ", stock_qty = " . round($qty, 2));
         logAudit('Product', 'Edit', escapeSql(mitProcWho() . ' added ' . mitQty($qty) . " to stock, received on $po_reference"), 0, intval($proc['product_id']));
         $done['stock'] += round($qty, 2);
     }
@@ -176,9 +183,11 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
         if ($invoice_line && in_array(intval($invoice_line[0]), [0, $product_id], true) && $back > 0) {
             mitStockMove($product_id, $back, 'returned', "Ordered on $po_reference for the invoice instead of taken from stock",
                 ['invoice_id' => $invoice_id, 'item_id' => $invoice_item_id]);
+            $remember("return_product_id = $product_id, return_qty = $back, return_invoice_id = $invoice_id, return_item_id = $invoice_item_id");
         }
         if ($invoice_line && intval($invoice_line[0]) === $product_id) {
             mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = 0 WHERE item_id = $invoice_item_id");
+            $remember("cleared_item_id = $invoice_item_id, return_product_id = $product_id");
         }
     }
 
@@ -186,9 +195,102 @@ function mitProcAfterReceive(array $line, $qty, $serials, $receipt_id, array $op
     if (!empty($options['notes']) && $proc && intval($proc['ticket_id'])) {
         mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . escapeSql(escapeHtml('Received ' . mitQty($qty) . ' × ' . $line['name'] . " on $po_reference" . ($serials !== '' ? ' (serials: ' . str_replace("\n", ', ', $serials) . ')' : '') . '.')) . "',
             ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($session_user_id) . ", ticket_reply_ticket_id = " . intval($proc['ticket_id']));
+        $remember("note_reply_id = " . intval(mysqli_insert_id($mysqli)));
         $done['notes']++;
     }
     return $done;
+}
+
+/*
+ * ---------- undoing a receipt ----------
+ */
+
+/** A PO's receipts, newest first, with who received them and the line's name. */
+function mitPoReceipts($po_id) {
+    global $mysqli;
+    return mysqli_fetch_all(mysqli_query($mysqli, "SELECT r.*, l.name AS line_name, user_name FROM mit_po_receipts r
+        JOIN mit_po_lines l ON l.line_id = r.line_id LEFT JOIN users ON users.user_id = r.received_by
+        WHERE r.po_id = " . intval($po_id) . " ORDER BY r.receipt_id DESC"), MYSQLI_ASSOC);
+}
+
+/**
+ * Take a receipt back - received by mistake (the user's request): the line's received quantity goes down and the PO's status follows
+ * (mitPoRecalc), the assets it made are deleted (as ITFlow's own delete does - needs Support full), the stock it put on the shelf is
+ * taken off again and any an invoice line had given back is taken for that line again (Sales edit), the invoice line gets its product
+ * back, and the ticket it was for gets a note. Receipts from before M062 don't know what they did to stock: those are undone with a
+ * reminder to check the product's stock. Returns [ok, message].
+ */
+function mitPoUndoReceipt($receipt_id) {
+    global $mysqli;
+    $receipt = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT r.*, l.name AS line_name, l.proc_item_id, po.status, po.po_prefix, po.po_number
+        FROM mit_po_receipts r JOIN mit_po_lines l ON l.line_id = r.line_id JOIN mit_purchase_orders po ON po.po_id = r.po_id WHERE r.receipt_id = " . intval($receipt_id)));
+    if (!$receipt || !mitPoAccessible($receipt['po_id'])) {
+        return [false, 'That receipt no longer exists.'];
+    }
+    if (!in_array($receipt['status'], ['ordered', 'partial', 'received'], true)) {
+        return [false, 'This PO is ' . $receipt['status'] . ' - its receipts can no longer be undone.'];
+    }
+    $reference = $receipt['po_prefix'] . $receipt['po_number'];
+    $qty = (float) $receipt['quantity'];
+    $tracked = intval($receipt['tracked'] ?? 0) === 1;
+    $asset_ids = array_values(array_filter(array_map('intval', explode(',', (string) ($receipt['asset_ids'] ?? '')))));
+    $asset_ids = $asset_ids ? array_map('intval', array_column(mysqli_fetch_all(mysqli_query($mysqli, "SELECT asset_id FROM assets WHERE asset_id IN (" . implode(',', $asset_ids) . ")"), MYSQLI_ASSOC), 'asset_id')) : [];
+    if ($asset_ids && lookupUserPermission('module_support') < 3) {
+        return [false, 'Undoing this receipt deletes the ' . count($asset_ids) . ' asset' . (count($asset_ids) === 1 ? '' : 's') . ' it made - that needs full Support access (as deleting an asset does).'];
+    }
+    $moves_stock = (float) ($receipt['stock_qty'] ?? 0) > 0 || (float) ($receipt['return_qty'] ?? 0) > 0;
+    if ($moves_stock && lookupUserPermission('module_sales') < 2) {
+        return [false, 'Undoing this receipt changes stock - that needs Sales edit access.'];
+    }
+    $proc = intval($receipt['proc_item_id']) ? mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_id, product_id FROM mit_procurement_items WHERE item_id = " . intval($receipt['proc_item_id']))) : null;
+    $line_text = mitQty($qty) . ' × ' . $receipt['line_name'];
+    $also = [];
+
+    mysqli_begin_transaction($mysqli);
+    try {
+        foreach ($asset_ids as $asset_id) {
+            mysqli_query($mysqli, "DELETE FROM assets WHERE asset_id = $asset_id");
+            mysqli_query($mysqli, "DELETE FROM rack_units WHERE unit_asset_id = $asset_id");
+            mysqli_query($mysqli, "DELETE FROM ticket_assets WHERE asset_id = $asset_id");
+            if (function_exists('credentialsForget')) {
+                credentialsForget('asset', $asset_id);
+            }
+        }
+        if ($asset_ids) {
+            mysqli_query($mysqli, "UPDATE mit_ticket_parts SET asset_id = 0 WHERE asset_id IN (" . implode(',', $asset_ids) . ")");
+            $also[] = count($asset_ids) . ' asset' . (count($asset_ids) === 1 ? '' : 's') . ' deleted';
+        }
+        if ((float) ($receipt['stock_qty'] ?? 0) > 0) {
+            mitStockMove(intval($receipt['stock_product_id']), -(float) $receipt['stock_qty'], 'received', "Receipt on $reference undone");
+            $also[] = mitQty($receipt['stock_qty']) . ' taken off stock';
+        }
+        if ((float) ($receipt['return_qty'] ?? 0) > 0) {
+            mitStockMove(intval($receipt['return_product_id']), -(float) $receipt['return_qty'], 'returned', "Receipt on $reference undone - taken for the invoice again",
+                ['invoice_id' => intval($receipt['return_invoice_id']), 'item_id' => intval($receipt['return_item_id'])]);
+            $also[] = mitQty($receipt['return_qty']) . ' taken from stock for the invoice again';
+        }
+        if (intval($receipt['cleared_item_id'] ?? 0) && intval($receipt['return_product_id'] ?? 0)) {
+            mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = " . intval($receipt['return_product_id']) . " WHERE item_id = " . intval($receipt['cleared_item_id']) . " AND item_product_id = 0");
+        }
+        if ($proc && intval($proc['ticket_id']) && ($tracked ? intval($receipt['note_reply_id'] ?? 0) : true)) {
+            mysqli_query($mysqli, "INSERT INTO ticket_replies SET ticket_reply = '" . escapeSql(escapeHtml("Receipt of $line_text on $reference undone - it is waiting to arrive again.")) . "',
+                ticket_reply_type = 'Internal', ticket_reply_time_worked = '00:00:00', ticket_reply_by = " . intval($GLOBALS['session_user_id'] ?? 0) . ", ticket_reply_ticket_id = " . intval($proc['ticket_id']));
+        }
+        mysqli_query($mysqli, "UPDATE mit_po_lines SET received_qty = GREATEST(0, received_qty - $qty) WHERE line_id = " . intval($receipt['line_id']));
+        mysqli_query($mysqli, "DELETE FROM mit_po_receipts WHERE receipt_id = " . intval($receipt['receipt_id']));
+        mitPoRecalc($receipt['po_id']);
+        mitPoLog($receipt['po_id'], mitProcWho() . " undid the receipt of $line_text" . ($also ? ' (' . implode(', ', $also) . ')' : ''));
+        mysqli_commit($mysqli);
+    } catch (Throwable $e) {
+        mysqli_rollback($mysqli);
+        return [false, 'Not undone - ' . $e->getMessage()];
+    }
+    logAudit('Purchase Order', 'Edit', escapeSql(mitProcWho() . " undid the receipt of $line_text on $reference"), 0, intval($receipt['po_id']));
+    $message = "Receipt of $line_text undone - it is waiting to arrive again" . ($also ? ' (' . implode(', ', $also) . ')' : '') . '.';
+    if (!$tracked && $proc && intval($proc['product_id']) && mitProductTracksStock(intval($proc['product_id']))) {
+        $message .= ' It was received before receipts kept track of stock - check the product\'s stock.';
+    }
+    return [true, $message];
 }
 
 /*

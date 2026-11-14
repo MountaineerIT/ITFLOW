@@ -647,7 +647,8 @@ function mitPoReceive(array $received, array $options = []) {
         }
         $serials = trim(preg_replace('/\s*[\r\n,;]+\s*/', "\n", (string) ($in['serials'] ?? '')));
         mysqli_query($mysqli, "INSERT INTO mit_po_receipts SET po_id = " . intval($line['po_id']) . ", line_id = " . intval($line_id) . ", quantity = $qty,
-            serials = " . ($serials === '' ? 'NULL' : "'" . escapeSql($serials) . "'") . ", received_by = " . intval($session_user_id));
+            serials = " . ($serials === '' ? 'NULL' : "'" . escapeSql($serials) . "'") . ", received_by = " . intval($session_user_id)
+            . (mitColumnReady('mit_po_receipts', 'tracked') ? ', tracked = 1' : ''));
         $receipt_id = mysqli_insert_id($mysqli);
         mysqli_query($mysqli, "UPDATE mit_po_lines SET received_qty = received_qty + $qty WHERE line_id = " . intval($line_id));
         foreach (mitProcAfterReceive($line, $qty, $serials, $receipt_id, $options, $in) as $key => $done) {
