@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 72 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 188 | 2 | 2 | 15 | 41 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 14 | 9 | 31 | 74 | 38 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 190 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -20,8 +20,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 5 | 42 | 17 | 71 | 15 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 9 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 11 |
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
+| [Where a client's reply moves a ticket ("Move it to <status>", e.g. Client responded)](#reply_status) | 1 | 2 | 6 | 1 | 4 | 4 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 12 | 9 | 16 | 17 |
@@ -696,6 +697,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
+- `admin/modals/ticket_status/ticket_status_form.php`: mit_reply_status
 - `admin/settings_ticket.php`: mitNoResponseReady, mit_no_response_card
 - `agent/ajax.php`: mitTicketLayoutAjax, mit_ticket_layout, mit_timer_tickets, mit_timers
 - `agent/ticket.php`: mitNoResponseButton, mitTicketLayoutHtml, mit_ticket_layout
@@ -703,6 +705,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/mail_queue.php`: mit_dev_mode
 - `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
 - `functions/backup.php`: mit_feedback
+- `functions/ticket_status.php`: mit_reply_status
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
 
@@ -742,8 +745,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/modals/ticket_status/ticket_status_form.php`: mitStatusResponseField
-- `admin/post/ticket_status.php`: mitStatusResponseSave
+- `admin/modals/ticket_status/ticket_status_form.php`: mitStatusResponseField, mit_reply_field
+- `admin/post/ticket_status.php`: mitStatusResponseSave, mit_reply_change
 - `admin/settings_ticket.php`: mit_no_response_card
 - `functions.php`: mit_boards
 - `functions/reports.php`: mit_boards
@@ -769,6 +772,39 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** first_response, response_target, status_response, assigned_email, ticket_assigned
 
 **Our files** `functions/mit_status_response.php`
+
+<a id="reply_status"></a>
+## Where a client's reply moves a ticket ("Move it to <status>", e.g. Client responded) (`reply_status`)
+
+**Takes for granted**
+
+- ITFlow's ticketStatusAfterClientReply decides the status for every client reply - the email parser, the portal and texts (our line is its first).
+- The status window posts client_reply, which ITFlow reads with intval (our "1:<id>" reads as 1 - back to Open); New / Open / On Hold / Resolved / Closed are 1-5.
+
+**Tests** `tests/scenarios/scenario-reply-status.php`, `tests/smoke/39-reply-status.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `admin/modals/ticket_status/ticket_status_form.php`: mitReplyStatusField, mit_reply_status, mit_reply_field
+- `admin/post/ticket_status.php`: mitReplyStatusSave, mit_reply_change
+- `admin/ticket_statuses.php`: mitReplyStatusListText, mit_reply_text
+- `functions/ticket_status.php`: mitReplyStatusFor, mit_reply_status, mit_reply_to
+
+**ITFlow functions it calls**
+
+- `functions/logging.php`: logAudit
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/ticket_status.php`: ticketStatusBadgeHtml, ticketStatusIsBuiltIn, ticketStatusesAll
+
+**ITFlow tables** tickets
+
+**ITFlow columns** ticket_status_active, ticket_status_color, ticket_status_id, ticket_status_name
+
+**Watched in ITFlow's code** `ticketStatusAfterClientReply` `ticket_status_client_reply` `TICKET_STATUS_CLIENT_REPLY` `ticketStatusesAll`
+
+**"ITFlow does this too" words** client_reply, reply_status, status_after_reply
+
+**Our files** `functions/mit_reply_status.php`
 
 <a id="reply_recipients"></a>
 ## Email reply "To" line (internal notes use ITFlow's @mentions) (`reply_recipients`)

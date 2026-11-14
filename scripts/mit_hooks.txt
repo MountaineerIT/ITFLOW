@@ -14,7 +14,10 @@ hook	admin/getting_started/team.php	mitServiceUserSql	2
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
+hook	admin/modals/ticket_status/ticket_status_form.php	mitReplyStatusField	2
 hook	admin/modals/ticket_status/ticket_status_form.php	mitStatusResponseField	2
+hook	admin/modals/ticket_status/ticket_status_form.php	mit_reply_field	2
+hook	admin/modals/ticket_status/ticket_status_form.php	mit_reply_status	1
 hook	admin/modals/ticket_template/ticket_template_form.php	mitServiceUserSql	2
 hook	admin/modals/user/user_form.php	mitCalendarColorField	1
 hook	admin/modals/user/user_form.php	mitOfficeUserField	2
@@ -38,7 +41,9 @@ hook	admin/post/settings_notification.php	mitNotificationsSave	2
 hook	admin/post/settings_notification.php	mit_changed	2
 hook	admin/post/settings_ticket.php	mitQuickTicketSettingsSave	2
 hook	admin/post/settings_ticket.php	mit_changed	2
+hook	admin/post/ticket_status.php	mitReplyStatusSave	4
 hook	admin/post/ticket_status.php	mitStatusResponseSave	4
+hook	admin/post/ticket_status.php	mit_reply_change	2
 hook	admin/post/users.php	mitInviteExtrasSave	2
 hook	admin/post/users.php	mitOfficeUserSave	4
 hook	admin/post/users.php	mitSaveAgentColor	1
@@ -58,6 +63,8 @@ hook	admin/settings_ticket.php	mitQuickTicketSection	2
 hook	admin/settings_ticket.php	mitServiceTicketColor	1
 hook	admin/settings_ticket.php	mit_calendar_card	1
 hook	admin/settings_ticket.php	mit_no_response_card	1
+hook	admin/ticket_statuses.php	mitReplyStatusListText	2
+hook	admin/ticket_statuses.php	mit_reply_text	2
 hook	admin/update.php	MIT_CHANGELOG	1
 hook	admin/update.php	MountaineerIT	3
 hook	admin/update.php	data-mit-itflow-version	1
@@ -531,6 +538,9 @@ hook	functions/ticket.php	mit_watchers	4
 hook	functions/ticket_fields.php	mitNotifyOn	8
 hook	functions/ticket_fields.php	mitServiceUserSql	2
 hook	functions/ticket_mention.php	mitServiceUserSql	2
+hook	functions/ticket_status.php	mitReplyStatusFor	2
+hook	functions/ticket_status.php	mit_reply_status	1
+hook	functions/ticket_status.php	mit_reply_to	2
 hook	functions/trips.php	mitServiceUserSql	2
 hook	functions/user.php	mitSessionRestamp	1
 hook	functions/user_invite.php	mitInviteExtrasApply	2
@@ -654,6 +664,8 @@ ours	admin/database_updates/mountaineerit/M058.php
 ours	admin/database_updates/mountaineerit/M059.php
 ours	admin/database_updates/mountaineerit/M060.php
 ours	admin/database_updates/mountaineerit/M061.php
+ours	admin/database_updates/mountaineerit/M062.php
+ours	admin/database_updates/mountaineerit/M063.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -834,6 +846,7 @@ ours	functions/mit_recurring.php
 ours	functions/mit_recurring_lead.php
 ours	functions/mit_reimbursements.php
 ours	functions/mit_reply_recipients.php
+ours	functions/mit_reply_status.php
 ours	functions/mit_reply_times.php
 ours	functions/mit_service_users.php
 ours	functions/mit_settings_index.php

@@ -221,6 +221,17 @@ return [
         'watch' => ['syncTicketSlaClock', 'setTicketFirstResponse', 'ticket_first_response_at', 'ticketStatusCreate', 'ticketStatusUpdate', 'config_ticket_client_general_notifications'],
         'overlap' => ['first_response', 'response_target', 'status_response', 'assigned_email', 'ticket_assigned'],
     ],
+    'reply_status' => [
+        'name' => 'Where a client\'s reply moves a ticket ("Move it to <status>", e.g. Client responded)',
+        'files' => ['functions/mit_reply_status.php'],
+        'tests' => ['tests/scenarios/scenario-reply-status.php', 'tests/smoke/39-reply-status.spec.js'],
+        'assumes' => [
+            'ITFlow\'s ticketStatusAfterClientReply decides the status for every client reply - the email parser, the portal and texts (our line is its first).',
+            'The status window posts client_reply, which ITFlow reads with intval (our "1:<id>" reads as 1 - back to Open); New / Open / On Hold / Resolved / Closed are 1-5.',
+        ],
+        'watch' => ['ticketStatusAfterClientReply', 'ticket_status_client_reply', 'TICKET_STATUS_CLIENT_REPLY', 'ticketStatusesAll'],
+        'overlap' => ['client_reply', 'reply_status', 'status_after_reply'],
+    ],
     'reply_recipients' => [
         'name' => 'Email reply "To" line (internal notes use ITFlow\'s @mentions)',
         'files' => ['functions/mit_reply_recipients.php', 'agent/js/mit_reply_recipients.js'],

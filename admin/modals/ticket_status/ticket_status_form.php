@@ -87,6 +87,7 @@ $s_reply = $s ? (intval($s['ticket_status_client_reply'] ?? 1) === 0 ? 0 : 1) : 
 
     <?php if (function_exists('mitStatusResponseField')) { echo mitStatusResponseField($s_id); } // Mountaineer IT: meets the SLA response target ?>
 
+    <?php if (function_exists('mitReplyStatusField') && ($mit_reply_field = mitReplyStatusField($s_id, $s_reply)) !== '') { echo $mit_reply_field; /* Mountaineer IT: "Move it to <status>" too (functions/mit_reply_status.php) */ } else { ?>
     <div class="mb-1">
         <label class="form-label">When the client replies</label>
         <div class="input-group">
@@ -109,6 +110,7 @@ $s_reply = $s ? (intval($s['ticket_status_client_reply'] ?? 1) === 0 ? 0 : 1) : 
             <?php } ?>
         </small>
     </div>
+    <?php } ?>
 </div>
 
 <script src="<?= staticFileUrl('/js/ticket_status_form.js') ?>"></script>
