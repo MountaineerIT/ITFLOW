@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.8.3 - 2026-11-14
+- Invoices, quotes and recurring invoices: a new line is set up on one row again, in place of ITFlow 26.11.8's single "type a product" box - Item, Description, Qty, Price and Tax side by side, and on quotes also Our cost, Price by (markup / margin / set price) with its %, and a Picture (a file or a link). Typing in Item searches your products as before; picking one fills the row in (description, price, tax, and on a quote our cost and its picture) and nothing is added until you press Add or Enter, so it can be changed first. The line appears without the page reloading. On a wide screen everything is on one line; on a narrower one it wraps. Invoices keep the customer price only - no cost or picture there.
+
 ## 26.11.8.2 - 2026-11-13
 - GitHub page brought up to date: the README lists what was added since 26.11.2 (own time zones, New Ticket status and booking, recurring tickets and invoices made ahead, SLA response statuses, usage counts in ITFlow's "Quantity from", client profitability, PO lines on projects, API / service accounts).
 - New API page (MIT_API.md): the ways to send the key (X-API-Key or Bearer header, as well as ITFlow's), the usage counts endpoint `/api/v1/mit_usage/` with examples, API / service accounts, and the endpoints where this build's rules differ from stock ITFlow.

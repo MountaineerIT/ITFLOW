@@ -607,6 +607,9 @@ function itflowBillingItems(options) {
     document.addEventListener('mousedown', away);
     document.addEventListener('focusin', away);
 
+    // Mountaineer IT: our full add row (js/mit_billing_add.js) adds a line itself and redraws the page through this
+    window.mitBillingRefresh = refresh;
+
     /* ---------- the add field ---------- */
 
     function busy(on) {

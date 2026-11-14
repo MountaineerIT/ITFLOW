@@ -1733,7 +1733,7 @@ if (isset($_POST['billing_item_add']) || isset($_POST['billing_item_set'])) {
     if (isset($_POST['billing_item_add'])) {
         // A line typed in, not picked, gets the rate the client's lines usually do
         $item_id = billingItemSave($type, $doc_id, $_POST + ['tax_id' => taxDefaultFor($client_id)], 0, $error);
-        if ($item_id && $type === 'quote' && function_exists('mitQuoteItemSave')) { mitQuoteItemSave($item_id, $_POST, [], true); } // Mountaineer IT: a product's cost, pricing and picture on the new quote line
+        if ($item_id && $type === 'quote' && function_exists('mitQuoteItemSave')) { mitQuoteItemSave($item_id, $_POST, $_FILES, true); } // Mountaineer IT: a product's cost, pricing and picture on the new quote line
         if ($item_id) {
             logAudit($audit_type, 'Edit', escapeSql("$session_name added line " . trim((string) ($_POST['name'] ?? '')) . " to $number"), $client_id, $doc_id);
         }

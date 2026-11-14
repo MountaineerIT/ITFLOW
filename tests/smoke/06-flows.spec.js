@@ -331,17 +331,18 @@ test('quote line priced from our cost and markup; the customer view hides the co
     expect(made.quoteId, `quote page after saving (${await flash(page)})`).toBeGreaterThan(0);
     await visit(page, `agent/quote.php?quote_id=${made.quoteId}`, errors);
 
-    // ITFlow 26.11's add-a-line row on the document with our cost and markup in it, then its Edit Line window
-    const add = page.locator('[data-billing-add]');
+    // Our full add row (mitPaperAddRow) with our cost and markup in it, then ITFlow's Edit Line window
+    const add = page.locator('form[data-mit-add-row]');
     test.skip(await add.locator('input[name=item_cost]').count() === 0, 'quote pricing columns missing (database update?)');
     await add.locator('input[name=name]').fill(smokeName('quote line'));
+    await add.locator('input[name=name]').press('Escape');
     await add.locator('input[name=qty]').fill('2');
     await add.locator('select[name=item_price_method]').selectOption('markup');
     await add.locator('input[name=item_price_percent]').fill('20');
     await add.locator('input[name=item_cost]').fill('87.31');
     // 87.31 + 20% = 104.772
     await expect(add.locator('input[name=price]'), 'add row: price worked out from cost and markup').toHaveValue('104.77');
-    await Promise.all([page.waitForNavigation(), add.locator('button[type=submit]').click()]);
+    await add.locator('button[type=submit]').click();   // added without a reload
     const lineRow = page.locator('tr[data-item-id]', { hasText: 'Smoke test quote line' });
     await expect(lineRow).toHaveCount(1);
     await expect(lineRow.locator('[data-mit-line-cost]'), 'cost saved from the add row').toContainText('$87.31');

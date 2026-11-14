@@ -279,12 +279,14 @@ $paper_bill_lines = array_filter([
                 <tfoot class="d-print-none">
                 <tr class="itflow-paper-add" id="add-line">
                     <td colspan="7">
+                        <?php if (function_exists('mitPaperAddRow') && ($mit_add_row = mitPaperAddRow($paper)) !== '') { echo $mit_add_row; /* Mountaineer IT: every box of a new line on one row (functions/mit_quotes.php) */ } else { ?>
                         <!-- One field: pick a product and it goes on as a line, or type anything and press Enter -->
                         <div class="itflow-paper-add-field">
                             <i class="fas fa-plus" aria-hidden="true"></i>
                             <input type="text" class="form-control" maxlength="200" autocomplete="off" data-billing-add aria-label="Add a line"
                                 placeholder="<?= $paper_items ? 'Add a line' : 'First line' ?> - type a product, or anything">
                         </div>
+                        <?php } ?>
                         <?php if (!empty($paper['ai'])) { ?>
                             <div class="d-flex flex-wrap align-items-center column-gap-2 row-gap-1 mt-2 pt-2 border-top" data-billing-ai>
                                 <button type="button" class="btn btn-sm btn-outline-secondary ajax-modal" data-modal-size="lg" data-modal-url="modals/billing/billing_ai_writer.php?type=<?= $paper_type ?>&doc_id=<?= $paper_id ?>">

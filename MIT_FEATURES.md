@@ -24,8 +24,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 4 | 4 | 8 | 5 | 13 | 16 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 10 | 29 | 26 | 148 | 19 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 11 | 9 | 16 | 17 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 10 | 29 | 26 | 148 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
@@ -879,26 +879,30 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions.php`: mit_quotes
 - `functions/backup.php`: mit_feedback
 - `functions/billing_pdf.php`: mitQuotePdfImage
-- `includes/billing_paper.php`: mitPaperLineExtras, mitPaperLineImage
+- `includes/billing_paper.php`: mitPaperAddRow, mitPaperLineExtras, mitPaperLineImage, mit_quotes, mit_add_row
+- `js/billing_items.js`: mitBillingRefresh, mit_billing_add
 
 **ITFlow functions it calls**
 
 - `functions/app.php`: getFieldById
-- `functions/billing.php`: billingMoney, quoteFrequency
+- `functions/billing.php`: billingMoney, billingType, quoteFrequency
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml
 - `functions/security.php`: validateCSRFToken
+- `functions/tax.php`: taxDefaultFor, taxOptionsHtml
 
-**ITFlow tables** files, products, quote_items, quotes, settings
+**ITFlow tables** assets, contacts, credentials, files, products, quote_items, quotes, settings, taxes
 
-**ITFlow columns** invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, quote_currency_code, quote_discount_amount, quote_id
+**ITFlow columns** client_id, invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, product_name, quote_currency_code, quote_discount_amount, quote_id, tax_id
+
+**ITFlow page ids / classes its scripts and styles use** `#add-line`
 
 **Watched in ITFlow's code** `billing_item_save` `billing_item_add` `billing_paper` `product_cost`
 
 **"ITFlow does this too" words** margin, markup, item_cost, product_cost, item_image, product_image, price_method
 
-**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `admin/includes/mit_quote_card.php`, `admin/post/mit_quote_settings.php`
+**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `js/mit_billing_add.js`, `admin/includes/mit_quote_card.php`, `admin/post/mit_quote_settings.php`
 
 <a id="procurement"></a>
 ## Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills) (`procurement`)
@@ -932,6 +936,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions.php`: mit_offices, mit_procurement, mit_quotes
 - `functions/billing.php`: mitProcQuoteConvertGroups
 - `functions/ticket.php`: mitTicketPartsDeleting
+- `includes/billing_paper.php`: mit_quotes
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
 - `js/unbilled_time.js`: mitToBillParts, mit_to_bill
 

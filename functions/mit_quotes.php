@@ -917,6 +917,71 @@ function mitPaperLineExtras(array $paper, array $item) {
     return '';
 }
 
+/**
+ * The add row on an invoice, quote or recurring invoice the agent is editing (includes/billing_paper.php, in place of ITFlow 26.11.8's
+ * one "type a product" field - the user's choice): every box of a new line on one row - name (with ITFlow's product search: a pick
+ * fills the rest in), quantity, price, tax and the description under them; on a quote also our cost, markup / margin / set price
+ * and a picture. js/mit_billing_add.js sends it to ITFlow's own ajax.php billing_item_add (multipart, so a picture goes with it)
+ * and redraws through ITFlow's js/billing_items.js. '' when the paper is not being edited.
+ */
+function mitPaperAddRow(array $paper) {
+    if (empty($paper['edit'])) {
+        return '';
+    }
+    $type = (string) ($paper['type'] ?? '');
+    $client_id = intval($paper['row']['client_id'] ?? 0);
+    $quote = $type === 'quote' && mitQuoteColumnsReady();
+    $first = empty($paper['items']);
+    $tax = taxDefaultFor($client_id);
+    $html = '<form class="mit-add-row" data-mit-add-row data-type="' . escapeHtml($type) . '" enctype="multipart/form-data" autocomplete="off" novalidate>'
+        . '<input type="hidden" name="csrf_token" value="' . escapeHtml((string) ($paper['csrf'] ?? ($_SESSION['csrf_token'] ?? ''))) . '">'
+        . '<input type="hidden" name="type" value="' . escapeHtml($type) . '"><input type="hidden" name="doc_id" value="' . intval($paper['row'][(billingType($type)['col'] ?? '') . '_id'] ?? 0) . '">'
+        . '<input type="hidden" name="product_id" value="0"><input type="hidden" name="frequency" value=""><input type="hidden" name="seat_source" value="">'
+        . '<div class="mit-add-main">'
+        . '<div class="mit-add-name"><label class="form-label small mb-1">Item</label>'
+        . '<input type="text" class="form-control" name="name" maxlength="200" placeholder="Type a product, or the item\'s name" data-billing-add-name aria-label="Item"></div>'
+        . '<div class="mit-add-desc"><label class="form-label small mb-1">Description</label><textarea class="form-control" name="description" rows="1" placeholder="Optional" aria-label="Description" data-mit-add-description></textarea></div>'
+        . '<div class="mit-add-qty"><label class="form-label small mb-1">Qty</label><input type="text" class="form-control text-end" name="qty" value="1" inputmode="decimal" aria-label="Quantity"></div>';
+    if ($quote) {
+        $settings = mitQuoteSettings();
+        $html .= '<div class="mit-add-cost" data-mit-currency="' . escapeHtml($paper['row']['quote_currency_code'] ?? 'USD') . '"><label class="form-label small mb-1">Our cost</label>'
+            . '<input type="text" class="form-control text-end" name="item_cost" inputmode="decimal" placeholder="0.00" data-mit-cost data-mit-price-field="price" aria-label="Our cost"></div>'
+            . '<div class="mit-add-method"><label class="form-label small mb-1">Price by</label><div class="input-group flex-nowrap">'
+            . '<select class="form-select" name="item_price_method" data-mit-method aria-label="Price by">';
+        foreach (MIT_PRICE_METHODS as $value => $label) {
+            $html .= '<option value="' . $value . '"' . ($value === $settings['method'] ? ' selected' : '') . '>' . $label . '</option>';
+        }
+        $html .= '</select><input type="text" class="form-control text-end mit-add-pct" name="item_price_percent" inputmode="decimal" value="'
+            . escapeHtml(rtrim(rtrim(number_format($settings['percent'], 2, '.', ''), '0'), '.')) . '" placeholder="%" aria-label="Percent" data-mit-pct></div></div>';
+    }
+    $html .= '<div class="mit-add-price"><label class="form-label small mb-1">Price</label><input type="text" class="form-control text-end" name="price" inputmode="decimal" placeholder="0.00" aria-label="Price"></div>'
+        . '<div class="mit-add-tax"><label class="form-label small mb-1">Tax</label><select class="form-select" name="tax_id" aria-label="Tax">' . taxOptionsHtml($paper['taxes'] ?? [], $tax) . '</select></div>';
+    if ($quote && mitQuoteSettings()['show_images']) {
+        $html .= '<div class="mit-add-image"><label class="form-label small mb-1">Picture</label><button type="button" class="btn btn-outline-secondary w-100 px-0" data-mit-add-image-toggle title="Add a picture" aria-label="Add a picture">'
+            . '<img alt="" data-mit-image-preview style="display:none;max-height:24px;max-width:100%"><i class="fas fa-camera" data-mit-image-empty></i></button></div>';
+    }
+    $html .= '<div class="mit-add-go"><button type="submit" class="btn btn-primary w-100" data-mit-add-go><i class="fas fa-plus me-1"></i>Add</button></div>'
+        . '</div>';
+    if ($quote && mitQuoteSettings()['show_images']) {
+        $html .= '<div class="row g-2 mt-1" data-mit-add-image-box data-mit-image-box hidden>'
+            . '<div class="col-md-6"><input type="file" class="form-control" name="item_image" accept="image/jpeg,image/png,image/gif,image/webp" data-mit-image-input aria-label="Picture file"></div>'
+            . '<div class="col-md-6"><input type="url" class="form-control" name="item_image_url" data-mit-image-url placeholder="Or paste a link - an image, or the product\'s web page" aria-label="Picture link"></div></div>';
+    }
+    if ($quote) {
+        $html .= '<input type="hidden" name="mit_pricing_present" value="1"><div class="small text-body-secondary mt-1" data-mit-hint data-mit-quiet></div>'
+            . '<script>window.mitProductPricing = ' . mitProductsPricingJson() . ';</script><script src="' . mitAsset('/js/mit_quote_pricing.js') . '"></script>';
+    }
+    return $html . '</form><style>'
+        . '.mit-add-row .mit-add-main{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}'
+        . '.mit-add-row .mit-add-main>div{flex:0 0 auto}.mit-add-row .mit-add-name{flex:2 1 180px!important}.mit-add-row .mit-add-desc{flex:2 1 180px!important}'
+        . '.mit-add-row .mit-add-qty{width:64px}.mit-add-row .mit-add-cost{width:100px}.mit-add-row .mit-add-method{width:170px}'
+        . '.mit-add-row .mit-add-price{width:100px}.mit-add-row .mit-add-tax{width:130px}.mit-add-row .mit-add-image{width:48px}.mit-add-row .mit-add-go{width:88px}'
+        . '.mit-add-row .mit-add-desc textarea{min-height:calc(1.5em + .75rem + 2px)}'
+        . '.mit-add-row .mit-add-pct{max-width:64px}.mit-add-row .mit-add-cost .form-control,.mit-add-row .mit-add-method .form-select{background-color:var(--bs-warning-bg-subtle)}'
+        . '.mit-add-row textarea{resize:vertical}'
+        . '</style><script src="' . mitAsset('/js/mit_billing_add.js') . '"></script>';
+}
+
 /** The quote PDF (TCPDF): a line's picture above its name, or ''. */
 function mitQuotePdfImage($quote_id, $item_id) {
     if (!mitQuoteSettings()['show_images']) {
