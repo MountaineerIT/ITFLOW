@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/mit_status_response.php';
+require_once __DIR__ . '/mit_reply_status.php';
 
 const MIT_NO_RESPONSE_DEFAULT = "Hello [First Name],\n\n"
     . "We have reached out a few times about this ticket ([Ticket] - [Subject]) but have not heard back, so we are marking it as resolved for now.\n\n"

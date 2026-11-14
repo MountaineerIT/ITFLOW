@@ -1144,6 +1144,16 @@ model: see DEPLOYMENT.md.
   guarded line at the start of ITFlow's `syncTicketSlaClock` in `functions/sla.php` (`mitStatusResponseCheck` - claims the move on the seen row first, so
   it can't email twice); paths that skip the sync (API replies, texts, parser reopen, direct updates) are swept every minute by cron `mit_boards`
   (`mitStatusResponseSweep`). Scenario `scenario-status-response.php`, smoke `38-status-response.spec.js`.
+- Where a client's reply moves a ticket (Nov 14, 26.11.8.4 - the user's request: a "Client responded" status): `functions/mit_reply_status.php` (ours,
+  required from mit_no_response.php), M063 `mit_ticket_status_reply` (ticket_status_id PK + reply_status_id, both FK ticket_statuses CASCADE - a
+  deleted status drops the row and ITFlow's answer applies again). ITFlow's "When the client replies" picker gains "Move it to <status>" for any
+  active working status (Open, On Hold, own - never New / Resolved / Closed) on every status but Closed, built-ins included (`mitReplyStatusField` -
+  one if / else around ITFlow's picker in `admin/modals/ticket_status/ticket_status_form.php`; posts ITFlow's `client_reply` as "1", "0" or "1:<id>",
+  which ITFlow's intval reads as 1 = back to Open, so stock ITFlow falls back to that). Saved by `mitReplyStatusSave` (one line each in
+  `admin/post/ticket_status.php` add / edit - edit adds it to ITFlow's `$changes`), shown in the list's column (`mitReplyStatusListText`, one line in
+  `admin/ticket_statuses.php`). Applied by one guarded line at the start of ITFlow's `ticketStatusAfterClientReply` (functions/ticket_status.php),
+  which the email parser, portal and texts all call (`mitReplyStatusFor`). Scenario `scenario-reply-status.php` (a real email through the parser),
+  smoke `39-reply-status.spec.js`.
 - Notification switches (Oct 24, 26.10.127): `functions/mit_notifications.php` (ours, required from `functions.php`) - on ITFlow's
   Admin > Settings > Notifications (26.10.189: sections of its settings page - `mitNotificationSections`, one line after its "Emails to clients"
   section in `admin/settings_notification.php`: "Ticket scheduled, moved or cancelled" with the remote / onsite table (`mitScheduleDefaultsTable`),

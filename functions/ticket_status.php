@@ -385,6 +385,7 @@ function ticketStatusReorder(array $ids) {
  */
 function ticketStatusAfterClientReply($current_status_id) {
     $current_status_id = intval($current_status_id);
+    if (function_exists('mitReplyStatusFor') && ($mit_reply_to = mitReplyStatusFor($current_status_id))) { return $mit_reply_to; } // Mountaineer IT: "Move it to <status>" (functions/mit_reply_status.php)
     if (ticketStatusIsBuiltIn($current_status_id)) {
         return TICKET_STATUS_OPEN;
     }

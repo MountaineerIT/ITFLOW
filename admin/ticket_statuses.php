@@ -129,6 +129,7 @@ $csrf = $_SESSION['csrf_token'];
                 $reply_html = $ticket_status_id === TICKET_STATUS_CLOSED
                     ? '<span class="text-body-secondary" title="A closed ticket can\'t be replied to - the client is told to raise a new one">Can\'t reply</span>'
                     : '<span class="text-body-secondary"><i class="fas fa-fw ' . $reply['icon'] . ' me-1"></i>' . ([TICKET_STATUS_NEW => 'Opens it', TICKET_STATUS_OPEN => 'Stays Open', TICKET_STATUS_RESOLVED => 'Reopens it'][$ticket_status_id] ?? $reply['short']) . '</span>';
+                if (function_exists('mitReplyStatusListText') && ($mit_reply_text = mitReplyStatusListText($ticket_status_id)) !== '') { $reply_html = $mit_reply_text; } // Mountaineer IT: "Move it to <status>"
                 ?>
                 <tr data-ticket-status-id="<?= $ticket_status_id ?>">
                     <?php if ($can_reorder) { ?>
