@@ -915,7 +915,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow 3.5.0: rates and net terms come from the client's contract (contractTicketRate / contractClientRate / contractNetTerms) - clients.client_rate / client_net_terms are gone.
 - To Bill: ITFlow's Unbilled Time page builds its clients with billingUnbilledByClient / expenseUnbilledMerge / tripUnbilledMerge and bills them with expenseBillWithTime (agent/post/billing.php); js/unbilled_time.js's update() runs on changes to [data-unbilled-expense-pick] / [data-unbilled-expense-price].
 
-**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-undo-receipt.php`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-contract-terms.php`
+**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-procurement-undo-receipt.php`, `tests/scenarios/scenario-contract-terms.php`
 
 **Hooks in ITFlow's files**
 

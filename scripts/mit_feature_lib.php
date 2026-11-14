@@ -90,6 +90,7 @@ function mfItflowFiles($rev = null) {
 function mfFeatures() {
     $map = require __DIR__ . '/mit_features.php';
     $all = mfGit(['ls-files', '--cached', '--others', '--exclude-standard']);
+    sort($all); // git lists files not committed yet after the rest - the same order either way, so a new file doesn't make MIT_FEATURES.md stale on commit
     foreach ($map as $key => &$feature) {
         foreach (['files', 'tests'] as $kind) {
             $matched = [];
