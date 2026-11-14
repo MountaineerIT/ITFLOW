@@ -1,5 +1,5 @@
-// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js, js/mit_billing_add.js): our full add row (name,
-// qty, our cost, markup, price, tax, picture, description) - a product picked fills it and takes the product's cost, a typed line keeps cost / markup / picture; cost and markup are saved; the Edit Line window switches to margin and takes an image upload; the profit box adds
+// Quote pricing through the real pages (functions/mit_quotes.php, js/mit_quote_pricing.js, js/mit_billing_add.js): ITFlow 26.11.7's add row
+// brought back (item + description, qty, billed, our cost, price by, %, price, tax) - a product picked fills it and takes the product's cost, a typed line keeps cost / markup; cost and markup are saved; the Edit Line window switches to margin and takes an image upload; the profit box adds
 // up; the client's copy (guest link) and the PDF show the picture but never our cost; and the quote -> invoice window's
 // "Send to procurement" for a stock-tracked product with none on the shelf (ITFlow alone refuses the conversion).
 // Makes its own quote / product and removes them (and what the conversion made).
@@ -40,19 +40,16 @@ test.afterAll(() => {
 
 test('a line added on the page from a product takes its cost; cost + markup work the price out', async ({ page }) => {
     const errors = watch(page);
-    await page.setViewportSize({ width: 2200, height: 1100 });  // a wide screen, where the paper is about 1,400 px - every box on one line
     await visit(page, quotePage(), errors);
-    // Our full add row (mitPaperAddRow, js/mit_billing_add.js) in place of ITFlow 26.11.8's one field: every box of a new line on one row
+    // ITFlow 26.11.7's add row brought back (mitPaperAddRow, js/mit_billing_add.js) in place of 26.11.8's one field
     const row = page.locator('form[data-mit-add-row]');
     await expect(row, 'the add row').toBeVisible();
-    await expect(page.locator('[data-billing-add]'), "ITFlow's one field is replaced").toHaveCount(0);
-    for (const field of ['name', 'qty', 'item_cost', 'item_price_method', 'item_price_percent', 'price', 'tax_id', 'description']) {
+    await expect(page.locator('[data-billing-add]'), "ITFlow 26.11.8's one field is replaced").toHaveCount(0);
+    for (const field of ['name', 'description', 'qty', 'frequency', 'item_cost', 'item_price_method', 'item_price_percent', 'price', 'tax_id']) {
         await expect(row.locator(`[name=${field}]`), `${field} on the row`).toHaveCount(1);
     }
-    const top = async (f) => (await row.locator(`[name=${f}]`).boundingBox()).y;
-    for (const field of ['description', 'qty', 'item_cost', 'price', 'tax_id']) {
-        expect(Math.abs((await top('name')) - (await top(field))), `name and ${field} on one line`).toBeLessThan(4);
-    }
+    const fieldBox = async (f) => row.locator(`[name=${f}]`).boundingBox();
+    expect((await fieldBox('description')).y, 'the description under the item').toBeGreaterThan((await fieldBox('name')).y);
 
     // A product picked fills the row (price, our cost) and adds nothing until Add
     await row.locator('[name=name]').fill('Smoke 60 tracked');
@@ -71,21 +68,18 @@ test('a line added on the page from a product takes its cost; cost + markup work
     await expect(row.locator('[name=name]'), 'the row is empty again').toHaveValue('');
     db.exec(`DELETE FROM quote_items WHERE item_id = ${picked.item_id}`); // the later tests add their own product lines
 
-    // A line of its own: name, cost, markup works the price out, a picture - Enter adds it
+    // A line of its own: name, billed monthly, cost, markup works the price out - Enter adds it
     await row.locator('[name=name]').fill('Smoke 60 typed cable');
     await row.locator('[name=name]').press('Escape');
+    await row.locator('[name=frequency]').selectOption('month');
     await row.locator('[name=item_price_method]').selectOption('markup');
     await row.locator('[name=item_price_percent]').fill('50');
     await row.locator('[name=item_cost]').fill('10');
     await expect(row.locator('[name=price]'), 'cost + 50% markup').toHaveValue('15.00');
-    await row.locator('[data-mit-add-image-toggle]').click();
-    await row.locator('[name=item_image]').setInputFiles({ name: 'cable.png', mimeType: 'image/png', buffer: PNG });
     await row.locator('[name=price]').press('Enter');
     await expect.poll(() => Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`)), { message: 'typed line added' }).toBe(1);
-    const typed = db.one(`SELECT item_id, item_price, item_cost, item_price_method, item_price_percent, item_product_id, item_image FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`);
-    expect([Number(typed.item_price), Number(typed.item_cost), typed.item_price_method, Number(typed.item_price_percent), Number(typed.item_product_id)]).toEqual([15, 10, 'markup', 50, 0]);
-    expect(typed.item_image || '', 'the picture kept').toMatch(/mit_images\//);
-    db.php(`mitImageDelete(${JSON.stringify(typed.item_image)});`);
+    const typed = db.one(`SELECT item_id, item_price, item_cost, item_price_method, item_price_percent, item_product_id, item_frequency FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`);
+    expect([Number(typed.item_price), Number(typed.item_cost), typed.item_price_method, Number(typed.item_price_percent), Number(typed.item_product_id), typed.item_frequency]).toEqual([15, 10, 'markup', 50, 0, 'month']);
     db.exec(`DELETE FROM quote_items WHERE item_id = ${typed.item_id}`);
     await expectClean(page, errors);
 
@@ -229,18 +223,17 @@ test('product picture: uploaded on the product, copied onto a new quote line fro
     expect((await db.pageGet(page, '/' + lineImage)).status, "the line's copy stays").toBe(200);
 });
 
-test("an invoice's add row: name, description, qty, price and tax on one line - no cost or picture (customer price only)", async ({ page }) => {
+test("an invoice's add row: item, description, qty, price and tax - no cost (customer price only)", async ({ page }) => {
     const errors = watch(page);
     const n = Number(db.val('SELECT COALESCE(MAX(invoice_number), 0) + 1 FROM invoices'));
     const invoiceId = db.insert(`INSERT INTO invoices SET invoice_prefix = 'INV-', invoice_number = ${n}, invoice_scope = 'Smoke 60 add row', invoice_date = CURDATE(),
         invoice_due = CURDATE(), invoice_amount = 0, invoice_currency_code = 'USD', invoice_status = 'Draft', invoice_url_key = 'smoke60', invoice_client_id = ${CLIENT}, invoice_category_id = 0`);
     made.invoiceIds.push(invoiceId);
-    await page.setViewportSize({ width: 2200, height: 1100 });
     await visit(page, `agent/invoice.php?client_id=${CLIENT}&invoice_id=${invoiceId}`, errors);
     const row = page.locator('form[data-mit-add-row]');
     await expect(row).toBeVisible();
     await expect(row.locator('[name=item_cost]'), 'no cost on invoices').toHaveCount(0);
-    await expect(row.locator('[data-mit-add-image-toggle]'), 'no picture on invoices').toHaveCount(0);
+    await expect(row.locator('[name=frequency]'), 'no Billed on invoices').toHaveCount(0);
     await row.locator('[name=name]').fill('Smoke 60 invoice labour');
     await row.locator('[name=name]').press('Escape');
     await row.locator('[name=description]').fill('Two hours on site');

@@ -1625,14 +1625,15 @@ model: see DEPLOYMENT.md.
   (smoke 16 "not cut off by ITFlow's auto reload").
   Dispatch: `mitDispatchAroundTheClock()` (no business days / unusable hours - ITFlow's addBusinessMinutes test) -> `mitDispatchBusinessHours`
   gives all week 00:00-24:00 and `mitDispatchWorkingDay` an 8-hour weekday for capacity (`scenario-dispatch-hours.php`).
-  Full add row (26.11.8.3, the user's choice - not a fan of ITFlow's one "type a product" box): `mitPaperAddRow($paper)` (functions/mit_quotes.php)
-  replaces the add field in `includes/billing_paper.php` (one if / else around ITFlow's `.itflow-paper-add-field`; Write it with AI stays under it) with
-  `form[data-mit-add-row]`: Item (product search - itflowAutocomplete with ITFlow's itflowBillingProductMatch / Row; a pick fills the row, adds nothing),
-  Description, Qty, Price, Tax on every paper; quotes add Our cost / Price by / % (js/mit_quote_pricing.js works the price out and fills a picked
-  product's cost and picture through window.mitProductPricing) and a Picture (file or link). `js/mit_billing_add.js` posts it as multipart to ITFlow's
-  ajax.php billing_item_add (our hook there now passes `$_FILES` to mitQuoteItemSave) and redraws through `window.mitBillingRefresh` - one line in
-  `js/billing_items.js` exposing its refresh(). Invoices / recurring invoices: no cost or picture (the user's choice: quotes full, invoices basic, no
-  database change). One line from about 1,250 px of paper (a wide screen); it wraps below that. Smoke: first and last tests of 60, the quote step of 06.
+  Add row as in 26.11.7 (26.11.8.3, the user's choice - not a fan of ITFlow 26.11.8's one "type a product" box; a one-line full row was tried and
+  turned down): `mitPaperAddRow($paper)` (functions/mit_quotes.php) replaces the add field in `includes/billing_paper.php` (one if / else around
+  ITFlow's `.itflow-paper-add-field`; Write it with AI stays under it) with `form[data-mit-add-row]` built as ITFlow 26.11.7's row was - its
+  `itflow-paper-add-*` classes (their CSS went in 26.11.8, so the function prints it): Item + Description under it, Qty, Billed (quote, quoteFrequencies)
+  / Counted (recurring: As typed / Per user / Per device), on quotes our Our cost / Price by / % (as 26.11.7's mitPaperAddFields), Price, Tax, the line
+  total, Add. Item searches the products (itflowAutocomplete with ITFlow's itflowBillingProductMatch / Row); a pick fills the row and adds nothing
+  (js/mit_quote_pricing.js fills a quote's cost through window.mitProductPricing). `js/mit_billing_add.js` posts to ITFlow's ajax.php billing_item_add
+  (our hook there passes `$_FILES` to mitQuoteItemSave) and redraws through `window.mitBillingRefresh` - one line in `js/billing_items.js` exposing its
+  refresh() - no reload. Pictures stay in the Edit Line window. Smoke: first and last tests of 60, the quote step of 06.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

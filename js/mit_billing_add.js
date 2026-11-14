@@ -1,6 +1,6 @@
 /*
- * Mountaineer IT - the full add row on an invoice, quote or recurring invoice (functions/mit_quotes.php mitPaperAddRow, in place of
- * ITFlow 26.11.8's one "type a product" field). The name box searches the products like ITFlow's field did (js/autocomplete.js, the
+ * Mountaineer IT - the add row on an invoice, quote or recurring invoice as it was in ITFlow 26.11.7 (functions/mit_quotes.php
+ * mitPaperAddRow, in place of ITFlow 26.11.8's one "type a product" field). The name box searches the products like ITFlow's field did (js/autocomplete.js, the
  * list drawn by js/billing_items.js's itflowBillingProductRow); a pick fills the description, price and tax in - on a quote
  * js/mit_quote_pricing.js then fills our cost, pricing and picture - and nothing is added until Add (or Enter). The line goes to
  * ITFlow's own ajax.php billing_item_add as multipart (a picture goes with it); the page is then redrawn through js/billing_items.js
@@ -85,9 +85,8 @@
                 }
             });
             form.elements.product_id.value = '0';
-            form.elements.frequency.value = '';
-            form.elements.seat_source.value = '';
             setTax(defaults.tax_id);
+            preview();
             clearImage();
             if (imageBox) {
                 imageBox.hidden = true;
@@ -111,8 +110,12 @@
             }
             setTax(item.tax || 0);
             form.elements.product_id.value = item.prod_id || 0;
-            form.elements.frequency.value = type === 'quote' ? (item.frequency || '') : '';
-            form.elements.seat_source.value = type === 'recurring' && (item.seat_source === 'contacts' || item.seat_source === 'assets') ? item.seat_source : '';
+            if (form.elements.frequency) {
+                form.elements.frequency.value = ['month', 'quarter', 'year'].indexOf(item.frequency) !== -1 ? item.frequency : '';
+            }
+            if (form.elements.seat_source) {
+                form.elements.seat_source.value = item.seat_source === 'contacts' || item.seat_source === 'assets' ? item.seat_source : '';
+            }
             if (form.elements.item_cost) {
                 // js/mit_quote_pricing.js fills the product's cost, pricing and picture just after this
                 form.elements.item_cost.value = '';
@@ -151,10 +154,22 @@
         name.addEventListener('input', function () {
             if (pickedName !== null && name.value !== pickedName) {
                 form.elements.product_id.value = '0';
-                form.elements.frequency.value = '';
-                form.elements.seat_source.value = '';
                 pickedName = null;
             }
+        });
+
+        // "2 x $50.00 = $100.00" beside Add, as 26.11.7's row showed
+        var previewBox = form.querySelector('[data-line-preview]');
+        function preview() {
+            if (!previewBox) {
+                return;
+            }
+            var qty = parseFloat(String(form.elements.qty.value || '1').replace(/[,\s]/g, ''));
+            var price = parseFloat(String(form.elements.price.value || '').replace(/[$,\s]/g, ''));
+            previewBox.textContent = !isNaN(qty) && !isNaN(price) && form.elements.price.value !== '' ? qty + ' \u00d7 ' + price.toFixed(2) + ' = ' + (qty * price).toFixed(2) : '';
+        }
+        ['input', 'change'].forEach(function (kind) {
+            form.addEventListener(kind, function () { setTimeout(preview, 0); });
         });
 
         // A longer description grows as it is typed; Enter there is a new line, Ctrl / Cmd + Enter adds

@@ -24,7 +24,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 11 | 9 | 16 | 17 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 12 | 9 | 16 | 17 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 10 | 29 | 26 | 148 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
@@ -885,7 +885,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **ITFlow functions it calls**
 
 - `functions/app.php`: getFieldById
-- `functions/billing.php`: billingMoney, billingType, quoteFrequency
+- `functions/billing.php`: billingMoney, billingType, quoteFrequencies, quoteFrequency
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml
