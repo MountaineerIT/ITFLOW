@@ -34,7 +34,9 @@ async function runNow(page, tab) {
 test('NinjaOne device counts', async ({ page }) => {
     const errors = watch(page);
     const mock = await page.request.get(`${MOCK}/nothing`).catch(() => null);
-    test.skip(!mock || mock.status() !== 404, 'the usage stand-ins are not installed on this test install');
+    // The stand-in answers 404 for a path it doesn't know - but so does Apache when it isn't there at all (an HTML page): that ran the
+    // test against the real Bitwarden (Nov 17, a rebuilt test install)
+    test.skip(!mock || mock.status() !== 404 || /text\/html/i.test(mock.headers()['content-type'] || ''), 'the usage stand-ins are not installed on this test install');
     await visit(page, 'admin/mit_usage_connectors.php', errors);
     test.skip(await page.locator('input[name=usage_ninjaone_on]').count() === 0, 'needs database update M033');
     await expect(page.locator('a.nav-link[href="/admin/mit_usage_connectors.php"]'), 'Admin > Integrations menu entry').toHaveCount(1);

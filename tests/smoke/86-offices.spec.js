@@ -214,7 +214,7 @@ test('purchase orders: a new one ships to its maker\'s office, Ship to picks ano
     test.skip(!vendor, 'no vendor');
     made.item = db.insert(`INSERT INTO mit_procurement_items SET source = 'manual', client_id = 0, name = 'Smoke 86 part', quantity = 1, unit_cost = 5, vendor_id = ${vendor}, created_by = ${ADMIN}`);
     made.po = Number(db.php(`echo mitPoCreate([${made.item}], ${vendor});`).trim());
-    const po = db.one(`SELECT ship_to, REPLACE(ship_to_address, '\\n', ' | ') AS ship_to_address FROM mit_purchase_orders WHERE po_id = ${made.po}`);
+    const po = db.one(`SELECT ship_to, REPLACE(REPLACE(ship_to_address, '\\r', ''), '\\n', ' | ') AS ship_to_address FROM mit_purchase_orders WHERE po_id = ${made.po}`);
     expect(po.ship_to, "the admin's office").toBe(`office:${made.office}`);
     expect(po.ship_to_address).toContain('200 Smoke Street');
 
@@ -228,7 +228,7 @@ test('purchase orders: a new one ships to its maker\'s office, Ship to picks ano
     const mainShipTo = db.php('echo mitOfficeShipTo(0);').trim();
     await expect(modal.locator('[data-mit-po-ship-address]'), 'picking fills the address').toHaveValue(mainShipTo);
     await submit(modal, 'mit_po_details');
-    const saved = db.one(`SELECT ship_to, REPLACE(ship_to_address, '\\n', ' | ') AS ship_to_address FROM mit_purchase_orders WHERE po_id = ${made.po}`);
+    const saved = db.one(`SELECT ship_to, REPLACE(REPLACE(ship_to_address, '\\r', ''), '\\n', ' | ') AS ship_to_address FROM mit_purchase_orders WHERE po_id = ${made.po}`);
     expect(saved.ship_to, 'the main office').toBe('office');
     expect(saved.ship_to_address.trim()).toBe(mainShipTo.replace(/\n/g, ' | '));
     await expectClean(page, errors);

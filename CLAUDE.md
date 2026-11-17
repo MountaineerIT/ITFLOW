@@ -90,6 +90,11 @@ model: see DEPLOYMENT.md.
   refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
   off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
   line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
+- Rebuilding the test install (Nov 17, 26.11.8.6 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
+  base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
+  granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,
+  `tests/smoke/.env`. Run scenarios / smoke with `TZ=America/Los_Angeles` and the local hosts in `NO_PROXY`. The outside-service stand-ins
+  (qbo-mock, ninja-mock, usage-mock, ct-mock, align-mock, ai-mock, ollama-mock, the Graph mock in /srv/mockms) were never in the repo - their tests skip.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.

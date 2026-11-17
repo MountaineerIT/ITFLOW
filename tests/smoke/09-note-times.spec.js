@@ -174,7 +174,7 @@ test('timesheets: a Contractor (set in Admin > Users) is never under California 
     await submit(modal, 'mit_ts_person_save');
     await setPayType(page, id, 'contractor');
     await visit(page, 'admin/mit_timesheets.php?tab=people', errors);
-    const person = page.locator('tr', { has: page.locator(`[data-modal-url*="person.php?id=${id}"]`) });
+    const person = page.locator('tr', { has: page.locator(`[data-modal-url$="person.php?id=${id}"]`) });
     await expect(person, 'shown as a contractor').toContainText('Contractor');
     await expect(person.locator('.badge', { hasText: 'California' }), 'no California rules').toHaveCount(0);
     // Saving the People details keeps the pay type set in Users

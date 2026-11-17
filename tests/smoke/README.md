@@ -60,6 +60,11 @@ npx playwright install chromium     # the browser (skip where Chromium is alread
 cp .env.example .env                # then fill it in
 ```
 
+On a freshly installed test install, run `php scripts/mit_test_fixture.php` (as root) first: the clients, contacts,
+assets, logins, roles and settings the tests take for granted (client 1, contact 3, the technician `tech@test.test`, an
+Accountant, a client-limited login, mail queued, timesheet settings ...). Set the server's clock to the company's time zone as
+`scripts/install.sh` does - the tests read "today" from MariaDB, PHP and Node - and PHP's upload limit to 500M (the restore test).
+
 On the test install, make two logins just for this, **without 2FA**:
 - an admin (e.g. `smoke-admin@...`),
 - a Technician-role user (optional, for `04-permissions`), with access to all clients.

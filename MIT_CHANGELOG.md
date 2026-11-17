@@ -6,6 +6,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 
 ## 26.11.8.6 - 2026-11-17
 - Trips and timesheets: a warning when no mileage rate is set. Without one, ITFlow's trip window has no "In their own vehicle" switch, so every trip is saved as a company-vehicle trip and nothing is paid back on anyone's timesheet - easy to miss (it happened after the 26.11 update). The trip window now says so where the switch would be, and the timesheet's Mileage and purchases box warns too, with how many of that period's trips it affects and where to set the rate (Admin > Timesheets, Reimbursements).
+- Tests (from a full audit on a rebuilt test install): four scenarios no longer leave a test user / ticket behind when they skip, the Bitwarden connector test skips cleanly without its stand-in instead of calling the real service, and two smoke tests no longer depend on the old install's data (a timesheet period and an address on one line). `scripts/mit_test_fixture.php` sets up everything the tests take for granted on a fresh test install.
 - Timesheets: the Mileage and purchases box also lists how many of the period's trips were saved in a company vehicle (so not paid back) - open the trip and switch on "In their own vehicle" if it was really your own car.
 
 ## 26.11.8.5 - 2026-11-17
