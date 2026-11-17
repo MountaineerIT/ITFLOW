@@ -420,20 +420,29 @@ function mitQboAutoMatch($kind) {
     return $matched;
 }
 
-/** The email addresses QuickBooks sends a client's invoices to: billing contacts, else the primary contact. */
+/**
+ * The email addresses QuickBooks sends a client's invoices to: its billing contacts (ITFlow's Billing tick), else - a client with no
+ * billing contact with a good address - the primary contact. (Before 26.11.8.5 both went; ITFlow's own invoice emails still go to both.)
+ */
 function mitQboClientEmails($client_id) {
     global $mysqli;
     $client_id = intval($client_id);
     $emails = [];
-    $result = mysqli_query($mysqli, "SELECT contact_email FROM contacts WHERE contact_client_id = $client_id AND contact_archived_at IS NULL
-        AND contact_email != '' AND (contact_billing = 1 OR contact_primary = 1) ORDER BY contact_billing DESC, contact_primary DESC, contact_name");
+    $result = mysqli_query($mysqli, "SELECT contact_email, contact_billing FROM contacts WHERE contact_client_id = $client_id AND contact_archived_at IS NULL
+        AND contact_email IS NOT NULL AND contact_email != '' AND (contact_billing = 1 OR contact_primary = 1) ORDER BY contact_billing DESC, contact_primary DESC, contact_name");
     $billing = [];
+    $primary = [];
     while ($row = mysqli_fetch_assoc($result)) {
         $email = trim((string) $row['contact_email']);
         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $billing[] = $email;
+            if (intval($row['contact_billing']) === 1) {
+                $billing[] = $email;
+            } else {
+                $primary[] = $email;
+            }
         }
     }
+    $billing = $billing ?: $primary;
     // Billing contacts when there are any (they sort first), else the primary; QuickBooks takes a comma list up to 100 characters
     foreach (array_unique($billing) as $email) {
         if (mb_strlen(implode(',', array_merge($emails, [$email]))) > 100) {
