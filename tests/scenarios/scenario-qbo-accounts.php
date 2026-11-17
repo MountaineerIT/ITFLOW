@@ -9,7 +9,8 @@
  *  - a line typed by hand with Hardware picked (Edit Line - mitQboLineCategorySave) and one taking the invoice's category;
  *  - a line named like a QuickBooks item: that item.
  * The batch lists the items it will make before the send; a second invoice makes none; changing a category's account moves its
- * own item; with "make items" off a product without an item is refused (no fallback item).
+ * own item; a product's item follows its category's account at the next send (listed on the batch page first; an item two products
+ * share is left); with "make items" off a product without an item is refused (no fallback item).
  */
 require __DIR__ . '/bootstrap.php';
 const MOCK = 'http://127.0.0.1/qbo-mock/index.php';
@@ -184,7 +185,7 @@ try {
     scenarioCheck('Hardware -> Interest Earned', mitQboAccountsSave(['qbo_default_account' => '79', 'qbo_time_category' => $labor, 'qbo_create_items' => '1',
         'account' => [$hardware => '82', $labor => '81']]), []);
     scenarioCheck('Hardware\'s own item follows', $qbo_item($hw_item)['IncomeAccountRef']['value'] ?? '', '82');
-    scenarioCheck('a mapped product\'s item keeps its account', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', '80');
+    scenarioCheck('a mapped product\'s item waits for the next send', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', '80');
 
     echo "the category's item made inactive in QuickBooks\n";
     $hw_now = $qbo_item($hw_item);
@@ -200,6 +201,74 @@ try {
     scenarioCheck('sent (' . json_encode($failed4) . ')', $sent4, 1);
     scenarioCheck('... the same item, made active again (not a second one)', [$qbo_item($hw_item)['Active'] ?? null,
         count(array_filter($mock('/_state')['items'], fn($i) => $i['Name'] === "ZZ Hardware $stamp (ITFlow)"))], [true, 1]);
+
+    echo "a product's item follows its category\n";
+    // Hardware now books to Interest Earned (82) - the switch's item is still on Hardware Sales (80); then the switch moves to Labor (81)
+    $send_one = function ($name, $product_id) use ($client_id, $projects, $mysqli, $line, $send, &$made) {
+        $id = billingInvoiceCreate($client_id, date('Y-m-d'), $projects, $name, 'Scenario');
+        $made['invoices'][] = $id;
+        mysqli_query($mysqli, "UPDATE invoices SET invoice_currency_code = 'USD' WHERE invoice_id = $id");
+        $line($id, ['name' => $name, 'product_id' => $product_id]);
+        billingRecalc('invoice', $id);
+        [$batch] = $send([$id]);
+        return $batch;
+    };
+    $batch5 = $send_one('ZZ scenario follow 1', $switch);
+    $plan5 = mitQboBatchItemPlan($batch5);
+    scenarioCheck('the batch lists the move', [$plan5["move:$switch_item"]['type'] ?? '', $plan5["move:$switch_item"]['account'] ?? ''], ['Move', 'Interest Earned']);
+    scenarioCheck('... not made yet', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', '80');
+    [$sent5, $failed5] = mitQboBatchSend($batch5);
+    scenarioCheck('sent (' . json_encode($failed5) . ')', $sent5, 1);
+    scenarioCheck('the switch\'s item moved to Interest Earned (the same item)', [$qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', mitQboMap('items')[$switch]['qbo_id'] ?? ''], ['82', $switch_item]);
+    mysqli_query($mysqli, "UPDATE products SET product_category_id = $labor WHERE product_id = $switch");
+    $batch6 = $send_one('ZZ scenario follow 2', $switch);
+    [$sent6, $failed6] = mitQboBatchSend($batch6);
+    scenarioCheck('product moved to Labor: its item follows to Labor Income', [$sent6, $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? ''], [1, '81']);
+    $batch7 = $send_one('ZZ scenario follow 3', $switch);
+    scenarioCheck('in step: nothing to move', mitQboBatchItemPlan($batch7), []);
+    mitQboBatchSend($batch7);
+    // An item two products share is left alone (moving it would move the other's lines)
+    mitQboSetMap('items', $cable, $switch_item, 'shared');
+    mysqli_query($mysqli, "UPDATE products SET product_category_id = $hardware WHERE product_id = $switch");
+    $batch8 = $send_one('ZZ scenario follow 4', $switch);
+    scenarioCheck('a shared item is not moved', [mitQboBatchItemPlan($batch8), $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? ''], [[], '81']);
+    mitQboBatchSend($batch8);
+    scenarioCheck('... still', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? '', '81');
+    mitQboSetMap('items', $cable, '');
+
+    echo "a line with no product, named like one (a recurring invoice's draft)\n";
+    $named_inv = billingInvoiceCreate($client_id, date('Y-m-d'), $projects, 'ZZ scenario by name', 'Scenario');
+    $made['invoices'][] = $named_inv;
+    mysqli_query($mysqli, "UPDATE invoices SET invoice_currency_code = 'USD' WHERE invoice_id = $named_inv");
+    $l_named_sw = $line($named_inv, ['name' => "  zz scen SWITCH $stamp "]);
+    mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = 0 WHERE item_id = $l_named_sw");
+    $cat_of = function ($invoice_id, $item_id) use ($mysqli) {
+        $inv = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoices WHERE invoice_id = $invoice_id"));
+        $rows = mysqli_fetch_all(mysqli_query($mysqli, "SELECT * FROM invoice_items WHERE item_invoice_id = $invoice_id"), MYSQLI_ASSOC);
+        return mitQboLineCategories($inv, $rows)[$item_id] ?? [0, ''];
+    };
+    scenarioCheck('takes the product\'s category (Hardware), not the invoice\'s', $cat_of($named_inv, $l_named_sw), [$hardware, 'name']);
+    mysqli_query($mysqli, "UPDATE products SET product_category_id = $labor WHERE product_id = $switch");
+    scenarioCheck('the product moved to Labor: the draft line follows at once', $cat_of($named_inv, $l_named_sw), [$labor, 'name']);
+    mitQboLineCategorySave('invoice', $l_named_sw, ['mit_line_category_present' => '1', 'mit_line_category' => $projects]);
+    scenarioCheck('... over a category picked for the line earlier', $cat_of($named_inv, $l_named_sw), [$labor, 'name']);
+    scenarioCheck('the line itself is left without a product', intval($q1("SELECT item_product_id FROM invoice_items WHERE item_id = $l_named_sw")), 0);
+    scenarioCheck('the badge says where it came from', strpos(mitQboLineCategoryTag(mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoices WHERE invoice_id = $named_inv")),
+        mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoice_items WHERE item_id = $l_named_sw"))), 'from the product of that name') !== false, true);
+    mysqli_query($mysqli, "UPDATE products SET product_category_id = $hardware WHERE product_id = $switch");
+    billingRecalc('invoice', $named_inv);
+    [$batch9] = $send([$named_inv]);
+    [$sent9, $failed9] = mitQboBatchSend($batch9);
+    $doc9 = mitQboDocNumber(mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM invoices WHERE invoice_id = $named_inv")));
+    scenarioCheck('sent as the product\'s item, moved to Hardware\'s account (' . json_encode($failed9) . ')',
+        [$sent9, $qbo_lines($doc9)[0]['SalesItemLineDetail']['ItemRef']['value'] ?? '', $qbo_item($switch_item)['IncomeAccountRef']['value'] ?? ''], [1, $switch_item, '82']);
+    $twin_a = $product("ZZ scen twin $stamp", $hardware);
+    $twin_b = $product("ZZ scen twin $stamp", $labor);
+    $twin_inv = billingInvoiceCreate($client_id, date('Y-m-d'), $projects, 'ZZ scenario twins', 'Scenario');
+    $made['invoices'][] = $twin_inv;
+    $l_twin = $line($twin_inv, ['name' => "ZZ scen twin $stamp"]);
+    mysqli_query($mysqli, "UPDATE invoice_items SET item_product_id = 0 WHERE item_id = $l_twin");
+    scenarioCheck('two products of that name: neither (the invoice\'s category)', $cat_of($twin_inv, $l_twin), [$projects, 'invoice']);
 
     echo "making items switched off\n";
     mitSetSetting('qbo_create_items', '0');

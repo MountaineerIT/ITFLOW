@@ -337,7 +337,7 @@ function mitQboList($kind, $fresh = false) {
             foreach (mitQboQueryAll('Item', 'Active = true') as $row) {
                 if (in_array($row['Type'] ?? '', ['Service', 'NonInventory', 'Inventory'], true)) {
                     $list[(string) $row['Id']] = ['id' => (string) $row['Id'], 'name' => (string) ($row['FullyQualifiedName'] ?? $row['Name'] ?? ''),
-                        'short' => (string) ($row['Name'] ?? ''), 'type' => (string) $row['Type']];
+                        'short' => (string) ($row['Name'] ?? ''), 'type' => (string) $row['Type'], 'account' => (string) ($row['IncomeAccountRef']['value'] ?? '')];
                 }
             }
         } elseif ($kind === 'tax_codes') {
@@ -527,14 +527,15 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0, $create 
     $by_line = function_exists('mitQboAccountsReady') && mitQboAccountsReady(); // Mountaineer IT: income account by category (M051)
     if ($by_line) {
         $line_ctx = mitQboLineContext($items, $create);
-        $line_ctx['products'] = mitQboLineProducts($invoice_lines);
         $line_categories = mitQboLineCategories($invoice, $invoice_lines);
+        $item_lines = mitQboLinesForItems($invoice_lines, $line_categories); // a line named like a product goes as that product
+        $line_ctx['products'] = mitQboLineProducts($item_lines);
     }
-    foreach ($invoice_lines as $line) {
+    foreach ($invoice_lines as $line_key => $line) {
         $item_ref = '';
         $product_id = intval($line['item_product_id']);
         if ($by_line) {
-            [$item_ref, $problem] = mitQboLineItem($line, $line_categories[intval($line['item_id'])][0] ?? 0, $line_ctx);
+            [$item_ref, $problem] = mitQboLineItem($item_lines[$line_key] ?? $line, $line_categories[intval($line['item_id'])][0] ?? 0, $line_ctx);
             if ($problem !== '') {
                 $problems[] = $problem;
             }

@@ -142,11 +142,57 @@ function mitQboLineCategoryRows(array $item_ids) {
 }
 
 /**
+ * Lines with no product whose name is exactly one product's (not archived; case and spaces ignored): item id => product id. A line typed
+ * by hand or made from an older recurring line carries no product, so without this a product's category change never reached it. Only
+ * read, never written onto the line (a product on the line would make ITFlow move stock when it changes).
+ */
+function mitQboLineProductsByName(array $lines) {
+    global $mysqli;
+    $want = [];
+    foreach ($lines as $line) {
+        $name = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) ($line['item_name'] ?? ''))));
+        if (intval($line['item_product_id'] ?? 0) === 0 && $name !== '') {
+            $want[intval($line['item_id'])] = $name;
+        }
+    }
+    if (!$want) {
+        return [];
+    }
+    $by_name = [];
+    $list = implode(',', array_map(function ($n) { return "'" . escapeSql($n) . "'"; }, array_unique($want)));
+    $result = mysqli_query($mysqli, "SELECT product_id, product_name FROM products WHERE product_archived_at IS NULL AND LOWER(TRIM(product_name)) IN ($list)");
+    while ($row = mysqli_fetch_assoc($result)) {
+        $key = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) $row['product_name'])));
+        $by_name[$key] = isset($by_name[$key]) ? 0 : intval($row['product_id']); // two products of one name: neither
+    }
+    $out = [];
+    foreach ($want as $item_id => $name) {
+        if (!empty($by_name[$name])) {
+            $out[$item_id] = $by_name[$name];
+        }
+    }
+    return $out;
+}
+
+/** The lines as QuickBooks sees them: a line matched to a product by name (above) carries that product - in this copy only, never saved. */
+function mitQboLinesWithNamedProducts(array $lines) {
+    $named = mitQboLineProductsByName($lines);
+    foreach ($lines as &$line) {
+        if (isset($named[intval($line['item_id'])])) {
+            $line['item_product_id'] = $named[intval($line['item_id'])];
+            $line['mit_by_name'] = true;
+        }
+    }
+    return $lines;
+}
+
+/**
  * Each line's Income category and where it came from: item id => [category id, how] - how = product | part | line | invoice | ''.
  * $lines are invoice_items rows of one invoice.
  */
 function mitQboLineCategories(array $invoice, array $lines) {
     global $mysqli;
+    $lines = mitQboLinesWithNamedProducts($lines);
     $income = mitQboIncomeCategories(true);
     $own = mitQboLineCategoryRows(array_column($lines, 'item_id'));
     $product_ids = array_filter(array_map('intval', array_column($lines, 'item_product_id')));
@@ -173,9 +219,11 @@ function mitQboLineCategories(array $invoice, array $lines) {
         $item_id = intval($line['item_id']);
         $product_id = intval($line['item_product_id']);
         $pick = [0, ''];
+        $by_name = !empty($line['mit_by_name']);
         foreach ([
-            [$product_id ? ($product_cats[$product_id] ?? 0) : 0, 'product'],
+            [$product_id && !$by_name ? ($product_cats[$product_id] ?? 0) : 0, 'product'],
             [$part_cats[$item_id] ?? 0, 'part'],
+            [$product_id && $by_name ? ($product_cats[$product_id] ?? 0) : 0, 'name'],
             [$own[$item_id] ?? 0, 'line'],
             [$invoice_cat, 'invoice'],
         ] as [$category_id, $how]) {
@@ -285,7 +333,7 @@ function mitQboLineCategoryTag(array $invoice, array $item) {
     }
     [$category_id, $how] = mitQboLineCategories($invoice, [$item])[intval($item['item_id'])] ?? [0, ''];
     $income = mitQboIncomeCategories(true);
-    $from = ['product' => 'from its product', 'part' => 'from its part', 'line' => 'picked for the line', 'invoice' => 'the invoice\'s'][$how] ?? '';
+    $from = ['product' => 'from its product', 'name' => 'from the product of that name', 'part' => 'from its part', 'line' => 'picked for the line', 'invoice' => 'the invoice\'s'][$how] ?? '';
     $label = $category_id ? $income[$category_id] : 'No category';
     return '<span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis fw-normal d-print-none" data-mit-line-category-tag="' . intval($category_id)
         . '" title="QuickBooks category' . ($from !== '' ? ' - ' . escapeHtml($from) : '') . '"><i class="fas fa-book me-1"></i>' . escapeHtml($label) . '</span>';
@@ -380,10 +428,43 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
         return [$id, ''];
     };
 
+    // A product's item follows its category's income account: the product's category changed in ITFlow -> its item is moved to that
+    // account before the invoice goes (QuickBooks books a line to its item's account). Only a category with an account of its own (not
+    // the default), and not an item several products share.
+    $follow = function ($item_id, $product_name) use (&$ctx, $category_id, $product_id, $income) {
+        $mapped = $category_id ? (mitQboCategoryAccounts()[$category_id] ?? null) : null;
+        $current = $ctx['items'][$item_id]['account'] ?? '';
+        if (!$mapped || $mapped['qbo_account_id'] === '' || $current === '' || $current === $mapped['qbo_account_id']) {
+            return [$item_id, ''];
+        }
+        $users = 0;
+        foreach ($ctx['item_map'] as $row) {
+            $users += $row['qbo_id'] === (string) $item_id ? 1 : 0;
+        }
+        if ($users > 1) {
+            return [$item_id, ''];
+        }
+        $item_name = (string) ($ctx['items'][$item_id]['name'] ?? $product_name);
+        $ctx['plan']["move:$item_id"] = ['name' => $item_name, 'type' => 'Move', 'account' => $mapped['qbo_account_name'] !== '' ? $mapped['qbo_account_name'] : $mapped['qbo_account_id'],
+            'for' => 'Product ' . $product_name . ' - now in ' . ($income[$category_id] ?? 'its category')];
+        if (!$ctx['create']) {
+            return [$item_id, ''];
+        }
+        try {
+            mitQboItemSetAccount($item_id, $mapped['qbo_account_id']);
+        } catch (Throwable $e) {
+            return ['', 'Could not move the QuickBooks item "' . $item_name . '" to its category\'s income account: ' . $e->getMessage()];
+        }
+        $ctx['items'][$item_id]['account'] = $mapped['qbo_account_id'];
+        logAudit('QuickBooks', 'Item', escapeSql('Moved item ' . $item_name . ' to income account ' . ($mapped['qbo_account_name'] !== '' ? $mapped['qbo_account_name'] : $mapped['qbo_account_id'])
+            . ' (product ' . $product_name . ', category ' . ($income[$category_id] ?? $category_id) . ')'));
+        return [$item_id, ''];
+    };
+
     // A product: its mapped item; else the item with its name (linked); else one made for it
     if ($product_id) {
         if (isset($ctx['item_map'][$product_id])) {
-            return [$ctx['item_map'][$product_id]['qbo_id'], ''];
+            return $follow($ctx['item_map'][$product_id]['qbo_id'], (string) ($ctx['products'][$product_id]['product_name'] ?? $line['item_name']));
         }
         $product = $ctx['products'][$product_id] ?? null;
         $product_name = $product ? (string) $product['product_name'] : (string) $line['item_name'];
@@ -393,7 +474,7 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
                 mitQboSetMap('items', $product_id, $by_name, $product_name);
                 $ctx['item_map'][$product_id] = ['qbo_id' => $by_name, 'qbo_name' => $product_name];
             }
-            return [$by_name, ''];
+            return $follow($by_name, $product_name);
         }
         if ($a['create_items']) {
             $account = mitQboAccountFor($category_id);
@@ -453,6 +534,18 @@ function mitQboLineItem(array $line, $category_id, array &$ctx) {
     return ['', '"' . $line['item_name'] . '" has no QuickBooks item - map its product, give it a category with an income account, or set a fallback item.'];
 }
 
+/** Lines whose category came from a product of the same name go to QuickBooks as that product's lines (its item, kept on its category's account). */
+function mitQboLinesForItems(array $lines, array $categories) {
+    $named = null;
+    foreach ($lines as &$line) {
+        if (($categories[intval($line['item_id'])][1] ?? '') === 'name') {
+            $named = $named ?? mitQboLineProductsByName($lines);
+            $line['item_product_id'] = $named[intval($line['item_id'])] ?? 0;
+        }
+    }
+    return $lines;
+}
+
 /** The context mitQboLineItem works in, for one run (a payload, a send, a plan). */
 function mitQboLineContext(array $items, $create) {
     $by_name = [];
@@ -462,7 +555,7 @@ function mitQboLineContext(array $items, $create) {
             $by_name[mb_strtolower(trim($item['short']))] = $by_name[mb_strtolower(trim($item['short']))] ?? $item['id'];
         }
     }
-    return ['items_by_name' => $by_name, 'active_ids' => array_fill_keys(array_map('strval', array_keys($items)), true), 'item_map' => mitQboMap('items'), 'products' => [], 'settings' => mitQboSettings(), 'accounts' => mitQboAccountSettings(),
+    return ['items_by_name' => $by_name, 'items' => $items, 'active_ids' => array_fill_keys(array_map('strval', array_keys($items)), true), 'item_map' => mitQboMap('items'), 'products' => [], 'settings' => mitQboSettings(), 'accounts' => mitQboAccountSettings(),
         'create' => (bool) $create, 'plan' => [], 'made' => []];
 }
 
@@ -495,8 +588,9 @@ function mitQboBatchItemPlan($batch_id) {
         WHERE e.batch_id = " . intval($batch_id) . " AND e.entry_status IN ('queued', 'failed') AND COALESCE(e.qbo_invoice_id, '') = ''" . clientScopeSql('i.invoice_client_id'));
     while ($invoice = mysqli_fetch_assoc($result)) {
         $lines = mysqli_fetch_all(mysqli_query($mysqli, "SELECT * FROM invoice_items WHERE item_invoice_id = " . intval($invoice['invoice_id']) . " AND item_archived_at IS NULL"), MYSQLI_ASSOC);
-        $ctx['products'] = mitQboLineProducts($lines);
         $categories = mitQboLineCategories($invoice, $lines);
+        $lines = mitQboLinesForItems($lines, $categories);
+        $ctx['products'] = mitQboLineProducts($lines);
         foreach ($lines as $line) {
             $ctx['plan'] = [];
             mitQboLineItem($line, $categories[intval($line['item_id'])][0] ?? 0, $ctx);
