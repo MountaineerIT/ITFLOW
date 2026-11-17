@@ -27,6 +27,75 @@
     let conversationId = 0;
     let busy = false;
 
+    // Pictures with the next question (functions/mit_ai_ask.php mitAiImagesFromUpload): picked, pasted or dropped; up to 3; sent once, not kept
+    const pics = [];
+    const picsBox = panel.querySelector('[data-mit-ai-pics]');
+    const picList = panel.querySelector('[data-mit-ai-pic-list]');
+    const fileInput = panel.querySelector('[data-mit-ai-file]');
+    const MAX_PICS = 3;
+    function drawPics() {
+        picList.innerHTML = '';
+        pics.forEach((file, i) => {
+            const chip = document.createElement('div');
+            chip.className = 'mit-ai-pic';
+            chip.dataset.mitAiPic = '';
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.alt = 'Picture to send';
+            img.onload = () => URL.revokeObjectURL(img.src);
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'btn-close';
+            remove.title = 'Leave this picture out';
+            remove.dataset.mitAiPicRemove = '';
+            remove.addEventListener('click', () => { pics.splice(i, 1); drawPics(); });
+            chip.append(img, remove);
+            picList.appendChild(chip);
+        });
+        picsBox.hidden = pics.length === 0;
+    }
+    function addPics(files) {
+        let refused = '';
+        Array.from(files || []).forEach((file) => {
+            if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) {
+                refused = 'Pictures must be JPG, PNG, GIF or WebP.';
+            } else if (pics.length >= MAX_PICS) {
+                refused = 'Up to ' + MAX_PICS + ' pictures a question.';
+            } else if (file.size > 10 * 1048576) {
+                refused = 'A picture is bigger than 10 MB.';
+            } else {
+                pics.push(file);
+            }
+        });
+        drawPics();
+        if (refused) {
+            const note = document.createElement('div');
+            note.className = 'alert alert-warning small';
+            note.dataset.mitAiError = '';
+            note.textContent = refused;
+            thread.appendChild(note);
+            thread.scrollTop = thread.scrollHeight;
+        }
+    }
+    if (fileInput) {
+        panel.querySelector('[data-mit-ai-attach]').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => { addPics(fileInput.files); fileInput.value = ''; });
+        question.addEventListener('paste', (event) => {
+            const files = Array.from(event.clipboardData?.items || []).filter((item) => item.kind === 'file' && item.type.startsWith('image/')).map((item) => item.getAsFile());
+            if (files.length) {
+                event.preventDefault();
+                addPics(files);
+            }
+        });
+        form.addEventListener('dragover', (event) => { if (event.dataTransfer?.types?.includes('Files')) { event.preventDefault(); } });
+        form.addEventListener('drop', (event) => {
+            if (event.dataTransfer?.files?.length) {
+                event.preventDefault();
+                addPics(event.dataTransfer.files);
+            }
+        });
+    }
+
     // "Write up" only once there is a conversation to write up
     function current(id) {
         conversationId = id;
@@ -56,6 +125,9 @@
         .mit-ai-sources a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .mit-ai-list { max-height: 45%; overflow: auto; }
         .mit-ai-list .list-group-item { cursor: pointer; }
+        .mit-ai-pic { position: relative; width: 64px; height: 48px; border: 1px solid var(--bs-border-color); border-radius: 6px; overflow: hidden; background: var(--bs-tertiary-bg); }
+        .mit-ai-pic img { width: 100%; height: 100%; object-fit: cover; }
+        .mit-ai-pic .btn-close { position: absolute; top: 1px; right: 1px; width: .55rem; height: .55rem; padding: .2rem; background-color: rgba(255, 255, 255, .85); border-radius: 50%; opacity: 1; }
     `;
     document.head.appendChild(style);
 
@@ -64,7 +136,13 @@
     function post(fields) {
         const body = new FormData();
         body.append('csrf_token', csrf);
-        Object.entries(fields).forEach(([k, v]) => body.append(k, v));
+        Object.entries(fields).forEach(([k, v]) => {
+            if (Array.isArray(v)) {
+                v.forEach((item) => body.append(k + '[]', item));
+            } else {
+                body.append(k, v);
+            }
+        });
         return fetch(endpoint, { method: 'POST', body }).then((r) => r.json().then((json) => ({ ok: r.ok, json })));
     }
 
@@ -117,6 +195,8 @@
             about.closest('.form-check').hidden = false;
         }
         list.hidden = true;
+        pics.splice(0);
+        drawPics();
         question.focus();
     }
 
@@ -137,13 +217,15 @@
     form.addEventListener('submit', (event) => {
         event.preventDefault();
         const text = question.value.trim();
-        if (!text || busy) {
+        if ((!text && !pics.length) || busy) {
             return;
         }
+        const sending = pics.splice(0);
+        drawPics();
         busy = true;
         send.disabled = true;
         thread.querySelector('[data-mit-ai-empty]')?.remove();
-        const mine = messageEl({ role: 'user', html: escape(text).replace(/\n/g, '<br>') });
+        const mine = messageEl({ role: 'user', html: escape(text).replace(/\n/g, '<br>') + (sending.length ? '<div class="small text-muted mt-1"><i class="fas fa-image me-1"></i>' + sending.length + (sending.length === 1 ? ' picture' : ' pictures') + '</div>' : '') });
         const waiting = document.createElement('div');
         waiting.className = 'mit-ai-msg mit-ai-answer text-muted';
         waiting.dataset.mitAiWaiting = '';
@@ -152,6 +234,9 @@
         thread.scrollTop = thread.scrollHeight;
         question.value = '';
         const fields = { ask: '1', conversation_id: conversationId, question: text };
+        if (sending.length) {
+            fields.images = sending;
+        }
         if (!conversationId && ticketId && (!about || about.checked)) {
             fields.ticket_id = ticketId;
         }
@@ -165,6 +250,8 @@
                 error.textContent = json.error || name + ' could not answer.';
                 thread.appendChild(error);
                 question.value = text;
+                pics.unshift(...sending.slice(0, MAX_PICS - pics.length));
+                drawPics();
                 return;
             }
             current(json.conversation_id);
@@ -175,6 +262,8 @@
         }).catch(() => {
             waiting.textContent = name + ' could not be reached.';
             question.value = text;
+            pics.unshift(...sending.slice(0, MAX_PICS - pics.length));
+            drawPics();
         }).finally(() => {
             busy = false;
             send.disabled = false;

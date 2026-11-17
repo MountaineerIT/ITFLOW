@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 196 | 2 | 2 | 15 | 41 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 198 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -36,7 +36,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
-| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
+| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 13 | 24 | 12 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
@@ -1424,9 +1424,10 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Takes for granted**
 
 - ITFlow's AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).
+- callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.
 - Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.
 
-**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
+**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/smoke/69-ai-pictures.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-pictures.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
 
 **Hooks in ITFlow's files**
 
@@ -1447,7 +1448,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketUrl
 
-**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, folders, history, settings, tags, ticket_replies, tickets
+**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, settings, tags, ticket_replies, tickets
 
 **ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
 

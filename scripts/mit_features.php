@@ -402,9 +402,10 @@ return [
         'name' => 'AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall',
         'files' => ['functions/mit_ai_*.php', 'admin/mit_ai_helper.php', 'admin/post/mit_ai_helper.php', 'agent/mit_ai_ajax.php', 'agent/js/mit_ai_helper.js',
             'agent/modals/mit_ai/*.php', 'cron/mit_ai_index.php'],
-        'tests' => ['tests/smoke/3[2-5]-ai-*.spec.js', 'tests/scenarios/scenario-ai-*.php'],
+        'tests' => ['tests/smoke/3[2-5]-ai-*.spec.js', 'tests/smoke/69-ai-pictures.spec.js', 'tests/scenarios/scenario-ai-*.php'],
         'assumes' => [
             'ITFlow\'s AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).',
+            'callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.',
             'Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.',
         ],
         'watch' => ['callAiApi', 'aiRedact', 'getAiModel', 'aiCleanHtml', 'aiDocumentSplit', 'document_form.php'],

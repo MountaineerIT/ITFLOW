@@ -4,7 +4,7 @@
  * Mountaineer IT - the Ask AI panel's requests (functions/mit_ai_ask.php, agent/js/mit_ai_helper.js), JSON:
  *   GET  ?list                                         the agent's conversations
  *   GET  ?conversation=<id>                            one of them with its messages
- *   POST ask=1 conversation_id question ticket_id      ask (a new conversation when conversation_id is 0)
+ *   POST ask=1 conversation_id question ticket_id [images[]]  ask (a new conversation when conversation_id is 0; up to 3 pictures, not kept)
  *   POST feedback=1 message_id value (1 | -1 | 0)      thumbs up / down on an answer
  *   POST delete=1 conversation_id                      delete one of the agent's conversations
  *   POST draft=1 conversation_id client_id             a document drafted from it (functions/mit_ai_docs.php) - for the Write up window
@@ -33,7 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['ask'])) {
         // An answer can take a while - let the agent's other pages through meanwhile
         session_write_close();
-        [$ok, $conversation_id, $out] = mitAiAsk(intval($_POST['conversation_id'] ?? 0), (string) ($_POST['question'] ?? ''), intval($_POST['ticket_id'] ?? 0));
+        try {
+            $images = mitAiImagesFromUpload($_FILES['images'] ?? []);
+        } catch (RuntimeException $e) {
+            $reply(422, ['error' => $e->getMessage(), 'conversation_id' => intval($_POST['conversation_id'] ?? 0)]);
+        }
+        [$ok, $conversation_id, $out] = mitAiAsk(intval($_POST['conversation_id'] ?? 0), (string) ($_POST['question'] ?? ''), intval($_POST['ticket_id'] ?? 0), $images);
         $reply($ok ? 200 : 422, $ok ? ['conversation_id' => $conversation_id, 'messages' => $out] : ['error' => $out, 'conversation_id' => $conversation_id]);
     }
     if (isset($_POST['draft'])) {

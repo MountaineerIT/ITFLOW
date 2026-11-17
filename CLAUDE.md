@@ -56,6 +56,8 @@ model: see DEPLOYMENT.md.
   names the vault or another secret store, uses `SELECT *`, or touches a table not on its list - a new table is a deliberate, reviewed
   change there. `tests/scenarios/scenario-ai-wall.php` plants canary secrets (vault row, ticket notes, a document) and proves none reach
   the library, a search or the AI provider. Never weaken any of this to make a feature work; ask the user instead.
+  The one exception the user chose (Nov 17, 26.11.8.5): pictures an agent adds to an Ask AI question go to the provider as they are (a picture
+  can't be scrubbed) - with a warning beside them, never stored, never in the library; the question's text is still cleaned.
 - Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
   install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
   before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.
@@ -1506,6 +1508,14 @@ model: see DEPLOYMENT.md.
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
   Look (26.11.2.7, the user's choice - like Quick ticket): a floating window - `.mit-ai-panel.offcanvas-end` inset .75rem, 16px corners, dark title
   bar `.mit-ai-head` (`--mit-side`, else #212529) with `.mit-ai-head-btn` buttons - in the style block of `agent/js/mit_ai_helper.js`; smoke: first test of 33.
+  Pictures (26.11.8.5, the user's choice - sent as they are with a warning, not kept): up to `MIT_AI_IMAGES_MAX` 3 a question - the panel's picture
+  button (`[data-mit-ai-attach]` / `[data-mit-ai-file]`), paste in the question box or a drop on the form; thumbnails `[data-mit-ai-pic]` with
+  `[data-mit-ai-pic-remove]` and the warning `[data-mit-ai-pic-warning]`; posted as `images[]` with ask. `mitAiImagesFromUpload` -> `mitAiImageData`
+  (GD re-draw - pixels only, at most 1600 a side, PNG / JPEG data: address, 10 MB upload max, JPG / PNG / GIF / WebP); `mitAiAsk(..., $images)` sends
+  the last user message in OpenAI parts (text + image_url); an empty question with a picture = `MIT_AI_IMAGE_QUESTION`; kept question gets "(A picture
+  was sent with this question - not kept.)"; a refused request says a model that reads pictures is needed. Hook: one branch in ITFlow's `callAiApi`
+  redaction loop (`functions/ai.php`) - a message in parts has its text parts redacted. Scenario `scenario-ai-pictures.php` (a throw-away stand-in
+  file in the install records what is sent), smoke `69-ai-pictures.spec.js` (same, `ITFLOW_ROOT`).
   The panel's markup is `hidden` until the script has moved it to <body> (26.10.158 - Bootstrap draws an `.offcanvas` inside an expanded navbar
   as part of the bar, so it flashed in the top bar on every page load); smoke: first test of `33-ai-panel.spec.js`.
   Name (26.10.158): `mit_settings` ai_helper_name -> `mitAiName()` (letters / digits / space / . - ' only, 30 max, "AI" when empty) - the
