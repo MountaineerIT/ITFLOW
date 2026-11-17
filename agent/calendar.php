@@ -72,6 +72,11 @@ foreach ($sources as $key => $source) {
     #itflowCalendar .mit-cal-agent { font-weight: 600; margin: 0 .25rem 0 .1rem; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     /* Mountaineer IT: a short booking keeps its text inside the block - FullCalendar centres it, so it ran out above and below (26.10.181) */
     #itflowCalendar :has(> .itflow-cal-event.is-timegrid) { align-items: flex-start; overflow: hidden; }
+    /* Mountaineer IT: an onsite booking (a ticket or a helper's, fa-car) - an orange strip with a car across the top (26.11.8.6) */
+    #itflowCalendar [data-mit-onsite] { overflow: hidden; }
+    #itflowCalendar [data-mit-onsite]::before { content: "\f1b9"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: 0; left: 0; right: 0; height: 15px;
+        background: #ff9f1a; color: #2b1700; font-size: 10px; line-height: 15px; padding-left: 9px; z-index: 1; pointer-events: none; }
+    #itflowCalendar [data-mit-onsite] .itflow-cal-event { padding-top: 15px; }
     .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 

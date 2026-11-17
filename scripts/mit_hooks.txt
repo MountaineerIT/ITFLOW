@@ -108,6 +108,7 @@ hook	agent/asset.php	mitNinjaAssetButton	2
 hook	agent/assets.php	mitAlignAssetBadge	2
 hook	agent/assets.php	mitClientTiles	2
 hook	agent/calendar.php	data-mit-agent	2
+hook	agent/calendar.php	data-mit-onsite	3
 hook	agent/calendar.php	data-mit-zone	1
 hook	agent/calendar.php	mit-cal-agent	1
 hook	agent/calendar.php	mit-cal-when	3
@@ -164,12 +165,14 @@ hook	agent/invoices.php	mitQboListBadge	3
 hook	agent/invoices.php	mit_qbo_ids	2
 hook	agent/js/calendar.js	MountaineerIT	3
 hook	agent/js/calendar.js	data-mit-agent	1
+hook	agent/js/calendar.js	data-mit-onsite	1
 hook	agent/js/calendar.js	data-mit-zone	1
 hook	agent/js/calendar.js	mit-cal-agent	2
 hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
-hook	agent/js/calendar.js	mitStriped	3
+hook	agent/js/calendar.js	mitOnsite	1
+hook	agent/js/calendar.js	mitStriped	4
 hook	agent/js/calendar.js	mitZone	4
 hook	agent/js/calendar.js	mitZoneNow	2
 hook	agent/js/calendar.js	mit_calendar	2

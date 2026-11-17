@@ -346,6 +346,9 @@
                 info.el.dataset.mitAgent = '1';
                 info.el.style.setProperty('--mit-agent', props.tech_color);
             }
+            if (props.icon === 'fa-car' && mitStriped(info)) { // Mountaineer IT: onsite - an orange strip with a car across the top ([data-mit-onsite] in agent/calendar.php)
+                info.el.dataset.mitOnsite = '1';
+            }
         },
 
         eventClick: function (info) {

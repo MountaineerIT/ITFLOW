@@ -265,6 +265,10 @@ model: see DEPLOYMENT.md.
   carry their own zone), Outlook sync, clashes, Left behind and the week stats stay on company time. Known gap: a weekday repeat (`repeat_on`)
   picked for an event whose Tokyo day differs from the company day follows the company day. Smoke `95-time-zones.spec.js`, scenario
   `scenario-zones.php`.
+  Onsite strip (26.11.8.7, the user's pick of mock-ups - "C2"): a booking whose icon is fa-car (ticket or helper, onsite) gets `data-mit-onsite`
+  (eventDidMount in `agent/js/calendar.js` - blocks only, `mitStriped` - and `agent/js/mit_dispatch.js`, plus its week chips) - CSS in the style blocks of
+  `agent/calendar.php` / `agent/mit_dispatch.php`: a 15 px orange (#ff9f1a) `::before` strip with Font Awesome 5's car glyph, the content pushed down.
+  Smoke `68-onsite-strip.spec.js`.
   Short bookings (26.10.181): FullCalendar v7 centres a time-grid event's content, so a 30-minute block's text ran out above and below it -
   one rule in `agent/calendar.php`'s style block (`:has(> .itflow-cal-event.is-timegrid)`: top-aligned, overflow hidden); smoke: last test of 08.
   The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw

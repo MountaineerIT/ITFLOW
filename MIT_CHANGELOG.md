@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.8.7 - 2026-11-17
+- Calendar and Dispatch: onsite bookings are easy to spot - an orange strip with a car across the top of the booking (on Dispatch's week view a thin orange line on the chip). Remote bookings look as before; the car and headset icons stay.
+
 ## 26.11.8.6 - 2026-11-17
 - GitHub page brought up to date: the README now lists what came in 26.11.8.3 - 26.11.8.6 (the full add-a-line row, undoing a PO receipt, where a client's reply moves a ticket, QuickBooks accounts following a product's category and billing-contact emails, invoice bulk actions, the mileage-rate warning).
 - Invoices list: more bulk actions. Beside Set Category, the Bulk Action menu now has Mark Sent, Send by Email, Mark Paid, Cancel and Delete. Each window lists the invoices it will change and the ones it leaves alone with why (a draft can't be paid, already paid, nothing owed, in a QuickBooks batch, a payment on a reconciled statement ...). Mark Paid records one payment per invoice for exactly what is still owed (date, method, account and reference asked once; optional receipt, one per client). Send by Email works as Quick Send and is hidden while QuickBooks Online sends the invoices. Same permissions as the buttons on the invoice itself (Delete needs Sales full access).
