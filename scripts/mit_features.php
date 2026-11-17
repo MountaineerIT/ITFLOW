@@ -313,6 +313,18 @@ return [
         'watch' => ['ticket_time_tracking.js', 'getLocalStorageKey("startTime")', 'ticket-timer-running-', 'ticketPickableStatuses', 'ticketChangeStatus', 'edit_ticket_settings', 'selectOptionContact'],
         'overlap' => ['quick_ticket', 'quickticket', 'quick_add', 'fast_ticket'],
     ],
+    'invoice_bulk' => [
+        'name' => 'More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)',
+        'files' => ['functions/mit_invoice_bulk.php', 'agent/modals/mit_invoice/bulk.php', 'agent/post/mit_invoice_bulk.php'],
+        'tests' => ['tests/scenarios/scenario-invoice-bulk.php', 'tests/smoke/67-invoice-bulk.spec.js'],
+        'assumes' => [
+            'agent/invoices.php has ITFlow\'s Bulk Action menu (#bulkActionButton, items with data-bulk="true" and data-modal-url) and ticks named invoice_ids[]; js/bulk_actions.js adds the ticked ids to the modal URL.',
+            'Each action copies ITFlow\'s own single-invoice handler (agent/post/invoice.php mark_invoice_sent / email_invoice quick send / cancel_invoice / delete_invoice, agent/post/payment.php add_payment) - re-check ours when those change (new rows to clear on delete, new history wording).',
+            'Mark Sent is for Draft, payments for invoiceOpenStatuses() with a balance, Cancel not for Cancelled / Paid / Non-Billable - the same rules agent/invoice.php shows its buttons by.',
+        ],
+        'watch' => ['bulkActionButton', 'data-bulk="true"', 'invoice_ids[]', 'mark_invoice_sent', 'productStockReturnInvoice', 'reconcileInvoiceLock', 'updateInvoiceStatusFromPayments', 'billingPaymentEmail'],
+        'overlap' => ['bulk_mark_paid', 'bulk_delete_invoice', 'bulk_cancel_invoice', 'bulk_mark_sent', 'bulk_email_invoice', 'invoice_bulk'],
+    ],
     'timesheets' => [
         'name' => 'Timesheets, payroll, leave, California rules, holidays, reimbursements',
         'files' => ['functions/mit_timesheet*.php', 'functions/mit_ts_*.php', 'functions/mit_leave.php', 'functions/mit_reimbursements.php',

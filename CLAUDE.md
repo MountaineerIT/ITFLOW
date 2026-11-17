@@ -1769,6 +1769,15 @@ model: see DEPLOYMENT.md.
   month) / the cost per hour of the agents who worked for the client (their labor / costed hours; none = the report's blended rate, else the
   default), "Over" badge + "Over break-even" count; columns after Recurring / month. Still Financial-only, as ITFlow has it. Scenario `scenario-client-profit.php`,
   smoke `36-client-profit.spec.js`.
+- Invoice bulk actions (Nov 17, 26.11.8.6 - the user's request: ITFlow's Bulk Action menu only set a category): `functions/mit_invoice_bulk.php` (ours,
+  required from mit_common.php), no tables. `mitInvoiceBulkMenu()` - one line after Set Category in `agent/invoices.php`'s Bulk Action menu - adds Mark
+  Sent / Send by Email / Mark Paid / Cancel / Delete (`[data-mit-invoice-bulk]`, ITFlow's data-bulk links) opening `agent/modals/mit_invoice/bulk.php`
+  (the invoices it changes, the ones left alone with why - `mitInvoiceBulkPlan` / `mitInvoiceBulkWhyNot`; only the changed ones are posted), handler
+  `agent/post/mit_invoice_bulk.php` -> `mitInvoiceBulkRun` (each invoice re-checked; done as ITFlow's own handler: mark_invoice_sent, email_invoice quick
+  send, add_payment for the balance under `mitLock("invoice_pay_<id>")` with one receipt per client, cancel_invoice, delete_invoice - copies, re-check
+  them after a merge). Permissions as the invoice page (`mitInvoiceBulkCan`: Sales 2, Mark Paid + billingMoneyCan('take'), Delete Sales 3, Email hidden
+  while QuickBooks is connected); QuickBooks-batched invoices and clients out of reach are left alone. Scenario `scenario-invoice-bulk.php`, smoke
+  `67-invoice-bulk.spec.js`.
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

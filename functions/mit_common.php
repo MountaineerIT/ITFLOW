@@ -462,4 +462,5 @@ require_once __DIR__ . '/mit_dev_mode.php'; // development mode (config.php) - n
 require_once __DIR__ . '/mit_feedback.php'; // bug reports and feature requests (the top bar's Bugs & ideas)
 require_once __DIR__ . '/mit_settings_index.php'; // our settings pages and fields on ITFlow's Admin > Settings
 require_once __DIR__ . '/mit_zones.php'; // the calendar and Dispatch in each person's own time zone
+require_once __DIR__ . '/mit_invoice_bulk.php'; // more bulk actions on the invoices list (mark sent / paid, email, cancel, delete)
 require_once __DIR__ . '/mit_service_users.php'; // API / service accounts - left out of every agent list

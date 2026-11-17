@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 193 | 2 | 2 | 15 | 41 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 195 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -29,6 +29,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
+| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 3 | 2 | 31 | 10 | 31 | 1 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 25 | 56 | 20 | 89 | 18 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 10 | 16 | 14 | 71 | 25 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 18 | 15 | 53 | 7 |
@@ -1088,6 +1089,47 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** quick_ticket, quickticket, quick_add, fast_ticket
 
 **Our files** `functions/mit_quick_ticket.php`, `agent/mit_quick_ticket_ajax.php`, `agent/js/mit_quick_ticket.js`
+
+<a id="invoice_bulk"></a>
+## More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete) (`invoice_bulk`)
+
+**Takes for granted**
+
+- agent/invoices.php has ITFlow's Bulk Action menu (#bulkActionButton, items with data-bulk="true" and data-modal-url) and ticks named invoice_ids[]; js/bulk_actions.js adds the ticked ids to the modal URL.
+- Each action copies ITFlow's own single-invoice handler (agent/post/invoice.php mark_invoice_sent / email_invoice quick send / cancel_invoice / delete_invoice, agent/post/payment.php add_payment) - re-check ours when those change (new rows to clear on delete, new history wording).
+- Mark Sent is for Draft, payments for invoiceOpenStatuses() with a balance, Cancel not for Cancelled / Paid / Non-Billable - the same rules agent/invoice.php shows its buttons by.
+
+**Tests** `tests/scenarios/scenario-invoice-bulk.php`, `tests/smoke/67-invoice-bulk.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `agent/invoices.php`: mitInvoiceBulkMenu
+
+**ITFlow functions it calls**
+
+- `functions/app.php`: getSentMethods
+- `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
+- `functions/billing.php`: billingLog, billingMoney, billingMoneyCan, billingPdf, billingRow, enforceBillingMoney, invoiceOpenStatuses, paymentAccounts
+- `functions/billing_email.php`: billingEmailPdf, billingEmailQueue, billingEmailRecipients, billingInvoiceEmail, billingPaymentEmail, billingReminderRules
+- `functions/logging.php`: logAudit, logHistory, triggerCustomAction
+- `functions/payment_method.php`: paymentMethods
+- `functions/payments.php`: updateInvoiceStatusFromPayments
+- `functions/products.php`: productStockReturnInvoice
+- `functions/reconcile.php`: reconcileInvoiceLock
+- `functions/request.php`: flashAlert, redirect
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/security.php`: validateCSRFToken
+- `functions/sms.php`: smsInvoiceNotify
+
+**ITFlow tables** assets, clients, contacts, expenses, history, invoice_items, invoices, payments, tickets, trips
+
+**ITFlow columns** account_archived_at, account_name, asset_invoice_id, asset_invoice_item_id, client_id, client_name, config_smtp_provider, expense_invoice_id, expense_invoice_item_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_client_id, invoice_currency_code, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_invoice_id, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_invoice_id, payment_method, payment_reference, ticket_invoice_id, trip_invoice_id, trip_invoice_item_id
+
+**Watched in ITFlow's code** `bulkActionButton` `data-bulk="true"` `invoice_ids[]` `mark_invoice_sent` `productStockReturnInvoice` `reconcileInvoiceLock` `updateInvoiceStatusFromPayments` `billingPaymentEmail`
+
+**"ITFlow does this too" words** bulk_mark_paid, bulk_delete_invoice, bulk_cancel_invoice, bulk_mark_sent, bulk_email_invoice, invoice_bulk
+
+**Our files** `functions/mit_invoice_bulk.php`, `agent/modals/mit_invoice/bulk.php`, `agent/post/mit_invoice_bulk.php`
 
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)
