@@ -260,7 +260,7 @@ function mitReimbItflowRate() {
 }
 
 /**
- * ITFlow's mileage rate is missing (26.11.8.6): ITFlow then hides Log a trip's "In their own vehicle" switch, so every trip is a company-vehicle
+ * ITFlow's mileage rate is missing (26.11.8.5): ITFlow then hides Log a trip's "In their own vehicle" switch, so every trip is a company-vehicle
  * trip and nothing reaches a timesheet - production ran like that unnoticed after the 26.11 update. True only while ITFlow pays people back.
  */
 function mitReimbRateMissing() {

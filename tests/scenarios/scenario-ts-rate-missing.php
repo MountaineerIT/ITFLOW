@@ -1,6 +1,6 @@
 <?php
 /*
- * No mileage rate (26.11.8.6 - production ran this way unnoticed after 26.11: ITFlow hides Log a trip's "In their own vehicle" switch without
+ * No mileage rate (26.11.8.5 - production ran this way unnoticed after 26.11: ITFlow hides Log a trip's "In their own vehicle" switch without
  * ITFlow's rate, so every trip was a company-vehicle trip and nothing reached a timesheet). With the rate at 0: mitReimbRateMissing, the trip
  * window's note where the switch would be (not when the switch shows), and the timesheet's Mileage box warns - with the period's
  * company-vehicle trips counted - even when nothing is owed. The company-vehicle count leaves out own-vehicle, archived and other people's trips.

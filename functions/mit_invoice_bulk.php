@@ -1,6 +1,6 @@
 <?php
 /*
- * Mountaineer IT - more bulk actions on the invoices list (Nov 17 2026, 26.11.8.6 - the user's request: ITFlow's Bulk Action menu only sets a
+ * Mountaineer IT - more bulk actions on the invoices list (Nov 17 2026, 26.11.8.5 - the user's request: ITFlow's Bulk Action menu only sets a
  * category). Mark sent, record each invoice paid in full, send by email, cancel, delete - each one done the way ITFlow's own button on the
  * invoice does it (agent/post/invoice.php, agent/post/payment.php), and only on invoices that button would be offered for. Invoices that
  * can't take the action are left alone and named with why (QuickBooks batch, client out of reach, status, a reconciled payment ...).

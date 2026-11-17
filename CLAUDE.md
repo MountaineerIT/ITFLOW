@@ -90,7 +90,7 @@ model: see DEPLOYMENT.md.
   refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
   off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
   line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
-- Rebuilding the test install (Nov 17, 26.11.8.6 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
+- Rebuilding the test install (Nov 17, 26.11.8.5 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
   base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
   granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,
   `tests/smoke/.env`. Run scenarios / smoke with `TZ=America/Los_Angeles` and the local hosts in `NO_PROXY`. The outside-service stand-ins
@@ -265,7 +265,7 @@ model: see DEPLOYMENT.md.
   carry their own zone), Outlook sync, clashes, Left behind and the week stats stay on company time. Known gap: a weekday repeat (`repeat_on`)
   picked for an event whose Tokyo day differs from the company day follows the company day. Smoke `95-time-zones.spec.js`, scenario
   `scenario-zones.php`.
-  Onsite strip (26.11.8.7, the user's pick of mock-ups - "C2"): a booking whose icon is fa-car (ticket or helper, onsite) gets `data-mit-onsite`
+  Onsite strip (26.11.8.5, the user's pick of mock-ups - "C2"): a booking whose icon is fa-car (ticket or helper, onsite) gets `data-mit-onsite`
   (eventDidMount in `agent/js/calendar.js` - blocks only, `mitStriped` - and `agent/js/mit_dispatch.js`, plus its week chips) - CSS in the style blocks of
   `agent/calendar.php` / `agent/mit_dispatch.php`: a 15 px orange (#ff9f1a) `::before` strip with Font Awesome 5's car glyph, the content pushed down.
   Smoke `68-onsite-strip.spec.js`.
@@ -1363,7 +1363,7 @@ model: see DEPLOYMENT.md.
     submitted / approved day of the driver's timesheet). Purchases always become expenses while ITFlow pays back (category optional -
     "- None -"; Accounting switch not needed), described "Paid by <name>: ...", reference "Ticket purchase <id>". One mileage rate: Admin >
     Timesheets saves ours and ITFlow's `config_mileage_rate` (ITFlow's Log a trip offers "In their own vehicle" only while that is set;
-    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). No mileage rate (26.11.8.6 - production ran without one after 26.11, so ITFlow hid Log a trip's own-vehicle switch and nothing reached timesheets): `mitReimbRateMissing` / `mitReimbTripRateNote` (one line in `agent/modals/trip/trip_form.php` before the bill box - `[data-mit-trip-rate-missing]`) and the timesheet box's `[data-mit-ts-rate-missing]`; with a rate, the box still counts the period's company-vehicle trips (`mitReimbCompanyTrips`, `[data-mit-ts-company-trips]`). Scenario `scenario-ts-rate-missing.php`. Labels follow ITFlow: "Trips > To pay back", "Expenses >
+    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). No mileage rate (26.11.8.5 - production ran without one after 26.11, so ITFlow hid Log a trip's own-vehicle switch and nothing reached timesheets): `mitReimbRateMissing` / `mitReimbTripRateNote` (one line in `agent/modals/trip/trip_form.php` before the bill box - `[data-mit-trip-rate-missing]`) and the timesheet box's `[data-mit-ts-rate-missing]`; with a rate, the box still counts the period's company-vehicle trips (`mitReimbCompanyTrips`, `[data-mit-ts-company-trips]`). Scenario `scenario-ts-rate-missing.php`. Labels follow ITFlow: "Trips > To pay back", "Expenses >
     To reimburse"; boxes "Mileage and purchases" (timesheet), "Mileage & purchases" (ticket, standalone). Smoke `29-payroll-payback.spec.js`.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
@@ -1773,7 +1773,7 @@ model: see DEPLOYMENT.md.
   month) / the cost per hour of the agents who worked for the client (their labor / costed hours; none = the report's blended rate, else the
   default), "Over" badge + "Over break-even" count; columns after Recurring / month. Still Financial-only, as ITFlow has it. Scenario `scenario-client-profit.php`,
   smoke `36-client-profit.spec.js`.
-- Invoice bulk actions (Nov 17, 26.11.8.6 - the user's request: ITFlow's Bulk Action menu only set a category): `functions/mit_invoice_bulk.php` (ours,
+- Invoice bulk actions (Nov 17, 26.11.8.5 - the user's request: ITFlow's Bulk Action menu only set a category): `functions/mit_invoice_bulk.php` (ours,
   required from mit_common.php), no tables. `mitInvoiceBulkMenu()` - one line after Set Category in `agent/invoices.php`'s Bulk Action menu - adds Mark
   Sent / Send by Email / Mark Paid / Cancel / Delete (`[data-mit-invoice-bulk]`, ITFlow's data-bulk links) opening `agent/modals/mit_invoice/bulk.php`
   (the invoices it changes, the ones left alone with why - `mitInvoiceBulkPlan` / `mitInvoiceBulkWhyNot`; only the changed ones are posted), handler

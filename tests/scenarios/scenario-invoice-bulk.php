@@ -1,6 +1,6 @@
 <?php
 /*
- * Bulk actions on the invoices list (functions/mit_invoice_bulk.php, 26.11.8.6): each action goes only to the invoices ITFlow's own button
+ * Bulk actions on the invoices list (functions/mit_invoice_bulk.php, 26.11.8.5): each action goes only to the invoices ITFlow's own button
  * would be offered for, and the rest are named with why - a QuickBooks batch, a draft that can't be paid, nothing owed, already sent /
  * cancelled. Mark Paid pays exactly what is owed (a part-paid invoice gets the rest), ITFlow's status follows; Mark Sent / Cancel / Delete
  * do what ITFlow's handlers do (history, delete takes lines, payments and history, tickets billed on it unbilled again); a client out of

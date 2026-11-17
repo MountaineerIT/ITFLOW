@@ -48,7 +48,7 @@ ITFlow keeps an MSP's client documentation, tickets, quotes, invoices and expens
 follows ITFlow's releases and adds what we need to run our own service desk. Everything ITFlow does still works the same way;
 our additions sit beside it and can be switched off.
 
-Each version is ITFlow's release plus our own number (for example **26.11.8.6** = ITFlow 26.11.8, our 6th update on it). Admin >
+Each version is ITFlow's release plus our own number (for example **26.11.8.5** = ITFlow 26.11.8, our 5th update on it). Admin >
 Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 
 ## A look around

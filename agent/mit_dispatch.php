@@ -53,7 +53,7 @@ $clients = mysqli_fetch_all(mysqli_query($mysqli, "SELECT client_id, client_name
     .mit-dispatch [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
     .mit-dispatch [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
     .mit-dw-chip[data-mit-agent] { padding-left: .65rem; }
-    /* Mountaineer IT: an onsite booking (a ticket or a helper's, fa-car) - an orange strip with a car across the top (26.11.8.6) */
+    /* Mountaineer IT: an onsite booking (a ticket or a helper's, fa-car) - an orange strip with a car across the top (26.11.8.5) */
     .mit-dispatch [data-mit-onsite] { overflow: hidden; }
     .mit-dispatch [data-mit-onsite]::before { content: "\f1b9"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: 0; left: 0; right: 0; height: 15px;
         background: #ff9f1a; color: #2b1700; font-size: 10px; line-height: 15px; padding-left: 9px; z-index: 1; pointer-events: none; }

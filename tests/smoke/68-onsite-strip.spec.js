@@ -1,4 +1,4 @@
-// Onsite bookings stand out (26.11.8.7): an onsite ticket's booking gets an orange strip with a car across its top on the calendar and on
+// Onsite bookings stand out (26.11.8.5): an onsite ticket's booking gets an orange strip with a car across its top on the calendar and on
 // Dispatch's day and week views ([data-mit-onsite]); a remote one does not. Two tickets booked today for the admin, removed afterwards.
 
 const { test, expect } = require('@playwright/test');
