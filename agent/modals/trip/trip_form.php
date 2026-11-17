@@ -206,6 +206,7 @@ $unit = tripUnit();
             <div class="form-text" data-trip-own-note></div>
         </div>
     <?php } ?>
+    <?= function_exists('mitReimbTripRateNote') ? mitReimbTripRateNote($form_pay_back || $form_own) : '' // Mountaineer IT: no mileage rate - why there is no own-vehicle switch ?>
     <div class="col-md-6" data-trip-bill-box hidden>
         <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" name="billable" value="1" id="<?= $form_id ?>Bill" <?= $form_billable ? 'checked' : '' ?> data-trip-billable <?= $form_billed ? 'disabled' : '' ?>

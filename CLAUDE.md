@@ -1354,7 +1354,7 @@ model: see DEPLOYMENT.md.
     submitted / approved day of the driver's timesheet). Purchases always become expenses while ITFlow pays back (category optional -
     "- None -"; Accounting switch not needed), described "Paid by <name>: ...", reference "Ticket purchase <id>". One mileage rate: Admin >
     Timesheets saves ours and ITFlow's `config_mileage_rate` (ITFlow's Log a trip offers "In their own vehicle" only while that is set;
-    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). Labels follow ITFlow: "Trips > To pay back", "Expenses >
+    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). No mileage rate (26.11.8.6 - production ran without one after 26.11, so ITFlow hid Log a trip's own-vehicle switch and nothing reached timesheets): `mitReimbRateMissing` / `mitReimbTripRateNote` (one line in `agent/modals/trip/trip_form.php` before the bill box - `[data-mit-trip-rate-missing]`) and the timesheet box's `[data-mit-ts-rate-missing]`; with a rate, the box still counts the period's company-vehicle trips (`mitReimbCompanyTrips`, `[data-mit-ts-company-trips]`). Scenario `scenario-ts-rate-missing.php`. Labels follow ITFlow: "Trips > To pay back", "Expenses >
     To reimburse"; boxes "Mileage and purchases" (timesheet), "Mileage & purchases" (ticket, standalone). Smoke `29-payroll-payback.spec.js`.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves

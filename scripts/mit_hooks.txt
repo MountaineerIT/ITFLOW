@@ -235,6 +235,7 @@ hook	agent/modals/ticket/ticket_export.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
+hook	agent/modals/trip/trip_form.php	mitReimbTripRateNote	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
 hook	agent/post/billing.php	mitPartLineQtyProblem	2
 hook	agent/post/billing.php	mitQboGuardInvoice	10
