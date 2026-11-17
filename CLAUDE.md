@@ -1789,9 +1789,11 @@ model: see DEPLOYMENT.md.
   (the invoices it changes, the ones left alone with why - `mitInvoiceBulkPlan` / `mitInvoiceBulkWhyNot`; only the changed ones are posted), handler
   `agent/post/mit_invoice_bulk.php` -> `mitInvoiceBulkRun` (each invoice re-checked; done as ITFlow's own handler: mark_invoice_sent, email_invoice quick
   send, add_payment for the balance under `mitLock("invoice_pay_<id>")` with one receipt per client, cancel_invoice, delete_invoice - copies, re-check
-  them after a merge). Permissions as the invoice page (`mitInvoiceBulkCan`: Sales 2, Mark Paid + billingMoneyCan('take'), Delete Sales 3, Email hidden
+  them after a merge). The ticked ids never ride in the window's address (500 gave Apache's 414 - "Error loading modal content"): the menu's script
+  POSTs them to `agent/mit_invoice_bulk_ajax.php` (`mitInvoiceBulkRemember` - session, newest 5 sets), the window opens with `?set=<token>`
+  (`mitInvoiceBulkRecall`) and its form posts `mit_bulk_set` (the ones to change) - no 500 hidden fields near max_input_vars. Permissions as the invoice page (`mitInvoiceBulkCan`: Sales 2, Mark Paid + billingMoneyCan('take'), Delete Sales 3, Email hidden
   while QuickBooks is connected); QuickBooks-batched invoices and clients out of reach are left alone. Scenario `scenario-invoice-bulk.php`, smoke
-  `67-invoice-bulk.spec.js`.
+  `67-invoice-bulk.spec.js` (second test: 520 ticked at once).
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

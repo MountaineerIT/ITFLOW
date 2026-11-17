@@ -29,7 +29,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
-| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 3 | 2 | 31 | 10 | 31 | 1 |
+| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 4 | 2 | 31 | 11 | 31 | 1 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 25 | 56 | 20 | 89 | 18 |
 | [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 10 | 16 | 14 | 71 | 25 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 18 | 15 | 53 | 7 |
@@ -1121,7 +1121,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/sms.php`: smsInvoiceNotify
 
-**ITFlow tables** assets, clients, contacts, expenses, history, invoice_items, invoices, payments, tickets, trips
+**ITFlow tables** assets, clients, contacts, credentials, expenses, history, invoice_items, invoices, payments, tickets, trips
 
 **ITFlow columns** account_archived_at, account_name, asset_invoice_id, asset_invoice_item_id, client_id, client_name, config_smtp_provider, expense_invoice_id, expense_invoice_item_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_client_id, invoice_currency_code, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_invoice_id, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_invoice_id, payment_method, payment_reference, ticket_invoice_id, trip_invoice_id, trip_invoice_item_id
 
@@ -1129,7 +1129,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** bulk_mark_paid, bulk_delete_invoice, bulk_cancel_invoice, bulk_mark_sent, bulk_email_invoice, invoice_bulk
 
-**Our files** `functions/mit_invoice_bulk.php`, `agent/modals/mit_invoice/bulk.php`, `agent/post/mit_invoice_bulk.php`
+**Our files** `functions/mit_invoice_bulk.php`, `agent/modals/mit_invoice/bulk.php`, `agent/post/mit_invoice_bulk.php`, `agent/mit_invoice_bulk_ajax.php`
 
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)

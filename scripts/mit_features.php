@@ -315,7 +315,7 @@ return [
     ],
     'invoice_bulk' => [
         'name' => 'More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)',
-        'files' => ['functions/mit_invoice_bulk.php', 'agent/modals/mit_invoice/bulk.php', 'agent/post/mit_invoice_bulk.php'],
+        'files' => ['functions/mit_invoice_bulk.php', 'agent/modals/mit_invoice/bulk.php', 'agent/post/mit_invoice_bulk.php', 'agent/mit_invoice_bulk_ajax.php'],
         'tests' => ['tests/scenarios/scenario-invoice-bulk.php', 'tests/smoke/67-invoice-bulk.spec.js'],
         'assumes' => [
             'agent/invoices.php has ITFlow\'s Bulk Action menu (#bulkActionButton, items with data-bulk="true" and data-modal-url) and ticks named invoice_ids[]; js/bulk_actions.js adds the ticked ids to the modal URL.',

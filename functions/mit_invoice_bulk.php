@@ -37,7 +37,29 @@ function mitInvoiceBulkCan($action) {
     return false;
 }
 
-/** The extra items for ITFlow's Bulk Action menu (agent/invoices.php). */
+/**
+ * The ticked invoices kept in the session under a short token (agent/mit_invoice_bulk_ajax.php), so the window's address and its form carry the
+ * token, not every id - 500 ids in the address were refused by Apache (414 "Request-URI Too Long" - "Error loading modal content", Nov 17), and a
+ * form of more than PHP's max_input_vars (1000) loses fields. The newest 5 sets are kept.
+ */
+const MIT_INVOICE_BULK_MAX = 5000;
+
+function mitInvoiceBulkRemember(array $invoice_ids) {
+    $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $invoice_ids)))), 0, MIT_INVOICE_BULK_MAX);
+    $token = bin2hex(random_bytes(8));
+    $sets = (array) ($_SESSION['mit_invoice_bulk'] ?? []);
+    $sets[$token] = $ids;
+    $_SESSION['mit_invoice_bulk'] = array_slice($sets, -5, null, true);
+    return $token;
+}
+
+/** The invoice ids kept under a token ([] when it is not this session's). */
+function mitInvoiceBulkRecall($token) {
+    $token = (string) $token;
+    return preg_match('/^[a-f0-9]{16}$/', $token) ? array_map('intval', (array) ($_SESSION['mit_invoice_bulk'][$token] ?? [])) : [];
+}
+
+/** The extra items for ITFlow's Bulk Action menu (agent/invoices.php), and the script that hands the ticked invoices over before the window opens. */
 function mitInvoiceBulkMenu() {
     $html = '';
     foreach (mitInvoiceBulkActions() as $key => [$label, $icon]) {
@@ -48,10 +70,33 @@ function mitInvoiceBulkMenu() {
         if ($danger && strpos($html, 'dropdown-divider') === false) {
             $html .= '<div class="dropdown-divider"></div>';
         }
-        $html .= '<a class="dropdown-item ajax-modal' . ($danger ? ' text-danger' : '') . '" href="#" data-bulk="true" data-mit-invoice-bulk="' . $key . '"'
-            . ' data-modal-url="modals/mit_invoice/bulk.php?action=' . $key . '"><i class="fas fa-fw ' . $icon . ($danger ? '' : ' text-secondary') . ' me-2"></i>' . escapeHtml($label) . '...</a>';
+        $html .= '<a class="dropdown-item' . ($danger ? ' text-danger' : '') . '" href="#" data-mit-invoice-bulk="' . $key . '">'
+            . '<i class="fas fa-fw ' . $icon . ($danger ? '' : ' text-secondary') . ' me-2"></i>' . escapeHtml($label) . '...</a>';
     }
-    return $html;
+    if ($html === '') {
+        return '';
+    }
+    return $html . '<script>
+document.addEventListener("click", function (event) {
+    var item = event.target.closest("[data-mit-invoice-bulk]");
+    if (!item) { return; }
+    event.preventDefault();
+    var ids = Array.from(document.querySelectorAll("input.bulk-select[name=\'invoice_ids[]\']:checked")).map(function (box) { return box.value; });
+    if (!ids.length) { return; }
+    var body = new FormData();
+    body.append("csrf_token", ' . json_encode($_SESSION['csrf_token'] ?? '') . ');
+    body.append("ids", ids.join(","));
+    fetch("mit_invoice_bulk_ajax.php", { method: "POST", body: body, credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (json) {
+        if (!json.token) { throw new Error(json.error || "no token"); }
+        var open = document.createElement("button");
+        open.className = "ajax-modal d-none";
+        open.dataset.modalUrl = "modals/mit_invoice/bulk.php?action=" + encodeURIComponent(item.dataset.mitInvoiceBulk) + "&set=" + json.token;
+        document.body.appendChild(open);
+        open.click();
+        open.remove();
+    }).catch(function () { alert("The invoices picked could not be handed over - reload the page and try again."); });
+});
+</script>';
 }
 
 /** The invoices picked, with what is owed on each, in number order (ids the agent can't reach are kept - their check says so). */

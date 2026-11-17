@@ -44,7 +44,14 @@ if (isset($_POST['mit_invoice_bulk'])) {
         }
     }
 
-    $result = mitInvoiceBulkRun($action, (array) ($_POST['invoice_ids'] ?? []), $opts);
+    // A long run (hundreds of invoices, PDFs for email) keeps going past PHP's usual limit
+    @set_time_limit(0);
+    $ids = isset($_POST['mit_bulk_set']) ? mitInvoiceBulkRecall($_POST['mit_bulk_set']) : (array) ($_POST['invoice_ids'] ?? []);
+    if (!$ids) {
+        flashAlert('The invoices picked are no longer remembered - tick them again.', 'error');
+        redirect();
+    }
+    $result = mitInvoiceBulkRun($action, $ids, $opts);
     flashAlert(mitInvoiceBulkMessage($action, $result), $result['done'] ? 'success' : 'error');
 
     redirect();

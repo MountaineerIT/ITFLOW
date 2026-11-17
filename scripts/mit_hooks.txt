@@ -745,6 +745,7 @@ ours	agent/mit_dispatch.php
 ours	agent/mit_dispatch_ajax.php
 ours	agent/mit_feedback_ajax.php
 ours	agent/mit_invoice_approvals.php
+ours	agent/mit_invoice_bulk_ajax.php
 ours	agent/mit_ninjaone_ajax.php
 ours	agent/mit_procurement.php
 ours	agent/mit_purchase_order.php

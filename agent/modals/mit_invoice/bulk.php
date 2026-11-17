@@ -19,7 +19,10 @@ if (!mitInvoiceBulkCan($action)) {
     exit(json_encode(['error' => 'That bulk action is not available.']));
 }
 [$label, $icon, $about, $button] = $actions[$action];
-$plan = mitInvoiceBulkPlan($action, (array) ($_GET['invoice_ids'] ?? []));
+// The ticked invoices: kept in the session under ?set= (the menu's script), or invoice_ids[] in the address for a few
+$picked = isset($_GET['set']) ? mitInvoiceBulkRecall($_GET['set']) : (array) ($_GET['invoice_ids'] ?? []);
+$plan = mitInvoiceBulkPlan($action, $picked);
+$do_token = mitInvoiceBulkRemember(array_column($plan['do'], 'invoice_id'));
 $count = count($plan['do']);
 $owed = [];
 foreach ($plan['do'] as $row) {
@@ -36,7 +39,7 @@ ob_start();
 <form action="post.php" method="post" autocomplete="off" data-mit-invoice-bulk-form="<?= $action ?>">
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="mit_bulk_action" value="<?= $action ?>">
-    <?php foreach ($plan['do'] as $row) { ?><input type="hidden" name="invoice_ids[]" value="<?= intval($row['invoice_id']) ?>"><?php } ?>
+    <input type="hidden" name="mit_bulk_set" value="<?= $do_token ?>">
 
     <div class="modal-body">
         <p class="small text-body-secondary"><?= escapeHtml($about) ?></p>
