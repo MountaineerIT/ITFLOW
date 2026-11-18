@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 198 | 2 | 2 | 15 | 41 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 199 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -31,7 +31,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 4 | 2 | 31 | 11 | 31 | 1 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 25 | 56 | 20 | 89 | 18 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 10 | 16 | 14 | 71 | 25 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 11 | 16 | 15 | 71 | 25 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 18 | 15 | 53 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
@@ -1203,7 +1203,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 - Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-discount-account.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
 
 **Hooks in ITFlow's files**
 
@@ -1247,7 +1247,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/tax.php`: taxSettings
 
-**ITFlow tables** accounts, categories, clients, companies, contacts, history, invoice_items, invoices, payments, products, settings, taxes, tickets, users
+**ITFlow tables** accounts, categories, clients, companies, contacts, expenses, history, invoice_items, invoices, payments, products, settings, taxes, tickets, users
 
 **ITFlow columns** account_archived_at, account_id, account_name, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_currency, company_id, company_name, config_enable_cron, contact_archived_at, contact_billing, contact_client_id, contact_email, contact_name, contact_primary, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_credit_amount, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_note, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_archived_at, item_description, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_tax_id, item_total, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_deposit_transfer_id, payment_id, payment_invoice_id, payment_method, payment_reconciliation_id, payment_reference, product_archived_at, product_category_id, product_id, product_name, product_price, product_type, tax_archived_at, tax_id, tax_name, tax_percent, user_id, user_name
 

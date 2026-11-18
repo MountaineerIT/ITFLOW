@@ -231,11 +231,16 @@ if ($connected) {
                 if ($current !== '' && !isset($accounts[$current])) {
                     $html .= '<option value="' . escapeHtml($current) . '" selected>' . escapeHtml($current_name ?: $current) . ' (inactive or gone)</option>';
                 }
+                // Grouped by type (functions/mit_qbo_accounts.php MIT_QBO_LINE_ACCOUNT_TYPES) - income first, then cost of goods sold and expenses
+                $group = null;
                 foreach ($accounts as $account) {
-                    $html .= '<option value="' . escapeHtml($account['id']) . '"' . ($current === $account['id'] ? ' selected' : '') . '>' . escapeHtml($account['name'])
-                        . ($account['type'] === 'Other Income' ? ' (other income)' : '') . '</option>';
+                    if ($account['type'] !== $group) {
+                        $html .= ($group !== null ? '</optgroup>' : '') . '<optgroup label="' . escapeHtml(MIT_QBO_LINE_ACCOUNT_TYPES[$account['type']] ?? $account['type']) . '" data-mit-qbo-account-group="' . escapeHtml($account['type']) . '">';
+                        $group = $account['type'];
+                    }
+                    $html .= '<option value="' . escapeHtml($account['id']) . '"' . ($current === $account['id'] ? ' selected' : '') . '>' . escapeHtml($account['name']) . '</option>';
                 }
-                return $html . '</select>';
+                return $html . ($group !== null ? '</optgroup>' : '') . '</select>';
             }; ?>
             <?php if (!$connected) { ?>
                 <div class="alert alert-info">Connect to QuickBooks first (Connection tab).</div>
@@ -245,6 +250,8 @@ if ($connected) {
                     product's category, ticket time the category below, a line typed by hand the one picked in its Edit window - else the invoice's category.
                     Products without a QuickBooks item get one made with their category's account, and lines without a product use one item per category
                     (e.g. "Hardware Sales<?= escapeHtml(MIT_QBO_ITEM_SUFFIX) ?>"). Items already mapped (Items tab) keep the account they have in QuickBooks.
+                    A category can also post to an expense or cost of goods sold account - e.g. a "Nonprofit discount" product with a negative price in its
+                    own category, posted to "Discounts given".
                 </p>
                 <form action="post.php" method="post" data-mit-qbo-accounts>
                     <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
@@ -264,6 +271,12 @@ if ($connected) {
                             </select>
                             <div class="form-text">Hours billed from tickets (Unbilled Time / To Bill, Invoice from a ticket).</div>
                         </div>
+                        <div class="col-md-6" data-mit-qbo-discount-account>
+                            <label class="form-label">Discounts go to</label>
+                            <?= $account_select('qbo_discount_account', $a['discount_account'], $a['discount_account_name'], '- QuickBooks\' own discount account -') ?>
+                            <div class="form-text">The invoice's Discount (a nonprofit discount, say) and any credit applied - one discount line on the QuickBooks invoice.
+                                Usually an expense account such as "Discounts given". A discount typed as its own line (a negative price) follows its category below instead.</div>
+                        </div>
                         <div class="col-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" role="switch" name="qbo_create_items" value="1" id="mitQboCreateItems" <?= $a['create_items'] ? 'checked' : '' ?>>
@@ -274,7 +287,7 @@ if ($connected) {
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover align-middle" style="max-width: 60rem">
-                            <thead><tr><th>Category</th><th>QuickBooks income account</th><th>Item for lines without a product</th></tr></thead>
+                            <thead><tr><th>Category</th><th>QuickBooks account <span class="fw-normal text-body-secondary">(income, or an expense / cost of goods sold account)</span></th><th>Item for lines without a product</th></tr></thead>
                             <tbody>
                             <?php foreach ($income as $id => $name) {
                                 $row = $mapped[$id] ?? []; ?>

@@ -44,6 +44,9 @@ function mitQboAccountSettings() {
         'default_item' => (string) mitSetting('qbo_default_item', ''),
         'time_category' => intval(mitSetting('qbo_time_category', 0)),
         'create_items' => mitSetting('qbo_create_items', '1') === '1',
+        // Where the invoice's discount (and credit applied) posts - '' = QuickBooks' own discount account (26.11.8.5, nonprofit discounts)
+        'discount_account' => (string) mitSetting('qbo_discount_account', ''),
+        'discount_account_name' => (string) mitSetting('qbo_discount_account_name', ''),
     ];
 }
 
@@ -606,17 +609,54 @@ function mitQboBatchItemPlan($batch_id) {
     return $plan;
 }
 
-/** QuickBooks' income accounts (Income and Other Income), active ones: id => [id, name, type]. */
+/**
+ * The QuickBooks account types an invoice line's item may post to, in the order the pickers show them, with their group label. Income first;
+ * expense and cost of goods sold too (Nov 18, 26.11.8.5 - the user's request: a pass-through cost billed to the client is usually posted
+ * against its expense account so it nets out - QuickBooks allows any of these as an item's income account). Bank, asset, liability and
+ * equity accounts are left out.
+ */
+const MIT_QBO_LINE_ACCOUNT_TYPES = [
+    'Income' => 'Income',
+    'Other Income' => 'Other income',
+    'Cost of Goods Sold' => 'Cost of goods sold',
+    'Expense' => 'Expenses',
+    'Other Expense' => 'Other expenses',
+];
+
+/** From QuickBooks Account rows: the ones a line may post to (MIT_QBO_LINE_ACCOUNT_TYPES), id => [id, name, type], by type then name. */
+function mitQboLineAccountsFrom(array $rows) {
+    $order = array_flip(array_keys(MIT_QBO_LINE_ACCOUNT_TYPES));
+    $list = [];
+    foreach ($rows as $row) {
+        $type = (string) ($row['AccountType'] ?? '');
+        if (isset($order[$type]) && ($row['Active'] ?? true) !== false) {
+            $list[(string) $row['Id']] = ['id' => (string) $row['Id'], 'name' => (string) ($row['FullyQualifiedName'] ?? $row['Name'] ?? ''), 'type' => $type];
+        }
+    }
+    uasort($list, function ($a, $b) use ($order) {
+        return [$order[$a['type']], strtolower($a['name'])] <=> [$order[$b['type']], strtolower($b['name'])];
+    });
+    return $list;
+}
+
+/**
+ * The QuickBooks invoice's discount line for ITFlow's discount + credit applied (mitQboInvoicePayload): posted to the "Discounts go to" account
+ * of the Income accounts tab (a "Discounts given" expense account - nonprofit discounts, 26.11.8.5), else QuickBooks' own default.
+ */
+function mitQboDiscountLine($amount) {
+    $detail = ['PercentBased' => false];
+    $account = mitQboAccountSettings()['discount_account'];
+    if ($account !== '') {
+        $detail['DiscountAccountRef'] = ['value' => $account];
+    }
+    return ['DetailType' => 'DiscountLineDetail', 'Amount' => round((float) $amount, 2), 'DiscountLineDetail' => $detail];
+}
+
+/** QuickBooks' active accounts an invoice line may post to - income, cost of goods sold, expense (mitQboLineAccountsFrom): id => [id, name, type]. */
 function mitQboIncomeAccounts() {
     static $list = null;
     if ($list === null) {
-        $list = [];
-        foreach (mitQboQueryAll('Account', 'Active = true') as $row) {
-            if (in_array($row['AccountType'] ?? '', ['Income', 'Other Income'], true)) {
-                $list[(string) $row['Id']] = ['id' => (string) $row['Id'], 'name' => (string) ($row['FullyQualifiedName'] ?? $row['Name'] ?? ''), 'type' => (string) $row['AccountType']];
-            }
-        }
-        uasort($list, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
+        $list = mitQboLineAccountsFrom(mitQboQueryAll('Account', 'Active = true'));
     }
     return $list;
 }
@@ -644,6 +684,13 @@ function mitQboAccountsSave(array $post) {
     $time = intval($post['qbo_time_category'] ?? 0);
     mitSetSetting('qbo_time_category', isset(mitQboIncomeCategories()[$time]) ? (string) $time : '0');
     mitSetSetting('qbo_create_items', empty($post['qbo_create_items']) ? '0' : '1');
+    $discount = preg_replace('/[^0-9A-Za-z_-]/', '', (string) ($post['qbo_discount_account'] ?? ''));
+    if ($discount !== '' && !isset($accounts[$discount]) && $discount !== mitQboAccountSettings()['discount_account']) {
+        $warnings[] = 'That discount account is not one of QuickBooks\' income, cost of goods sold or expense accounts - left as it was.';
+    } else {
+        mitSetSetting('qbo_discount_account', $discount);
+        mitSetSetting('qbo_discount_account_name', $discount === '' ? '' : ($name($discount) ?: mitQboAccountSettings()['discount_account_name']));
+    }
     foreach ((array) ($post['account'] ?? []) as $category_id => $account_id) {
         if (!isset(mitQboIncomeCategories(true)[intval($category_id)])) {
             continue;
