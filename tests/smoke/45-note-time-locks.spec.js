@@ -45,7 +45,8 @@ test('note time locks: setup - a ticket, and a submitted timesheet for an earlie
     made.ticketId = Number(db.value(`SELECT MAX(ticket_id) FROM tickets WHERE ticket_client_id = ${made.clientId}`));
     // The period before the current one, submitted (the admin has none there)
     made.current = db.rows(`SELECT sheet_id, period_start, status FROM mit_timesheets WHERE user_id = 1 AND period_start <= '${today}' AND period_end >= '${today}'`)[0] || null;
-    const start = made.current ? made.current.period_start : today;
+    // No sheet yet for this period (a fresh install): its start is the 1st or the 16th (semi-monthly) - not today
+    const start = made.current ? made.current.period_start : today.slice(0, 8) + (Number(today.slice(8)) > 15 ? '16' : '01');
     const prevEnd = ymd(new Date(new Date(`${start}T12:00:00`).getTime() - 86400000));
     const prevStart = prevEnd.slice(0, 8) + (Number(prevEnd.slice(8)) > 15 ? '16' : '01');
     const there = db.rows(`SELECT sheet_id, status FROM mit_timesheets WHERE user_id = 1 AND period_start = '${prevStart}'`)[0];

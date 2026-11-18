@@ -116,7 +116,7 @@ return [
         'files' => ['functions/mit_calendar.php', 'functions/mit_left_behind.php', 'functions/mit_recurring.php', 'functions/mit_event_agents.php', 'functions/mit_zones.php',
             'agent/js/mit_left_behind.js', 'js/mit_repeat_on.js', 'admin/includes/mit_calendar_card.php', 'admin/post/mit_calendar_settings.php',
             'agent/post/mit_event_agents.php'],
-        'tests' => ['tests/smoke/08-calendar.spec.js', 'tests/smoke/20-event-agents.spec.js', 'tests/smoke/50-sched-window.spec.js',
+        'tests' => ['tests/smoke/08-calendar.spec.js', 'tests/smoke/68-onsite-strip.spec.js', 'tests/smoke/20-event-agents.spec.js', 'tests/smoke/50-sched-window.spec.js',
             'tests/smoke/52-calendar-state-moves.spec.js', 'tests/smoke/53-event-repeat-weekday.spec.js', 'tests/smoke/54-recurring-ticket-weekday.spec.js',
             'tests/scenarios/scenario-sched-*.php', 'tests/smoke/95-time-zones.spec.js', 'tests/scenarios/scenario-zones.php'],
         'assumes' => [
@@ -313,6 +313,18 @@ return [
         'watch' => ['ticket_time_tracking.js', 'getLocalStorageKey("startTime")', 'ticket-timer-running-', 'ticketPickableStatuses', 'ticketChangeStatus', 'edit_ticket_settings', 'selectOptionContact'],
         'overlap' => ['quick_ticket', 'quickticket', 'quick_add', 'fast_ticket'],
     ],
+    'invoice_bulk' => [
+        'name' => 'More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)',
+        'files' => ['functions/mit_invoice_bulk.php', 'agent/modals/mit_invoice/bulk.php', 'agent/post/mit_invoice_bulk.php', 'agent/mit_invoice_bulk_ajax.php'],
+        'tests' => ['tests/scenarios/scenario-invoice-bulk.php', 'tests/smoke/67-invoice-bulk.spec.js'],
+        'assumes' => [
+            'agent/invoices.php has ITFlow\'s Bulk Action menu (#bulkActionButton, items with data-bulk="true" and data-modal-url) and ticks named invoice_ids[]; js/bulk_actions.js adds the ticked ids to the modal URL.',
+            'Each action copies ITFlow\'s own single-invoice handler (agent/post/invoice.php mark_invoice_sent / email_invoice quick send / cancel_invoice / delete_invoice, agent/post/payment.php add_payment) - re-check ours when those change (new rows to clear on delete, new history wording).',
+            'Mark Sent is for Draft, payments for invoiceOpenStatuses() with a balance, Cancel not for Cancelled / Paid / Non-Billable - the same rules agent/invoice.php shows its buttons by.',
+        ],
+        'watch' => ['bulkActionButton', 'data-bulk="true"', 'invoice_ids[]', 'mark_invoice_sent', 'productStockReturnInvoice', 'reconcileInvoiceLock', 'updateInvoiceStatusFromPayments', 'billingPaymentEmail'],
+        'overlap' => ['bulk_mark_paid', 'bulk_delete_invoice', 'bulk_cancel_invoice', 'bulk_mark_sent', 'bulk_email_invoice', 'invoice_bulk'],
+    ],
     'timesheets' => [
         'name' => 'Timesheets, payroll, leave, California rules, holidays, reimbursements',
         'files' => ['functions/mit_timesheet*.php', 'functions/mit_ts_*.php', 'functions/mit_leave.php', 'functions/mit_reimbursements.php',
@@ -390,9 +402,10 @@ return [
         'name' => 'AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall',
         'files' => ['functions/mit_ai_*.php', 'admin/mit_ai_helper.php', 'admin/post/mit_ai_helper.php', 'agent/mit_ai_ajax.php', 'agent/js/mit_ai_helper.js',
             'agent/modals/mit_ai/*.php', 'cron/mit_ai_index.php'],
-        'tests' => ['tests/smoke/3[2-5]-ai-*.spec.js', 'tests/scenarios/scenario-ai-*.php'],
+        'tests' => ['tests/smoke/3[2-5]-ai-*.spec.js', 'tests/smoke/69-ai-pictures.spec.js', 'tests/scenarios/scenario-ai-*.php'],
         'assumes' => [
             'ITFlow\'s AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).',
+            'callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.',
             'Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.',
         ],
         'watch' => ['callAiApi', 'aiRedact', 'getAiModel', 'aiCleanHtml', 'aiDocumentSplit', 'document_form.php'],

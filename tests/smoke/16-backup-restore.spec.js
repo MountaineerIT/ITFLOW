@@ -164,7 +164,8 @@ test('restore: a big backup goes up in pieces and is put back together', async (
         };
         const start = await post({ mit_backup_chunk_start: 1, name: 'big.zip', size: blob.size });
         if (!start.id) return { error: start.error || 'no start' };
-        const piece = 1024 * 1024;
+        // 1 MB pieces - smaller for a small install's backup (a fresh test install's is a few hundred KB), so it always takes several
+        const piece = Math.min(1024 * 1024, Math.max(65536, Math.ceil(blob.size / 4)));
         let pieces = 0;
         for (let offset = 0; offset < blob.size; offset += piece) {
             const r = await post({ mit_backup_chunk: 1, id: start.id, offset }, blob.slice(offset, offset + piece));

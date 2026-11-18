@@ -56,6 +56,8 @@ model: see DEPLOYMENT.md.
   names the vault or another secret store, uses `SELECT *`, or touches a table not on its list - a new table is a deliberate, reviewed
   change there. `tests/scenarios/scenario-ai-wall.php` plants canary secrets (vault row, ticket notes, a document) and proves none reach
   the library, a search or the AI provider. Never weaken any of this to make a feature work; ask the user instead.
+  The one exception the user chose (Nov 17, 26.11.8.5): pictures an agent adds to an Ask AI question go to the provider as they are (a picture
+  can't be scrubbed) - with a warning beside them, never stored, never in the library; the question's text is still cleaned.
 - Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
   install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
   before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.
@@ -90,6 +92,11 @@ model: see DEPLOYMENT.md.
   refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
   off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
   line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
+- Rebuilding the test install (Nov 17, 26.11.8.5 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
+  base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
+  granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,
+  `tests/smoke/.env`. Run scenarios / smoke with `TZ=America/Los_Angeles` and the local hosts in `NO_PROXY`. The outside-service stand-ins
+  (qbo-mock, ninja-mock, usage-mock, ct-mock, align-mock, ai-mock, ollama-mock, the Graph mock in /srv/mockms) were never in the repo - their tests skip.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
@@ -260,6 +267,10 @@ model: see DEPLOYMENT.md.
   carry their own zone), Outlook sync, clashes, Left behind and the week stats stay on company time. Known gap: a weekday repeat (`repeat_on`)
   picked for an event whose Tokyo day differs from the company day follows the company day. Smoke `95-time-zones.spec.js`, scenario
   `scenario-zones.php`.
+  Onsite strip (26.11.8.5, the user's pick of mock-ups - "C2"): a booking whose icon is fa-car (ticket or helper, onsite) gets `data-mit-onsite`
+  (eventDidMount in `agent/js/calendar.js` - blocks only, `mitStriped` - and `agent/js/mit_dispatch.js`, plus its week chips) - CSS in the style blocks of
+  `agent/calendar.php` / `agent/mit_dispatch.php`: a 15 px orange (#ff9f1a) `::before` strip with Font Awesome 5's car glyph, the content pushed down.
+  Smoke `68-onsite-strip.spec.js`.
   Short bookings (26.10.181): FullCalendar v7 centres a time-grid event's content, so a 30-minute block's text ran out above and below it -
   one rule in `agent/calendar.php`'s style block (`:has(> .itflow-cal-event.is-timegrid)`: top-aligned, overflow hidden); smoke: last test of 08.
   The name must start with `timeGrid`: calendar.js's eventContent / mitStriped check `view.indexOf('timeGrid') === 0` to draw
@@ -776,7 +787,8 @@ model: see DEPLOYMENT.md.
   reactivated) or one made (NonInventory for product_type 'product', else Service - never Inventory) on its category's account and mapped; no product ->
   item with the line's name, else the category's own "<category> (ITFlow)" item (made once, id kept in mit_qbo_category_accounts; changing the category's
   account moves it), else the fallback item, else "Sales (ITFlow)" on the default account (qbo_default_item). Items are made only while `qbo_create_items`
-  is on (default), at send; the batch page lists them first (`mitQboBatchItemPlan`, `[data-mit-qbo-item-plan]`). Mapped items keep their own account.
+  is on (default), at send; the batch page lists them first (`mitQboBatchItemPlan`, `[data-mit-qbo-item-plan]`). A product's item follows its category (26.11.8.5, the user's request - a product's category changed in ITFlow left its item, and so the GL, on the old account): at send `mitQboLineItem`'s `$follow` moves a mapped / linked product item whose QuickBooks income account (`mitQboList` items keep `account`) differs from its category's own account (`mitQboItemSetAccount`, audit-logged); the batch page lists it first (plan type 'Move', `[data-mit-qbo-plan-move]`). Not for a category without its own account (the default) or an item two products share. Invoices already in QuickBooks keep the account they were booked to.
+  QuickBooks' invoice email (26.11.8.5, the user's choice - ITFlow's own invoice emails left as they are, primary + billing): `mitQboClientEmails` = the client's billing contacts (ITFlow's Billing tick) only, else the primary contact. Scenario `scenario-qbo-billing-email.php`. Lines with no product (typed, older recurring lines) take the product of the same name (`mitQboLineProductsByName` - one unarchived product, case / spaces ignored; never written onto the line - ITFlow would move stock): `mitQboLineCategories` how 'name' (after part, before the line's own category - the user's request: changing a product's category moves every draft / unbatched line live), badge "from the product of that name", and `mitQboLinesForItems` sends them as that product (its item, `$follow`) in the payload and the batch plan.
   Settings on Admin > Integrations > QuickBooks Online > Income accounts tab (`[data-mit-qbo-accounts]`, handler `mit_qbo_save_accounts` ->
   `mitQboAccountsSave`; qbo_time_category = ticket time's category). Hooks, one line each: `mitQboLineCategoryField` in
   `agent/modals/billing/billing_item.php` (invoices, after our quote line fields), `mitQboLineCategorySave` in `agent/post/billing.php` billing_item_save,
@@ -1353,7 +1365,7 @@ model: see DEPLOYMENT.md.
     submitted / approved day of the driver's timesheet). Purchases always become expenses while ITFlow pays back (category optional -
     "- None -"; Accounting switch not needed), described "Paid by <name>: ...", reference "Ticket purchase <id>". One mileage rate: Admin >
     Timesheets saves ours and ITFlow's `config_mileage_rate` (ITFlow's Log a trip offers "In their own vehicle" only while that is set;
-    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). Labels follow ITFlow: "Trips > To pay back", "Expenses >
+    warning `[data-mit-rate-missing]`, and `[data-mit-account-missing]` for payroll). No mileage rate (26.11.8.5 - production ran without one after 26.11, so ITFlow hid Log a trip's own-vehicle switch and nothing reached timesheets): `mitReimbRateMissing` / `mitReimbTripRateNote` (one line in `agent/modals/trip/trip_form.php` before the bill box - `[data-mit-trip-rate-missing]`) and the timesheet box's `[data-mit-ts-rate-missing]`; with a rate, the box still counts the period's company-vehicle trips (`mitReimbCompanyTrips`, `[data-mit-ts-company-trips]`). Scenario `scenario-ts-rate-missing.php`. Labels follow ITFlow: "Trips > To pay back", "Expenses >
     To reimburse"; boxes "Mileage and purchases" (timesheet), "Mileage & purchases" (ticket, standalone). Smoke `29-payroll-payback.spec.js`.
   - Settings pages are ITFlow's settings frame: our notification rows count as changes (`mitNotificationsSave` returns lines for
     `settingsSave`'s `$also_changed` - one line in `admin/post/settings_notification.php`); company logo field `company_logo`; Theme saves
@@ -1496,6 +1508,14 @@ model: see DEPLOYMENT.md.
   technician, thumbs, monthly limit, off, delete); smoke `33-ai-panel.spec.js`.
   Look (26.11.2.7, the user's choice - like Quick ticket): a floating window - `.mit-ai-panel.offcanvas-end` inset .75rem, 16px corners, dark title
   bar `.mit-ai-head` (`--mit-side`, else #212529) with `.mit-ai-head-btn` buttons - in the style block of `agent/js/mit_ai_helper.js`; smoke: first test of 33.
+  Pictures (26.11.8.5, the user's choice - sent as they are with a warning, not kept): up to `MIT_AI_IMAGES_MAX` 3 a question - the panel's picture
+  button (`[data-mit-ai-attach]` / `[data-mit-ai-file]`), paste in the question box or a drop on the form; thumbnails `[data-mit-ai-pic]` with
+  `[data-mit-ai-pic-remove]` and the warning `[data-mit-ai-pic-warning]`; posted as `images[]` with ask. `mitAiImagesFromUpload` -> `mitAiImageData`
+  (GD re-draw - pixels only, at most 1600 a side, PNG / JPEG data: address, 10 MB upload max, JPG / PNG / GIF / WebP); `mitAiAsk(..., $images)` sends
+  the last user message in OpenAI parts (text + image_url); an empty question with a picture = `MIT_AI_IMAGE_QUESTION`; kept question gets "(A picture
+  was sent with this question - not kept.)"; a refused request says a model that reads pictures is needed. Hook: one branch in ITFlow's `callAiApi`
+  redaction loop (`functions/ai.php`) - a message in parts has its text parts redacted. Scenario `scenario-ai-pictures.php` (a throw-away stand-in
+  file in the install records what is sent), smoke `69-ai-pictures.spec.js` (same, `ITFLOW_ROOT`).
   The panel's markup is `hidden` until the script has moved it to <body> (26.10.158 - Bootstrap draws an `.offcanvas` inside an expanded navbar
   as part of the bar, so it flashed in the top bar on every page load); smoke: first test of `33-ai-panel.spec.js`.
   Name (26.10.158): `mit_settings` ai_helper_name -> `mitAiName()` (letters / digits / space / . - ' only, 30 max, "AI" when empty) - the
@@ -1763,6 +1783,17 @@ model: see DEPLOYMENT.md.
   month) / the cost per hour of the agents who worked for the client (their labor / costed hours; none = the report's blended rate, else the
   default), "Over" badge + "Over break-even" count; columns after Recurring / month. Still Financial-only, as ITFlow has it. Scenario `scenario-client-profit.php`,
   smoke `36-client-profit.spec.js`.
+- Invoice bulk actions (Nov 17, 26.11.8.5 - the user's request: ITFlow's Bulk Action menu only set a category): `functions/mit_invoice_bulk.php` (ours,
+  required from mit_common.php), no tables. `mitInvoiceBulkMenu()` - one line after Set Category in `agent/invoices.php`'s Bulk Action menu - adds Mark
+  Sent / Send by Email / Mark Paid / Cancel / Delete (`[data-mit-invoice-bulk]`, ITFlow's data-bulk links) opening `agent/modals/mit_invoice/bulk.php`
+  (the invoices it changes, the ones left alone with why - `mitInvoiceBulkPlan` / `mitInvoiceBulkWhyNot`; only the changed ones are posted), handler
+  `agent/post/mit_invoice_bulk.php` -> `mitInvoiceBulkRun` (each invoice re-checked; done as ITFlow's own handler: mark_invoice_sent, email_invoice quick
+  send, add_payment for the balance under `mitLock("invoice_pay_<id>")` with one receipt per client, cancel_invoice, delete_invoice - copies, re-check
+  them after a merge). The ticked ids never ride in the window's address (500 gave Apache's 414 - "Error loading modal content"): the menu's script
+  POSTs them to `agent/mit_invoice_bulk_ajax.php` (`mitInvoiceBulkRemember` - session, newest 5 sets), the window opens with `?set=<token>`
+  (`mitInvoiceBulkRecall`) and its form posts `mit_bulk_set` (the ones to change) - no 500 hidden fields near max_input_vars. Permissions as the invoice page (`mitInvoiceBulkCan`: Sales 2, Mark Paid + billingMoneyCan('take'), Delete Sales 3, Email hidden
+  while QuickBooks is connected); QuickBooks-batched invoices and clients out of reach are left alone. Scenario `scenario-invoice-bulk.php`, smoke
+  `67-invoice-bulk.spec.js` (second test: 520 ticked at once).
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

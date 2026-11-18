@@ -5,6 +5,10 @@
  */
 require __DIR__ . '/bootstrap.php';
 $stamp = date('His');
+if (!mitProjectTicketsApart()) {
+    echo "  skip - project tickets not kept apart\n";
+    exit(0);   // before anything is made (exit() inside try skips finally)
+}
 [$client_id, $contact_id] = scenarioMakeClient("ZZ Picks $stamp");
 mysqli_query($mysqli, "INSERT INTO projects SET project_prefix = 'PRJ-', project_number = 77$stamp, project_name = 'ZZ picks project', project_client_id = $client_id");
 $project = mysqli_insert_id($mysqli);
@@ -14,10 +18,6 @@ $_SESSION['user_id'] = 1;
 try {
     $t = scenarioMakeTicket($client_id, $contact_id, ['ticket_project_id' => $project]);
     applyTicketSla($t);
-    if (!mitProjectTicketsApart()) {
-        echo "  skip - project tickets not kept apart\n";
-        exit(0);
-    }
     $sla = intval(scenarioValue("SELECT sla_id FROM slas WHERE sla_archived_at IS NULL LIMIT 1"));
     // lookupUserPermission / hasClientAccess read the session: an admin
     [$code, $out] = mitTicketPickSet('mit_sla', (string) $sla, [$t]);

@@ -67,14 +67,17 @@ if ($waiting && $connected && function_exists('mitQboBatchItemPlan')) {
     <div class="card-body">
         <?php if ($item_plan) { ?>
             <div class="alert alert-info" data-mit-qbo-item-plan>
-                <div class="fw-semibold mb-1"><i class="fas fa-plus-circle me-2"></i>Sending makes <?= count($item_plan) ?> item<?= count($item_plan) === 1 ? '' : 's' ?> in QuickBooks</div>
+                <?php $mit_moves = count(array_filter($item_plan, function ($row) { return $row['type'] === 'Move'; })); $mit_makes = count($item_plan) - $mit_moves; ?>
+                <div class="fw-semibold mb-1"><i class="fas fa-plus-circle me-2"></i>Sending <?= implode(' and ', array_filter([
+                    $mit_makes ? 'makes ' . $mit_makes . ' item' . ($mit_makes === 1 ? '' : 's') : '',
+                    $mit_moves ? 'moves ' . $mit_moves . ' item' . ($mit_moves === 1 ? '' : 's') . ' to its category\'s income account' : ''])) ?> in QuickBooks</div>
                 <table class="table table-sm mb-1 small bg-transparent">
                     <thead><tr><th>Item</th><th>Type</th><th>Income account</th><th>For</th><th>Invoices</th></tr></thead>
                     <tbody>
                     <?php foreach ($item_plan as $row) { ?>
-                        <tr data-mit-qbo-plan-item>
+                        <tr data-mit-qbo-plan-item<?= $row['type'] === 'Move' ? ' data-mit-qbo-plan-move' : '' ?>>
                             <td><?= escapeHtml($row['name']) ?></td>
-                            <td><?= $row['type'] === 'NonInventory' ? 'Non-inventory' : 'Service' ?></td>
+                            <td><?= $row['type'] === 'Move' ? 'Account change' : ($row['type'] === 'NonInventory' ? 'Non-inventory' : 'Service') ?></td>
                             <td><?= escapeHtml($row['account']) ?></td>
                             <td><?= escapeHtml($row['for']) ?></td>
                             <td><?= escapeHtml(implode(', ', array_slice($row['invoices'], 0, 5)) . (count($row['invoices']) > 5 ? ' and ' . (count($row['invoices']) - 5) . ' more' : '')) ?></td>

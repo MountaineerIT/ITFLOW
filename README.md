@@ -48,7 +48,7 @@ ITFlow keeps an MSP's client documentation, tickets, quotes, invoices and expens
 follows ITFlow's releases and adds what we need to run our own service desk. Everything ITFlow does still works the same way;
 our additions sit beside it and can be switched off.
 
-Each version is ITFlow's release plus our own number (for example **26.11.8.2** = ITFlow 26.11.8, our 2nd update on it). Admin >
+Each version is ITFlow's release plus our own number (for example **26.11.8.5** = ITFlow 26.11.8, our 5th update on it). Admin >
 Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 
 ## A look around
@@ -101,22 +101,29 @@ Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 - "Resolve - no response" with its own wording, and per-event notification switches
 - Statuses that meet the SLA response target - moving a new ticket to "Assigned" (say) emails the client a "ticket assigned"
   message you write, and counts as the first response
+- A client's reply can move a ticket to any working status you choose (a "Client responded" status, say), not only back to Open
 - Project tickets kept off the service queue and SLA
 
 **Time and payroll**
 - Timesheets by pay period - ticket time filled in automatically, charge codes, approval, overtime and a payroll report
 - California rules for non-exempt staff (meal and rest periods, premiums, daily overtime, signed attestation)
-- Leave banks (PTO, sick) with accrual and carry-over; holidays; mileage and purchases paid back through payroll
+- Leave banks (PTO, sick) with accrual and carry-over; holidays; mileage and purchases paid back through payroll, with a warning
+  wherever trips can't be paid back because no mileage rate is set
 
 **Quotes, procurement and billing**
 - Quote pricing from cost (markup, margin or set price), a staff-only profit card, and images on lines and products
 - Procurement - items to order, purchase orders with approval, tracking, receiving into stock, assets or ticket parts; PO lines
-  can be put on a project at any time
+  can be put on a project at any time, and a receipt made by mistake can be undone
+- Invoices, quotes and recurring invoices keep the full add-a-line row (item, description, quantity, our cost and markup on quotes,
+  price, tax) under ITFlow's in-page editing
+- More bulk actions on the invoices list - Mark Sent, Send by Email, Mark Paid (each paid in full), Cancel and Delete, each window
+  saying which invoices it leaves alone and why
 - Several offices - each agent's trips start from their office, their ticket emails show its address and phone, and POs ship to any office
 - Parts on tickets, billed from To Bill on the same invoice as the ticket's time, expenses and travel
 - QuickBooks Online - invoice approval, batches sent to QuickBooks, payments brought back; each line goes to the income
-  account of its category (hardware and labor on one invoice land in both), missing items are made, and terms go with every
-  invoice - a client default (Net 30, Due on the 1st ...) that one invoice can change
+  account of its category (hardware and labor on one invoice land in both) and follows a product's category when it changes,
+  typed lines take the category of the product with the same name, missing items are made, invoices are emailed to the client's
+  billing contact, and terms go with every invoice - a client default (Net 30, Due on the 1st ...) that one invoice can change
 - Usage billing in ITFlow's own "Quantity from" - a recurring line billed by a count from NinjaOne, Bitwarden, Ingram Micro or
   the API; Users / Devices lines can leave out placeholders ("Not tagged ...", or not tagged at all)
 - Recurring invoices made days ahead of their date, due on that date or on the client's terms from it

@@ -12,6 +12,14 @@ if (!mitReimbViaPayroll() || !mitReimbSettings()['account_id'] || mitReimbSettin
 }
 $rate = mitReimbSettings()['rate'];
 $admin_id = $GLOBALS['session_user_id'];
+// Skips first - before the test user, ticket and vendor are made (exit() would leave them behind).
+// The current pay period (an ended one has locked itself for the person after a few days)
+$period = mitTsPeriodFor();
+$day = function ($n) use ($period) { return date('Y-m-d', strtotime($period['start'] . " +$n days")); };
+if ($day(6) > date('Y-m-d')) {
+    echo "  skip - too early in the pay period\n";
+    exit(0);
+}
 mysqli_query($mysqli, "INSERT INTO users SET user_name = 'ZZ Scenario Driver', user_email = 'zz-driver@example.invalid', user_password = 'x', user_type = 1, user_status = 1, user_role_id = 2");
 $U = mysqli_insert_id($mysqli);
 mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $U, schedule = '0,0,0,0,0,0,0', pay_type = 'hourly', hire_date = '2026-01-01', ca_rules = 0, keeps_timesheet = 1");
@@ -21,14 +29,6 @@ $T = mysqli_insert_id($mysqli);
 $ticket = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT * FROM tickets WHERE ticket_id = $T"));
 mysqli_query($mysqli, "INSERT INTO vendors SET vendor_name = 'ZZ Scenario Shop', vendor_client_id = 0");
 $V = mysqli_insert_id($mysqli);
-// The current pay period (an ended one has locked itself for the person after a few days)
-$period = mitTsPeriodFor();
-$day = function ($n) use ($period) { return date('Y-m-d', strtotime($period['start'] . " +$n days")); };
-if ($day(6) > date('Y-m-d')) {
-    echo "  skip - too early in the pay period
-";
-    exit(0);
-}
 $as = function ($who) use ($U, $admin_id) {
     $GLOBALS['session_user_id'] = $who === 'person' ? $U : $admin_id;
     $GLOBALS['session_is_admin'] = $who !== 'person';

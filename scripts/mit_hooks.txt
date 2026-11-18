@@ -108,6 +108,7 @@ hook	agent/asset.php	mitNinjaAssetButton	2
 hook	agent/assets.php	mitAlignAssetBadge	2
 hook	agent/assets.php	mitClientTiles	2
 hook	agent/calendar.php	data-mit-agent	2
+hook	agent/calendar.php	data-mit-onsite	3
 hook	agent/calendar.php	data-mit-zone	1
 hook	agent/calendar.php	mit-cal-agent	1
 hook	agent/calendar.php	mit-cal-when	3
@@ -159,16 +160,19 @@ hook	agent/invoice.php	mitProcInvoiceSummary	1
 hook	agent/invoice.php	mitQboInvoiceBar	2
 hook	agent/invoice.php	mit_quotes	1
 hook	agent/invoice.php	mit_staff	1
+hook	agent/invoices.php	mitInvoiceBulkMenu	2
 hook	agent/invoices.php	mitQboListBadge	3
 hook	agent/invoices.php	mit_qbo_ids	2
 hook	agent/js/calendar.js	MountaineerIT	3
 hook	agent/js/calendar.js	data-mit-agent	1
+hook	agent/js/calendar.js	data-mit-onsite	1
 hook	agent/js/calendar.js	data-mit-zone	1
 hook	agent/js/calendar.js	mit-cal-agent	2
 hook	agent/js/calendar.js	mit-cal-when	1
 hook	agent/js/calendar.js	mit-tech-dot	1
 hook	agent/js/calendar.js	mitAgent	1
-hook	agent/js/calendar.js	mitStriped	3
+hook	agent/js/calendar.js	mitOnsite	1
+hook	agent/js/calendar.js	mitStriped	4
 hook	agent/js/calendar.js	mitZone	4
 hook	agent/js/calendar.js	mitZoneNow	2
 hook	agent/js/calendar.js	mit_calendar	2
@@ -235,6 +239,7 @@ hook	agent/modals/ticket/ticket_export.php	mitServiceUserSql	2
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyTimesEditField	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
+hook	agent/modals/trip/trip_form.php	mitReimbTripRateNote	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
 hook	agent/post/billing.php	mitPartLineQtyProblem	2
 hook	agent/post/billing.php	mitQboGuardInvoice	10
@@ -740,6 +745,7 @@ ours	agent/mit_dispatch.php
 ours	agent/mit_dispatch_ajax.php
 ours	agent/mit_feedback_ajax.php
 ours	agent/mit_invoice_approvals.php
+ours	agent/mit_invoice_bulk_ajax.php
 ours	agent/mit_ninjaone_ajax.php
 ours	agent/mit_procurement.php
 ours	agent/mit_purchase_order.php
@@ -756,6 +762,7 @@ ours	agent/mit_unbilled_parts.php
 ours	agent/mit_usage_review.php
 ours	agent/modals/mit_ai/document.php
 ours	agent/modals/mit_board/board_move.php
+ours	agent/modals/mit_invoice/bulk.php
 ours	agent/modals/mit_no_response/no_response.php
 ours	agent/modals/mit_procurement/from_invoice.php
 ours	agent/modals/mit_procurement/item.php
@@ -769,6 +776,7 @@ ours	agent/modals/mit_timesheet/leave.php
 ours	agent/modals/ticket/mit_ticket_tech.php
 ours	agent/post/mit_boards.php
 ours	agent/post/mit_event_agents.php
+ours	agent/post/mit_invoice_bulk.php
 ours	agent/post/mit_no_response.php
 ours	agent/post/mit_procurement.php
 ours	agent/post/mit_procurement_parts.php
@@ -821,6 +829,7 @@ ours	functions/mit_dispatch_workload.php
 ours	functions/mit_event_agents.php
 ours	functions/mit_feedback.php
 ours	functions/mit_invites.php
+ours	functions/mit_invoice_bulk.php
 ours	functions/mit_leave.php
 ours	functions/mit_left_behind.php
 ours	functions/mit_list_views.php
@@ -886,4 +895,5 @@ ours	scripts/mit_features.php
 ours	scripts/mit_hook_check.php
 ours	scripts/mit_hook_proof.php
 ours	scripts/mit_portability_check.php
+ours	scripts/mit_test_fixture.php
 ours	scripts/mit_upstream_impact.php

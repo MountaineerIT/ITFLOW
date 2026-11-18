@@ -8,13 +8,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 14 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 190 | 2 | 2 | 15 | 41 | 4 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 198 | 2 | 2 | 15 | 41 | 4 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
-| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 18 | 28 | 10 | 40 | 30 |
+| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 19 | 28 | 10 | 40 | 30 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 9 | 6 | 11 | 9 | 41 | 15 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 19 |
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 5 | 42 | 17 | 71 | 15 |
@@ -29,13 +29,14 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 20 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
-| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 24 | 56 | 20 | 89 | 17 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 9 | 16 | 14 | 71 | 25 |
+| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 4 | 2 | 31 | 11 | 31 | 1 |
+| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 25 | 56 | 20 | 89 | 18 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 12 | 10 | 16 | 14 | 71 | 25 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 11 | 4 | 18 | 15 | 53 | 7 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 6 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 5 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 4 | 1 | 10 | 7 | 11 | 9 |
-| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 11 | 24 | 11 | 43 | 3 |
+| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 10 | 13 | 24 | 12 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
@@ -140,7 +141,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_invoice_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
-**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`, `MIT_API.md`
+**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_test_fixture.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`, `MIT_API.md`
 
 <a id="dev_mode"></a>
 ## Development mode (a production copy on a test server) (`dev_mode`)
@@ -360,7 +361,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Attendee agents (calendar_event_attendees.attendee_user_id) are an entry's assignment.
 - Holidays are business_holidays (Admin > SLA closure days).
 
-**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-end.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-zones.php`
+**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/68-onsite-strip.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-end.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-zones.php`
 
 **Hooks in ITFlow's files**
 
@@ -536,9 +537,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/ajax.php`: mit_calendar, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: data-mit-agent, data-mit-zone, mit_calendar, mit_ticket_techs, mit_zones
+- `agent/calendar.php`: data-mit-agent, data-mit-onsite, data-mit-zone, mit_calendar, mit_ticket_techs, mit_zones
 - `agent/includes/side_nav.php`: mit_dispatch_nav
-- `agent/js/calendar.js`: data-mit-agent, data-mit-zone, mitAgent, mitZone, mit_calendar, mit_event_agents, mit_zones
+- `agent/js/calendar.js`: data-mit-agent, data-mit-onsite, data-mit-zone, mitAgent, mitOnsite, mitZone, mit_calendar, mit_event_agents, mit_zones
 - `agent/js/ticket_schedule_modal.js`: mit_calendar
 - `agent/modals/calendar/calendar_event_add.php`: mit_zones
 - `agent/modals/calendar/calendar_event_form.php`: mit_zones
@@ -1089,6 +1090,47 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Our files** `functions/mit_quick_ticket.php`, `agent/mit_quick_ticket_ajax.php`, `agent/js/mit_quick_ticket.js`
 
+<a id="invoice_bulk"></a>
+## More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete) (`invoice_bulk`)
+
+**Takes for granted**
+
+- agent/invoices.php has ITFlow's Bulk Action menu (#bulkActionButton, items with data-bulk="true" and data-modal-url) and ticks named invoice_ids[]; js/bulk_actions.js adds the ticked ids to the modal URL.
+- Each action copies ITFlow's own single-invoice handler (agent/post/invoice.php mark_invoice_sent / email_invoice quick send / cancel_invoice / delete_invoice, agent/post/payment.php add_payment) - re-check ours when those change (new rows to clear on delete, new history wording).
+- Mark Sent is for Draft, payments for invoiceOpenStatuses() with a balance, Cancel not for Cancelled / Paid / Non-Billable - the same rules agent/invoice.php shows its buttons by.
+
+**Tests** `tests/scenarios/scenario-invoice-bulk.php`, `tests/smoke/67-invoice-bulk.spec.js`
+
+**Hooks in ITFlow's files**
+
+- `agent/invoices.php`: mitInvoiceBulkMenu
+
+**ITFlow functions it calls**
+
+- `functions/app.php`: getSentMethods
+- `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
+- `functions/billing.php`: billingLog, billingMoney, billingMoneyCan, billingPdf, billingRow, enforceBillingMoney, invoiceOpenStatuses, paymentAccounts
+- `functions/billing_email.php`: billingEmailPdf, billingEmailQueue, billingEmailRecipients, billingInvoiceEmail, billingPaymentEmail, billingReminderRules
+- `functions/logging.php`: logAudit, logHistory, triggerCustomAction
+- `functions/payment_method.php`: paymentMethods
+- `functions/payments.php`: updateInvoiceStatusFromPayments
+- `functions/products.php`: productStockReturnInvoice
+- `functions/reconcile.php`: reconcileInvoiceLock
+- `functions/request.php`: flashAlert, redirect
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/security.php`: validateCSRFToken
+- `functions/sms.php`: smsInvoiceNotify
+
+**ITFlow tables** assets, clients, contacts, credentials, expenses, history, invoice_items, invoices, payments, tickets, trips
+
+**ITFlow columns** account_archived_at, account_name, asset_invoice_id, asset_invoice_item_id, client_id, client_name, config_smtp_provider, expense_invoice_id, expense_invoice_item_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_client_id, invoice_currency_code, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_invoice_id, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_invoice_id, payment_method, payment_reference, ticket_invoice_id, trip_invoice_id, trip_invoice_item_id
+
+**Watched in ITFlow's code** `bulkActionButton` `data-bulk="true"` `invoice_ids[]` `mark_invoice_sent` `productStockReturnInvoice` `reconcileInvoiceLock` `updateInvoiceStatusFromPayments` `billingPaymentEmail`
+
+**"ITFlow does this too" words** bulk_mark_paid, bulk_delete_invoice, bulk_cancel_invoice, bulk_mark_sent, bulk_email_invoice, invoice_bulk
+
+**Our files** `functions/mit_invoice_bulk.php`, `agent/modals/mit_invoice/bulk.php`, `agent/post/mit_invoice_bulk.php`, `agent/mit_invoice_bulk_ajax.php`
+
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)
 
@@ -1099,7 +1141,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Closure days are business_holidays (getBusinessHolidays, restampOpenSlaTickets).
 - change_client_ticket turns public replies internal (mitTsKeepPublicNotes runs first).
 
-**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
+**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-rate-missing.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
 
 **Hooks in ITFlow's files**
 
@@ -1107,6 +1149,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `admin/post/users.php`: mitTsSavePayType
 - `agent/ajax.php`: mit_ticket_layout
 - `agent/includes/side_nav.php`: mit_timesheet_nav
+- `agent/modals/trip/trip_form.php`: mitReimbTripRateNote
 - `agent/post/client.php`: mitTsDeleteGuard
 - `agent/post/ticket.php`: mitTsReplyTimeGuard
 - `agent/post/trip.php`: mitReimbTripLocked, mitReimbTripWhyLocked, mit_why
@@ -1160,7 +1203,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 - Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
 
 **Hooks in ITFlow's files**
 
@@ -1381,9 +1424,10 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Takes for granted**
 
 - ITFlow's AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).
+- callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.
 - Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.
 
-**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
+**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/smoke/69-ai-pictures.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-pictures.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
 
 **Hooks in ITFlow's files**
 
@@ -1404,7 +1448,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketUrl
 
-**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, folders, history, settings, tags, ticket_replies, tickets
+**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, settings, tags, ticket_replies, tickets
 
 **ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
 

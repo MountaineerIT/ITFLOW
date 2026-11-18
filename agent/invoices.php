@@ -276,6 +276,7 @@ $stat_money = function ($amount) use ($session_company_currency) {
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/invoice/invoice_bulk_edit_category.php" data-bulk="true">
                                         <i class="fas fa-fw fa-tag me-2"></i>Set Category
                                     </a>
+                                    <?= function_exists('mitInvoiceBulkMenu') ? mitInvoiceBulkMenu() : '' // Mountaineer IT: mark sent / paid, email, cancel, delete ?>
                                 </div>
                             </div>
                         <?php } ?>

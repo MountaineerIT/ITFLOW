@@ -18,6 +18,12 @@
 const MIT_AI_HISTORY_TURNS = 6;          // earlier messages sent with a question
 const MIT_AI_TICKET_CHARS = 8000;        // the current ticket, at most (its start and latest)
 const MIT_AI_QUESTION_CHARS = 2000;
+// Pictures with a question (26.11.8.5, the user's choice): sent to the AI provider as they are - a picture can't be cleaned of passwords the way
+// text is, so the panel says so beside the button - used for that one question and never kept (the stored question says a picture went with it)
+const MIT_AI_IMAGES_MAX = 3;
+const MIT_AI_IMAGE_MAX_BYTES = 10485760; // what is uploaded; each is re-drawn smaller before it is sent
+const MIT_AI_IMAGE_MAX_SIDE = 1600;
+const MIT_AI_IMAGE_QUESTION = 'What does this show, and how do I fix it?';
 const MIT_AI_FEATURES = ['mit_ai_helper', 'mit_ai_embed', 'mit_ai_document'];
 
 /** Has M045 run? */
@@ -186,8 +192,78 @@ function mitAiSystemPrompt() {
  * Ask: [ok, conversation_id, messages (the question and the answer as the panel draws them) | error]. $conversation_id 0 = a new one,
  * about $ticket_id when given (and the agent may open it). The question is cleaned before anything else happens to it.
  */
-function mitAiAsk($conversation_id, $question, $ticket_id = 0) {
+/**
+ * An uploaded picture as a data: address for the AI provider - re-drawn by GD (only the pixels go: no metadata, nothing hidden after the
+ * image), at most MIT_AI_IMAGE_MAX_SIDE a side, PNG when it has see-through parts, else JPEG. Throws with a message for the agent.
+ */
+function mitAiImageData($bytes) {
+    if (strlen($bytes) === 0 || strlen($bytes) > MIT_AI_IMAGE_MAX_BYTES) {
+        throw new RuntimeException('A picture is empty or bigger than ' . (MIT_AI_IMAGE_MAX_BYTES / 1048576) . ' MB.');
+    }
+    $info = @getimagesizefromstring($bytes);
+    if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP], true)) {
+        throw new RuntimeException('Pictures must be JPG, PNG, GIF or WebP.');
+    }
+    if ($info[0] * $info[1] > 25000000) {
+        throw new RuntimeException('A picture is too large to work with.');
+    }
+    $source = @imagecreatefromstring($bytes);
+    if (!$source) {
+        throw new RuntimeException('A picture could not be read.');
+    }
+    $width = imagesx($source);
+    $height = imagesy($source);
+    $scale = min(1, MIT_AI_IMAGE_MAX_SIDE / max($width, $height));
+    $w = max(1, (int) round($width * $scale));
+    $h = max(1, (int) round($height * $scale));
+    $alpha = $info[2] !== IMAGETYPE_JPEG;
+    $image = imagecreatetruecolor($w, $h);
+    if ($alpha) {
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 255, 255, 255, 127));
+    }
+    imagecopyresampled($image, $source, 0, 0, 0, 0, $w, $h, $width, $height);
+    ob_start();
+    $alpha ? imagepng($image, null, 6) : imagejpeg($image, null, 85);
+    $out = (string) ob_get_clean();
+    imagedestroy($image);
+    imagedestroy($source);
+    return 'data:image/' . ($alpha ? 'png' : 'jpeg') . ';base64,' . base64_encode($out);
+}
+
+/** The pictures sent with a question ($_FILES['images'] as PHP gives it) as data: addresses. Throws with a message for the agent. */
+function mitAiImagesFromUpload($files) {
+    if (empty($files) || !isset($files['tmp_name'])) {
+        return [];
+    }
+    $out = [];
+    foreach ((array) $files['tmp_name'] as $i => $tmp) {
+        $error = intval(((array) $files['error'])[$i] ?? UPLOAD_ERR_NO_FILE);
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if ($error !== UPLOAD_ERR_OK || !is_uploaded_file($tmp)) {
+            throw new RuntimeException($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE ? 'A picture is too big to upload.' : 'A picture did not upload - try again.');
+        }
+        if (count($out) >= MIT_AI_IMAGES_MAX) {
+            throw new RuntimeException('Up to ' . MIT_AI_IMAGES_MAX . ' pictures a question.');
+        }
+        $out[] = mitAiImageData((string) file_get_contents($tmp));
+    }
+    return $out;
+}
+
+/**
+ * Ask. $images: data: addresses (mitAiImagesFromUpload) sent with this question only, as they are; the question itself is still cleaned.
+ * A question may be left empty when pictures go with it (MIT_AI_IMAGE_QUESTION).
+ */
+function mitAiAsk($conversation_id, $question, $ticket_id = 0, array $images = []) {
     global $mysqli, $session_user_id;
+    $images = array_slice(array_values(array_filter($images, fn($i) => is_string($i) && strpos($i, 'data:image/') === 0)), 0, MIT_AI_IMAGES_MAX);
+    if ($images && trim((string) $question) === '') {
+        $question = MIT_AI_IMAGE_QUESTION;
+    }
     if (!mitAiAskCan()) {
         return [false, 0, 'The AI helper is not available to you - it is off, or no AI model is set up, or your role has no Use AI permission.'];
     }
@@ -252,14 +328,28 @@ function mitAiAsk($conversation_id, $question, $ticket_id = 0) {
             $messages[] = ['role' => $turn['role'] === 'assistant' ? 'assistant' : 'user', 'content' => $turn['content']];
         }
     }
-    $messages[] = ['role' => 'user', 'content' => "Question: $question\n\n$context"];
+    $text = "Question: $question\n\n$context";
+    if ($images) {
+        // The OpenAI-style parts most providers take for a model that reads pictures (callAiApi still redacts the text part)
+        $parts = [['type' => 'text', 'text' => (count($images) === 1 ? 'A picture goes with this question (a screenshot or photo from the agent).' : count($images) . ' pictures go with this question (screenshots or photos from the agent).')
+            . " Read any error message, code or setting in it, and use it with the passages.\n\n$text"]];
+        foreach ($images as $data) {
+            $parts[] = ['type' => 'image_url', 'image_url' => ['url' => $data]];
+        }
+        $messages[] = ['role' => 'user', 'content' => $parts];
+    } else {
+        $messages[] = ['role' => 'user', 'content' => $text];
+    }
 
     $model = getAiModel('Tickets');
     $result = callAiApi($model, $messages, ['feature' => 'mit_ai_helper', 'client_id' => $client_id, 'secrets' => 'remove']);
     if (empty($result['ok'])) {
-        return [false, $conversation_id, $result['error'] ?? 'The AI provider did not answer.'];
+        return [false, $conversation_id, ($result['error'] ?? 'The AI provider did not answer.')
+            . ($images ? ' Pictures need a model that can read them - pick one on Admin > AI Providers (Tickets), or ask without the picture.' : '')];
     }
     [$answer] = mitAiScrub(trim((string) $result['content']));
+    // Kept as text only: the picture is not stored, the question says one went with it
+    $kept_question = $images ? $question . "\n\n(" . (count($images) === 1 ? 'A picture was' : count($images) . ' pictures were') . ' sent with this question - not kept.)' : $question;
 
     // Keep the turn
     $esc = fn($v) => "'" . mysqli_real_escape_string($mysqli, (string) $v) . "'";
@@ -270,7 +360,7 @@ function mitAiAsk($conversation_id, $question, $ticket_id = 0) {
     } else {
         mysqli_query($mysqli, "UPDATE mit_ai_conversations SET updated_at = NOW() WHERE conversation_id = $conversation_id");
     }
-    mysqli_query($mysqli, "INSERT INTO mit_ai_messages SET conversation_id = $conversation_id, role = 'user', content = " . $esc($question));
+    mysqli_query($mysqli, "INSERT INTO mit_ai_messages SET conversation_id = $conversation_id, role = 'user', content = " . $esc($kept_question));
     $question_id = intval(mysqli_insert_id($mysqli));
     mysqli_query($mysqli, "INSERT INTO mit_ai_messages SET conversation_id = $conversation_id, role = 'assistant', content = " . $esc($answer) . ", sources = " . $esc(json_encode($sources)));
     $answer_id = intval(mysqli_insert_id($mysqli));
@@ -345,8 +435,13 @@ function mitAiPanelNav() {
         . '<form class="border-top p-2" data-mit-ai-form>'
         . ($ticket ? '<div class="form-check small mb-1"><input class="form-check-input" type="checkbox" id="mitAiAbout" data-mit-ai-about checked>'
             . '<label class="form-check-label" for="mitAiAbout">About this ticket</label></div>' : '')
-        . '<div class="d-flex gap-2"><textarea class="form-control form-control-sm" rows="2" maxlength="' . MIT_AI_QUESTION_CHARS . '" placeholder="Ask a question..." data-mit-ai-question></textarea>'
-        . '<button type="submit" class="btn btn-primary btn-sm" data-mit-ai-send title="Ask"><i class="fas fa-paper-plane"></i></button></div></form>'
+        . '<div class="mit-ai-pics mb-1" data-mit-ai-pics hidden><div class="d-flex flex-wrap gap-1" data-mit-ai-pic-list></div>'
+        . '<div class="small text-warning-emphasis mt-1" data-mit-ai-pic-warning><i class="fas fa-exclamation-triangle me-1"></i>Pictures go to the AI provider as they are - '
+        . 'crop out or cover any password, key or customer detail first. They are not kept.</div></div>'
+        . '<div class="d-flex gap-2"><textarea class="form-control form-control-sm" rows="2" maxlength="' . MIT_AI_QUESTION_CHARS . '" placeholder="Ask a question - or paste a screenshot (Ctrl+V)..." data-mit-ai-question></textarea>'
+        . '<div class="d-flex flex-column gap-1"><button type="button" class="btn btn-outline-secondary btn-sm" data-mit-ai-attach title="Add a picture (screenshot or photo) - up to ' . MIT_AI_IMAGES_MAX . '"><i class="fas fa-image"></i></button>'
+        . '<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden data-mit-ai-file>'
+        . '<button type="submit" class="btn btn-primary btn-sm" data-mit-ai-send title="Ask"><i class="fas fa-paper-plane"></i></button></div></div></form>'
         . '</div></div>'
         . '<script src="' . mitAsset('/agent/js/mit_ai_helper.js') . '" defer></script>'
         . '</li>';

@@ -334,7 +334,9 @@ function callAiApi($model, $messages, array $context = []) {
     $secrets = [];
     if (!empty($model['ai_provider_redact'])) {
         foreach ($messages as $i => $message) {
-            if ($message['role'] !== 'system') {
+            if ($message['role'] !== 'system' && is_array($message['content'])) { // Mountaineer IT: a message in parts (text + pictures - Ask AI) - redact the text parts
+                foreach ($message['content'] as $k => $part) { if (($part['type'] ?? '') === 'text') { [$messages[$i]['content'][$k]['text']] = aiRedact((string) $part['text'], $secrets); } }
+            } elseif ($message['role'] !== 'system') {
                 [$messages[$i]['content']] = aiRedact($message['content'], $secrets);
             }
         }

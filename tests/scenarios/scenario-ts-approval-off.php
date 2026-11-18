@@ -25,16 +25,17 @@ try {
         echo "  skip - approval could not be switched off here (settings read already) or pay back is not payroll\n";
         exit(0);
     }
-    mysqli_query($mysqli, "INSERT INTO users SET user_name = 'ZZ No Approval', user_email = 'zz-noappr@example.invalid', user_password = 'x', user_type = 1, user_status = 1, user_role_id = 2");
-    $U = mysqli_insert_id($mysqli);
-    mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $U, schedule = '0,0,0,0,0,0,0', pay_type = 'hourly', hire_date = '2026-01-01', ca_rules = 0, keeps_timesheet = 1");
-    $client = scenarioClient();
+    // Every skip before the test user is made (exit() inside try skips finally - the user was left behind)
     $last = mitTsPeriodShift(mitTsPeriodFor(), -1);
     $wait = mitTsSettings()['autolock_days'] ?: 7;
     if (date('Y-m-d') <= date('Y-m-d', strtotime($last['end'] . " +$wait days"))) {
         echo "  skip - the last period has not settled yet\n";
         exit(0);
     }
+    mysqli_query($mysqli, "INSERT INTO users SET user_name = 'ZZ No Approval', user_email = 'zz-noappr@example.invalid', user_password = 'x', user_type = 1, user_status = 1, user_role_id = 2");
+    $U = mysqli_insert_id($mysqli);
+    mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $U, schedule = '0,0,0,0,0,0,0', pay_type = 'hourly', hire_date = '2026-01-01', ca_rules = 0, keeps_timesheet = 1");
+    $client = scenarioClient();
     $trip = function ($date, $miles) use ($mysqli, $U, $client) {
         mysqli_query($mysqli, "INSERT INTO trips SET trip_date = '$date', trip_purpose = 'ZZ', trip_source = 'A', trip_destination = 'B', trip_miles = $miles, round_trip = 0,
             trip_user_id = $U, trip_client_id = $client, trip_own_vehicle = 1");

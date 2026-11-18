@@ -260,6 +260,45 @@ function mitReimbItflowRate() {
 }
 
 /**
+ * ITFlow's mileage rate is missing (26.11.8.5): ITFlow then hides Log a trip's "In their own vehicle" switch, so every trip is a company-vehicle
+ * trip and nothing reaches a timesheet - production ran like that unnoticed after the 26.11 update. True only while ITFlow pays people back.
+ */
+function mitReimbRateMissing() {
+    return mitReimbItflowPaysBack() && function_exists('tripRules') && mitReimbItflowRate() <= 0;
+}
+
+/** Where an admin sets the rate (both rates at once), as a link - plain text for everyone else. */
+function mitReimbRateWhere() {
+    return !empty($GLOBALS['session_is_admin'])
+        ? '<a href="/admin/mit_timesheets.php?tab=settings">Admin &gt; Timesheets (Reimbursements)</a>'
+        : 'Admin &gt; Timesheets (Reimbursements) - ask an admin';
+}
+
+/**
+ * The note in ITFlow's trip window where its "In their own vehicle" switch would be (agent/modals/trip/trip_form.php, one line): shown only
+ * while the switch is hidden because no mileage rate is set.
+ */
+function mitReimbTripRateNote($switch_shown) {
+    if ($switch_shown || !mitReimbRateMissing()) {
+        return '';
+    }
+    return '<div class="col-12"><div class="alert alert-warning small py-2 mb-0" data-mit-trip-rate-missing><i class="fas fa-car-side me-1"></i>'
+        . 'No mileage rate is set, so this trip can\'t be marked as driven in your own vehicle and won\'t be paid back on your timesheet. Set the rate in '
+        . mitReimbRateWhere() . ', then open the trip again and switch on "In their own vehicle".</div></div>';
+}
+
+/** A person's trips in a period saved as company-vehicle trips (not paid back): [count, miles]. */
+function mitReimbCompanyTrips($user_id, $from, $to) {
+    global $mysqli;
+    if (!mitReimbItflowPaysBack()) {
+        return [0, 0.0];
+    }
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*), COALESCE(SUM(trip_miles), 0) FROM trips WHERE trip_own_vehicle = 0 AND trip_archived_at IS NULL
+        AND trip_miles > 0 AND trip_user_id = " . intval($user_id) . " AND trip_date BETWEEN '" . escapeSql($from) . "' AND '" . escapeSql($to) . "'"));
+    return [intval($row[0] ?? 0), (float) ($row[1] ?? 0)];
+}
+
+/**
  * The settings: rate per mile (0 = not set - ITFlow's own rate when it has one, so the timesheet shows what ITFlow will pay),
  * and the expense category and account purchases are recorded under (no account once ITFlow pays back - paid personally).
  */
@@ -1070,8 +1109,22 @@ function mitReimbTimesheetBox($user_id, array $period) {
         return '';
     }
     $items = mitReimbItems([$user_id], $period['start'], $period['end'])[intval($user_id)] ?? [];
+    // Trips saved as company-vehicle trips are not paid back - say so, above all when no rate is set (then every trip is one)
+    [$company_trips, $company_miles] = mitReimbCompanyTrips($user_id, $period['start'], $period['end']);
+    $warn = '';
+    if (mitReimbRateMissing()) {
+        $warn = '<div class="alert alert-warning small rounded-0 border-0 border-bottom py-2 mb-0" data-mit-ts-rate-missing><i class="fas fa-exclamation-triangle me-1"></i>'
+            . 'No mileage rate is set, so trips can\'t be marked as driven in your own vehicle and none are paid back'
+            . ($company_trips ? ' - ' . $company_trips . ' trip' . ($company_trips === 1 ? '' : 's') . ' (' . rtrim(rtrim(number_format($company_miles, 1), '0'), '.') . ' mi) this period' : '')
+            . '. Set the rate in ' . mitReimbRateWhere() . ', then switch on "In their own vehicle" on each trip.</div>';
+    } elseif ($company_trips) {
+        $warn = '<div class="alert alert-light small rounded-0 border-0 border-bottom py-2 mb-0" data-mit-ts-company-trips><i class="fas fa-car me-1"></i>'
+            . $company_trips . ' trip' . ($company_trips === 1 ? '' : 's') . ' (' . rtrim(rtrim(number_format($company_miles, 1), '0'), '.') . ' mi) this period '
+            . ($company_trips === 1 ? 'is' : 'are') . ' in a company vehicle, so not paid back. Driven in your own? Open the trip and switch on "In their own vehicle".</div>';
+    }
     if (!$items) {
-        return '';
+        return $warn === '' ? '' : '<div class="card mb-3"><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Mileage and purchases</h5></div>'
+            . $warn . '</div>';
     }
     $t = mitReimbTotals([$user_id], $period['start'], $period['end'])[intval($user_id)];
     $payroll = mitReimbViaPayroll();
@@ -1090,7 +1143,7 @@ function mitReimbTimesheetBox($user_id, array $period) {
     }
     return '<div class="card mb-3"><div class="card-header px-3 py-2"><h5 class="card-title mt-1"><i class="fas fa-fw fa-receipt me-2"></i>Mileage and purchases</h5>'
         . '<div class="card-tools small text-muted pt-1">' . ($t['miles'] ? rtrim(rtrim(number_format($t['miles'], 1), '0'), '.') . ' mi · ' : '')
-        . '<strong data-mit-reimb-total>' . mitMoney($t['total']) . '</strong></div></div>'
+        . '<strong data-mit-reimb-total>' . mitMoney($t['total']) . '</strong></div></div>' . $warn
         . '<div class="card-body p-0"><div class="list-group list-group-flush">' . $html . '</div></div>'
         . '<div class="card-footer small text-muted py-2" data-mit-reimb-footer>' . $footer . '</div></div>';
 }

@@ -926,6 +926,9 @@
                         info.el.dataset.mitAgent = '1';
                         info.el.style.setProperty('--mit-agent', props.tech_color);
                     }
+                    if (props.icon === 'fa-car') { // onsite - an orange strip with a car across the top ([data-mit-onsite] in agent/mit_dispatch.php)
+                        info.el.dataset.mitOnsite = '1';
+                    }
                     info.el.setAttribute('title', info.event.title + (props.detail ? '\n' + props.detail : ''));
                 },
                 eventClick: function (info) {
@@ -1084,7 +1087,7 @@
                             }
                         }
                         return '<div class="mit-dw-chip" style="background-color: ' + escapeText(item.color || '#6c757d') + (props.tech_color ? '; --mit-agent: ' + escapeText(props.tech_color) : '') + '"'
-                            + (props.tech_color ? ' data-mit-agent="1"' : '') + ' data-kind="' + escapeText(props.kind || '') + '"'
+                            + (props.tech_color ? ' data-mit-agent="1"' : '') + (props.icon === 'fa-car' ? ' data-mit-onsite="1"' : '') + ' data-kind="' + escapeText(props.kind || '') + '"'
                             + (props.kind === 'ticket' && item.editable ? ' data-ticket="' + props.ticket_id + '" data-start="' + escapeText(String(item.start).substring(0, 16)) + '" data-minutes="' + minutes + '" data-onsite="' + (props.icon === 'fa-car' ? 1 : 0) + '"' : '')
                             + ' data-modal="' + escapeText(props.modal || '') + '" title="' + escapeText(item.title + (props.detail ? '\n' + props.detail : '')) + '">'
                             + (props.icon ? '<i class="fas fa-fw ' + escapeText(props.icon) + ' me-1" aria-hidden="true"></i>' : '')
