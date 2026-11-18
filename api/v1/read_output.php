@@ -32,7 +32,11 @@ else {
     $return_arr['success'] = "False";
     $return_arr['message'] = "No resource (for this client and company) with the specified parameter(s).";
 
-    logApp("API", "Error", "Read query failed on API call to " . escapeSql(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) . " containing " . count($_GET) . " GET variables" . " via API key " . escapeSql($api_key_name) . " from IP " . escapeSql(getIP()) . " with agent " . escapeSql(getUserAgent()));
+    // An empty page past the first (the query ran, offset > 0) is the normal end of paging - callers such as MSP Align read on until
+    // a page comes back short or empty - not a failed query, so it is not logged (it put an Error in App Logs every hour)
+    if (!($sql && !empty($offset))) {
+        logApp("API", "Error", "Read query failed on API call to " . escapeSql(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH)) . " containing " . count($_GET) . " GET variables" . " via API key " . escapeSql($api_key_name) . " from IP " . escapeSql(getIP()) . " with agent " . escapeSql(getUserAgent()));
+    }
 
     // Log any database/schema related errors to the PHP Error log
     if (mysqli_error($mysqli)) {
