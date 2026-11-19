@@ -272,6 +272,7 @@ $tab = 'contractTab' . bin2hex(random_bytes(3));
                             <input type="text" inputmode="decimal" class="form-control" name="monthly_hours" placeholder="None" value="<?= escapeHtml($c_hours($c_value('monthly_hours', 0))) ?>" data-contract-field="monthly_hours">
                             <span class="input-group-text">hours</span>
                         </div>
+                        <?= function_exists('mitContractUnlimitedField') ? mitContractUnlimitedField($c_value('monthly_hours', 0)) : '' ?>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tell the owner under</label>

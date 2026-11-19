@@ -264,7 +264,8 @@ function contractDocumentHtml(array $row, $as_of = null, $old_wording = false) {
         'Notice' => intval($row['contract_notice_days']) ? $values['notice'] . ' before it ends, in writing' : 'None needed',
         'Support hours' => $values['support hours'],
         // Only when there are some - documents without them come out as they always did
-        'Included hours' => $values['monthly hours'] !== '' ? $values['monthly hours'] . ' of support each month, used for that month only' : '',
+        'Included hours' => function_exists('mitContractUnlimitedTermsLine') && ($mit_line = mitContractUnlimitedTermsLine($row)) !== null ? $mit_line // MountaineerIT: unlimited
+            : ($values['monthly hours'] !== '' ? $values['monthly hours'] . ' of support each month, used for that month only' : ''),
         'Rates' => implode('; ', $rates),
         'Payment' => $net === '' ? '' : ($net === 'Due on receipt' ? 'Invoices are due on receipt' : 'Invoices are due ' . intval(preg_replace('/\D/', '', $net)) . " days after they are issued ($net)"),
     ];

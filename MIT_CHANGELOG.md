@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.8.8 - 2026-11-19
+- Contracts: unlimited support hours. Beside "Hours included each month" (the contract's and the template's Cover tab) an Unlimited switch: every billable ticket on the client is then covered by the contract in full - after hours too - and none goes to Unbilled Time to bill, as ITFlow's prepaid hours do for a set number of hours. The contract page shows Unlimited with the hours used this month and last month and every ticket it covered; the client sees "Unlimited support hours" on the contract in the portal and on the contract they sign. Non-billable and still-open tickets are left alone, as before; switching it off goes back to a number of hours.
+
 ## 26.11.8.7 - 2026-11-18
 - Testing: the stand-ins for outside services (QuickBooks, NinjaOne, Bitwarden / Ingram, Customer Thermometer, MSP Align, the AI provider, Ollama, Microsoft 365 / Graph) were rebuilt and are now kept in the repository (tests/mocks) - they had lived only on the old test server and were lost with it, so about 60 smoke tests and 15 scenario checks were skipping. The full check (scripts/mit_verify.sh) now installs them and the test data itself: 305 smoke tests pass, nothing skipped but the two that restore the whole install (run separately on a test copy - both pass). The stand-ins answer only the server they are installed on, only on a test install - never on production.
 - Test data: a second open ticket, the admin on a service board, an approved October timesheet - three tests that skipped for lack of them now run. Test copies switch HTTPS-only off (they are plain http).

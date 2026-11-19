@@ -455,6 +455,7 @@ if (!$contract || ($client_url && intval($contract['contract_client_id']) !== in
                         <?php } ?>
                     </div>
                     <div class="card-body">
+                        <?php if (function_exists('mitContractUnlimitedAgentFigures') && ($mit_figures = mitContractUnlimitedAgentFigures($contract, $blocks)) !== null) { echo $mit_figures; } else { // MountaineerIT: unlimited ?>
                         <div class="row g-3 align-items-end mb-3">
                             <div class="col-sm-5">
                                 <div class="small text-body-secondary text-uppercase fw-semibold">Left</div>
@@ -487,6 +488,7 @@ if (!$contract || ($client_url && intval($contract['contract_client_id']) !== in
                                 </ul>
                             </div>
                         </div>
+                        <?php } ?>
                         <?php if (!$hours_live) { ?>
                             <div class="alert alert-secondary small py-2 mb-3"><i class="fas fa-fw fa-info-circle me-1"></i>Time is drawn from them only while the contract is active.</div>
                         <?php } elseif ($status === 'Cancelled') { ?>

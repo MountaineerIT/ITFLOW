@@ -365,6 +365,10 @@ break stock ITFlow, and lists what stops working after a move.
   the files in `uploads/mit_images/`). A product's cost is ITFlow's own field (26.11) and stays. Our API
   leaves product cost and markup out of `api/v1/products/read.php`; stock ITFlow's API returns every
   column, so after a move an API key with Sales access can read them – clear them first if that matters.
+- **Unlimited support hours on contracts** – keep working: the contract's hours each month hold 99,999 (ITFlow's own column), so
+  stock ITFlow still covers every billable ticket. It shows the number - "99,999 h included each month", "Of 99,999 h" - where
+  ours said "Unlimited", lists last months' unused hours as having run out, and the contract window refuses to save such a
+  contract until the box is under 1,000 (put 744 for a month of round-the-clock cover).
 - **Ticket page layout** (column widths, three columns, box order, half-width and collapsed boxes, reply box open on Public note) – stock ITFlow shows its own layout;
   the saved layouts sit unused in `mit_settings` / `mit_user_preferences`.
 - **Schedule lengths, agent colors, per-person calendar settings, Outlook busy times, the ticket

@@ -180,6 +180,7 @@ $terms = [
                     <h2><i class="fas fa-hourglass-half"></i>Prepaid hours</h2>
                 </div>
                 <div class="itflow-portal-panel-body">
+                    <?php if (function_exists('mitContractUnlimitedPortalFigures') && ($mit_figures = mitContractUnlimitedPortalFigures($contract, $blocks)) !== null) { echo $mit_figures; } else { // MountaineerIT: unlimited ?>
                     <div class="d-flex align-items-baseline justify-content-between gap-2">
                         <span class="fs-4 fw-semibold"><?= escapeHtml(contractHoursText($hours['left'])) ?> <span class="fs-6 fw-normal text-body-secondary">left</span></span>
                         <?php if ($hours['bought'] > 0) { ?><span class="small text-body-secondary"><?= escapeHtml(contractHoursText($hours['used'])) ?> of <?= escapeHtml(contractHoursText($hours['bought'])) ?> used</span><?php } ?>
@@ -192,6 +193,7 @@ $terms = [
                         <?php if ($hours['next_expiry'] !== '') { ?><li><?= escapeHtml(contractHoursText($hours['next_expiry_hours'])) ?> to use by <?= escapeHtml(date('M j, Y', strtotime($hours['next_expiry']))) ?></li><?php } ?>
                         <li>Time on your tickets comes out of them; time beyond them is invoiced.</li>
                     </ul>
+                    <?php } ?>
                     <?php if ($hours_uses) { ?>
                         <div class="small fw-semibold mt-3 mb-1">Used on</div>
                         <ul class="list-unstyled small mb-0">

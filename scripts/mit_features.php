@@ -449,6 +449,18 @@ return [
         'watch' => ['recurringTicketRunNow', 'recurringInvoiceGenerate', 'RECURRING_INVOICE_GRACE_DAYS', 'contractNetTerms', 'ticketSetSchedule'],
         'overlap' => ['lead_days', 'invoice_lead', 'days_before', 'create_ahead', 'recurring_ticket_time'],
     ],
+    'contract_unlimited' => [
+        'name' => 'Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow\'s prepaid hours, read as "Unlimited"',
+        'files' => ['functions/mit_contract_unlimited.php'],
+        'tests' => ['tests/smoke/55-contract-unlimited.spec.js', 'tests/scenarios/scenario-contract-unlimited.php'],
+        'assumes' => [
+            'ITFlow\'s prepaid hours (functions/contract_hours.php, database 3.4.4): contract_monthly_hours makes a block each month (contractHoursEnsureMonthly / contractHoursSync) and contractHoursDraw takes billable done tickets\' time from blocks with hours left, the rest left to bill.',
+            'Every page prints hours through contractHoursText / contractHoursWords; contractBlocks gives each block\'s used / left / expired; contractFromInput checks the hours (under 1,000) for contracts and templates.',
+            'The contract and template windows have a monthly_hours and an hours_alert box (Cover tab); js/contract_form.js fills them from a template picked on New Contract.',
+        ],
+        'watch' => ['contract_monthly_hours', 'contract_template_monthly_hours', 'contractHoursDraw', 'contractHoursEnsureMonthly', 'Hours each month are a number of hours under 1,000', 'of support each month, used for that month only'],
+        'overlap' => ['unlimited', 'contract_unlimited', 'hours_unlimited'],
+    ],
     'client_profit' => [
         'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
         'files' => ['functions/mit_profit.php', 'admin/mit_labor_costs.php', 'admin/post/mit_labor_costs.php'],

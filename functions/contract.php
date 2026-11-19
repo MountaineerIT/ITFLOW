@@ -452,6 +452,7 @@ function contractFromInput(array $in, $kind = 'contract') {
     if ($f['monthly_hours'] === false || $f['monthly_hours'] < 0 || $f['monthly_hours'] >= 1000) {
         return [$f, 'Hours each month are a number of hours under 1,000, such as 10 or 7.5 - or leave it empty for none.'];
     }
+    function_exists('mitContractUnlimitedInput') && $f = mitContractUnlimitedInput($f, $in); // MountaineerIT: the Unlimited switch
     if ($f['hours_alert'] === false || $f['hours_alert'] < 0 || $f['hours_alert'] >= 10000) {
         return [$f, 'The hours to be told at are a number of hours, such as 2 - or leave it empty to not be told.'];
     }

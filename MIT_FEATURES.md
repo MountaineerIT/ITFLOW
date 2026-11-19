@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 15 | 9 | 31 | 74 | 38 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 203 | 2 | 2 | 15 | 41 | 4 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 15 | 9 | 31 | 74 | 39 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 205 | 2 | 2 | 15 | 41 | 5 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -26,7 +26,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
 | [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 12 | 9 | 16 | 17 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 20 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 21 |
 | [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 4 | 2 | 31 | 11 | 31 | 1 |
@@ -40,6 +40,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
+| [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
 | [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
 
@@ -82,6 +83,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
 - `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_offices, mit_procurement, mit_qbo, mit_timesheets, mit_usage
 - `functions/backup.php`: mit_feedback
+- `functions/contract_hours.php`: mit_label
 - `functions/reports.php`: mit_boards, mit_timesheets
 - `functions/roles.php`: mitRoleModuleInfo
 - `functions/settings.php`: mitSettingsFields, mitSettingsPages, mit_settings_index
@@ -129,6 +131,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `.htaccess`: MIT_API, MIT_FEATURES
 - `functions.php`: mit_boards, mit_timesheets
+- `functions/contract_signature.php`: mit_line
 - `functions/reports.php`: mit_boards, mit_timesheets
 - `includes/cron_jobs.php`: mit_boards, mit_consistency, mit_timesheets
 
@@ -972,6 +975,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `api/v1/clients/delete.php`: mitTicketPartsDeleting
 - `functions.php`: mit_offices, mit_procurement, mit_quotes
 - `functions/billing.php`: mitProcQuoteConvertGroups
+- `functions/contract_hours.php`: mit_label
 - `functions/ticket.php`: mitTicketPartsDeleting
 - `includes/billing_paper.php`: mit_quotes
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
@@ -1603,6 +1607,43 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** lead_days, invoice_lead, days_before, create_ahead, recurring_ticket_time
 
 **Our files** `functions/mit_recurring_lead.php`
+
+<a id="contract_unlimited"></a>
+## Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited" (`contract_unlimited`)
+
+**Takes for granted**
+
+- ITFlow's prepaid hours (functions/contract_hours.php, database 3.4.4): contract_monthly_hours makes a block each month (contractHoursEnsureMonthly / contractHoursSync) and contractHoursDraw takes billable done tickets' time from blocks with hours left, the rest left to bill.
+- Every page prints hours through contractHoursText / contractHoursWords; contractBlocks gives each block's used / left / expired; contractFromInput checks the hours (under 1,000) for contracts and templates.
+- The contract and template windows have a monthly_hours and an hours_alert box (Cover tab); js/contract_form.js fills them from a template picked on New Contract.
+
+**Tests** `tests/smoke/55-contract-unlimited.spec.js`, `tests/scenarios/scenario-contract-unlimited.php`
+
+**Hooks in ITFlow's files**
+
+- `admin/modals/contract_template/contract_template_form.php`: mitContractUnlimitedField
+- `agent/contract.php`: mitContractUnlimitedAgentFigures, MountaineerIT, mit_figures
+- `agent/modals/contract/contract_form.php`: mitContractUnlimitedField
+- `client/contract.php`: mitContractUnlimitedPortalFigures, MountaineerIT, mit_figures
+- `functions.php`: mit_contract_unlimited
+- `functions/contract.php`: mitContractUnlimitedInput, MountaineerIT
+- `functions/contract_hours.php`: mitContractBlocksUnlimited, mitContractHoursLabel, MountaineerIT
+- `functions/contract_signature.php`: mitContractUnlimitedTermsLine, MountaineerIT
+
+**ITFlow functions it calls**
+
+- `functions/contract_hours.php`: contractHoursText
+- `functions/sanitize.php`: escapeHtml
+
+**ITFlow tables** history, tickets
+
+**ITFlow columns** contract_block_hours, contract_block_month, contract_monthly_hours, contract_template_monthly_hours
+
+**Watched in ITFlow's code** `contract_monthly_hours` `contract_template_monthly_hours` `contractHoursDraw` `contractHoursEnsureMonthly` `Hours each month are a number of hours under 1,000` `of support each month, used for that month only`
+
+**"ITFlow does this too" words** unlimited, contract_unlimited, hours_unlimited
+
+**Our files** `functions/mit_contract_unlimited.php`
 
 <a id="client_profit"></a>
 ## Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report (`client_profit`)
