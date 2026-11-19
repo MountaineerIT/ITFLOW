@@ -12,6 +12,8 @@ const db = require('./db');
 
 const ROOT = process.env.ITFLOW_ROOT || '/var/www/itflow';
 const ECHO = path.join(ROOT, 'zz_smoke_ai_echo.php');
+// Reached at the install's own address (over http - the server calls it): 127.0.0.1 is the main test install, not a copy (ITFLOW_URL)
+const ECHO_URL = `http://${new URL(process.env.ITFLOW_URL || 'http://127.0.0.1').host}/zz_smoke_ai_echo.php`;
 const RECORD = path.join(os.tmpdir(), `zz_smoke_ai_echo_${process.pid}.json`);
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 const SETTINGS = ['ai_helper_enabled', 'ai_helper_embed_provider', 'ai_helper_monthly_tokens'];
@@ -28,7 +30,7 @@ header('Content-Type: application/json');
 echo json_encode(['choices' => [['message' => ['content' => 'Stand-in: that is error 0x80070005, access denied.']]], 'usage' => ['prompt_tokens' => 1, 'completion_tokens' => 1]]);
 `);
     try {
-        db.run("INSERT INTO ai_providers SET ai_provider_name = 'ZZ smoke pictures', ai_provider_kind = 'custom', ai_provider_api_url = 'http://127.0.0.1/zz_smoke_ai_echo.php', ai_provider_api_key = 'x', ai_provider_redact = 1");
+        db.run(`INSERT INTO ai_providers SET ai_provider_name = 'ZZ smoke pictures', ai_provider_kind = 'custom', ai_provider_api_url = '${ECHO_URL}', ai_provider_api_key = 'x', ai_provider_redact = 1`);
         provider = Number(db.value("SELECT MAX(ai_provider_id) FROM ai_providers WHERE ai_provider_name = 'ZZ smoke pictures'"));
         db.run("UPDATE ai_models SET ai_model_use_case = 'zz-Tickets' WHERE ai_model_use_case = 'Tickets'");
         db.run(`INSERT INTO ai_models SET ai_model_name = 'zz-vision', ai_model_use_case = 'Tickets', ai_model_ai_provider_id = ${provider}`);

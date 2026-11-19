@@ -11,7 +11,8 @@
  * given, else Fixture-Pass-123!). The rest of the server, as scripts/install.sh sets it: the server's clock on the company's time zone
  * (America/Los_Angeles here - the tests read "today" from MariaDB, PHP and Node), PHP upload_max_filesize / post_max_size 500M.
  * The outside services' stand-ins (QuickBooks, NinjaOne, Microsoft 365, Customer Thermometer, MSP Align, usage connectors, AI, Ollama)
- * are not in the repository - their tests skip without them.
+ * are in tests/mocks/ - put them in with `php tests/mocks/install.php` after this script (it sets mail back to SMTP, and the Microsoft 365
+ * stand-in's setup switches it to Microsoft 365 again). scripts/mit_verify.sh runs both.
  */
 if (php_sapi_name() !== 'cli') {
     die("Run this from the command line.\n");
@@ -89,6 +90,22 @@ if (!$has("SELECT 1 FROM tickets WHERE ticket_subject = 'Fixture open ticket'"))
         ticket_url_key = '" . bin2hex(random_bytes(16)) . "'");
 }
 
+// A second open ticket, so the Tickets list has two to tick (23-bulk-toolbar)
+if (!$has("SELECT 1 FROM tickets WHERE ticket_subject = 'Fixture open ticket 2'")) {
+    $n = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT config_ticket_next_number FROM settings WHERE company_id = 1"))[0]);
+    mysqli_query($mysqli, "UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1");
+    $q("INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = $n, ticket_subject = 'Fixture open ticket 2', ticket_details = 'Kept open for the list pages',
+        ticket_priority = 'Low', ticket_status = 2, ticket_billable = 1, ticket_created_by = 1, ticket_assigned_to = 2, ticket_contact_id = 3, ticket_client_id = 1,
+        ticket_url_key = '" . bin2hex(random_bytes(16)) . "'");
+}
+// The admin works one board (48-boards-ui reads Your boards), told of nothing and out of any round-robin - Sales, not the default board: a
+// member of the default one sees every ticket with no board under My boards (scenario-sched-sources wants only its own board's there)
+mysqli_query($mysqli, "DELETE m FROM mit_board_members m JOIN mit_boards b USING (board_id) WHERE m.user_id = 1 AND b.board_is_default = 1");
+if ($has("SELECT 1 FROM mit_boards WHERE board_name = 'Sales' AND board_is_default = 0 AND board_archived_at IS NULL")) {
+    $q("INSERT IGNORE INTO mit_board_members (board_id, user_id, member_notify, member_rotation)
+        SELECT board_id, 1, 0, 0 FROM mit_boards WHERE board_name = 'Sales' AND board_is_default = 0 AND board_archived_at IS NULL");
+}
+
 // A company vendor, a bank account, an SLA with targets, a product (the products API answers), the Oct 12 closure day
 if (!$has("SELECT 1 FROM vendors WHERE vendor_client_id = 0 AND vendor_archived_at IS NULL")) {
     $q("INSERT INTO vendors SET vendor_name = 'Fixture Supply Co', vendor_email = 'orders@fixture-supply.example.invalid', vendor_client_id = 0");
@@ -138,5 +155,19 @@ foreach ([1 => 'ca_rules = 0, approver_id = 0', 2 => 'approver_id = 0', 10 => 'a
         ON DUPLICATE KEY UPDATE schedule = VALUES(schedule), keeps_timesheet = 1, hire_date = VALUES(hire_date), $extra");
 }
 mitSetUserPreference(1, 'timesheet.format', 'hm');
+
+// An approved timesheet with an hour on a paid work code (75-ts-admin-screens: a code used on approved sheets keeps its kind / paid): the admin's
+// (no California rules, so no signed statement) for the first half of October, entered, submitted and approved through the timesheet functions
+$period = mitTsPeriodFor('2026-10-01');
+$sheet = mitTsSheet(1, $period);
+if (($sheet['status'] ?? 'open') !== 'approved') {
+    $admin_code = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT code_id FROM mit_charge_codes WHERE code_name = 'Admin' AND code_kind = 'work' AND code_paid = 1"))[0] ?? 0);
+    if ($admin_code) {
+        mitTsSaveCells($sheet, $period, ['2026-10-01' => [$admin_code => '1']], ['2026-10-01' => [$admin_code => 'Fixture']]);
+        [$ok, $said] = mitTsSubmit(mitTsSheet(1, $period), $period);
+        $ok && [$ok, $said] = mitTsDecide(mitTsSheet(1, $period), $period, 'approve');
+        echo $ok ? "Approved timesheet 2026-10-01 for the admin.\n" : "Approved timesheet not made: $said\n";
+    }
+}
 
 echo "Test fixture in place (account $account).\n";
