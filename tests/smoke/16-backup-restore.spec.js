@@ -15,7 +15,7 @@ async function backups(page) {
     await visit(page, 'admin/backup.php');
     return page.locator('[data-modal-url*="mit_backup/restore.php?backup_id="]').evaluateAll((buttons) => buttons.map((b) => ({
         id: Number(new URL(b.dataset.modalUrl, location.href).searchParams.get('backup_id')),
-        source: b.closest('tr').children[3].textContent.trim(),
+        source: b.dataset.mitBackupSource || '',
     })));
 }
 

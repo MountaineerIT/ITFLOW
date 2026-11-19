@@ -309,6 +309,8 @@ function mitRestoreRowButton(array $backup) {
     if ($backup['backup_status'] !== 'Complete' || $backup['backup_type'] === BACKUP_TYPE_MASTER_KEY) {
         return '';
     }
-    return '<button type="button" class="btn btn-sm btn-warning ajax-modal" title="Restore this backup" data-modal-url="modals/mit_backup/restore.php?backup_id='
+    // data-mit-backup-source: ITFlow's list (26.11.8) no longer shows where a backup came from ("Before restore" reads "By <name>")
+    return '<button type="button" class="btn btn-sm btn-warning ajax-modal" title="Restore this backup" data-mit-backup-source="'
+        . escapeHtml((string) ($backup['backup_source'] ?? '')) . '" data-modal-url="modals/mit_backup/restore.php?backup_id='
         . intval($backup['backup_id']) . '"><i class="fas fa-fw fa-undo"></i></button>';
 }

@@ -15,7 +15,8 @@ if (!function_exists('mitAiImageData') || !function_exists('mitAiAskReady') || !
 $root = getcwd();
 $echo_file = "$root/zz_scenario_ai_echo.php";
 $record = sys_get_temp_dir() . '/zz_scenario_ai_echo_' . getmypid() . '.json';
-$url = 'http://127.0.0.1/zz_scenario_ai_echo.php';
+// The install's own address (127.0.0.1 is the main test install, not a copy)
+$url = 'http://' . $GLOBALS['config_base_url'] . '/zz_scenario_ai_echo.php';
 file_put_contents($echo_file, '<?php
 $body = file_get_contents("php://input");
 file_put_contents(' . var_export($record, true) . ', $body);

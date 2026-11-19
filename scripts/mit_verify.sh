@@ -4,7 +4,8 @@
 #   MIT_VERIFY_SKIP_SMOKE=1 sh scripts/mit_verify.sh /var/www/itflow    the read-only checks only (safe on production)
 # Runs: PHP syntax of every file but libs/, JavaScript syntax of our scripts, the hook check (our hooks in ITFlow's files), the feature map (every file of ours in a feature, MIT_FEATURES.md
 # current, watched strings still in ITFlow), the AI helper's password wall, the consistency check and the stock
-# ITFlow portability check on the install, then the scenario checks and the smoke tests. Stops at the first failure.
+# ITFlow portability check on the install, then (test installs only) the test fixture and stand-ins, the scenario checks and the smoke
+# tests - with ITFLOW_SMOKE_REMIND=1 (every login on a test install is a test one; set it to '' to leave Remind out). Stops at the first failure.
 set -e
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALL="${1:-/var/www/itflow}"
@@ -41,9 +42,15 @@ PORT="$(php "$INSTALL/scripts/mit_portability_check.php")" || { echo "$PORT"; ex
 echo "$PORT" | grep -E '^Portable'
 
 if [ -z "$MIT_VERIFY_SKIP_SMOKE" ]; then
+    # The rows / settings the tests take for granted, and the outside-service stand-ins (QuickBooks, NinjaOne, AI ...) - both refuse an
+    # install that is not *.test, so the smoke part stops here on anything else
+    echo "== Test fixture and stand-ins ($INSTALL)"
+    php "$INSTALL/scripts/mit_test_fixture.php" "$INSTALL"
+    php "$REPO/tests/mocks/install.php" "$INSTALL"
     echo "== Scenario checks (tests/scenarios - they write rows, test install only)"
     php "$REPO/tests/scenarios/run.php" "$INSTALL"
     echo "== Smoke tests"
-    cd "$REPO/tests/smoke" && ITFLOW_PHP_LOG="${ITFLOW_PHP_LOG:-/var/log/apache2/itflow-error.log}" ITFLOW_ROOT="$INSTALL" npx playwright test
+    cd "$REPO/tests/smoke" && ITFLOW_PHP_LOG="${ITFLOW_PHP_LOG:-/var/log/apache2/itflow-error.log}" ITFLOW_ROOT="$INSTALL" \
+        ITFLOW_SMOKE_REMIND="${ITFLOW_SMOKE_REMIND:-1}" npx playwright test
 fi
 echo "== All checks passed"

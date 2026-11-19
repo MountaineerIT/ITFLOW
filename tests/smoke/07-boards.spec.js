@@ -157,7 +157,8 @@ test('boards: dashboard board filter, and the Board Performance report', async (
     const errors = watch(page);
     await visit(page, `agent/dashboard.php?board=${made.boards[1]}`, errors);
     await expect(page.locator('#mitDashBoard'), 'the dashboard board picker').toHaveValue(String(made.boards[1]));
-    for (const href of await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]').evaluateAll((links) => links.map((a) => a.getAttribute('href')))) {
+    // (Your boards links each go to their own board - only ITFlow's Needs attention ones follow the picker)
+    for (const href of await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]:not([data-mit-dash-boards] a)').evaluateAll((links) => links.map((a) => a.getAttribute('href')))) {
         expect(href, 'Needs attention opens Tickets on the same board').toContain(`board=${made.boards[1]}`);
     }
     await visit(page, 'agent/dashboard.php', errors);

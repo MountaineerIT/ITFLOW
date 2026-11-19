@@ -600,7 +600,7 @@ function mitAiScrubbedSources($limit = 50) {
     global $mysqli;
     $rows = [];
     $result = mysqli_query($mysqli, "SELECT s.source_id, s.ticket_id, s.document_id, s.client_id, s.title, s.scrubbed, s.indexed_at, c.client_name FROM mit_ai_sources s LEFT JOIN clients c ON c.client_id = s.client_id
-        WHERE s.scrubbed > 0" . clientScopeSql('s.client_id') . " ORDER BY s.indexed_at DESC LIMIT " . intval($limit));
+        WHERE s.scrubbed > 0" . clientScopeSql('s.client_id') . " ORDER BY s.indexed_at DESC, s.source_id DESC LIMIT " . intval($limit));
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[] = $row + ['url' => mitAiSourceUrl($row)];
     }

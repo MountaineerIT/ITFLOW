@@ -95,8 +95,16 @@ model: see DEPLOYMENT.md.
 - Rebuilding the test install (Nov 17, 26.11.8.5 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
   base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
   granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,
-  `tests/smoke/.env`. Run scenarios / smoke with `TZ=America/Los_Angeles` and the local hosts in `NO_PROXY`. The outside-service stand-ins
-  (qbo-mock, ninja-mock, usage-mock, ct-mock, align-mock, ai-mock, ollama-mock, the Graph mock in /srv/mockms) were never in the repo - their tests skip.
+  `tests/smoke/.env`. Run scenarios / smoke with `TZ=America/Los_Angeles` and the local hosts in `NO_PROXY`.
+- Test stand-ins (Nov 18, 26.11.8.6 - rebuilt after the Nov 17 loss, now in the repo): `tests/mocks/<name>/` - qbo, ninja, usage (Bitwarden +
+  Ingram), ct, align, ai, ollama (shares ai's embed.php), ms (Microsoft Graph: its own `php -S 127.0.0.1:8765` server, state in
+  /srv/mockms/state.json). `php tests/mocks/install.php [--code-only] [install]` (refuses non-.test) copies each to `<install>/<name>-mock/`
+  (http://127.0.0.1/<name>-mock/index.php - the main install is Apache's default site), writes its constants (`constants.php`) between
+  markers in config.php and runs its `start.sh` (ninja / ms also set the integration up on the install - `setup.php`). Every stand-in
+  requires `guard.php` (loopback only) and `tests/mocks/.htaccess` is `Require local`, as production keeps tests/ in its checkout. State in
+  /var/tmp/itflow_mocks/. `scripts/mit_verify.sh` runs the fixture then the installer before the scenarios / smoke (with ITFLOW_SMOKE_REMIND=1).
+  Test copies (`scripts/mit_test_copy.sh`) get HTTPS-only off (plain-http sites) and reach the main install's stand-ins at 127.0.0.1. A new
+  integration gets its stand-in there in the same change; a stand-in kept only on a server is lost with it.
 - Smoke tests: `cd tests/smoke && ITFLOW_PHP_LOG=/var/log/apache2/itflow-error.log npx playwright test` against the test install
   (never production; the log variable switches on 99-php-log, which otherwise skips) - after
   every upstream merge, before every "Promote to production", and after changing a page or hook in ITFlow's files.
@@ -772,7 +780,7 @@ model: see DEPLOYMENT.md.
   `mitQboInvoiceBar` (strip above the items; its `<style>` hides email / edit / payment buttons - the handlers refuse anyway);
   `agent/invoices.php` `mitQboResultIds($sql)` before the loop + `mitQboListBadge` by the number. Cron job `mit_qbo_sync` hourly
   (`cron/mit_qbo_sync.php`, entry in `includes/cron_jobs.php`; fails when no payment account is set). The test install has a
-  stand-in at `qbo-mock/index.php` (not in the repo; `MIT_QBO_AUTH_URL` / `_TOKEN_URL` / `_REVOKE_URL` / `_API_BASE` in its
+  stand-in at `qbo-mock/index.php` (tests/mocks/qbo; `MIT_QBO_AUTH_URL` / `_TOKEN_URL` / `_REVOKE_URL` / `_API_BASE` in its
   config.php - never on a real one); smoke `10-qbo.spec.js`. Not yet: portal / guest Stripe pay is not blocked for invoices in
   QuickBooks (turn ITFlow's Stripe off), statements still come from ITFlow.
   Already in QuickBooks (26.10.130, M038 `mit_qbo_manual`: invoice_id PK FK invoices CASCADE, marked_by / marked_at): invoices entered in
@@ -1109,7 +1117,7 @@ model: see DEPLOYMENT.md.
   failed and stops the run; `mitCtRetryFailed` ("Send the refused ones again", `[data-mit-ct-refused]`, handler `mit_ct_retry`) deletes
   failed rows so they are due again. The stand-in has `/_credits?on=0|1`, `date=` on /_respond and the 200 / date window; scenario
   `scenario-ct-responses.php`. Test install stand-in
-  `ct-mock/index.php` (not in the repo; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
+  `ct-mock/index.php` (tests/mocks/ct; `MIT_CT_API_BASE` in its config.php); smoke `18-customer-thermometer.spec.js`.
 - MSP Align, read only (Oct 25, 26.10.131): `functions/mit_align.php` (ours, required from `functions.php`) - the user's own self-hosted
   vCIO toolkit (github.com/MSP-ALIGN/MSP-ALIGN, API docs `docs/API.md` there, read at 2.25.0). MSP Align keeps ITFlow's ids on what it
   pulls from ITFlow (`psa_id` on clients / licenses, `psa_asset_id` on devices - text, the old `itflow_*` aliases are numbers), so no mapping
@@ -1492,7 +1500,7 @@ model: see DEPLOYMENT.md.
   an admin what was taken and why (never sent anywhere). `mitAiIndexVersion` v2: each source's signature carries the version, so a filter
   change re-reads every source on the next runs, and passages whose text comes out the same keep their embeddings (not paid twice).
   `tests/scenarios/scenario-ai-scrub.php` holds both lists - leaks that must go, ordinary notes that must stay word for word.
-  The test install has an AI stand-in `ai-mock/index.php` (not in the repo: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
+  The test install has an AI stand-in `ai-mock/index.php` (tests/mocks/ai: OpenAI-style /v1/embeddings with synonym groups, /v1/chat/completions
   echoing the question, `/_calls` / `/_clear`). Tests: scenarios `scenario-ai-wall.php` (canaries), `scenario-ai-library.php` (lifecycle,
   switches, client limits, roles), `scenario-ai-scrub.php` (the filter's leak / keep lists); smoke `32-ai-helper.spec.js`.
   Round 2 - the Ask AI panel (26.10.155): `functions/mit_ai_ask.php` (ours, required from mit_ai_helper.php). Tables M045
@@ -1540,7 +1548,7 @@ model: see DEPLOYMENT.md.
   /api/version, /api/tags), `mitAiLocalTurnOn` (POST /api/pull when missing, provider "This server (Ollama)" kind ollama -
   `mit_settings` ai_local_provider -, an embeddings test, then the helper's embed provider / model; the ones before kept in
   ai_local_prev_provider / _model), `mitAiLocalTurnOff` (back to those, or keyword only). Address fixed: `mitAiLocalBase()` =
-  127.0.0.1:11434, or `MIT_OLLAMA_BASE` in a test install's config.php (its stand-in `ollama-mock/index.php`, not in the repo:
+  127.0.0.1:11434, or `MIT_OLLAMA_BASE` in a test install's config.php (its stand-in `ollama-mock/index.php`, tests/mocks/ollama:
   /api/version, /api/tags, /api/pull, /v1/embeddings, `/_state?running=&model=&reset=1`, `/_calls`). Not gated by development mode
   (it stays on the server). Admin stats `embedded_current` (passages done with the current model). Tests: scenario
   `scenario-ai-local.php`, smoke `35-ai-local.spec.js`; the install script was only dry-run with stand-in `ollama` / `systemctl` - its first

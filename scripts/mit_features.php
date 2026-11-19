@@ -42,7 +42,7 @@ return [
     ],
     'checks' => [
         'name' => 'Our checks (hooks, consistency, portability, AI wall, verify, feature map)',
-        'files' => ['scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'scripts/mit_hook_proof_switch.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
+        'files' => ['tests/mocks/*', 'scripts/mit_*.php', 'scripts/mit_*.sh', 'scripts/mit_hooks.txt', 'scripts/mit_hook_proof_accepted.txt', 'scripts/mit_hook_proof_switch.txt', 'functions/mit_consistency.php', 'cron/mit_consistency.php',
             'MIT_FEATURES.md', 'MIT_API.md', 'tests/smoke/*', 'tests/scenarios/*', 'tests/.gitignore'],
         'tests' => ['tests/smoke/30-checks.spec.js', 'tests/scenarios/scenario-cron-registry.php'],
         'assumes' => ['ITFlow\'s cron dispatcher (includes/cron_jobs.php) runs our jobs.'],
@@ -132,7 +132,7 @@ return [
     ],
     'outlook_m365' => [
         'name' => 'Microsoft 365 app, Graph mail, Outlook calendar per tech',
-        'files' => ['functions/mit_m365.php', 'functions/mit_m365_mailbox.php', 'functions/mit_outlook.php', 'admin/includes/mit_m365_card.php',
+        'files' => ['tests/mocks/ms/*', 'functions/mit_m365.php', 'functions/mit_m365_mailbox.php', 'functions/mit_outlook.php', 'admin/includes/mit_m365_card.php',
             'admin/post/mit_m365.php', 'agent/user/mit_outlook*.php', 'agent/user/post/mit_outlook.php', 'cron/mit_outlook_sync.php'],
         'tests' => ['tests/scenarios/scenario-sched-outlook.php', 'tests/scenarios/scenario-dev-mode-mail.php', 'tests/scenarios/scenario-m365-hooks.php',
             'tests/scenarios/scenario-parser-boards.php', 'tests/smoke/82-m365-mail-settings.spec.js', 'tests/smoke/79-platform-pages.spec.js'],
@@ -347,7 +347,7 @@ return [
     ],
     'qbo' => [
         'name' => 'QuickBooks Online (approvals, batches, locks, payments back)',
-        'files' => ['functions/mit_qbo*.php', 'admin/mit_qbo*.php', 'admin/post/mit_qbo.php', 'agent/mit_invoice_approvals.php', 'agent/mit_qbo_batch*.php',
+        'files' => ['tests/mocks/qbo/*', 'functions/mit_qbo*.php', 'admin/mit_qbo*.php', 'admin/post/mit_qbo.php', 'agent/mit_invoice_approvals.php', 'agent/mit_qbo_batch*.php',
             'agent/post/mit_qbo.php', 'cron/mit_qbo_sync.php'],
         'tests' => ['tests/smoke/10-qbo.spec.js', 'tests/smoke/61-qbo-guards.spec.js', 'tests/smoke/66-qbo-more-doors.spec.js', 'tests/smoke/91-qbo-accounts.spec.js', 'tests/scenarios/scenario-qbo-*.php'],
         'assumes' => [
@@ -361,7 +361,7 @@ return [
     ],
     'usage' => [
         'name' => 'Usage billing (counts on recurring lines, connectors, API)',
-        'files' => ['functions/mit_usage*.php', 'agent/mit_usage_review.php', 'agent/post/mit_usage.php', 'admin/includes/mit_usage_card.php',
+        'files' => ['tests/mocks/usage/*', 'functions/mit_usage*.php', 'agent/mit_usage_review.php', 'agent/post/mit_usage.php', 'admin/includes/mit_usage_card.php',
             'admin/post/mit_usage_*.php', 'admin/mit_usage_connectors.php', 'api/v1/mit_usage/*.php', 'cron/mit_usage.php'],
         'tests' => ['tests/smoke/11-usage.spec.js', 'tests/smoke/12-connectors.spec.js', 'tests/scenarios/scenario-usage.php', 'tests/scenarios/scenario-usage-seats.php'],
         'assumes' => [
@@ -374,7 +374,7 @@ return [
     ],
     'ninjaone' => [
         'name' => 'NinjaOne RMM sync and live status',
-        'files' => ['functions/mit_ninjaone.php', 'admin/mit_ninjaone.php', 'admin/post/mit_ninjaone.php', 'agent/js/mit_ninjaone.js',
+        'files' => ['tests/mocks/ninja/*', 'functions/mit_ninjaone.php', 'admin/mit_ninjaone.php', 'admin/post/mit_ninjaone.php', 'agent/js/mit_ninjaone.js',
             'agent/mit_ninjaone_ajax.php', 'cron/mit_ninjaone_sync.php'],
         'tests' => ['tests/smoke/22-ninjaone-sync.spec.js'],
         'assumes' => ['Assets table and its columns (serial, make, model, os, ip ...); asset links look like modals/asset/asset.php?...id='],
@@ -383,7 +383,7 @@ return [
     ],
     'customer_thermometer' => [
         'name' => 'Customer Thermometer surveys',
-        'files' => ['functions/mit_ct.php', 'admin/mit_customer_thermometer.php', 'admin/post/mit_customer_thermometer.php', 'agent/mit_ct_reviews.php',
+        'files' => ['tests/mocks/ct/*', 'functions/mit_ct.php', 'admin/mit_customer_thermometer.php', 'admin/post/mit_customer_thermometer.php', 'agent/mit_ct_reviews.php',
             'cron/mit_customer_thermometer.php'],
         'tests' => ['tests/smoke/18-customer-thermometer.spec.js', 'tests/scenarios/scenario-ct-responses.php'],
         'assumes' => ['Resolved / closed tickets by ticket_resolved_at / ticket_closed_at; ticketMergeInto writes "merged this ticket into" history.'],
@@ -392,7 +392,7 @@ return [
     ],
     'align' => [
         'name' => 'MSP Align (read only)',
-        'files' => ['functions/mit_align.php', 'admin/mit_align.php', 'admin/post/mit_align.php', 'cron/mit_align_sync.php'],
+        'files' => ['tests/mocks/align/*', 'functions/mit_align.php', 'admin/mit_align.php', 'admin/post/mit_align.php', 'cron/mit_align_sync.php'],
         'tests' => ['tests/smoke/27-align.spec.js'],
         'assumes' => ['Client overview\'s Needs attention block and the dashboard\'s $attention items.'],
         'watch' => ['Needs attention'],
@@ -400,7 +400,7 @@ return [
     ],
     'ai_helper' => [
         'name' => 'AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall',
-        'files' => ['functions/mit_ai_*.php', 'admin/mit_ai_helper.php', 'admin/post/mit_ai_helper.php', 'agent/mit_ai_ajax.php', 'agent/js/mit_ai_helper.js',
+        'files' => ['tests/mocks/ai/*', 'tests/mocks/ollama/*', 'functions/mit_ai_*.php', 'admin/mit_ai_helper.php', 'admin/post/mit_ai_helper.php', 'agent/mit_ai_ajax.php', 'agent/js/mit_ai_helper.js',
             'agent/modals/mit_ai/*.php', 'cron/mit_ai_index.php'],
         'tests' => ['tests/smoke/3[2-5]-ai-*.spec.js', 'tests/smoke/69-ai-pictures.spec.js', 'tests/scenarios/scenario-ai-*.php'],
         'assumes' => [

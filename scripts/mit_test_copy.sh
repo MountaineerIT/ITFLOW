@@ -19,9 +19,10 @@ for N in "$@"; do
     mysqldump --single-transaction --routines --triggers "$SRC_DB" | mysql "$DB"
     mkdir -p "$ROOT"
     rsync -a --delete --exclude config.php "$SRC_ROOT/" "$ROOT/"
-    # Only the database and the address change - also where the address appears in a stand-in's URL (QuickBooks sign-in)
+    # Only the database and the address change - also where the address appears in a stand-in's URL (QuickBooks sign-in) - and HTTPS-only
+    # goes off: the copy's site is plain http (with it on, every sign-in stopped at ITFlow's HTTPS-only notice)
     sed -e "s/^\$database = .*/\$database = '$DB';/" -e "s/^\$config_base_url = .*/\$config_base_url = '$HOST';/" \
-        -e "s#//$SRC_URL/#//$HOST/#g" "$SRC_ROOT/config.php" > "$ROOT/config.php"
+        -e "s#//$SRC_URL/#//$HOST/#g" -e 's/^\$config_https_only = .*/$config_https_only = FALSE;/' "$SRC_ROOT/config.php" > "$ROOT/config.php"
     chown -R www-data:www-data "$ROOT"
     if [ ! -f "/etc/apache2/sites-available/zz-itflow-t$N.conf" ]; then
         cat > "/etc/apache2/sites-available/zz-itflow-t$N.conf" <<EOF
