@@ -104,7 +104,6 @@ if (isset($_POST['add_quote_copy'])) {
     $new_quote_id = mysqli_insert_id($mysqli);
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Quote copied!', history_quote_id = $new_quote_id");
-    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'quote', $new_quote_id); } // MountaineerIT: its percentage discount
 
     $sql_items = mysqli_query($mysqli,"SELECT item_description, item_id, item_name, item_order, item_price, item_quantity, item_subtotal,
         item_tax, item_tax_id, item_total, item_frequency FROM quote_items WHERE item_quote_id = $quote_id");
@@ -125,6 +124,7 @@ if (isset($_POST['add_quote_copy'])) {
         mysqli_query($mysqli,"INSERT INTO quote_items SET item_name = '$item_name', item_description = '$item_description', item_quantity = $item_quantity, item_price = $item_price, item_subtotal = $item_subtotal, item_tax = $item_tax, item_total = $item_total, item_order = $item_order, item_tax_id = $tax_id, item_frequency = $item_frequency, item_quote_id = $new_quote_id");
         mitQuoteItemCopy($item_id, mysqli_insert_id($mysqli)); // Mountaineer IT: cost, pricing, its own copy of the image
     }
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'quote', $new_quote_id); } // MountaineerIT: its percentage discount and minimum commit lines
     billingRecalc('quote', $new_quote_id);
 
     logAudit("Quote", "Create", "$session_name created quote $config_quote_prefix$quote_number from quote $original_quote_prefix$original_quote_number", $client_id, $new_quote_id);

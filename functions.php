@@ -139,6 +139,7 @@ require_once __DIR__ . '/functions/mit_align.php';
 require_once __DIR__ . '/functions/mit_ai_helper.php';
 require_once __DIR__ . '/functions/mit_contract_unlimited.php';
 require_once __DIR__ . '/functions/mit_discount.php';
+require_once __DIR__ . '/functions/mit_minimum.php';
 
 // The connection config.php opened takes the collation the tables have, so that a string the
 // server makes (CAST(x AS CHAR), say) matches them - functions/database_collation.php

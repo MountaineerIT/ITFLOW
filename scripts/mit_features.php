@@ -473,6 +473,18 @@ return [
         'watch' => ['function billingRecalc(', 'billingLinesOpen', '_discount_amount', 'Taken off the total, after the lines.'],
         'overlap' => ['discount_percent', 'discount_type', 'no_discount', 'discountable'],
     ],
+    'minimum_commit' => [
+        'name' => 'Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it',
+        'files' => ['functions/mit_minimum.php', 'admin/database_updates/mountaineerit/M065.php'],
+        'tests' => ['tests/smoke/57-minimum-commit.spec.js', 'tests/scenarios/scenario-minimum-commit.php'],
+        'assumes' => [
+            'ITFlow\'s billingRecalc (functions/billing.php) works every total out from the lines\' item_subtotal / item_tax / item_total; our discount hook at its start runs mitMinimumApply first.',
+            'recurringInvoiceGenerate, quoteConvert, Copy Invoice / Quote and Make Recurring copy the lines (names with {period} tokens replaced, item_order kept on recurring runs); our mitDiscountCopy line sits after the copy at each.',
+            'agent/modals/billing/billing_item.php posts qty / price / seat_source to billing_item_save in agent/post/billing.php, which calls billingItemSave; quoteFrequency groups a quote\'s lines.',
+        ],
+        'watch' => ['function billingRecalc(', 'function billingCopyLines(', 'billingLineTax', 'item_order', 'billing_item_save'],
+        'overlap' => ['minimum_commit', 'item_minimum', 'commit_amount', 'minimum_charge'],
+    ],
     'client_profit' => [
         'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
         'files' => ['functions/mit_profit.php', 'admin/mit_labor_costs.php', 'admin/post/mit_labor_costs.php'],

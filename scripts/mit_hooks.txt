@@ -190,6 +190,7 @@ hook	agent/modals/asset/asset.php	mitNinjaAssetButton	2
 hook	agent/modals/asset/asset_bulk_add_ticket.php	mitServiceUserSql	2
 hook	agent/modals/billing/billing_form.php	mitDiscountField	2
 hook	agent/modals/billing/billing_form.php	mitRecurringInvoicePlanField	2
+hook	agent/modals/billing/billing_item.php	mitMinimumField	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
 hook	agent/modals/billing/billing_item.php	mitSeatNotTagOptions	4
@@ -249,6 +250,7 @@ hook	agent/modals/trip/trip_form.php	mitOfficeTripScript	2
 hook	agent/modals/trip/trip_form.php	mitOfficeTripStart	2
 hook	agent/modals/trip/trip_form.php	mitReimbTripRateNote	2
 hook	agent/post/billing.php	mitImageErrorFlash	1
+hook	agent/post/billing.php	mitMinimumSave	2
 hook	agent/post/billing.php	mitPartLineQtyProblem	2
 hook	agent/post/billing.php	mitQboGuardInvoice	10
 hook	agent/post/billing.php	mitQboInvoiceLock	2
@@ -258,7 +260,7 @@ hook	agent/post/billing.php	mitQuoteItemSave	2
 hook	agent/post/billing.php	mitToBillAfter	4
 hook	agent/post/billing.php	mitToBillFlash	4
 hook	agent/post/billing.php	mitToBillMerge	2
-hook	agent/post/billing.php	mit_why	2
+hook	agent/post/billing.php	mit_why	4
 hook	agent/post/client.php	mitQboGuardClientDelete	2
 hook	agent/post/client.php	mitQuoteImagesDelete	1
 hook	agent/post/client.php	mitTicketPartsDeleting	1
@@ -445,6 +447,7 @@ hook	functions.php	mit_dispatch	1
 hook	functions.php	mit_invites	1
 hook	functions.php	mit_list_views	1
 hook	functions.php	mit_m365	1
+hook	functions.php	mit_minimum	1
 hook	functions.php	mit_ninjaone	1
 hook	functions.php	mit_no_response	1
 hook	functions.php	mit_notifications	1
@@ -466,9 +469,10 @@ hook	functions/app.php	MountaineerIT	1
 hook	functions/app.php	mitTicketScheduleEnd	1
 hook	functions/backup.php	mit_feedback	1
 hook	functions/backup.php	mit_receipts	1
-hook	functions/billing.php	MountaineerIT	4
+hook	functions/billing.php	MountaineerIT	5
 hook	functions/billing.php	mitDiscountBeforeRecalc	2
 hook	functions/billing.php	mitDiscountCopy	6
+hook	functions/billing.php	mitMinimumCopy	2
 hook	functions/billing.php	mitProcQuoteConvertGroups	2
 hook	functions/billing.php	mitQboHandlesInvoiceMail	2
 hook	functions/billing.php	mitQboTagTimeLines	2
@@ -708,6 +712,7 @@ ours	admin/database_updates/mountaineerit/M061.php
 ours	admin/database_updates/mountaineerit/M062.php
 ours	admin/database_updates/mountaineerit/M063.php
 ours	admin/database_updates/mountaineerit/M064.php
+ours	admin/database_updates/mountaineerit/M065.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -874,6 +879,7 @@ ours	functions/mit_left_behind.php
 ours	functions/mit_list_views.php
 ours	functions/mit_m365.php
 ours	functions/mit_m365_mailbox.php
+ours	functions/mit_minimum.php
 ours	functions/mit_ninjaone.php
 ours	functions/mit_no_response.php
 ours	functions/mit_notifications.php

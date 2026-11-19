@@ -369,6 +369,9 @@ break stock ITFlow, and lists what stops working after a move.
   right, but stock ITFlow no longer works them out again when lines change, and new invoices from a recurring invoice copy its last
   dollar amount; "Never discounted" on products and the "Discount (20%)" label go (data unused in `mit_billing_discounts` /
   `mit_product_no_discount`).
+- **Minimum commits** – each commit line keeps the price it last came to, so totals stay right, but stock ITFlow no longer works it
+  out again when lines change: new invoices from a recurring invoice copy its last price - change it by hand as seats grow (data
+  unused in `mit_billing_minimums`).
 - **Unlimited support hours on contracts** – keep working: the contract's hours each month hold 99,999 (ITFlow's own column), so
   stock ITFlow still covers every billable ticket. It shows the number - "99,999 h included each month", "Of 99,999 h" - where
   ours said "Unlimited", lists last months' unused hours as having run out, and the contract window refuses to save such a

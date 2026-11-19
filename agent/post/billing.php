@@ -129,6 +129,7 @@ if (isset($_POST['billing_item_save'])) {
     }
     if ($type === 'quote' && function_exists('mitQuoteItemSave')) { mitQuoteItemSave($saved, $_POST, $_FILES, !$item_id); mitImageErrorFlash(); } // Mountaineer IT: our cost, pricing, image
     if (function_exists('mitQboLineCategorySave')) { mitQboLineCategorySave($type, $saved, $_POST); } // Mountaineer IT: the line's category (QuickBooks income account)
+    if (function_exists('mitMinimumSave') && ($mit_why = mitMinimumSave($type, $saved, $_POST)) !== '') { flashAlert(escapeHtml($mit_why), 'error'); billingPostBack($type, $doc_id, 'items'); } // Mountaineer IT: a minimum commit line
 
     $name = trim((string) $_POST['name']);
     logAudit(billingAuditType($type), 'Edit', escapeSql("$session_name " . ($item_id ? 'edited' : 'added') . " line $name " . ($item_id ? 'on' : 'to') . " $number"), $client_id, $doc_id);

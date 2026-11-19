@@ -1843,6 +1843,19 @@ model: see DEPLOYMENT.md.
   line in `agent/modals/product/product_form.php`), saved from our mitProductSave (`mitDiscountProductSave`). QuickBooks: `mitQboDiscountLine($amount,
   $invoice_id)` posts the discount to the discount product's category account (`mitDiscountQboAccount`), else the "Discounts go to" setting.
   Scenario `scenario-discount-percent.php` (ITFlow's recurring run and quote conversion), smoke `56-discount-percent.spec.js`.
+- Minimum commits (Nov 19, 26.11.8.9 - the user's request: a $300 minimum topped up by one line until the seats pass it; the user chose: measured before
+  the discount, every other line counts, the line stays at $0.00): `functions/mit_minimum.php` (ours, required from `functions.php`), M065
+  `mit_billing_minimums` (doc_type + item_id PK, minimum - no FK, three line tables). A minimum line is quantity 1 at max(0, minimum - the other
+  lines' subtotals; on a quote the lines of its frequency) - `mitMinimumApply`, called first from our `mitDiscountBeforeRecalc` (so no new line in
+  billingRecalc), only while billingLinesOpen; a percentage discount's base leaves minimum lines out. Carried by `mitMinimumCopy` (from
+  `mitDiscountCopy`; lines matched by product - Copy Quote / Make Recurring copy none -, then name, then item_order): recurring runs, quoteConvert,
+  Copy Invoice / Quote, Make Recurring (our mitDiscountCopy lines in `agent/post/quote.php` copy and `agent/post/recurring_invoice.php` make-recurring
+  moved after their line loops), plus one line in quoteConvert for lines added to an existing recurring invoice. Edit Line window: `mitMinimumField`
+  (one line in `agent/modals/billing/billing_item.php` - `[data-mit-minimum]`, locks qty / price), `mitMinimumSave` (one line in
+  `agent/post/billing.php` billing_item_save; refuses <= 0 and counted seat lines). Staff note `[data-mit-minimum-note]` via `mitPaperLineExtras`
+  (now `mitPaperLineExtrasOwn` + `mitMinimumLineNote`). Known gap: a quote invoiced with "first period" copies a monthly minimum onto the invoice,
+  measured against all its lines. Same version: ITFlow's quoteConvert `empty($groups['']['items'])` (a quote with only recurring lines warned).
+  Scenario `scenario-minimum-commit.php`, smoke `57-minimum-commit.spec.js`.
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

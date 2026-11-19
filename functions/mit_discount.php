@@ -105,7 +105,11 @@ function mitDiscountBase($type, $doc_id, $discount_product_id = 0) {
     }
     $base = 0.0;
     $left_out = 0;
+    $minimums = function_exists('mitMinimumLines') ? mitMinimumLines($type, $doc_id) : [];
     foreach (billingItems($type, $doc_id) as $item) {
+        if (isset($minimums[intval($item['item_id'])])) {
+            continue; // a minimum commit line is not discounted
+        }
         $product_id = mitDiscountLineProduct($type, $item, $by_name, $part_products);
         if ($product_id && isset($excluded[$product_id])) {
             $left_out++;
@@ -128,6 +132,9 @@ function mitDiscountAmount($type, $doc_id, array $rule) {
  */
 function mitDiscountBeforeRecalc($type, $doc_id) {
     global $mysqli;
+    if (function_exists('mitMinimumApply')) {
+        mitMinimumApply($type, $doc_id); // a minimum commit line's price first - it is measured before the discount (functions/mit_minimum.php)
+    }
     $rule = mitDiscountRule($type, $doc_id);
     if (!$rule) {
         return;
@@ -191,6 +198,9 @@ function mitDiscountSave($type, $doc_id, array $post) {
 
 /** Carry a percentage to a document made from another (recurring -> invoice, quote -> invoice / recurring, copies) - before its billingRecalc. */
 function mitDiscountCopy($from_type, $from_id, $to_type, $to_id) {
+    if (function_exists('mitMinimumCopy')) {
+        mitMinimumCopy($from_type, $from_id, $to_type, $to_id); // and its minimum commit lines (functions/mit_minimum.php)
+    }
     $rule = mitDiscountRule($from_type, $from_id);
     if ($rule && intval($to_id)) {
         mitDiscountSet($to_type, $to_id, $rule['percent'], $rule['product_id']);

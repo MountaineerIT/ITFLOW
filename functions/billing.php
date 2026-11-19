@@ -1629,7 +1629,7 @@ function quoteConvert($quote_id, array $opts, &$error = '') {
     };
     $date = $valid_date($opts['date'] ?? '') ?: date('Y-m-d');
     $first_period = !empty($opts['first_period']);
-    if (!$groups['']['items'] && !quoteHasRecurring($groups) && floatval($groups['']['discount'] ?? 0) == 0) {
+    if (empty($groups['']['items']) && !quoteHasRecurring($groups) && floatval($groups['']['discount'] ?? 0) == 0) {
         $error = "$number has nothing on it to invoice.";
         return null;
     }
@@ -1724,6 +1724,7 @@ function quoteConvert($quote_id, array $opts, &$error = '') {
             if ($plan['to']) {
                 $recurring_id = $plan['to'];
                 billingCopyLines($group['items'], 'recurring', $recurring_id);
+                if (function_exists('mitMinimumCopy')) { mitMinimumCopy('quote', $quote_id, 'recurring', $recurring_id); } // MountaineerIT: its minimum commit lines
                 if ($group['discount'] != 0) {
                     mysqli_query($mysqli, "UPDATE recurring_invoices SET recurring_invoice_discount_amount = recurring_invoice_discount_amount + " . floatval($group['discount']) . " WHERE recurring_invoice_id = $recurring_id");
                 }
