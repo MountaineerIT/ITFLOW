@@ -40,6 +40,7 @@ if (isset($_POST['add_invoice'])) {
     mysqli_query($mysqli,"INSERT INTO invoices SET invoice_prefix = '$config_invoice_prefix', invoice_number = $invoice_number, invoice_scope = '$scope', invoice_date = '$date', invoice_due = DATE_ADD('$date', INTERVAL $client_net_terms day), invoice_discount_amount = '$invoice_discount', invoice_amount = '$invoice_amount', invoice_currency_code = '$session_company_currency', invoice_category_id = $category, invoice_status = 'Draft', invoice_url_key = '$url_key', invoice_client_id = $client_id");
 
     $invoice_id = mysqli_insert_id($mysqli);
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('invoice', $invoice_id, $_POST); } // MountaineerIT: $ / % discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Invoice created by $session_name', history_invoice_id = $invoice_id");
 
@@ -80,6 +81,7 @@ if (isset($_POST['edit_invoice'])) {
 
     mysqli_query($mysqli,"UPDATE invoices SET invoice_scope = '$scope', invoice_date = '$date', invoice_due = '$due', invoice_category_id = $category, invoice_discount_amount = $invoice_discount WHERE invoice_id = $invoice_id");
 
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('invoice', $invoice_id, $_POST); } // MountaineerIT: $ / % discount
     // The total from the lines less the new discount - and the status, if it has been paid against
     billingRecalc('invoice', $invoice_id);
 
@@ -153,6 +155,7 @@ if (isset($_POST['add_invoice_copy'])) {
 
     // The same lines, linked to the same products
     billingCopyLines($copy_items, 'invoice', $new_invoice_id);
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('invoice', $invoice_id, 'invoice', $new_invoice_id); } // MountaineerIT: its percentage discount
 
     logAudit("Invoice", "Create", "$session_name created new Invoice $config_invoice_prefix$new_invoice_number from $old_invoice_prefix$old_invoice_number", $client_id, $new_invoice_id);
 

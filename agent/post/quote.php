@@ -35,6 +35,7 @@ if (isset($_POST['add_quote'])) {
     mysqli_query($mysqli,"INSERT INTO quotes SET quote_prefix = '$config_quote_prefix', quote_number = $quote_number, quote_scope = '$scope', quote_date = '$date', quote_expire = '$expire', quote_discount_amount = $quote_discount, quote_amount = " . (0 - $quote_discount) . ", quote_currency_code = '$session_company_currency', quote_category_id = $category, quote_status = 'Draft', quote_url_key = '$quote_url_key', quote_client_id = $client_id");
 
     $quote_id = mysqli_insert_id($mysqli);
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('quote', $quote_id, $_POST); } // MountaineerIT: $ / % discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Quote created!', history_quote_id = $quote_id");
 
@@ -103,6 +104,7 @@ if (isset($_POST['add_quote_copy'])) {
     $new_quote_id = mysqli_insert_id($mysqli);
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Quote copied!', history_quote_id = $new_quote_id");
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'quote', $new_quote_id); } // MountaineerIT: its percentage discount
 
     $sql_items = mysqli_query($mysqli,"SELECT item_description, item_id, item_name, item_order, item_price, item_quantity, item_subtotal,
         item_tax, item_tax_id, item_total, item_frequency FROM quote_items WHERE item_quote_id = $quote_id");
@@ -209,6 +211,7 @@ if (isset($_POST['edit_quote'])) {
     enforceClientAccess();
 
     mysqli_query($mysqli,"UPDATE quotes SET quote_scope = '$scope', quote_date = '$date', quote_expire = '$expire', quote_discount_amount = $quote_discount, quote_category_id = $category WHERE quote_id = $quote_id");
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('quote', $quote_id, $_POST); } // MountaineerIT: $ / % discount
 
     billingRecalc('quote', $quote_id);
 

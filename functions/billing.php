@@ -582,6 +582,7 @@ function billingItemsOrder($type, $doc_id, array $item_ids) {
  */
 function billingRecalc($type, $doc_id) {
     global $mysqli;
+    if (function_exists('mitDiscountBeforeRecalc')) { mitDiscountBeforeRecalc($type, $doc_id); } // MountaineerIT: a percentage discount's dollars, worked out again
     $t = billingType($type);
     $doc_id = intval($doc_id);
     $c = $t['col'];
@@ -1705,6 +1706,7 @@ function quoteConvert($quote_id, array $opts, &$error = '') {
                     }
                 }
             }
+            if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'invoice', $invoice_id); } // MountaineerIT: its percentage discount
             billingRecalc('invoice', $invoice_id);
             $invoice_ref = billingNumber('invoice', billingRow('invoice', $invoice_id, false));
             $numbers[] = $invoice_ref;
@@ -1743,6 +1745,7 @@ function quoteConvert($quote_id, array $opts, &$error = '') {
                     recurring_invoice_quote_id = $quote_id, recurring_invoice_client_id = $client_id");
                 $recurring_id = intval(mysqli_insert_id($mysqli));
                 billingCopyLines($group['items'], 'recurring', $recurring_id);
+                if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'recurring', $recurring_id); } // MountaineerIT: its percentage discount
                 billingRecalc('recurring', $recurring_id);
                 $ref = billingNumber('recurring', billingRow('recurring', $recurring_id, false));
                 billingLog('recurring', $recurring_id, 'Active', "Made from quote $number by $by - first invoice on $start");
@@ -2328,6 +2331,7 @@ function recurringInvoiceGenerate($recurring_invoice_id, $by = 'Cron', $early = 
             item_total = " . floatval($item['item_total']) . ", item_order = " . intval($item['item_order']) . ", item_tax_id = " . intval($item['item_tax_id']) . ",
             item_product_id = " . intval($item['item_product_id']) . ", item_invoice_id = $invoice_id");
     }
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('recurring', $recurring_invoice_id, 'invoice', $invoice_id); } // MountaineerIT: its percentage discount
     billingRecalc('invoice', $invoice_id);
     // Mountaineer IT: usage quantities (kept a Draft for review when applied); QuickBooks Online emails invoices itself
     $mit_hold = (function_exists('mitUsageApply') && mitUsageApply($invoice_id, $recurring_invoice_id)) || (function_exists('mitQboHandlesInvoiceMail') && mitQboHandlesInvoiceMail());

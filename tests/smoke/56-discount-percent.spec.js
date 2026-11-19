@@ -1,0 +1,89 @@
+// Percentage discounts (functions/mit_discount.php, 26.11.8.9): a product ticked "Never discounted" in its window; a recurring invoice's Edit window
+// switched from $ to % - ITFlow's dollar box hidden, 20% with the Nonprofit discount product - saves 20% of the discountable lines only, the page
+// reads "Discount (20%)", the window opens again on % with what it comes to, and switching back to $ keeps a typed amount. Removes what it makes.
+
+const { test, expect } = require('@playwright/test');
+const { smokeName, watch, visit, openModal, submit, expectClean } = require('./helpers');
+const db = require('./mitdb');
+
+const CLIENT = Number(db.val("SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1"));
+const made = { products: [], recurringId: 0, tag: smokeName('discount') };
+
+test.afterAll(() => {
+    if (made.recurringId) {
+        db.exec(`DELETE FROM recurring_invoice_items WHERE item_recurring_invoice_id = ${made.recurringId}`);
+        db.exec(`DELETE FROM history WHERE history_recurring_invoice_id = ${made.recurringId}`);
+        db.exec(`DELETE FROM recurring_invoices WHERE recurring_invoice_id = ${made.recurringId}`);
+        db.exec(`DELETE FROM mit_billing_discounts WHERE doc_type = 'recurring' AND doc_id = ${made.recurringId}`);
+    }
+    for (const id of made.products) {
+        db.exec(`DELETE FROM products WHERE product_id = ${id}`);
+    }
+});
+
+test('discounts: a percentage of the lines, never-discounted products left out', async ({ page }) => {
+    test.skip(!CLIENT, 'no client here');
+    test.skip(!db.val("SHOW TABLES LIKE 'mit_product_no_discount'"), 'M064 not run');
+    const errors = watch(page);
+    // ITFlow's windows want a category on products and invoices
+    const category = Number(db.val("SELECT category_id FROM categories WHERE category_type = 'Income' AND category_archived_at IS NULL ORDER BY category_id LIMIT 1") || 0)
+        || db.insert("INSERT INTO categories SET category_name = 'Smoke income', category_type = 'Income', category_color = '#888888'");
+    const product = (name, price) => {
+        const id = db.insert(`INSERT INTO products SET product_name = ${db.q(name)}, product_price = ${price}, product_currency_code = 'USD', product_type = 'service', product_category_id = ${category}, product_tax_id = 0`);
+        made.products.push(id);
+        return id;
+    };
+    const managed = product(`${made.tag} Managed services`, 1000);
+    const licence = product(`${made.tag} M365 licence`, 20);
+    const nonprofit = product(`${made.tag} Nonprofit discount`, 0);
+
+    // "Never discounted" in the product window
+    await visit(page, 'agent/products.php', errors);
+    let modal = await openModal(page, `modals/product/product_edit.php?id=${licence}`, 'lg');
+    const never = modal.locator('[data-mit-no-discount] input[type=checkbox]');
+    await expect(never).toBeVisible();
+    await never.check();
+    await submit(modal, 'edit_product');
+    expect(db.val(`SELECT COUNT(*) FROM mit_product_no_discount WHERE product_id = ${licence}`), 'licence never discounted').toBe('1');
+
+    // A recurring invoice with both
+    made.recurringId = db.insert(`INSERT INTO recurring_invoices SET recurring_invoice_prefix = 'REC-', recurring_invoice_number = (SELECT n FROM (SELECT COALESCE(MAX(recurring_invoice_number), 0) + 1 AS n FROM recurring_invoices) x),
+        recurring_invoice_scope = ${db.q(made.tag)}, recurring_invoice_frequency = 'month', recurring_invoice_next_date = DATE_ADD(CURDATE(), INTERVAL 1 MONTH), recurring_invoice_anchor_day = 1,
+        recurring_invoice_status = 1, recurring_invoice_discount_amount = 0, recurring_invoice_amount = 1200, recurring_invoice_currency_code = 'USD', recurring_invoice_auto_send = 0,
+        recurring_invoice_category_id = ${category}, recurring_invoice_quote_id = 0, recurring_invoice_client_id = ${CLIENT}`);
+    db.exec(`INSERT INTO recurring_invoice_items SET item_name = ${db.q(made.tag + ' Managed services')}, item_description = '', item_quantity = 1, item_price = 1000, item_subtotal = 1000, item_tax = 0, item_total = 1000, item_order = 1, item_tax_id = 0, item_product_id = ${managed}, item_recurring_invoice_id = ${made.recurringId};
+        INSERT INTO recurring_invoice_items SET item_name = ${db.q(made.tag + ' M365 licence')}, item_description = '', item_quantity = 10, item_price = 20, item_subtotal = 200, item_tax = 0, item_total = 200, item_order = 2, item_tax_id = 0, item_product_id = ${licence}, item_recurring_invoice_id = ${made.recurringId}`);
+
+    // The Edit window: $ -> %
+    await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
+    modal = await openModal(page, `modals/recurring_invoice/recurring_invoice_edit.php?id=${made.recurringId}`);
+    const box = modal.locator('[data-mit-discount]');
+    await expect(box).toBeVisible();
+    const dollars = modal.locator('input[name=recurring_invoice_discount]');
+    await expect(dollars).toBeVisible();
+    await box.locator('label', { hasText: '% of lines' }).click();
+    await expect(dollars, 'ITFlow\'s dollar box hidden').toBeHidden();
+    await box.locator('[name=mit_discount_percent]').fill('20');
+    await box.locator('[name=mit_discount_product]').selectOption(String(nonprofit));
+    await submit(modal, 'edit_recurring_invoice');
+    expect(db.val(`SELECT CONCAT(ROUND(percent), '/', product_id) FROM mit_billing_discounts WHERE doc_type = 'recurring' AND doc_id = ${made.recurringId}`), 'kept').toBe(`20/${nonprofit}`);
+    expect(db.val(`SELECT CONCAT(recurring_invoice_discount_amount, '/', recurring_invoice_amount) FROM recurring_invoices WHERE recurring_invoice_id = ${made.recurringId}`), '20% of the 1,000 of managed services, not the licences')
+        .toBe('200.00/1000.00');
+
+    // The page and the window again
+    await visit(page, `agent/recurring_invoice.php?recurring_invoice_id=${made.recurringId}`, errors);
+    await expect(page.locator('body')).toContainText('Discount (20%)');
+    modal = await openModal(page, `modals/recurring_invoice/recurring_invoice_edit.php?id=${made.recurringId}`);
+    await expect(modal.locator('[name=mit_discount_mode][value=percent]')).toBeChecked();
+    await expect(modal.locator('[name=mit_discount_percent]')).toHaveValue('20');
+    await expect(modal.locator('[data-mit-discount-now]')).toContainText('Comes to 200.00 now - 20% of 1,000.00 (1 line never discounted left out)');
+
+    // Back to $: a typed amount
+    await modal.locator('[data-mit-discount] label', { hasText: '$ amount' }).click();
+    await expect(modal.locator('input[name=recurring_invoice_discount]')).toBeVisible();
+    await modal.locator('input[name=recurring_invoice_discount]').fill('50');
+    await submit(modal, 'edit_recurring_invoice');
+    expect(db.val(`SELECT COUNT(*) FROM mit_billing_discounts WHERE doc_type = 'recurring' AND doc_id = ${made.recurringId}`), 'the percentage gone').toBe('0');
+    expect(db.val(`SELECT recurring_invoice_discount_amount FROM recurring_invoices WHERE recurring_invoice_id = ${made.recurringId}`), 'the typed amount').toBe('50.00');
+    await expectClean(page, errors);
+});

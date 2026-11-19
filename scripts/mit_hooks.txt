@@ -188,6 +188,7 @@ hook	agent/js/ticket_schedule_modal.js	mit_ticket_tech	1
 hook	agent/modals/asset/asset.php	mitAlignAssetPanel	2
 hook	agent/modals/asset/asset.php	mitNinjaAssetButton	2
 hook	agent/modals/asset/asset_bulk_add_ticket.php	mitServiceUserSql	2
+hook	agent/modals/billing/billing_form.php	mitDiscountField	2
 hook	agent/modals/billing/billing_form.php	mitRecurringInvoicePlanField	2
 hook	agent/modals/billing/billing_item.php	mitQboLineCategoryField	2
 hook	agent/modals/billing/billing_item.php	mitQuoteLineFields	2
@@ -212,6 +213,8 @@ hook	agent/modals/calendar/calendar_event_form.php	mit_zones	1
 hook	agent/modals/client/client_bulk_add_ticket.php	mitServiceUserSql	2
 hook	agent/modals/contract/contract_form.php	mitContractUnlimitedField	2
 hook	agent/modals/contract/contract_form.php	mitServiceUserSql	2
+hook	agent/modals/product/product_form.php	MountaineerIT	1
+hook	agent/modals/product/product_form.php	mitDiscountProductField	2
 hook	agent/modals/product/product_form.php	mitProductImageField	2
 hook	agent/modals/project/project_bulk_manager.php	mitServiceUserSql	2
 hook	agent/modals/project/project_export.php	mitServiceUserSql	2
@@ -262,6 +265,9 @@ hook	agent/post/client.php	mitTicketPartsDeleting	1
 hook	agent/post/client.php	mitTsDeleteGuard	2
 hook	agent/post/event.php	mitZoneEventPost	4
 hook	agent/post/expense.php	mitQboGuardInvoice	2
+hook	agent/post/invoice.php	MountaineerIT	3
+hook	agent/post/invoice.php	mitDiscountCopy	2
+hook	agent/post/invoice.php	mitDiscountSave	4
 hook	agent/post/invoice.php	mitQboGuardEmail	2
 hook	agent/post/invoice.php	mitQboGuardInvoice	16
 hook	agent/post/payment.php	mitLock	1
@@ -273,9 +279,15 @@ hook	agent/post/payment.php	mitUnlock	3
 hook	agent/post/product.php	mitImageErrorFlash	2
 hook	agent/post/product.php	mitProductDelete	2
 hook	agent/post/product.php	mitProductSave	2
+hook	agent/post/quote.php	MountaineerIT	3
+hook	agent/post/quote.php	mitDiscountCopy	2
+hook	agent/post/quote.php	mitDiscountSave	4
 hook	agent/post/quote.php	mitProcAfterQuoteConvert	2
 hook	agent/post/quote.php	mitQuoteItemCopy	1
 hook	agent/post/quote.php	mitQuoteItemDelete	1
+hook	agent/post/recurring_invoice.php	MountaineerIT	3
+hook	agent/post/recurring_invoice.php	mitDiscountCopy	2
+hook	agent/post/recurring_invoice.php	mitDiscountSave	4
 hook	agent/post/recurring_invoice.php	mitRecurringInvoicePlanSave	4
 hook	agent/post/recurring_ticket.php	mitByDayFollow	2
 hook	agent/post/recurring_ticket.php	mitRecurringTicketPlanSave	4
@@ -428,6 +440,7 @@ hook	functions.php	mit_common	1
 hook	functions.php	mit_contract_unlimited	1
 hook	functions.php	mit_cron_health	1
 hook	functions.php	mit_ct	1
+hook	functions.php	mit_discount	1
 hook	functions.php	mit_dispatch	1
 hook	functions.php	mit_invites	1
 hook	functions.php	mit_list_views	1
@@ -453,6 +466,9 @@ hook	functions/app.php	MountaineerIT	1
 hook	functions/app.php	mitTicketScheduleEnd	1
 hook	functions/backup.php	mit_feedback	1
 hook	functions/backup.php	mit_receipts	1
+hook	functions/billing.php	MountaineerIT	4
+hook	functions/billing.php	mitDiscountBeforeRecalc	2
+hook	functions/billing.php	mitDiscountCopy	6
 hook	functions/billing.php	mitProcQuoteConvertGroups	2
 hook	functions/billing.php	mitQboHandlesInvoiceMail	2
 hook	functions/billing.php	mitQboTagTimeLines	2
@@ -468,6 +484,7 @@ hook	functions/billing.php	mitUsageSeatSources	2
 hook	functions/billing.php	mit_hold	2
 hook	functions/billing.php	mit_not	2
 hook	functions/billing_pay.php	mitQboCardPaymentBooked	2
+hook	functions/billing_pdf.php	mitDiscountLabel	4
 hook	functions/billing_pdf.php	mitQuotePdfImage	2
 hook	functions/calendar.php	mitAgentColor	1
 hook	functions/calendar.php	mitByDayDate	1
@@ -569,6 +586,7 @@ hook	functions/user.php	mitSessionRestamp	1
 hook	functions/user_invite.php	mitInviteExtrasApply	2
 hook	guest/guest_ajax.php	mitQboTakesPayments	2
 hook	guest/guest_pay_invoice_stripe.php	mitQboCardPaymentBooked	2
+hook	includes/billing_paper.php	mitDiscountLabel	4
 hook	includes/billing_paper.php	mitPaperAddRow	2
 hook	includes/billing_paper.php	mitPaperLineExtras	2
 hook	includes/billing_paper.php	mitPaperLineImage	2
@@ -689,6 +707,7 @@ ours	admin/database_updates/mountaineerit/M060.php
 ours	admin/database_updates/mountaineerit/M061.php
 ours	admin/database_updates/mountaineerit/M062.php
 ours	admin/database_updates/mountaineerit/M063.php
+ours	admin/database_updates/mountaineerit/M064.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -843,6 +862,7 @@ ours	functions/mit_cron_health.php
 ours	functions/mit_ct.php
 ours	functions/mit_db_upgrade.php
 ours	functions/mit_dev_mode.php
+ours	functions/mit_discount.php
 ours	functions/mit_dispatch.php
 ours	functions/mit_dispatch_workload.php
 ours	functions/mit_event_agents.php

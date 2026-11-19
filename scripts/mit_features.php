@@ -461,6 +461,18 @@ return [
         'watch' => ['contract_monthly_hours', 'contract_template_monthly_hours', 'contractHoursDraw', 'contractHoursEnsureMonthly', 'Hours each month are a number of hours under 1,000', 'of support each month, used for that month only'],
         'overlap' => ['unlimited', 'contract_unlimited', 'hours_unlimited'],
     ],
+    'discount_percent' => [
+        'name' => 'Percentage discounts: ITFlow\'s Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks',
+        'files' => ['functions/mit_discount.php', 'admin/database_updates/mountaineerit/M064.php'],
+        'tests' => ['tests/smoke/56-discount-percent.spec.js', 'tests/scenarios/scenario-discount-percent.php'],
+        'assumes' => [
+            'ITFlow\'s billingRecalc (functions/billing.php) reads *_discount_amount and works every total out from it - invoices, quotes, recurring invoices; billingLinesOpen says when lines may still change.',
+            'recurringInvoiceGenerate and quoteConvert copy the discount dollars and call billingRecalc on the new document; billingItems gives item_subtotal / item_product_id / item_name.',
+            'agent/modals/billing/billing_form.php has the Discount box named invoice_discount / quote_discount / recurring_invoice_discount, posted to the six add / edit handlers.',
+        ],
+        'watch' => ['function billingRecalc(', 'billingLinesOpen', '_discount_amount', 'Taken off the total, after the lines.'],
+        'overlap' => ['discount_percent', 'discount_type', 'no_discount', 'discountable'],
+    ],
     'client_profit' => [
         'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
         'files' => ['functions/mit_profit.php', 'admin/mit_labor_costs.php', 'admin/post/mit_labor_costs.php'],

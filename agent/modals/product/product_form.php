@@ -260,6 +260,7 @@ if ($form_vendor_id && !isset($form_vendors[$form_vendor_id]) && $form_value('ve
         </div>
     </div>
     <?php if (function_exists('mitProductImageField')) { echo '<div class="col-12">' . mitProductImageField($form_product) . '</div>'; } // Mountaineer IT: the product's picture for quotes ?>
+    <?php if (function_exists('mitDiscountProductField')) { echo '<div class="col-12">' . mitDiscountProductField(intval($form_product['product_id'] ?? 0)) . '</div>'; } // MountaineerIT: Never discounted ?>
 </div>
 
 <script>

@@ -50,6 +50,7 @@ if (isset($_POST['add_invoice_recurring'])) {
     mysqli_query($mysqli,"INSERT INTO recurring_invoices SET recurring_invoice_prefix = '$config_recurring_invoice_prefix', recurring_invoice_number = $recurring_invoice_number, recurring_invoice_scope = '$invoice_scope', recurring_invoice_frequency = '$recurring_invoice_frequency', recurring_invoice_next_date = '" . recurringInvoiceStep($invoice_date, $recurring_invoice_frequency) . "', recurring_invoice_anchor_day = DAY('$invoice_date'), recurring_invoice_status = 1, recurring_invoice_discount_amount = $invoice_discount_amount, recurring_invoice_amount = $invoice_amount, recurring_invoice_currency_code = '$invoice_currency_code', recurring_invoice_note = '$invoice_note', recurring_invoice_category_id = $category_id, recurring_invoice_client_id = $client_id");
 
     $recurring_invoice_id = mysqli_insert_id($mysqli);
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('invoice', $invoice_id, 'recurring', $recurring_invoice_id); } // MountaineerIT: its percentage discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Recurring Invoice Created from INVOICE!', history_recurring_invoice_id = $recurring_invoice_id");
 
@@ -110,6 +111,7 @@ if (isset($_POST['add_recurring_invoice'])) {
 
     $recurring_invoice_id = mysqli_insert_id($mysqli);
     if (function_exists('mitRecurringInvoicePlanSave')) { mitRecurringInvoicePlanSave($recurring_invoice_id, $_POST); } // Mountaineer IT: made days ahead, due rule
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('recurring', $recurring_invoice_id, $_POST); } // MountaineerIT: $ / % discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Active', history_description = 'Recurring Invoice created', history_recurring_invoice_id = $recurring_invoice_id");
 
@@ -154,6 +156,7 @@ if (isset($_POST['edit_recurring_invoice'])) {
     // (Set before next_date: MySQL reads a column already set in the same
     // UPDATE as its new value.)
     mysqli_query($mysqli,"UPDATE recurring_invoices SET recurring_invoice_scope = '$scope', recurring_invoice_frequency = '$frequency', recurring_invoice_anchor_day = IF(recurring_invoice_next_date = '$next_date' AND recurring_invoice_anchor_day > 0, recurring_invoice_anchor_day, DAY('$next_date')), recurring_invoice_next_date = '$next_date', recurring_invoice_category_id = $category, recurring_invoice_discount_amount = $recurring_invoice_discount, recurring_invoice_auto_send = $auto_send, recurring_invoice_status = $status WHERE recurring_invoice_id = $recurring_invoice_id");
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('recurring', $recurring_invoice_id, $_POST); } // MountaineerIT: $ / % discount
 
     billingRecalc('recurring', $recurring_invoice_id);
     if (function_exists('mitRecurringInvoicePlanSave')) { mitRecurringInvoicePlanSave($recurring_invoice_id, $_POST); } // Mountaineer IT: made days ahead, due rule

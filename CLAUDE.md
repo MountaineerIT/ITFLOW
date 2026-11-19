@@ -1826,6 +1826,23 @@ model: see DEPLOYMENT.md.
   (`mitContractUnlimitedAgentFigures` - used this month / last month, `[data-mit-contract-unlimited]`, `[data-mit-unlimited-used]`) and in
   `client/contract.php` (`mitContractUnlimitedPortalFigures`); the "Included hours" line of `functions/contract_signature.php`
   (`mitContractUnlimitedTermsLine` - "Unlimited support hours each month"). Scenario `scenario-contract-unlimited.php`, smoke `55-contract-unlimited.spec.js`.
+- Percentage discounts (Nov 19, 26.11.8.9 - the user's request: a nonprofit discount on managed services but not on licensing, kept up on recurring
+  invoices by itself): `functions/mit_discount.php` (ours, required from `functions.php`), M064 `mit_billing_discounts` (doc_type invoice | quote |
+  recurring + doc_id PK, percent, product_id - no FK, three tables) and `mit_product_no_discount` (product_id PK FK products CASCADE - "Never
+  discounted"). ITFlow's Discount stays a dollar amount in its own `*_discount_amount`; a document with a percentage gets the dollars worked out
+  from its discountable lines (every line but "Never discounted" products and the discount's own product; a typed line counts as the one
+  unarchived product of its name, a ticket-parts line as the part's product) by `mitDiscountBeforeRecalc` - one guarded line at the start of
+  ITFlow's billingRecalc, only while billingLinesOpen (a paid invoice / accepted quote keeps its dollars). So line edits, seat refreshes, invoices made
+  from a recurring invoice and quote conversions all follow it. `mitDiscountCopy` (one line each): recurringInvoiceGenerate, quoteConvert (invoice and
+  new recurring invoice - an existing recurring invoice keeps its own setting) in `functions/billing.php`, Copy Invoice (`agent/post/invoice.php`), Copy
+  Quote (`agent/post/quote.php`), Make Recurring (`agent/post/recurring_invoice.php`). Edit / New window: `mitDiscountField` under ITFlow's Discount box
+  in `agent/modals/billing/billing_form.php` (`[data-mit-discount]` - "$ amount" / "% of lines"; % hides ITFlow's box and posts it empty, shows the
+  percent, "Comes to X now" `[data-mit-discount-now]` and a Discount product picker); saved by `mitDiscountSave` (one line each in the six add / edit
+  handlers: agent/post/invoice.php, quote.php, recurring_invoice.php - `mit_discount_present`; 0-100, else refused). Totals label "Discount (20%)"
+  (`mitDiscountLabel` - two lines in `includes/billing_paper.php`, two in `functions/billing_pdf.php`). Product window: `mitDiscountProductField` (one
+  line in `agent/modals/product/product_form.php`), saved from our mitProductSave (`mitDiscountProductSave`). QuickBooks: `mitQboDiscountLine($amount,
+  $invoice_id)` posts the discount to the discount product's category account (`mitDiscountQboAccount`), else the "Discounts go to" setting.
+  Scenario `scenario-discount-percent.php` (ITFlow's recurring run and quote conversion), smoke `56-discount-percent.spec.js`.
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

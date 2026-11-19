@@ -365,6 +365,10 @@ break stock ITFlow, and lists what stops working after a move.
   the files in `uploads/mit_images/`). A product's cost is ITFlow's own field (26.11) and stays. Our API
   leaves product cost and markup out of `api/v1/products/read.php`; stock ITFlow's API returns every
   column, so after a move an API key with Sales access can read them – clear them first if that matters.
+- **Percentage discounts** – each document keeps the dollars its percentage last came to (ITFlow's own Discount), so totals stay
+  right, but stock ITFlow no longer works them out again when lines change, and new invoices from a recurring invoice copy its last
+  dollar amount; "Never discounted" on products and the "Discount (20%)" label go (data unused in `mit_billing_discounts` /
+  `mit_product_no_discount`).
 - **Unlimited support hours on contracts** – keep working: the contract's hours each month hold 99,999 (ITFlow's own column), so
   stock ITFlow still covers every billable ticket. It shows the number - "99,999 h included each month", "Of 99,999 h" - where
   ours said "Unlimited", lists last months' unused hours as having run out, and the contract window refuses to save such a
