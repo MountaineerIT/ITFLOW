@@ -69,6 +69,7 @@ if (isset($_POST['add_invoice_recurring'])) {
 
         mysqli_query($mysqli,"INSERT INTO recurring_invoice_items SET item_name = '$item_name', item_description = '$item_description', item_quantity = $item_quantity, item_price = $item_price, item_subtotal = $item_subtotal, item_tax = $item_tax, item_total = $item_total, item_order = $item_order, item_tax_id = $tax_id, item_recurring_invoice_id = $recurring_invoice_id");
     }
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('invoice', $invoice_id, 'recurring', $recurring_invoice_id); } // MountaineerIT: its percentage discount and minimum commit lines
 
     logAudit("Recurring Invoice", "Create", "$session_name created recurring Invoice from Invoice $invoice_prefix$invoice_number", $client_id, $recurring_invoice_id);
 
@@ -110,6 +111,7 @@ if (isset($_POST['add_recurring_invoice'])) {
 
     $recurring_invoice_id = mysqli_insert_id($mysqli);
     if (function_exists('mitRecurringInvoicePlanSave')) { mitRecurringInvoicePlanSave($recurring_invoice_id, $_POST); } // Mountaineer IT: made days ahead, due rule
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('recurring', $recurring_invoice_id, $_POST); } // MountaineerIT: $ / % discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Active', history_description = 'Recurring Invoice created', history_recurring_invoice_id = $recurring_invoice_id");
 
@@ -154,6 +156,7 @@ if (isset($_POST['edit_recurring_invoice'])) {
     // (Set before next_date: MySQL reads a column already set in the same
     // UPDATE as its new value.)
     mysqli_query($mysqli,"UPDATE recurring_invoices SET recurring_invoice_scope = '$scope', recurring_invoice_frequency = '$frequency', recurring_invoice_anchor_day = IF(recurring_invoice_next_date = '$next_date' AND recurring_invoice_anchor_day > 0, recurring_invoice_anchor_day, DAY('$next_date')), recurring_invoice_next_date = '$next_date', recurring_invoice_category_id = $category, recurring_invoice_discount_amount = $recurring_invoice_discount, recurring_invoice_auto_send = $auto_send, recurring_invoice_status = $status WHERE recurring_invoice_id = $recurring_invoice_id");
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('recurring', $recurring_invoice_id, $_POST); } // MountaineerIT: $ / % discount
 
     billingRecalc('recurring', $recurring_invoice_id);
     if (function_exists('mitRecurringInvoicePlanSave')) { mitRecurringInvoicePlanSave($recurring_invoice_id, $_POST); } // Mountaineer IT: made days ahead, due rule

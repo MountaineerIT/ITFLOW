@@ -564,6 +564,9 @@ function mitProductImageField($product) {
 function mitProductSave($product_id, array $post, array $files) {
     global $mysqli;
     $product_id = intval($product_id);
+    if (function_exists('mitDiscountProductSave')) {
+        mitDiscountProductSave($product_id, $post); // "Never discounted" (functions/mit_discount.php)
+    }
     if (!$product_id || !mitQuoteColumnsReady()) {
         return;
     }
@@ -895,6 +898,11 @@ function mitPaperLineImage(array $paper, array $item) {
  * cost and how it was priced; an invoice line's ordering (procurement). '' otherwise.
  */
 function mitPaperLineExtras(array $paper, array $item) {
+    return mitPaperLineExtrasOwn($paper, $item) . (function_exists('mitMinimumLineNote') ? mitMinimumLineNote($paper, $item) : ''); // and a minimum commit line's figures
+}
+
+/** mitPaperLineExtras without the minimum commit note. */
+function mitPaperLineExtrasOwn(array $paper, array $item) {
     if (empty($paper['edit']) && empty($paper['mit_staff'])) {
         return '';
     }

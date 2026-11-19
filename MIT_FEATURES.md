@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 73 | 15 | 9 | 31 | 74 | 39 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 205 | 2 | 2 | 15 | 41 | 5 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 75 | 15 | 9 | 31 | 74 | 39 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 209 | 2 | 2 | 15 | 41 | 5 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -41,6 +41,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
+| [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 2 | 5 | 1 | 10 | 9 |
+| [Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it](#minimum_commit) | 2 | 2 | 9 | 0 | 11 | 6 |
 | [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
 
@@ -908,15 +910,15 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ajax.php`: mitQuoteItemSave
 - `agent/invoice.php`: mitPaperLineExtras, mit_quotes, mit_staff
 - `agent/modals/billing/billing_item.php`: mitQuoteLineFields
-- `agent/modals/product/product_form.php`: mitProductImageField
-- `agent/post/billing.php`: mitImageErrorFlash, mitQuoteItemDelete, mitQuoteItemSave
+- `agent/modals/product/product_form.php`: mitProductImageField, MountaineerIT
+- `agent/post/billing.php`: mitImageErrorFlash, mitQuoteItemDelete, mitQuoteItemSave, mit_why
 - `agent/post/client.php`: mitQuoteImagesDelete
 - `agent/post/product.php`: mitImageErrorFlash, mitProductDelete, mitProductSave
-- `agent/post/quote.php`: mitQuoteItemCopy, mitQuoteItemDelete
+- `agent/post/quote.php`: mitQuoteItemCopy, mitQuoteItemDelete, MountaineerIT
 - `agent/quote.php`: mitPaperLineExtras, mitQuoteProfitBox, mit_quotes, mit_staff
 - `api/v1/clients/delete.php`: mitQuoteImagesDelete
 - `api/v1/products/read.php`: mitProductApiColumns
-- `functions.php`: mit_quotes
+- `functions.php`: mit_discount, mit_quotes
 - `functions/backup.php`: mit_feedback
 - `functions/billing_pdf.php`: mitQuotePdfImage
 - `includes/billing_paper.php`: mitPaperAddRow, mitPaperLineExtras, mitPaperLineImage, mit_quotes, mit_add_row
@@ -1228,8 +1230,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `client/post.php`: mitQboGuardPayment, mit_invoice_id
 - `cron/mail_queue.php`: mit_dev_mode
 - `cron/nightly_tasks.php`: mitQboSendsReminders, mitQboTakesPayments
-- `functions.php`: mit_qbo
-- `functions/billing.php`: mitQboHandlesInvoiceMail, mitQboTagTimeLines, mit_hold
+- `functions.php`: mit_discount, mit_qbo
+- `functions/billing.php`: mitQboHandlesInvoiceMail, mitQboTagTimeLines, MountaineerIT, mit_hold
 - `functions/billing_pay.php`: mitQboCardPaymentBooked
 - `functions/income_import.php`: mitQboTakesPayments
 - `functions/products.php`: mitQboInvoiceLock
@@ -1279,7 +1281,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/modals/billing/billing_item.php`: mitSeatNotTagOptions, mitUsageSeatField, mitUsageSeatOption
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `functions.php`: mit_usage
-- `functions/billing.php`: mitSeatNotTagDescribe, mitSeatNotTagFilter, mitSeatNotTagSql, mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, mit_hold, mit_not
+- `functions/billing.php`: mitSeatNotTagDescribe, mitSeatNotTagFilter, mitSeatNotTagSql, mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, MountaineerIT, mit_hold, mit_not
 - `includes/cron_jobs.php`: mit_qbo_billing, mit_usage
 
 **ITFlow functions it calls**
@@ -1585,7 +1587,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/modals/billing/billing_form.php`: mitRecurringInvoicePlanField
 - `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitRecurringTicketPlanField
 - `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitRecurringTicketPlanField
-- `agent/post/recurring_invoice.php`: mitRecurringInvoicePlanSave
+- `agent/post/recurring_invoice.php`: mitRecurringInvoicePlanSave, MountaineerIT
 - `agent/post/recurring_ticket.php`: mitRecurringTicketPlanSave
 - `cron/nightly_tasks.php`: mitRecurringInvoiceDueSql, mitRecurringTicketDueSql
 - `functions.php`: mit_recurring_lead
@@ -1644,6 +1646,78 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** unlimited, contract_unlimited, hours_unlimited
 
 **Our files** `functions/mit_contract_unlimited.php`
+
+<a id="discount_percent"></a>
+## Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks (`discount_percent`)
+
+**Takes for granted**
+
+- ITFlow's billingRecalc (functions/billing.php) reads *_discount_amount and works every total out from it - invoices, quotes, recurring invoices; billingLinesOpen says when lines may still change.
+- recurringInvoiceGenerate and quoteConvert copy the discount dollars and call billingRecalc on the new document; billingItems gives item_subtotal / item_product_id / item_name.
+- agent/modals/billing/billing_form.php has the Discount box named invoice_discount / quote_discount / recurring_invoice_discount, posted to the six add / edit handlers.
+
+**Tests** `tests/smoke/56-discount-percent.spec.js`, `tests/scenarios/scenario-discount-percent.php`
+
+**Hooks in ITFlow's files**
+
+- `agent/modals/billing/billing_form.php`: mitDiscountField
+- `agent/modals/product/product_form.php`: mitDiscountProductField, MountaineerIT
+- `agent/post/invoice.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `agent/post/quote.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `agent/post/recurring_invoice.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `functions.php`: mit_discount, mit_minimum
+- `functions/billing.php`: mitDiscountBeforeRecalc, mitDiscountCopy, MountaineerIT, mit_hold
+- `functions/billing_pdf.php`: mitDiscountLabel
+- `includes/billing_paper.php`: mitDiscountLabel
+
+**ITFlow functions it calls**
+
+- `functions/billing.php`: billingItems, billingLinesOpen, billingRecalc, billingType
+- `functions/sanitize.php`: escapeHtml
+
+**ITFlow tables** products
+
+**ITFlow columns** invoice_id, item_id, item_name, item_product_id, item_subtotal, product_archived_at, product_category_id, product_id, product_name, product_price
+
+**Watched in ITFlow's code** `function billingRecalc(` `billingLinesOpen` `_discount_amount` `Taken off the total, after the lines.`
+
+**"ITFlow does this too" words** discount_percent, discount_type, no_discount, discountable
+
+**Our files** `functions/mit_discount.php`
+
+<a id="minimum_commit"></a>
+## Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it (`minimum_commit`)
+
+**Takes for granted**
+
+- ITFlow's billingRecalc (functions/billing.php) works every total out from the lines' item_subtotal / item_tax / item_total; our discount hook at its start runs mitMinimumApply first.
+- recurringInvoiceGenerate, quoteConvert, Copy Invoice / Quote and Make Recurring copy the lines (names with {period} tokens replaced, item_order kept on recurring runs); our mitDiscountCopy line sits after the copy at each.
+- agent/modals/billing/billing_item.php posts qty / price / seat_source to billing_item_save in agent/post/billing.php, which calls billingItemSave; quoteFrequency groups a quote's lines.
+
+**Tests** `tests/smoke/57-minimum-commit.spec.js`, `tests/scenarios/scenario-minimum-commit.php`
+
+**Hooks in ITFlow's files**
+
+- `agent/invoice.php`: mit_staff
+- `agent/modals/billing/billing_item.php`: mitMinimumField
+- `agent/post/billing.php`: mitMinimumSave, mit_why
+- `agent/quote.php`: mit_staff
+- `functions.php`: mit_minimum
+- `functions/billing.php`: mitMinimumCopy, MountaineerIT
+
+**ITFlow functions it calls**
+
+- `functions/billing.php`: billingItems, billingLineAmounts, billingLineTax, billingLinesOpen, billingRecalc, billingType, quoteFrequency
+- `functions/sanitize.php`: escapeHtml
+- `functions/tax.php`: taxRow
+
+**ITFlow columns** item_frequency, item_id, item_name, item_order, item_price, item_product_id, item_quantity, item_subtotal, item_tax, item_tax_id, item_total
+
+**Watched in ITFlow's code** `function billingRecalc(` `function billingCopyLines(` `billingLineTax` `item_order` `billing_item_save`
+
+**"ITFlow does this too" words** minimum_commit, item_minimum, commit_amount, minimum_charge
+
+**Our files** `functions/mit_minimum.php`
 
 <a id="client_profit"></a>
 ## Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report (`client_profit`)

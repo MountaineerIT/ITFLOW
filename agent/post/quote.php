@@ -35,6 +35,7 @@ if (isset($_POST['add_quote'])) {
     mysqli_query($mysqli,"INSERT INTO quotes SET quote_prefix = '$config_quote_prefix', quote_number = $quote_number, quote_scope = '$scope', quote_date = '$date', quote_expire = '$expire', quote_discount_amount = $quote_discount, quote_amount = " . (0 - $quote_discount) . ", quote_currency_code = '$session_company_currency', quote_category_id = $category, quote_status = 'Draft', quote_url_key = '$quote_url_key', quote_client_id = $client_id");
 
     $quote_id = mysqli_insert_id($mysqli);
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('quote', $quote_id, $_POST); } // MountaineerIT: $ / % discount
 
     mysqli_query($mysqli,"INSERT INTO history SET history_status = 'Draft', history_description = 'Quote created!', history_quote_id = $quote_id");
 
@@ -123,6 +124,7 @@ if (isset($_POST['add_quote_copy'])) {
         mysqli_query($mysqli,"INSERT INTO quote_items SET item_name = '$item_name', item_description = '$item_description', item_quantity = $item_quantity, item_price = $item_price, item_subtotal = $item_subtotal, item_tax = $item_tax, item_total = $item_total, item_order = $item_order, item_tax_id = $tax_id, item_frequency = $item_frequency, item_quote_id = $new_quote_id");
         mitQuoteItemCopy($item_id, mysqli_insert_id($mysqli)); // Mountaineer IT: cost, pricing, its own copy of the image
     }
+    if (function_exists('mitDiscountCopy')) { mitDiscountCopy('quote', $quote_id, 'quote', $new_quote_id); } // MountaineerIT: its percentage discount and minimum commit lines
     billingRecalc('quote', $new_quote_id);
 
     logAudit("Quote", "Create", "$session_name created quote $config_quote_prefix$quote_number from quote $original_quote_prefix$original_quote_number", $client_id, $new_quote_id);
@@ -209,6 +211,7 @@ if (isset($_POST['edit_quote'])) {
     enforceClientAccess();
 
     mysqli_query($mysqli,"UPDATE quotes SET quote_scope = '$scope', quote_date = '$date', quote_expire = '$expire', quote_discount_amount = $quote_discount, quote_category_id = $category WHERE quote_id = $quote_id");
+    if (function_exists('mitDiscountSave')) { mitDiscountSave('quote', $quote_id, $_POST); } // MountaineerIT: $ / % discount
 
     billingRecalc('quote', $quote_id);
 

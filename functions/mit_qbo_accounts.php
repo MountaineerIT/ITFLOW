@@ -643,9 +643,10 @@ function mitQboLineAccountsFrom(array $rows) {
  * The QuickBooks invoice's discount line for ITFlow's discount + credit applied (mitQboInvoicePayload): posted to the "Discounts go to" account
  * of the Income accounts tab (a "Discounts given" expense account - nonprofit discounts, 26.11.8.5), else QuickBooks' own default.
  */
-function mitQboDiscountLine($amount) {
+function mitQboDiscountLine($amount, $invoice_id = 0) {
     $detail = ['PercentBased' => false];
-    $account = mitQboAccountSettings()['discount_account'];
+    // A percentage discount that names a product posts to that product's category account (functions/mit_discount.php), else the setting
+    $account = ($invoice_id && function_exists('mitDiscountQboAccount') ? mitDiscountQboAccount($invoice_id) : '') ?: mitQboAccountSettings()['discount_account'];
     if ($account !== '') {
         $detail['DiscountAccountRef'] = ['value' => $account];
     }

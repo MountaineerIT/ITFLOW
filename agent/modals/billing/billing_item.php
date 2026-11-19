@@ -231,6 +231,7 @@ ob_start();
         </div>
         <?= $type === 'quote' && function_exists('mitQuoteLineFields') ? mitQuoteLineFields($doc_id, $item) : '' // Mountaineer IT: our cost, markup / margin, the line's image ?>
         <?= function_exists('mitQboLineCategoryField') ? mitQboLineCategoryField($type, $doc_id, $item) : '' // Mountaineer IT: the line's category (QuickBooks income account) ?>
+        <?= function_exists('mitMinimumField') ? mitMinimumField($type, $doc_id, $item) : '' // Mountaineer IT: a minimum commit line ?>
         <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
             <span class="text-body-secondary">The line comes to</span>
             <span class="fs-5 fw-semibold itflow-money" data-line-preview><?= escapeHtml(billingMoney($item['item_total'], $currency)) ?></span>

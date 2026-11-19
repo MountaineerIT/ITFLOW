@@ -461,6 +461,30 @@ return [
         'watch' => ['contract_monthly_hours', 'contract_template_monthly_hours', 'contractHoursDraw', 'contractHoursEnsureMonthly', 'Hours each month are a number of hours under 1,000', 'of support each month, used for that month only'],
         'overlap' => ['unlimited', 'contract_unlimited', 'hours_unlimited'],
     ],
+    'discount_percent' => [
+        'name' => 'Percentage discounts: ITFlow\'s Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks',
+        'files' => ['functions/mit_discount.php', 'admin/database_updates/mountaineerit/M064.php'],
+        'tests' => ['tests/smoke/56-discount-percent.spec.js', 'tests/scenarios/scenario-discount-percent.php'],
+        'assumes' => [
+            'ITFlow\'s billingRecalc (functions/billing.php) reads *_discount_amount and works every total out from it - invoices, quotes, recurring invoices; billingLinesOpen says when lines may still change.',
+            'recurringInvoiceGenerate and quoteConvert copy the discount dollars and call billingRecalc on the new document; billingItems gives item_subtotal / item_product_id / item_name.',
+            'agent/modals/billing/billing_form.php has the Discount box named invoice_discount / quote_discount / recurring_invoice_discount, posted to the six add / edit handlers.',
+        ],
+        'watch' => ['function billingRecalc(', 'billingLinesOpen', '_discount_amount', 'Taken off the total, after the lines.'],
+        'overlap' => ['discount_percent', 'discount_type', 'no_discount', 'discountable'],
+    ],
+    'minimum_commit' => [
+        'name' => 'Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it',
+        'files' => ['functions/mit_minimum.php', 'admin/database_updates/mountaineerit/M065.php'],
+        'tests' => ['tests/smoke/57-minimum-commit.spec.js', 'tests/scenarios/scenario-minimum-commit.php'],
+        'assumes' => [
+            'ITFlow\'s billingRecalc (functions/billing.php) works every total out from the lines\' item_subtotal / item_tax / item_total; our discount hook at its start runs mitMinimumApply first.',
+            'recurringInvoiceGenerate, quoteConvert, Copy Invoice / Quote and Make Recurring copy the lines (names with {period} tokens replaced, item_order kept on recurring runs); our mitDiscountCopy line sits after the copy at each.',
+            'agent/modals/billing/billing_item.php posts qty / price / seat_source to billing_item_save in agent/post/billing.php, which calls billingItemSave; quoteFrequency groups a quote\'s lines.',
+        ],
+        'watch' => ['function billingRecalc(', 'function billingCopyLines(', 'billingLineTax', 'item_order', 'billing_item_save'],
+        'overlap' => ['minimum_commit', 'item_minimum', 'commit_amount', 'minimum_charge'],
+    ],
     'client_profit' => [
         'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
         'files' => ['functions/mit_profit.php', 'admin/mit_labor_costs.php', 'admin/post/mit_labor_costs.php'],

@@ -595,7 +595,7 @@ function mitQboInvoicePayload($invoice_id, array $items, $batch_id = 0, $create 
     // ITFlow's discount and any credit applied come off as one discount line (QuickBooks takes one)
     $discount = round(floatval($invoice['invoice_discount_amount']) + floatval($invoice['invoice_credit_amount'] ?? 0), 2);
     if ($discount > 0) {
-        $lines[] = function_exists('mitQboDiscountLine') ? mitQboDiscountLine($discount)
+        $lines[] = function_exists('mitQboDiscountLine') ? mitQboDiscountLine($discount, intval($invoice['invoice_id']))
             : ['DetailType' => 'DiscountLineDetail', 'Amount' => $discount, 'DiscountLineDetail' => ['PercentBased' => false]];
     }
 

@@ -326,7 +326,7 @@ $paper_bill_lines = array_filter([
                     <tr class="itflow-paper-totals-head"><th colspan="2"><?= escapeHtml($paper_group['label']) ?></th></tr>
                     <tr><th>Subtotal</th><td><?= $paper_money($paper_group['subtotal']) ?></td></tr>
                     <?php if ($paper_group['discount'] != 0) { ?>
-                        <tr><th>Discount</th><td>-<?= $paper_money($paper_group['discount']) ?></td></tr>
+                        <tr><th><?= function_exists('mitDiscountLabel') ? escapeHtml(mitDiscountLabel($paper_type, $paper_id)) : 'Discount' ?></th><td>-<?= $paper_money($paper_group['discount']) ?></td></tr>
                     <?php } ?>
                     <?php foreach ($paper_group['taxes'] as $tax_label => $tax_amount) { ?>
                         <tr><th><?= escapeHtml($tax_label) ?></th><td><?= $paper_money($tax_amount) ?></td></tr>
@@ -338,7 +338,7 @@ $paper_bill_lines = array_filter([
         <table class="itflow-paper-totals"<?= $paper_live('totals') ?>>
             <tr><th>Subtotal</th><td><?= $paper_money($paper_totals['subtotal']) ?></td></tr>
             <?php if ($paper_totals['discount'] != 0) { ?>
-                <tr><th>Discount</th><td>-<?= $paper_money($paper_totals['discount']) ?></td></tr>
+                <tr><th><?= function_exists('mitDiscountLabel') ? escapeHtml(mitDiscountLabel($paper_type, $paper_id)) : 'Discount' ?></th><td>-<?= $paper_money($paper_totals['discount']) ?></td></tr>
             <?php } ?>
             <?php foreach ($paper_totals['taxes'] as $tax_label => $tax_amount) { ?>
                 <tr><th><?= escapeHtml($tax_label) ?></th><td><?= $paper_money($tax_amount) ?></td></tr>

@@ -293,7 +293,7 @@ function billingPdfRender($type, array $row, $variant = 'document') {
                 $rows .= '<tr><td colspan="2">' . $label($group['label']) . '</td></tr>';
                 $rows .= '<tr><td' . $w . ' style="color:' . $grey . ';">Subtotal</td><td' . $wr . ' align="right">' . $money($group['subtotal']) . '</td></tr>';
                 if ($group['discount'] != 0) {
-                    $rows .= '<tr><td' . $w . ' style="color:' . $grey . ';">Discount</td><td' . $wr . ' align="right">-' . $money($group['discount']) . '</td></tr>';
+                    $rows .= '<tr><td' . $w . ' style="color:' . $grey . ';">' . $e(function_exists('mitDiscountLabel') ? mitDiscountLabel($type, $id) : 'Discount') . '</td><td' . $wr . ' align="right">-' . $money($group['discount']) . '</td></tr>';
                 }
                 foreach ($group['taxes'] as $tax_label => $tax_amount) {
                     $rows .= '<tr><td' . $w . ' style="color:' . $grey . ';">' . $e($tax_label) . '</td><td' . $wr . ' align="right">' . $money($tax_amount) . '</td></tr>';
@@ -303,7 +303,7 @@ function billingPdfRender($type, array $row, $variant = 'document') {
         }
         if (!$shown_groups) {
             if ($totals['discount'] != 0) {
-                $rows .= '<tr><td style="color:' . $grey . ';">Discount</td><td align="right">-' . $money($totals['discount']) . '</td></tr>';
+                $rows .= '<tr><td style="color:' . $grey . ';">' . $e(function_exists('mitDiscountLabel') ? mitDiscountLabel($type, $id) : 'Discount') . '</td><td align="right">-' . $money($totals['discount']) . '</td></tr>';
             }
             foreach ($totals['taxes'] as $tax_label => $tax_amount) {
                 $rows .= '<tr><td style="color:' . $grey . ';">' . $e($tax_label) . '</td><td align="right">' . $money($tax_amount) . '</td></tr>';

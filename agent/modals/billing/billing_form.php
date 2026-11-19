@@ -174,6 +174,7 @@ $form_scope_placeholder = [
             <span class="input-group-text"><?= escapeHtml($form_currency) ?></span>
         </div>
         <div class="form-text">Taken off the total, after the lines.</div>
+        <?= function_exists('mitDiscountField') ? mitDiscountField($form_type, $form_edit ? intval($form_row["{$form_c}_id"]) : 0) : '' ?>
     </div>
 
     <?php if ($form_type === 'recurring') { ?>
