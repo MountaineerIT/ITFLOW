@@ -1811,6 +1811,21 @@ model: see DEPLOYMENT.md.
   (`mitInvoiceBulkRecall`) and its form posts `mit_bulk_set` (the ones to change) - no 500 hidden fields near max_input_vars. Permissions as the invoice page (`mitInvoiceBulkCan`: Sales 2, Mark Paid + billingMoneyCan('take'), Delete Sales 3, Email hidden
   while QuickBooks is connected); QuickBooks-batched invoices and clients out of reach are left alone. Scenario `scenario-invoice-bulk.php`, smoke
   `67-invoice-bulk.spec.js` (second test: 520 ticked at once).
+- Unlimited support hours on contracts (Nov 19, 26.11.8.8 - the user's request: IT services as unlimited time under monthly agreements; the
+  user chose: after-hours work covered too, the client sees "Unlimited support hours" in the portal and the signed contract):
+  `functions/mit_contract_unlimited.php` (ours, required from `functions.php`), no tables. Built on ITFlow's prepaid hours
+  (functions/contract_hours.php): the Unlimited switch stores `MIT_CONTRACT_UNLIMITED_HOURS` (99,999) in ITFlow's `contract_monthly_hours` /
+  `contract_template_monthly_hours` and the alert off, so each month's block covers every billable done ticket in full (ITFlow's draw, history
+  line, out of Unbilled Time; never over, never "running low"); hours at or over `MIT_CONTRACT_UNLIMITED_FLOOR` (50,000) read "Unlimited". Hooks,
+  one line each: `mitContractHoursLabel` at the top of contractHoursText / contractHoursWords and `mitContractBlocksUnlimited` at the end of
+  contractBlocks (a past month's unlimited block keeps nothing left - none "ran out unused") in `functions/contract_hours.php`;
+  `mitContractUnlimitedInput` after contractFromInput's hours check (`functions/contract.php` - posted `mit_unlimited_present` /
+  `mit_unlimited_hours`); `mitContractUnlimitedField` under Hours included each month in `agent/modals/contract/contract_form.php` and
+  `admin/modals/contract_template/contract_template_form.php` (Cover tab; `[data-mit-unlimited]` empties and locks the hours / alert boxes, an
+  unlimited template picked on New Contract ticks it); an if / else around the hours card's figures in `agent/contract.php`
+  (`mitContractUnlimitedAgentFigures` - used this month / last month, `[data-mit-contract-unlimited]`, `[data-mit-unlimited-used]`) and in
+  `client/contract.php` (`mitContractUnlimitedPortalFigures`); the "Included hours" line of `functions/contract_signature.php`
+  (`mitContractUnlimitedTermsLine` - "Unlimited support hours each month"). Scenario `scenario-contract-unlimited.php`, smoke `55-contract-unlimited.spec.js`.
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

@@ -12,6 +12,7 @@ hook	admin/database_updates.php	mit_db_upgrade	3
 hook	admin/debug.php	mit_feedback_card	1
 hook	admin/getting_started/team.php	mitServiceUserSql	2
 hook	admin/includes/side_nav.php	mit_integrations_nav	1
+hook	admin/modals/contract_template/contract_template_form.php	mitContractUnlimitedField	2
 hook	admin/modals/role/role_add.php	mitBoardRoleField	2
 hook	admin/modals/role/role_edit.php	mitBoardRoleField	2
 hook	admin/modals/ticket_status/ticket_status_form.php	mitReplyStatusField	2
@@ -131,6 +132,9 @@ hook	agent/client_overview.php	mitAlignReplacesAttention	1
 hook	agent/client_overview.php	mitCtClientCard	2
 hook	agent/client_overview.php	mitUsageClientCard	2
 hook	agent/client_overview.php	mit_align_card	3
+hook	agent/contract.php	MountaineerIT	1
+hook	agent/contract.php	mitContractUnlimitedAgentFigures	2
+hook	agent/contract.php	mit_figures	2
 hook	agent/dashboard.php	mitAlignDashCard	2
 hook	agent/dashboard.php	mitBoardDashCard	2
 hook	agent/dashboard.php	mitBoardDashLinks	2
@@ -206,6 +210,7 @@ hook	agent/modals/calendar/calendar_event_form.php	mitZoneFormHint	2
 hook	agent/modals/calendar/calendar_event_form.php	mit_assign	5
 hook	agent/modals/calendar/calendar_event_form.php	mit_zones	1
 hook	agent/modals/client/client_bulk_add_ticket.php	mitServiceUserSql	2
+hook	agent/modals/contract/contract_form.php	mitContractUnlimitedField	2
 hook	agent/modals/contract/contract_form.php	mitServiceUserSql	2
 hook	agent/modals/product/product_form.php	mitProductImageField	2
 hook	agent/modals/project/project_bulk_manager.php	mitServiceUserSql	2
@@ -381,6 +386,9 @@ hook	api/v1/clients/delete.php	mitTsDeleteBlocked	2
 hook	api/v1/enforce_api_rbac.php	mit_usage	2
 hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
 hook	api/v1/products/read.php	mitProductApiColumns	2
+hook	client/contract.php	MountaineerIT	1
+hook	client/contract.php	mitContractUnlimitedPortalFigures	2
+hook	client/contract.php	mit_figures	2
 hook	client/includes/check_login.php	mitSessionCheck	2
 hook	client/includes/footer.php	mit_portal_tables	1
 hook	client/login_microsoft.php	mitPortalEntraTenant	1
@@ -417,6 +425,7 @@ hook	functions.php	mit_align	1
 hook	functions.php	mit_boards	1
 hook	functions.php	mit_calendar	1
 hook	functions.php	mit_common	1
+hook	functions.php	mit_contract_unlimited	1
 hook	functions.php	mit_cron_health	1
 hook	functions.php	mit_ct	1
 hook	functions.php	mit_dispatch	1
@@ -481,6 +490,15 @@ hook	functions/calendar.php	mit_recurring	2
 hook	functions/calendar.php	mit_ticket_techs	1
 hook	functions/client_overview.php	mitBoardVisibleSql	6
 hook	functions/client_overview.php	mitEventByDayColumn	2
+hook	functions/contract.php	MountaineerIT	1
+hook	functions/contract.php	mitContractUnlimitedInput	2
+hook	functions/contract_hours.php	MountaineerIT	3
+hook	functions/contract_hours.php	mitContractBlocksUnlimited	2
+hook	functions/contract_hours.php	mitContractHoursLabel	4
+hook	functions/contract_hours.php	mit_label	4
+hook	functions/contract_signature.php	MountaineerIT	1
+hook	functions/contract_signature.php	mitContractUnlimitedTermsLine	2
+hook	functions/contract_signature.php	mit_line	2
 hook	functions/dashboard.php	mitAssignedSql	1
 hook	functions/dashboard.php	mitBoardDashAnd	6
 hook	functions/dashboard.php	mitEventByDayColumn	2
@@ -820,6 +838,7 @@ ours	functions/mit_calendar.php
 ours	functions/mit_client_tiles.php
 ours	functions/mit_common.php
 ours	functions/mit_consistency.php
+ours	functions/mit_contract_unlimited.php
 ours	functions/mit_cron_health.php
 ours	functions/mit_ct.php
 ours	functions/mit_db_upgrade.php

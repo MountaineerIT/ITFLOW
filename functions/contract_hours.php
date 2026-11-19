@@ -47,11 +47,13 @@ function contractHoursReady() {
 
 /** Hours as "12.5 h", "1 h". */
 function contractHoursText($hours) {
+    if (function_exists('mitContractHoursLabel') && ($mit_label = mitContractHoursLabel($hours)) !== null) { return $mit_label; } // MountaineerIT: unlimited
     return rtrim(rtrim(number_format(round(floatval($hours), 2), 2, '.', ''), '0'), '.') . ' h';
 }
 
 /** Hours in words - "12.5 hours", "1 hour". */
 function contractHoursWords($hours) {
+    if (function_exists('mitContractHoursLabel') && ($mit_label = mitContractHoursLabel($hours, true)) !== null) { return $mit_label; } // MountaineerIT: unlimited
     $hours = round(floatval($hours), 2);
     return rtrim(rtrim(number_format($hours, 2, '.', ''), '0'), '.') . ($hours == 1 ? ' hour' : ' hours');
 }
@@ -81,7 +83,7 @@ function contractBlocks($contract_id, $today = null) {
         $row['expired'] = !empty($row['contract_block_expires']) && $row['contract_block_expires'] < $today;
         $blocks[intval($row['contract_block_id'])] = $row;
     }
-    return $blocks;
+    return function_exists('mitContractBlocksUnlimited') ? mitContractBlocksUnlimited($blocks) : $blocks; // MountaineerIT: unlimited
 }
 
 /*
