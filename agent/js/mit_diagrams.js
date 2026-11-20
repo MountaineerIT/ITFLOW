@@ -95,7 +95,7 @@
         var state = bar.querySelector('[data-mit-drawio-state]');
         var buttons = bar.querySelectorAll('[data-mit-drawio-save], [data-mit-drawio-save-close]');
         var saved = false;
-        var dirty = !opts.data; // a new diagram is unsaved until it is saved
+        var dirty = !opts.data || !!opts.xml; // a new or built diagram is unsaved until it is saved
         var ready = false;
         var exiting = false;
         var busy = false;
@@ -170,7 +170,9 @@
             }
             if (msg.event === 'init') {
                 var load = { action: 'load', autosave: 1, modified: 'unsavedChanges', title: opts.title || 'Diagram' };
-                if (opts.kind === 'png' && opts.data) {
+                if (opts.xml) {
+                    load.xml = opts.xml; // built from assets / drawn by AI - not saved yet
+                } else if (opts.kind === 'png' && opts.data) {
                     load.xmlpng = opts.data;
                 } else {
                     load.xml = opts.data || '';
@@ -200,29 +202,149 @@
 
     /* Files ---------------------------------------------------------------------------------------------------------------------------- */
 
-    function askName() {
-        if (window.Swal) {
-            return window.Swal.fire({
-                title: 'New diagram', input: 'text', inputLabel: 'Name', inputPlaceholder: 'Network map', inputValue: 'Network map',
-                showCancelButton: true, confirmButtonText: 'Open the editor',
-                inputValidator: function (v) { return v && v.trim() ? null : 'Give it a name.'; }
-            }).then(function (r) { return r.isConfirmed ? r.value.trim() : null; });
-        }
-        var name = window.prompt('Name of the new diagram', 'Network map');
-        return Promise.resolve(name && name.trim() ? name.trim() : null);
+    function esc(text) {
+        var d = document.createElement('div');
+        d.textContent = text == null ? '' : String(text);
+        return d.innerHTML;
+    }
+
+    /*
+     * The "start from" window for a new diagram: Blank, From this client's assets (no AI - functions/mit_diagram_assets.php) or Draw with AI
+     * (a picture / one of the client's documents / what to show - functions/mit_ai_diagram.php). withName asks for the file's name too.
+     * Resolves { name, xml, note } (xml '' = blank), or null when closed.
+     */
+    function chooseStart(clientId, withName, within) {
+        var ask = /^doc:/.test(String(clientId)) ? '?start_document=' + encodeURIComponent(String(clientId).slice(4)) : '?start=' + encodeURIComponent(clientId);
+        return fetch(cfg.endpoint + ask, { credentials: 'same-origin' }).then(function (r) {
+            return r.json().then(function (j) {
+                if (!r.ok || j.error) {
+                    throw new Error(j.error || 'The client could not be read.');
+                }
+                return j;
+            });
+        }).then(function (info) {
+            clientId = info.client_id;
+            return new Promise(function (resolve) {
+                var host = within || document.body;
+                var shade = document.createElement('div');
+                shade.setAttribute('data-mit-diagram-start', '');
+                shade.style.cssText = 'position:fixed;inset:0;z-index:2090;background:rgba(15,23,42,.55);display:flex;align-items:flex-start;justify-content:center;padding:4vh 1rem;overflow:auto;';
+                var locations = info.locations.map(function (l) {
+                    return '<div class="form-check"><input class="form-check-input" type="checkbox" name="locations" value="' + l.id + '" id="mitDsL' + l.id + '" checked>'
+                        + '<label class="form-check-label" for="mitDsL' + l.id + '">' + esc(l.name) + ' <span class="text-body-secondary small">(' + l.assets + ' assets)</span></label></div>';
+                }).join('');
+                var docs = (info.documents || []).map(function (d) { return '<option value="' + d.id + '">' + esc(d.name) + '</option>'; }).join('');
+                shade.innerHTML = '<form class="card shadow" style="width:min(44rem,100%);" data-mit-diagram-start-form>'
+                    + '<div class="card-header bg-dark text-white d-flex align-items-center"><i class="fas fa-project-diagram me-2"></i><strong class="me-auto">New diagram</strong>'
+                    + '<button type="button" class="btn-close btn-close-white" data-mit-ds-cancel aria-label="Close"></button></div>'
+                    + '<div class="card-body">'
+                    + (withName ? '<label class="form-label">Name</label><input class="form-control mb-3" name="name" value="Network map" required maxlength="180">' : '')
+                    + '<div class="btn-group w-100 mb-3" role="group">'
+                    + '<input type="radio" class="btn-check" name="from" value="blank" id="mitDsBlank" checked><label class="btn btn-outline-secondary" for="mitDsBlank"><i class="far fa-file me-1"></i>Blank</label>'
+                    + '<input type="radio" class="btn-check" name="from" value="assets" id="mitDsAssets"><label class="btn btn-outline-secondary" for="mitDsAssets"><i class="fas fa-network-wired me-1"></i>From this client\'s assets</label>'
+                    + (info.ai ? '<input type="radio" class="btn-check" name="from" value="ai" id="mitDsAi"><label class="btn btn-outline-secondary" for="mitDsAi"><i class="fas fa-magic me-1"></i>Draw with ' + esc(info.ai_name) + '</label>' : '')
+                    + '</div>'
+                    + '<div data-mit-ds-for="assets" hidden><p class="small text-body-secondary">Drawn from ITFlow: each location, its networks (VLAN, subnet, gateway), the assets on them and the port-to-port connections recorded between them; each rack on a page of its own. No AI - you check it and save.</p>'
+                    + (locations ? '<div class="mb-2"><div class="fw-semibold small mb-1">Locations</div>' + locations + '</div>' : '')
+                    + '<div class="form-check"><input class="form-check-input" type="checkbox" name="workstations" value="1" id="mitDsWs"><label class="form-check-label" for="mitDsWs">Include workstations and phones</label></div>'
+                    + '<div class="form-check"><input class="form-check-input" type="checkbox" name="ips" value="1" id="mitDsIps" checked><label class="form-check-label" for="mitDsIps">Show IP addresses</label></div>'
+                    + '<div class="form-check"><input class="form-check-input" type="checkbox" name="racks" value="1" id="mitDsRacks" checked><label class="form-check-label" for="mitDsRacks">A page for each rack</label></div></div>'
+                    + (info.ai ? '<div data-mit-ds-for="ai" hidden>'
+                        + '<label class="form-label">What should it show?</label><textarea class="form-control mb-2" name="ask" rows="3" maxlength="2000" placeholder="Network map: fiber modem, firewall, core switch, 3 access points, NVR in the back office"></textarea>'
+                        + '<label class="form-label">From one of the client\'s documents <span class="text-body-secondary small">(optional)</span></label><select class="form-select mb-2" name="document_id"><option value="0">- None -</option>' + docs + '</select>'
+                        + '<label class="form-label">Pictures <span class="text-body-secondary small">(optional - a floor plan, fire escape map, photo or an old diagram; up to 3)</span></label>'
+                        + '<input type="file" class="form-control" name="images" accept="image/png,image/jpeg,image/gif,image/webp" multiple data-mit-ds-pictures>'
+                        + '<div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="background" value="1" id="mitDsBg" checked><label class="form-check-label" for="mitDsBg">Use the first picture as the background (floor plans: the walls stay exactly as drawn, rooms and devices go on top)</label></div>'
+                        + '<div class="alert alert-warning small py-2 mt-2 mb-0" data-mit-ds-picture-warning hidden><i class="fas fa-exclamation-triangle me-1"></i>Pictures go to your AI provider as they are - they can\'t be checked for passwords. Don\'t send one that shows a password or other secret.</div>'
+                        + '<p class="small text-body-secondary mt-2 mb-0">The document and what you type are checked for passwords first. It opens in the editor for you to check - nothing is saved until you press Save.</p></div>' : '')
+                    + '<div class="alert alert-danger small py-2 mt-3 mb-0" data-mit-ds-error hidden></div>'
+                    + '</div><div class="card-footer d-flex justify-content-end gap-2">'
+                    + '<button type="button" class="btn btn-light" data-mit-ds-cancel>Cancel</button>'
+                    + '<button type="submit" class="btn btn-primary" data-mit-ds-go><i class="fas fa-check me-1"></i>Open the editor</button></div></form>';
+                host.appendChild(shade);
+                var form = shade.querySelector('form');
+                var errorBox = form.querySelector('[data-mit-ds-error]');
+                function mode() { return form.querySelector('[name=from]:checked').value; }
+                function sync() {
+                    form.querySelectorAll('[data-mit-ds-for]').forEach(function (box) { box.hidden = box.getAttribute('data-mit-ds-for') !== mode(); });
+                }
+                form.querySelectorAll('[name=from]').forEach(function (r) { r.addEventListener('change', sync); });
+                var pictures = form.querySelector('[data-mit-ds-pictures]');
+                if (pictures) {
+                    pictures.addEventListener('change', function () {
+                        form.querySelector('[data-mit-ds-picture-warning]').hidden = !pictures.files.length;
+                    });
+                }
+                function done(value) {
+                    shade.remove();
+                    resolve(value);
+                }
+                form.querySelectorAll('[data-mit-ds-cancel]').forEach(function (b) { b.addEventListener('click', function () { done(null); }); });
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    var name = withName ? form.querySelector('[name=name]').value.trim() : '';
+                    if (withName && !name) {
+                        return;
+                    }
+                    errorBox.hidden = true;
+                    if (mode() === 'blank') {
+                        done({ name: name, xml: '', note: '' });
+                        return;
+                    }
+                    var body = new FormData();
+                    body.append('csrf_token', cfg.csrf);
+                    body.append('client_id', clientId);
+                    if (mode() === 'assets') {
+                        body.append('build_assets', '1');
+                        form.querySelectorAll('[name=locations]:checked').forEach(function (c) { body.append('locations[]', c.value); });
+                        ['workstations', 'ips', 'racks'].forEach(function (k) { body.append(k, form.querySelector('[name=' + k + ']').checked ? '1' : ''); });
+                    } else {
+                        body.append('build_ai', '1');
+                        body.append('ask', form.querySelector('[name=ask]').value);
+                        body.append('document_id', form.querySelector('[name=document_id]').value);
+                        body.append('background', form.querySelector('[name=background]').checked ? '1' : '');
+                        Array.prototype.slice.call(pictures.files, 0, 3).forEach(function (f) { body.append('images[]', f); });
+                    }
+                    var go = form.querySelector('[data-mit-ds-go]');
+                    go.disabled = true;
+                    go.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (mode() === 'ai' ? 'Drawing...' : 'Building...');
+                    fetch(cfg.endpoint, { method: 'POST', body: body, credentials: 'same-origin' }).then(function (r) {
+                        return r.json().catch(function () { return { error: 'The server answered ' + r.status + '.' }; }).then(function (j) {
+                            if (!r.ok || j.error) {
+                                throw new Error(j.error || ('The server answered ' + r.status + '.'));
+                            }
+                            return j;
+                        });
+                    }).then(function (j) {
+                        done({ name: name, xml: j.xml, note: j.summary ? 'Built from assets: ' + j.summary + '. Check it, then save.'
+                            : 'Drawn by AI' + (j.removed ? ' (' + j.removed + ' thing(s) that looked like passwords or HTML were taken out)' : '') + ' - check it, then save.' });
+                    }, function (err) {
+                        go.disabled = false;
+                        go.innerHTML = '<i class="fas fa-check me-1"></i>Open the editor';
+                        errorBox.textContent = err.message;
+                        errorBox.hidden = false;
+                    });
+                });
+                sync();
+            });
+        });
     }
 
     document.addEventListener('click', function (event) {
         var make = event.target.closest('[data-mit-diagram-new]');
         if (make) {
             event.preventDefault();
-            askName().then(function (name) {
-                if (!name) {
+            chooseStart(make.dataset.clientId, true, null).then(function (choice) {
+                if (!choice) {
                     return;
                 }
+                var name = choice.name;
                 var fileId = 0;
+                if (choice.note) {
+                    notify(choice.note, 'info');
+                }
                 openEditor({
-                    kind: 'png', data: '', title: name,
+                    kind: 'png', data: '', xml: choice.xml, title: name,
                     save: function (data) {
                         if (fileId) {
                             return post({ file_save: 1, file_id: fileId, data: data });
@@ -237,7 +359,7 @@
                         }
                     }
                 });
-            });
+            }, function (err) { notify(err.message, 'error'); });
             return;
         }
 
@@ -292,10 +414,26 @@
         var node = editor.selection ? editor.selection.getNode() : null;
         var existing = isDiagram(node) ? node : null;
         var within = editor.getContainer() ? editor.getContainer().closest('.modal') : null;
-        var start = existing ? asDataUrl(editor.dom.getAttrib(existing, 'src')) : Promise.resolve('');
+        var form = editor.getElement() ? editor.getElement().closest('form') : null;
+        var clientField = form ? form.querySelector('[name=client_id]') : null;
+        var documentField = form ? form.querySelector('[name=document_id]') : null;
+        var who = clientField && clientField.value ? clientField.value : (documentField && documentField.value ? 'doc:' + documentField.value : '');
+        var built = '';
+        // A new one starts from the "start from" window (blank / the client's assets / AI) when the form names its client
+        var start = existing ? asDataUrl(editor.dom.getAttrib(existing, 'src'))
+            : (who ? chooseStart(who, false, within).then(function (choice) {
+                if (!choice) {
+                    throw null;
+                }
+                built = choice.xml;
+                if (choice.note) {
+                    notify(choice.note, 'info');
+                }
+                return '';
+            }) : Promise.resolve(''));
         start.then(function (data) {
             openEditor({
-                kind: 'png', data: data, title: 'Diagram', within: within,
+                kind: 'png', data: data, xml: built, title: 'Diagram', within: within,
                 save: function (png) {
                     if (existing && existing.isConnected) {
                         editor.undoManager.transact(function () {
@@ -312,7 +450,11 @@
                     return Promise.resolve();
                 }
             });
-        }, function (err) { notify(err.message, 'error'); });
+        }, function (err) {
+            if (err) {
+                notify(err.message, 'error');
+            }
+        });
     }
 
     function hookEditor(editor) {

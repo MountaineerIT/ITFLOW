@@ -371,7 +371,8 @@ break stock ITFlow, and lists what stops working after a move.
   `mit_product_no_discount`).
 - **Diagrams (draw.io)** – every diagram stays: Files' diagrams are ordinary PNG files ("<name>.drawio.png") and documents' are ordinary pictures
   in them, each carrying the diagram (open it in draw.io's desktop app or diagrams.net to change it). The editor buttons go, and so do the
-  earlier versions of Files' diagrams (`mit_diagram_versions`, `uploads/mit_diagrams/` - unused); ITFlow's own document versions stay.
+  earlier versions of Files' diagrams (`mit_diagram_versions`, `uploads/mit_diagrams/` - unused), building a map from assets and Draw with AI; ITFlow's
+  own document versions stay.
 - **Minimum commits** – each commit line keeps the price it last came to, so totals stay right, but stock ITFlow no longer works it
   out again when lines change: new invoices from a recurring invoice copy its last price - change it by hand as seats grow (data
   unused in `mit_billing_minimums`).

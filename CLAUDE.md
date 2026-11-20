@@ -58,6 +58,8 @@ model: see DEPLOYMENT.md.
   the library, a search or the AI provider. Never weaken any of this to make a feature work; ask the user instead.
   The one exception the user chose (Nov 17, 26.11.8.5): pictures an agent adds to an Ask AI question go to the provider as they are (a picture
   can't be scrubbed) - with a warning beside them, never stored, never in the library; the question's text is still cleaned.
+  The same exception for Draw with AI (Nov 19, 26.11.8.11 - the user's choice): a floor plan / fire map / photo given to it goes to the provider as it
+  is, with the warning beside it; it is kept only when the agent ticks "Use the first picture as the background" (it is then part of the diagram).
 - Scenario checks (26.10.150): `php tests/scenarios/run.php [install]` - PHP stories run against ITFlow's own functions on the TEST
   install (they write rows and remove them; `bootstrap.php` refuses an install that is not *.test / development mode); run by mit_verify.sh
   before the smoke tests. A seam with money or stock in it (stock moves, payments, payroll) gets a scenario there.
@@ -1881,6 +1883,23 @@ model: see DEPLOYMENT.md.
   returns the new src for the next save). Requests: `agent/mit_diagrams_ajax.php` (Support edit + client scope - `mitDiagramsCan` / `mitDiagramClientOk`).
   Script + settings from `mitDiagramsNav` (our `includes/mit_timers_nav.php`). Scenario `scenario-diagrams.php`, smoke `58-diagrams.spec.js` (also checks
   nothing loads from another site).
+  New diagrams built for the agent (26.11.8.11 - the user's request: maps from current assets, and AI from a fire map / floor plan or an earlier document):
+  New diagram (Files) and the document editor's Diagram button (new ones; the form's client_id, or the edited document's via `?start_document=`) open a
+  "start from" window (`chooseStart` in agent/js/mit_diagrams.js, `[data-mit-diagram-start-form]`, `GET ?start=` in agent/mit_diagrams_ajax.php): Blank,
+  From this client's assets, Draw with AI. Both builders return draw.io XML the editor opens unsaved (`openEditor` opts.xml) - nothing is saved until Save.
+  From assets (no AI): `functions/mit_diagram_assets.php` (required from mit_diagrams.php) `mitDiagramFromAssets($client_id, opts locations / workstations /
+  ips / racks)` - a swimlane per location (`loc<id>`; "No location" = 0, a choice of its own), a dashed zone per network (`net<loc>_<net>`, title name -
+  VLAN - subnet, gateway; "Not on a network"), the zone with a Modem/ONT first; devices (`a<asset_id>`, draw.io `mxgraph.networks.*` by ITFlow asset type -
+  `mitDiagramAssetShape`, label name / make model / IP from the primary interface) in three rows - internet edge, switches, the rest (`mitDiagramAssetTier`),
+  workstations / phones left out unless asked; a cable per `asset_interface_links` row between two drawn assets (ports as its label); a page per rack
+  (`mitDiagramRackPage`: units by U, front and rear). POST `build_assets`. Draw with AI: `functions/mit_ai_diagram.php` (ours, required from
+  mit_ai_helper.php - the wall check covers it; tables documents / clients only) `mitAiDiagramDraft` - `mitAiDiagramCan` (diagrams + Use AI + a Documentation
+  model), the monthly limit, the request and one of the client's documents through `mitAiScrub`, up to 3 pictures (`mitAiImagesFromUpload`) as image parts,
+  the first as a locked background cell `mitbg` (style image=data:image/png,<base64>, its own pixel size; the model is told its coordinates); ITFlow's
+  callAiApi, feature `mit_ai_diagram` (in MIT_AI_FEATURES); the answer rebuilt by `mitAiDiagramClean` (only mxGraphModel / mxCell / mxGeometry / mxPoint;
+  labels plain text, scrubbed; `mitAiDiagramStyle` drops image / link / tooltip / html and any address, adds html=0; ids checked, MIT_AI_DIAGRAM_CELLS).
+  POST `build_ai` (multipart; the session is closed before the call). The AI stand-in answers "draw.io diagrams" with an outside image, a link, HTML and a
+  password on purpose. Scenario `scenario-diagram-build.php`, second test of smoke 58.
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

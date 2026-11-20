@@ -407,3 +407,5 @@ function mitDiagramFileMenu(array $item) {
         . '<a class="dropdown-item" href="#" data-mit-diagram-edit data-file-id="' . $id . '" data-kind="' . $kind . '"><i class="fas fa-fw fa-project-diagram me-2"></i>Edit diagram</a>'
         . ($count ? '<a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/mit_diagram/versions.php?id=' . $id . '"><i class="fas fa-fw fa-history me-2"></i>Earlier versions <span class="badge text-bg-secondary ms-1">' . $count . '</span></a>' : '');
 }
+
+require_once __DIR__ . '/mit_diagram_assets.php'; // a network map from the client's assets (26.11.8.11)

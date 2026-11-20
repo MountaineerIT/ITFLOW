@@ -4,7 +4,9 @@
 //  2. Edit diagram opens it again with its shape; another shape -> Save keeps the one before as a version; Earlier versions -> Put this back.
 //  3. A document: the editor's Diagram button inserts a diagram; ITFlow's own save writes it to uploads/documents/<id>/ with the mit-drawio class.
 //  4. The document's page: Edit diagram saves straight to it, and ITFlow keeps the version before.
-// Removes what it makes.
+// Second test (26.11.8.11): New diagram -> From this client's assets opens the map ITFlow's assets make (their icons and the cable between them);
+// Draw with AI (the test install's AI stand-in) with a picture as the background opens a cleaned diagram - no password from the answer, the
+// picture behind it - and saves as a diagram file. Removes what it makes.
 
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
@@ -13,7 +15,8 @@ const db = require('./mitdb');
 
 const ROOT = process.env.ITFLOW_ROOT || '/var/www/itflow';
 const CLIENT = Number(db.val("SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1"));
-const made = { name: smokeName('network map'), doc: smokeName('site map document'), fileIds: [], documentId: 0 };
+const MOCK = 'http://127.0.0.1/ai-mock/index.php';
+const made = { name: smokeName('network map'), doc: smokeName('site map document'), fileIds: [], documentId: 0, assets: [], providerId: 0 };
 
 test.afterAll(() => {
     for (const id of made.fileIds) {
@@ -23,6 +26,12 @@ test.afterAll(() => {
         }
         fs.rmSync(`${ROOT}/uploads/mit_diagrams/${id}`, { recursive: true, force: true });
         db.exec(`DELETE FROM files WHERE file_id = ${id}`);
+    }
+    for (const id of made.assets) {
+        db.exec(`DELETE FROM assets WHERE asset_id = ${id}`);
+    }
+    if (made.providerId) {
+        db.exec(`DELETE FROM ai_usage WHERE ai_usage_provider_id = ${made.providerId}; DELETE FROM ai_models WHERE ai_model_ai_provider_id = ${made.providerId}; DELETE FROM ai_providers WHERE ai_provider_id = ${made.providerId}`);
     }
     if (made.documentId) {
         db.exec(`DELETE FROM document_versions WHERE document_version_document_id = ${made.documentId}`);
@@ -68,8 +77,9 @@ test('diagrams: draw.io in Files and documents, with earlier versions', async ({
     await visit(page, `agent/files.php?client_id=${CLIENT}`, errors);
     await page.locator('button[aria-label="More ways to add"]').click();
     await page.locator('[data-mit-diagram-new]').click();
-    await page.locator('.swal2-input').fill(made.name);
-    await page.locator('.swal2-confirm').click();
+    const start = page.locator('[data-mit-diagram-start-form]');
+    await start.locator('[name=name]').fill(made.name);
+    await start.locator('[data-mit-ds-go]').click(); // Blank
     let { shade, frame } = await editor(page);
     await expect(shade.locator('[data-mit-drawio-title]')).toHaveText(made.name);
     await addShape(frame, 0);
@@ -107,6 +117,8 @@ test('diagrams: draw.io in Files and documents, with earlier versions', async ({
     // 3. A diagram inside a new document
     let doc = await openModal(page, `modals/document/document_add.php?client_id=${CLIENT}`, 'xl');
     await doc.locator('.tox-tbtn', { hasText: 'Diagram' }).click();
+    await expect(page.locator('[data-mit-diagram-start-form] [name=name]'), 'a document\'s diagram needs no file name').toHaveCount(0);
+    await page.locator('[data-mit-diagram-start-form] [data-mit-ds-go]').click(); // Blank
     ({ shade, frame } = await editor(page));
     await addShape(frame, 0);
     await shade.locator('[data-mit-drawio-save-close]').click();
@@ -134,5 +146,76 @@ test('diagrams: draw.io in Files and documents, with earlier versions', async ({
     expect(db.val(`SELECT COUNT(*) FROM document_versions WHERE document_version_document_id = ${made.documentId}`), 'ITFlow\'s version of before').toBe('1');
 
     expect(outside, 'nothing from another site').toEqual([]);
+    await expectClean(page, errors);
+});
+
+// The labels draw.io shows on the diagram
+async function labels(frame) {
+    return frame.evaluate(() => Array.from(document.querySelectorAll('.geDiagramContainer svg text, .geDiagramContainer svg foreignObject div'))
+        .map((e) => e.textContent).join(' | '));
+}
+
+test('diagrams: a map from the client\'s assets, and Draw with AI with a floor plan behind it', async ({ page }) => {
+    test.skip(!CLIENT, 'no client here');
+    test.skip(!db.val("SHOW TABLES LIKE 'mit_diagram_versions'"), 'M066 not run');
+    test.setTimeout(240000);
+    const errors = watch(page);
+    const tag = smokeName('map');
+    const asset = (type, name, ifname, ip) => {
+        const id = db.insert(`INSERT INTO assets SET asset_type = ${db.q(type)}, asset_name = ${db.q(tag + ' ' + name)}, asset_make = 'Make', asset_model = 'M1', asset_client_id = ${CLIENT}`);
+        made.assets.push(id);
+        return [id, db.insert(`INSERT INTO asset_interfaces SET interface_name = ${db.q(ifname)}, interface_ip = ${db.q(ip)}, interface_primary = 1, interface_asset_id = ${id}`)];
+    };
+    const [, fwIf] = asset('Firewall/Router', 'FW', 'wan1', '10.99.0.1');
+    const [, swIf] = asset('Switch', 'SW', 'port24', '10.99.0.2');
+    db.exec(`INSERT INTO asset_interface_links SET interface_a_id = ${fwIf}, interface_b_id = ${swIf}`);
+
+    // From this client's assets
+    await visit(page, `agent/files.php?client_id=${CLIENT}`, errors);
+    await page.locator('button[aria-label="More ways to add"]').click();
+    await page.locator('[data-mit-diagram-new]').click();
+    let start = page.locator('[data-mit-diagram-start-form]');
+    await start.locator('[name=name]').fill(tag + ' assets');
+    await start.locator('label[for=mitDsAssets]').click();
+    await expect(start.locator('[data-mit-ds-for="assets"]')).toBeVisible();
+    await start.locator('[data-mit-ds-go]').click();
+    let { shade, frame } = await editor(page);
+    await expect.poll(() => labels(frame), 'the assets are on the map').toContain(tag + ' FW');
+    expect(await labels(frame)).toContain('wan1 - port24');
+    await expect(shade.locator('[data-mit-drawio-state]'), 'a built map is not saved until saved').toHaveText('Not saved');
+    await Promise.all([page.waitForEvent('load'), shade.locator('[data-mit-drawio-save-close]').click()]);
+    const mapId = Number(db.val(`SELECT file_id FROM files WHERE file_name = ${db.q(tag + ' assets.drawio.png')}`) || 0);
+    expect(mapId, 'saved as a diagram file').toBeGreaterThan(0);
+    made.fileIds.push(mapId);
+
+    // Draw with AI, the picture behind it
+    if ((await page.request.get(MOCK + '/_clear', { failOnStatusCode: false }).then((r) => r.status()).catch(() => 0)) !== 200) {
+        test.info().annotations.push({ type: 'skip', description: 'no AI stand-in - Draw with AI not checked' });
+        return;
+    }
+    db.exec("DELETE FROM ai_providers WHERE ai_provider_name LIKE 'ZZ %stand-in%'");
+    made.providerId = db.insert(`INSERT INTO ai_providers SET ai_provider_name = 'ZZ Smoke diagram stand-in', ai_provider_kind = 'custom', ai_provider_api_url = '${MOCK}/v1/chat/completions', ai_provider_api_key = 'mock', ai_provider_redact = 1`);
+    db.exec(`INSERT INTO ai_models SET ai_model_name = 'mock-chat', ai_model_use_case = 'General', ai_model_ai_provider_id = ${made.providerId}`);
+    await visit(page, `agent/files.php?client_id=${CLIENT}`, errors);
+    await page.locator('button[aria-label="More ways to add"]').click();
+    await page.locator('[data-mit-diagram-new]').click();
+    start = page.locator('[data-mit-diagram-start-form]');
+    await start.locator('[name=name]').fill(tag + ' floor');
+    await start.locator('label[for=mitDsAi]').click();
+    await start.locator('[name=ask]').fill('Site map for the front office');
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAK0lEQVRIie3NMQEAAAgDILV/zuWwgp8PFKCT1Id5WcVisVgsFovFYrFYfLLscwLuFZwrMgAAAABJRU5ErkJggg==', 'base64');
+    await start.locator('[data-mit-ds-pictures]').setInputFiles({ name: 'floor.png', mimeType: 'image/png', buffer: png });
+    await expect(start.locator('[data-mit-ds-picture-warning]'), 'the warning beside the picture').toBeVisible();
+    await start.locator('[data-mit-ds-go]').click();
+    ({ shade, frame } = await editor(page));
+    await expect.poll(() => labels(frame), 'the AI\'s diagram, cleaned').toContain('Core switch');
+    const shown = await labels(frame);
+    expect(shown, 'no password from the answer').not.toContain('MockDiagramLeak7');
+    expect(shown).toContain('Pictures: 1');
+    expect(await frame.evaluate(() => document.querySelectorAll('.geDiagramContainer svg image').length), 'the floor plan is behind it').toBeGreaterThan(0);
+    await Promise.all([page.waitForEvent('load'), shade.locator('[data-mit-drawio-save-close]').click()]);
+    const aiId = Number(db.val(`SELECT file_id FROM files WHERE file_name = ${db.q(tag + ' floor.drawio.png')}`) || 0);
+    expect(aiId, 'saved as a diagram file').toBeGreaterThan(0);
+    made.fileIds.push(aiId);
     await expectClean(page, errors);
 });
