@@ -81,6 +81,9 @@
         bar.style.cssText = 'display:flex;align-items:center;gap:.5rem;padding:.5rem .75rem;background:#212529;color:#fff;border-radius:10px 10px 0 0;';
         bar.innerHTML = '<i class="fas fa-project-diagram me-1"></i><strong class="me-auto text-truncate" data-mit-drawio-title></strong>'
             + '<span class="small text-white-50 me-2" data-mit-drawio-state></span>'
+            // Which editor this is and its license (Apache 2.0) - draw.io's own, included unchanged; not affiliated with it (README)
+            + '<a class="small text-white-50 me-2 d-none d-md-inline" href="/mit_drawio/LICENSE" target="_blank" rel="noopener" data-mit-drawio-credit'
+            + ' title="The open-source draw.io editor (Apache License 2.0). Not affiliated with draw.io.">Editor: draw.io (Apache 2.0)</a>'
             + '<button type="button" class="btn btn-sm btn-primary" data-mit-drawio-save disabled><i class="fas fa-save me-1"></i>Save</button>'
             + '<button type="button" class="btn btn-sm btn-success" data-mit-drawio-save-close disabled><i class="fas fa-check me-1"></i>Save &amp; close</button>'
             + '<button type="button" class="btn btn-sm btn-light" data-mit-drawio-close><i class="fas fa-times me-1"></i>Close</button>';
