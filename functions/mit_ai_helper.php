@@ -54,6 +54,7 @@ const MIT_AI_PLAIN_VALUES = ['wrong', 'incorrect', 'correct', 'right', 'expired'
 require_once __DIR__ . '/mit_ai_ask.php'; // round 2: the Ask AI panel
 require_once __DIR__ . '/mit_ai_docs.php'; // round 3: documents from a conversation
 require_once __DIR__ . '/mit_ai_local.php'; // embeddings on this server (Ollama)
+require_once __DIR__ . '/mit_ai_diagram.php'; // round 4: Draw with AI (diagrams)
 
 const MIT_AI_CHUNK_CHARS = 1500;      // about 350 words a passage
 const MIT_AI_INDEX_BATCH = 300;       // sources looked at per cron run

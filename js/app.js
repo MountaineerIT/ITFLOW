@@ -604,6 +604,7 @@ function itflowInit() {
             { name: 'indentation', items: ['outdent', 'indent'] },
             { name: 'table', items: ['table'] },
             { name: 'extra', items: ['code', 'fullscreen'] },
+            ...(document.getElementById('mitDiagrams') ? [{ name: 'mitdiagram', items: ['mitdiagram'] }] : []), // Mountaineer IT: draw.io diagrams in documents (agent/js/mit_diagrams.js)
             { name: 'history', items: ['undo', 'redo'] }
         ],
         mobile: {

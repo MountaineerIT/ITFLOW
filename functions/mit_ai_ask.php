@@ -24,7 +24,7 @@ const MIT_AI_IMAGES_MAX = 3;
 const MIT_AI_IMAGE_MAX_BYTES = 10485760; // what is uploaded; each is re-drawn smaller before it is sent
 const MIT_AI_IMAGE_MAX_SIDE = 1600;
 const MIT_AI_IMAGE_QUESTION = 'What does this show, and how do I fix it?';
-const MIT_AI_FEATURES = ['mit_ai_helper', 'mit_ai_embed', 'mit_ai_document'];
+const MIT_AI_FEATURES = ['mit_ai_helper', 'mit_ai_embed', 'mit_ai_document', 'mit_ai_diagram'];
 
 /** Has M045 run? */
 function mitAiAskReady() {

@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 75 | 15 | 9 | 31 | 74 | 39 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 209 | 2 | 2 | 15 | 41 | 5 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 76 | 15 | 9 | 32 | 77 | 39 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 213 | 2 | 2 | 15 | 41 | 5 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
 | [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
@@ -20,7 +20,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Dispatch board, Workload, This week](#dispatch) | 6 | 5 | 42 | 17 | 71 | 15 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
 | [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 11 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 12 |
 | [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
 | [Where a client's reply moves a ticket ("Move it to <status>", e.g. Client responded)](#reply_status) | 1 | 2 | 6 | 1 | 4 | 4 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
@@ -36,12 +36,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [NinjaOne RMM sync and live status](#ninjaone) | 10 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 15 | 7 | 24 | 4 |
 | [MSP Align (read only)](#align) | 5 | 1 | 10 | 7 | 11 | 9 |
-| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 14 | 13 | 24 | 12 | 43 | 3 |
+| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 15 | 13 | 24 | 13 | 43 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
 | [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
 | [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 2 | 5 | 1 | 10 | 9 |
+| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 79 | 6 |
 | [Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it](#minimum_commit) | 2 | 2 | 9 | 0 | 11 | 6 |
 | [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
 | [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
@@ -110,9 +111,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 
-**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, ticket_statuses, tickets, user_invites, user_role_permissions, user_roles, users
+**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, files, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, ticket_statuses, tickets, user_invites, user_role_permissions, user_roles, users
 
-**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, ticket_status_id, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, file_id, file_name, file_size, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, ticket_status_id, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -146,7 +147,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_invoice_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
-**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_test_fixture.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`, `MIT_API.md`
+**Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_test_fixture.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_drawio_update.sh`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`, `MIT_API.md`
 
 <a id="dev_mode"></a>
 ## Development mode (a production copy on a test server) (`dev_mode`)
@@ -709,11 +710,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ticket.php`: mitNoResponseButton, mitTicketLayoutHtml, mit_ticket_layout
 - `agent/tickets.php`: mitListViewResetButton, mitListViewRestore
 - `cron/mail_queue.php`: mit_dev_mode
-- `functions.php`: mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
-- `functions/backup.php`: mit_feedback
+- `functions.php`: mit_diagrams, mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
+- `functions/backup.php`: mit_diagrams, mit_feedback
 - `functions/ticket_status.php`: mit_reply_status
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
+- `js/app.js`: mit_diagrams
 
 **ITFlow functions it calls**
 
@@ -1454,7 +1456,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketUrl
 
-**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, settings, tags, ticket_replies, tickets
+**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, networks, settings, tags, ticket_replies, tickets
 
 **ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
 
@@ -1462,7 +1464,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** embedding, knowledge, assistant, copilot, ai_search, ai_chat, ai_ask, ai_answer
 
-**Our files** `functions/mit_ai_ask.php`, `functions/mit_ai_docs.php`, `functions/mit_ai_helper.php`, `functions/mit_ai_local.php`, `admin/mit_ai_helper.php`, `admin/post/mit_ai_helper.php`, `agent/mit_ai_ajax.php`, `agent/js/mit_ai_helper.js`, `agent/modals/mit_ai/document.php`, `cron/mit_ai_index.php`
+**Our files** `functions/mit_ai_ask.php`, `functions/mit_ai_diagram.php`, `functions/mit_ai_docs.php`, `functions/mit_ai_helper.php`, `functions/mit_ai_local.php`, `admin/mit_ai_helper.php`, `admin/post/mit_ai_helper.php`, `agent/mit_ai_ajax.php`, `agent/js/mit_ai_helper.js`, `agent/modals/mit_ai/document.php`, `cron/mit_ai_index.php`
 
 <a id="feedback"></a>
 ## Bugs & ideas (bug reports and feature requests in the top bar) (`feedback`)
@@ -1684,6 +1686,51 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **"ITFlow does this too" words** discount_percent, discount_type, no_discount, discountable
 
 **Our files** `functions/mit_discount.php`
+
+<a id="diagrams"></a>
+## Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI (`diagrams`)
+
+**Takes for granted**
+
+- ITFlow's client files live in uploads/clients/<client>/<file_reference_name> (files table: file_name, file_ext, file_size, file_client_id, file_folder_id, file_archived_at); agent/file.php serves them; folderOwnedId checks a folder.
+- ITFlow's document save (agent/post/document.php add / edit) turns data: images into files with saveBase64Images(html, <root>/uploads/documents/, "uploads/documents/", id) and keeps the content before in document_versions; documentContentRaw / documentHtmlPurify (classes and the uploads address kept).
+- The document editor is TinyMCE ".tinymce" (js/app.js init, toolbar as groups) inside a form with an add_document / edit_document submit; the document page shows the content in .itflow-document-body.
+- agent/files.php builds each item's ⋮ menu in filesItemMenu($item) (kind, id, name, archived, row) and has an Upload split button with "Document from template" in its menu.
+- A map from assets reads ITFlow's assets (asset_type as in functions/asset_type.php ASSET_TYPES), asset_interfaces (interface_ip / _network_id / _primary), asset_interface_links (interface_a_id / _b_id), networks (network_vlan / network / network_gateway), locations and racks / rack_units (unit_start_number / _end_number / unit_face, rack_units_descending).
+- Draw with AI uses ITFlow's callAiApi with getAiModel('Documentation') and OpenAI-style picture parts (image_url), like Ask AI.
+
+**Tests** `tests/smoke/58-diagrams.spec.js`, `tests/scenarios/scenario-diagrams.php`, `tests/scenarios/scenario-diagram-build.php`
+
+**Hooks in ITFlow's files**
+
+- `agent/files.php`: mitDiagramFileMenu, mitDiagramNewMenuItem
+- `functions.php`: mit_ai_helper, mit_diagrams
+- `functions/backup.php`: mit_diagrams
+- `includes/cron_jobs.php`: mit_ai_helper
+- `includes/top_nav.php`: mit_timers_nav
+- `js/app.js`: mitDiagrams, mit_diagrams
+
+**ITFlow functions it calls**
+
+- `functions/ai.php`: aiReady, callAiApi, getAiModel
+- `functions/asset_type.php`: assetTypeName
+- `functions/auth.php`: clientScopeSql, enforceClientAccess, enforceUserPermission, lookupUserPermission
+- `functions/files.php`: documentContentRaw, folderOwnedId, saveBase64Images
+- `functions/logging.php`: logAudit
+- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/security.php`: randomString, validateCSRFToken
+
+**ITFlow tables** asset_interface_links, asset_interfaces, assets, clients, credentials, document_versions, documents, files, history, locations, networks, rack_units, racks, users
+
+**ITFlow columns** ai_provider_redact, asset_archived_at, asset_client_id, asset_id, asset_location_id, asset_make, asset_model, asset_name, asset_type, client_id, document_archived_at, document_client_id, document_content, document_content_raw, document_created_at, document_created_by, document_description, document_id, document_name, document_updated_at, document_updated_by, document_version_content, document_version_created_at, document_version_created_by, document_version_description, document_version_document_id, document_version_name, file_archived_at, file_client_id, file_created_at, file_created_by, file_description, file_ext, file_folder_id, file_id, file_mime_type, file_name, file_reference_name, file_size, file_updated_at, folder_id, interface_a_id, interface_archived_at, interface_asset_id, interface_b_id, interface_id, interface_ip, interface_link_id, interface_name, interface_network_id, interface_primary, location_archived_at, location_client_id, location_id, location_name, network_archived_at, network_client_id, network_gateway, network_id, network_name, network_subnet, network_vlan, rack_archived_at, rack_client_id, rack_id, rack_location_id, rack_name, rack_units, rack_units_descending, unit_archived_at, unit_asset_id, unit_device, unit_end_number, unit_face, unit_rack_id, unit_start_number, unit_type, user_id, user_name
+
+**ITFlow page ids / classes its scripts and styles use** `#mitDiagrams` `.itflow-document-body`
+
+**Watched in ITFlow's code** `function saveBase64Images(` `function documentContentRaw(` `function documentHtmlPurify(` `function filesItemMenu(` `itflow-document-body` `Document from template` `selector: '.tinymce',` `asset_interface_links` `rack_units_descending` `function assetTypeName(`
+
+**"ITFlow does this too" words** drawio, diagram, network_map, networkMap, topology, mxgraph, diagrams.net
+
+**Our files** `functions/mit_diagrams.php`, `functions/mit_diagram_assets.php`, `functions/mit_ai_diagram.php`, `agent/mit_diagrams_ajax.php`, `agent/js/mit_diagrams.js`, `agent/modals/mit_diagram/versions.php`, `scripts/mit_drawio_update.sh`, `mit_drawio/LICENSE`, `mit_drawio/favicon.ico`, `mit_drawio/index.html`, `mit_drawio/open.html`, `mit_drawio/shortcuts.svg`, `mit_drawio/images/apple-touch-icon.png`, `mit_drawio/images/aui-wait.gif`, `mit_drawio/images/delete.png`, `mit_drawio/images/drawlogo-gray.svg`, `mit_drawio/images/drawlogo-text-bottom.svg`, `mit_drawio/images/drawlogo.svg`, `mit_drawio/images/drawlogo48.png`, `mit_drawio/images/droptarget.png`, `mit_drawio/images/github-logo-white.svg`, `mit_drawio/images/github-logo.svg`, `mit_drawio/images/gitlab-logo-white.svg`, `mit_drawio/images/gitlab-logo.svg`, `mit_drawio/images/google-drive-logo-white.svg`, `mit_drawio/images/google-drive-logo.svg`, `mit_drawio/images/icon-192-maskable.png`, `mit_drawio/images/icon-192.png`, `mit_drawio/images/icon-512-maskable.png`, `mit_drawio/images/icon-512.png`, `mit_drawio/images/logo-confluence.png`, `mit_drawio/images/logo-flat-small.png`, `mit_drawio/images/logo-flat.png`, `mit_drawio/images/logo-jira.png`, `mit_drawio/images/logo.png`, `mit_drawio/images/manifest.json`, `mit_drawio/images/onedrive-logo-white.svg`, `mit_drawio/images/onedrive-logo.svg`, `mit_drawio/images/osa_database.png`, `mit_drawio/images/osa_drive-harddisk.png`, `mit_drawio/images/spin.gif`, `mit_drawio/images/trello-logo-white-orange.svg`, `mit_drawio/images/trello-logo.svg`, `mit_drawio/js/PostConfig.js`, `mit_drawio/js/PreConfig.js`, `mit_drawio/js/app.min.js`, `mit_drawio/js/bootstrap.js`, `mit_drawio/js/extensions.min.js`, `mit_drawio/js/main.js`, `mit_drawio/js/math-print.js`, `mit_drawio/js/orgchart.min.js`, `mit_drawio/js/shapes-14-6-5.min.js`, `mit_drawio/js/stencils.min.js`, `mit_drawio/js/viewer-static.min.js`, `mit_drawio/resources/dia.txt`, `mit_drawio/styles/grapheditor.css`, `mit_drawio/styles/high-contrast.css`, `mit_drawio/math4/es5/drawio-mathjax.min.js`, `mit_drawio/mxgraph/css/common.css`, `mit_drawio/styles/fonts/ArchitectsDaughter-Regular.ttf`
 
 <a id="minimum_commit"></a>
 ## Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it (`minimum_commit`)

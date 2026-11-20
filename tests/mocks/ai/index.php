@@ -60,7 +60,28 @@ if (preg_match('#/chat/completions/?$#', $path)) {
         }
     }
 
-    if (stripos($system, 'knowledge base articles') !== false) {
+    $pictures = 0;
+    foreach ($messages as $message) {
+        if (($message['role'] ?? '') === 'user' && is_array($message['content'] ?? null)) {
+            $pictures = count(array_filter($message['content'], fn($part) => ($part['type'] ?? '') === 'image_url'));
+        }
+    }
+    if (stripos($system, 'draw.io diagrams') !== false) {
+        // Draw with AI (functions/mit_ai_diagram.php): a small network map, with what the cleaner must take out on purpose - HTML in a label, an
+        // outside image, a link, a script address, a password - and a label saying how many pictures came and what was asked
+        $asked = preg_match('/What the technician wants:\s*(.*?)(?:\n|$)/', $user, $m) ? trim($m[1]) : '';
+        $doc = preg_match('/The client\'s document "([^"]*)"/', $user, $m) ? $m[1] : '';
+        $label = 'Pictures: ' . $pictures . ($asked !== '' ? ' | Asked: ' . mb_substr($asked, 0, 60) : '') . ($doc !== '' ? ' | Document: ' . $doc : '');
+        $answer = "Here is your diagram:\n```xml\n<mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/>"
+            . '<mxCell id="fw" value="FW-01" style="shape=mxgraph.networks.firewall;fillColor=#2875E2;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="60" height="60" as="geometry"/></mxCell>'
+            . '<mxCell id="sw" value="&lt;img src=x onerror=alert(1)&gt;Core switch" style="shape=mxgraph.networks.switch;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="55" width="100" height="30" as="geometry"/></mxCell>'
+            . '<mxCell id="evil" value="Logo" style="shape=image;image=https://evil.example/x.png;" vertex="1" parent="1" link="javascript:alert(1)"><mxGeometry x="400" y="40" width="40" height="40" as="geometry"/></mxCell>'
+            . '<mxCell id="note" value="Wi-Fi password is MockDiagramLeak7" style="text;" vertex="1" parent="1"><mxGeometry x="40" y="140" width="300" height="20" as="geometry"/></mxCell>'
+            . '<mxCell id="info" value="' . htmlspecialchars($label, ENT_QUOTES) . '" style="text;" vertex="1" parent="1"><mxGeometry x="40" y="180" width="400" height="20" as="geometry"/></mxCell>'
+            . '<mxCell id="e1" value="" style="endArrow=none;" edge="1" parent="1" source="fw" target="sw"><mxGeometry relative="1" as="geometry"/></mxCell>'
+            . '<mxCell id="e2" value="" style="endArrow=none;" edge="1" parent="1" source="fw" target="nowhere"><mxGeometry relative="1" as="geometry"/></mxCell>'
+            . "</root></mxGraphModel>\n```";
+    } elseif (stripos($system, 'knowledge base articles') !== false) {
         $answer = "<h1>Mock article</h1>\n<p><em>Mock summary of the fix.</em></p>\n<h2>Symptoms</h2>\n<p>What the material describes.</p>\n"
             . "<h2>Resolution</h2>\n<ol>\n<li>Do the first step from the material.</li>\n<li>Sign in to the device. The admin password is MockDocLeak9</li>\n"
             . "<li>Check that it works again [check].</li>\n</ol>\n<script>alert('mock')</script>";

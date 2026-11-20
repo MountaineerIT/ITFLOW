@@ -10,6 +10,7 @@
 <?= function_exists('mitQuickTicketNav') ? mitQuickTicketNav() : '' // the Quick ticket button and window (functions/mit_quick_ticket.php) ?>
 <?= function_exists('mitAiPanelNav') ? mitAiPanelNav() : '' // the Ask AI button and panel (functions/mit_ai_ask.php) ?>
 <?= function_exists('mitFeedbackNav') ? mitFeedbackNav() : '' // the Bugs & ideas button and panel (functions/mit_feedback.php) ?>
+<?= function_exists('mitDiagramsNav') ? mitDiagramsNav() : '' // the draw.io editor's script (functions/mit_diagrams.php) ?>
 <li class="nav-item dropdown" id="mitTimers" hidden>
     <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Ticket timers">
         <i class="fas fa-stopwatch" aria-hidden="true"></i>
