@@ -46,6 +46,8 @@ async function editor(page) {
     await shade.locator('[data-mit-drawio-save]:not([disabled])').waitFor({ timeout: 45000 });
     const frame = page.frames().find((f) => f.url().includes('/mit_drawio/'));
     expect(frame, 'draw.io is served from this server').toBeTruthy();
+    // The bar credits the editor and links its license (Apache 2.0)
+    await expect(shade.locator('[data-mit-drawio-credit]')).toHaveAttribute('href', '/mit_drawio/LICENSE');
     return { shade, frame };
 }
 

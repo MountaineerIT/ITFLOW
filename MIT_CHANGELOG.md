@@ -4,6 +4,10 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.11.8.12 - 2026-11-20
+- The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).
+- Credits for the third-party software included in this build: the draw.io editor (Apache License 2.0, © JGraph Holdings Ltd / draw.io AG - included unchanged, not affiliated with draw.io) and the Inter typeface (SIL Open Font License). The diagram editor's bar now names the editor and links to its license.
+
 ## 26.11.8.11 - 2026-11-19
 - New diagrams can start from more than a blank page. **New diagram** (in a client's Files, and the Diagram button in the document editor) now asks where to start: **Blank**, **From this client's assets** or **Draw with AI**. Either way it opens in the editor for you to check - nothing is saved until you press Save.
 - From this client's assets (no AI): ITFlow draws the map from what it already knows - each location, its networks (VLAN, subnet, gateway), the firewall, switches, access points, servers and printers on them with their model and IP, the internet connection at the top, and a cable for every port-to-port connection recorded on the assets (with the ports on it). Each rack gets a page of its own with its devices at their heights, front and rear. Workstations and phones can be left out (the default) or included; IPs shown or hidden; any locations picked.

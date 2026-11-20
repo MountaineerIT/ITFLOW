@@ -129,6 +129,21 @@ Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 - Recurring invoices made days ahead of their date, due on that date or on the client's terms from it
 - Client profitability - labor cost (each agent's cost per hour, with history), parts cost, profit, margin and break-even hours
   for flat monthly agreements, in ITFlow's own report
+- Contracts with unlimited support hours - every billable ticket is covered by the monthly agreement (after hours too), and the
+  client sees "Unlimited support hours" in the portal and on the contract they sign
+- Discounts as a percentage - a nonprofit's 20% off managed services, with products marked "Never discounted" (licensing you
+  resell at cost) left out; it follows recurring invoices by itself and posts to its own account in QuickBooks
+- Minimum commits - one line tops an agreement up to its minimum (a $300 commit) and shrinks to $0.00 as seats and devices grow
+
+**Documentation and diagrams**
+- Network maps, site maps and rack layouts drawn right inside ITFlow with the open-source draw.io editor, running from your own
+  server - nothing you draw is sent to another site
+- Diagrams in a client's Files (every save keeps the one before, with Put this back) and inside documents (ITFlow keeps every
+  version); they show as ordinary pictures in the portal, printouts and PDFs
+- A network map built in one click from the client's assets - locations, networks and VLANs, devices with their model and IP, the
+  cables recorded between them, and a page per rack
+- Draw with AI - from a floor plan, fire escape map, photo, old diagram or site document; a floor plan can sit underneath as the
+  background. Passwords are taken out of the text first, and the result opens for you to check before anything is saved
 
 **Integrations**
 - Microsoft 365 - creates its own app with a certificate; mail sent and read through Microsoft Graph
@@ -215,6 +230,19 @@ or a guest link - can get its source. This build's complete source is this publi
 
 Thank you to the ITFlow team and everyone who has contributed to it - this build only exists because of their work. If ITFlow
 is useful to you, consider [supporting the project](https://itflow.org/hosting.php?want=sponsor).
+
+### Third-party software included in this build
+
+- **draw.io** - the diagram editor in [`mit_drawio/`](mit_drawio/), version 32.7.4, © JGraph Holdings Ltd and draw.io AG,
+  licensed under the [Apache License 2.0](mit_drawio/LICENSE) (source: <https://github.com/jgraph/drawio>). Included as
+  published - unchanged, with some parts left out (other languages, PlantUML, OneDrive); updated only with
+  `scripts/mit_drawio_update.sh`. Its icon sets and stencils come under draw.io's own terms, which bar their use in Atlassian
+  products; diagrams you make with it are yours. draw.io is a registered trademark - this project is **not affiliated with,
+  endorsed by or sponsored by draw.io**, and uses the name only to say which editor is included.
+- **Inter** - the typeface of the modern look ([`css/fonts/inter/`](css/fonts/inter/)), licensed under the
+  [SIL Open Font License 1.1](css/fonts/inter/OFL.txt).
+
+ITFlow's own third-party libraries (in `libs/`) keep their licenses as ITFlow ships them.
 
 <!-- MARKDOWN LINKS -->
 [build-shield]: https://img.shields.io/badge/build-Mountaineer%20IT-2f6fde?style=for-the-badge

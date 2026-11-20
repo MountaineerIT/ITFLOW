@@ -120,7 +120,9 @@ model: see DEPLOYMENT.md.
   `scripts/setup_cli.php` (default `$repo_branch`).
 - `scripts/mit_ai_wall_check.php` (the AI helper's password wall - see Rules) - ours.
 - `mit_drawio/` - draw.io's web app (third-party, Apache 2.0, its LICENSE inside), vendored for the diagrams feature; change it only with
-  `scripts/mit_drawio_update.sh`.
+  `scripts/mit_drawio_update.sh` (never edit its files - unchanged keeps the license simple). draw.io is a registered trademark: name it only to say
+  which editor is included ("built on the open-source draw.io editor"), never its logo in our materials or anything suggesting affiliation. Credits:
+  README "Third-party software included in this build" (draw.io, Inter) and the editor bar's `[data-mit-drawio-credit]` link to its LICENSE.
 - `scripts/mit_features.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_upstream_impact.php`, `MIT_FEATURES.md`
   (feature map and early warning - see Rules) - ours; `.htaccess`'s 404 line also covers MIT_FEATURES.md.
 - `scripts/mit_hook_check.php` + `scripts/mit_hooks.txt`, `scripts/mit_consistency_check.php` + `functions/mit_consistency.php` +
