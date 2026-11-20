@@ -141,6 +141,8 @@ hook	agent/dashboard.php	mitBoardDashLinks	2
 hook	agent/dashboard.php	mitBoardDashPicker	2
 hook	agent/dashboard.php	mitCtDashCard	2
 hook	agent/dashboard.php	mit_align_dash	3
+hook	agent/files.php	mitDiagramFileMenu	2
+hook	agent/files.php	mitDiagramNewMenuItem	2
 hook	agent/includes/client_side_nav.php	mitToBillPartsCount	2
 hook	agent/includes/client_side_nav.php	mit_client_parts	3
 hook	agent/includes/get_side_nav_counts.php	mitNavCachedCount	2
@@ -442,6 +444,7 @@ hook	functions.php	mit_common	1
 hook	functions.php	mit_contract_unlimited	1
 hook	functions.php	mit_cron_health	1
 hook	functions.php	mit_ct	1
+hook	functions.php	mit_diagrams	1
 hook	functions.php	mit_discount	1
 hook	functions.php	mit_dispatch	1
 hook	functions.php	mit_invites	1
@@ -467,6 +470,7 @@ hook	functions.php	mit_timesheets	1
 hook	functions.php	mit_usage	1
 hook	functions/app.php	MountaineerIT	1
 hook	functions/app.php	mitTicketScheduleEnd	1
+hook	functions/backup.php	mit_diagrams	1
 hook	functions/backup.php	mit_feedback	1
 hook	functions/backup.php	mit_receipts	1
 hook	functions/billing.php	MountaineerIT	5
@@ -626,6 +630,8 @@ hook	includes/load_user_session.php	mit_service_users	1
 hook	includes/stripe_init.php	mitDevBlockStripe	2
 hook	includes/top_nav.php	mit_cron_nav	1
 hook	includes/top_nav.php	mit_timers_nav	1
+hook	js/app.js	mitDiagrams	1
+hook	js/app.js	mit_diagrams	1
 hook	js/billing_items.js	mitBillingRefresh	1
 hook	js/billing_items.js	mit_billing_add	1
 hook	js/quick_pick.js	mit_ticket_picks	1
@@ -713,6 +719,7 @@ ours	admin/database_updates/mountaineerit/M062.php
 ours	admin/database_updates/mountaineerit/M063.php
 ours	admin/database_updates/mountaineerit/M064.php
 ours	admin/database_updates/mountaineerit/M065.php
+ours	admin/database_updates/mountaineerit/M066.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php
@@ -771,6 +778,7 @@ ours	agent/includes/mit_dispatch_nav.php
 ours	agent/includes/mit_procurement_nav.php
 ours	agent/includes/mit_timesheet_nav.php
 ours	agent/js/mit_ai_helper.js
+ours	agent/js/mit_diagrams.js
 ours	agent/js/mit_dispatch.js
 ours	agent/js/mit_feedback.js
 ours	agent/js/mit_left_behind.js
@@ -783,6 +791,7 @@ ours	agent/js/mit_ticket_layout.js
 ours	agent/js/mit_timesheet.js
 ours	agent/mit_ai_ajax.php
 ours	agent/mit_ct_reviews.php
+ours	agent/mit_diagrams_ajax.php
 ours	agent/mit_dispatch.php
 ours	agent/mit_dispatch_ajax.php
 ours	agent/mit_feedback_ajax.php
@@ -804,6 +813,7 @@ ours	agent/mit_unbilled_parts.php
 ours	agent/mit_usage_review.php
 ours	agent/modals/mit_ai/document.php
 ours	agent/modals/mit_board/board_move.php
+ours	agent/modals/mit_diagram/versions.php
 ours	agent/modals/mit_invoice/bulk.php
 ours	agent/modals/mit_no_response/no_response.php
 ours	agent/modals/mit_procurement/from_invoice.php
@@ -867,6 +877,7 @@ ours	functions/mit_cron_health.php
 ours	functions/mit_ct.php
 ours	functions/mit_db_upgrade.php
 ours	functions/mit_dev_mode.php
+ours	functions/mit_diagrams.php
 ours	functions/mit_discount.php
 ours	functions/mit_dispatch.php
 ours	functions/mit_dispatch_workload.php
@@ -930,6 +941,21 @@ ours	js/mit_theme.js
 ours	js/mit_time_inputs.js
 ours	js/mit_timers.js
 ours	js/mit_to_bill.js
+ours	mit_drawio/js/PostConfig.js
+ours	mit_drawio/js/PreConfig.js
+ours	mit_drawio/js/app.min.js
+ours	mit_drawio/js/bootstrap.js
+ours	mit_drawio/js/extensions.min.js
+ours	mit_drawio/js/main.js
+ours	mit_drawio/js/math-print.js
+ours	mit_drawio/js/orgchart.min.js
+ours	mit_drawio/js/shapes-14-6-5.min.js
+ours	mit_drawio/js/stencils.min.js
+ours	mit_drawio/js/viewer-static.min.js
+ours	mit_drawio/math4/es5/drawio-mathjax.min.js
+ours	mit_drawio/mxgraph/css/common.css
+ours	mit_drawio/styles/grapheditor.css
+ours	mit_drawio/styles/high-contrast.css
 ours	mit_health.php
 ours	scripts/mit_ai_embed_worker.php
 ours	scripts/mit_ai_wall_check.php

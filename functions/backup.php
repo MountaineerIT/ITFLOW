@@ -235,10 +235,11 @@ function backupAssertUploadsGuards(): void
     @file_put_contents($htaccess, $wanted);
 
     // Mountaineer IT: nor may one further down - a .htaccess or .user.ini in a sub-folder could switch PHP back on there.
-    // Ours (receipts, feedback) are written again here; ITFlow's own (backups, canned_responses, expenses, tmp) just below.
+    // Ours (receipts, feedback, diagram versions) are written again here; ITFlow's own (backups, canned_responses, expenses, tmp) just below.
     $guards = [
         'mit_receipts/.htaccess' => "Require all denied\n",
         'mit_feedback/.htaccess' => "Require all denied\n",
+        'mit_diagrams/.htaccess' => "Require all denied\n",
     ];
     $found = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploads, FilesystemIterator::SKIP_DOTS));
     foreach ($found as $file) {

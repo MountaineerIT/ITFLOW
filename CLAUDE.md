@@ -117,6 +117,8 @@ model: see DEPLOYMENT.md.
   (`getRepoBranch`), `admin/update.php` (release-branch badge), `setup/index.php` and
   `scripts/setup_cli.php` (default `$repo_branch`).
 - `scripts/mit_ai_wall_check.php` (the AI helper's password wall - see Rules) - ours.
+- `mit_drawio/` - draw.io's web app (third-party, Apache 2.0, its LICENSE inside), vendored for the diagrams feature; change it only with
+  `scripts/mit_drawio_update.sh`.
 - `scripts/mit_features.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_upstream_impact.php`, `MIT_FEATURES.md`
   (feature map and early warning - see Rules) - ours; `.htaccess`'s 404 line also covers MIT_FEATURES.md.
 - `scripts/mit_hook_check.php` + `scripts/mit_hooks.txt`, `scripts/mit_consistency_check.php` + `functions/mit_consistency.php` +
@@ -1856,6 +1858,29 @@ model: see DEPLOYMENT.md.
   (now `mitPaperLineExtrasOwn` + `mitMinimumLineNote`). Known gap: a quote invoiced with "first period" copies a monthly minimum onto the invoice,
   measured against all its lines. Same version: ITFlow's quoteConvert `empty($groups['']['items'])` (a quote with only recurring lines warned).
   Scenario `scenario-minimum-commit.php`, smoke `57-minimum-commit.spec.js`.
+- Diagrams with draw.io (Nov 19, 26.11.8.10 - the user's request: network / site maps edited inside ITFlow's documentation; the user chose: Files and
+  documents, draw.io served from our server, earlier versions kept, the portal shows them as any file / document; MSP Align's portal reads ITFlow's
+  documents itself - "evidence" publishing waits for the user's Align side): `functions/mit_diagrams.php` (ours, required from `functions.php`), M066
+  `mit_diagram_versions` (file_id FK files CASCADE, stored_name in `uploads/mit_diagrams/<file_id>/` - Require all denied, also in `functions/backup.php`'s
+  guard list -, saved_by / saved_at, replaced_by / replaced_at; newest `MIT_DIAGRAM_VERSIONS_KEPT` 30). The editor: draw.io's own web app (Apache 2.0)
+  vendored in `mit_drawio/` at `MIT_DRAWIO_VERSION` (32.7.4; `sh scripts/mit_drawio_update.sh <version>` rebuilds the folder from the release tag's
+  offline precache list - English only, no PlantUML / OneDrive / service worker; third-party, so `mit_feature_lib.php` doesn't read it for ITFlow
+  names), opened by `agent/js/mit_diagrams.js` in a full-screen frame (`[data-mit-drawio-editor]`, our bar: Save `[data-mit-drawio-save]`, Save & close,
+  Close - draw.io's own embed buttons hide in its compact layout) with embed=1 proto=json stealth=1 offline=1 lang=en libs=general;basic;arrows2;
+  network2;network;rack;office;floorplan (`mitDiagramEditorUrl`). Saves export draw.io's xmlpng (a PNG with the diagram in a tEXt "mxfile" chunk -
+  `mitDiagramDecode` refuses anything else; a .drawio file saves XML). Note: draw.io skips an `export` while its spinner shows - send no spinner first.
+  Files: "New diagram" (`mitDiagramNewMenuItem` - one line in `agent/files.php`'s Upload menu after Document from template) -> `mitDiagramFileCreate`
+  ("<name>.drawio.png", ext png); a diagram file's ⋮ (`mitDiagramFileMenu` - one line in filesItemMenu): Edit diagram (`[data-mit-diagram-edit]`,
+  `mitDiagramFileSave` keeps the old bytes first - `mitDiagramKeepVersion`) and Earlier versions (`agent/modals/mit_diagram/versions.php`,
+  `[data-mit-diagram-restore]` -> `mitDiagramRestore`). Documents: the `.tinymce` toolbar names a `mitdiagram` button when `#mitDiagrams` is on the page
+  (one line in ITFlow's `js/app.js`; TinyMCE 8 registers the toolbar option inside its theme, too late to add from outside); `hookEditor` registers it
+  only for editors in a form with add_document / edit_document (elsewhere TinyMCE leaves the unknown name out) - it inserts / edits
+  `<img class="mit-drawio">` as a data: address that ITFlow's own save turns into `uploads/documents/<id>/img_*.png` (saveBase64Images); double-click
+  edits. The document page: "Edit diagram" under each `.itflow-document-body img.mit-drawio` (`[data-mit-diagram-doc-edit]`) -> `mitDiagramDocumentSave`
+  (the n-th diagram must still show the page's src - else "changed since", ITFlow's document version kept like documentKeepVersion, saveBase64Images,
+  returns the new src for the next save). Requests: `agent/mit_diagrams_ajax.php` (Support edit + client scope - `mitDiagramsCan` / `mitDiagramClientOk`).
+  Script + settings from `mitDiagramsNav` (our `includes/mit_timers_nav.php`). Scenario `scenario-diagrams.php`, smoke `58-diagrams.spec.js` (also checks
+  nothing loads from another site).
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

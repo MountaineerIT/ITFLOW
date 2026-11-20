@@ -473,6 +473,20 @@ return [
         'watch' => ['function billingRecalc(', 'billingLinesOpen', '_discount_amount', 'Taken off the total, after the lines.'],
         'overlap' => ['discount_percent', 'discount_type', 'no_discount', 'discountable'],
     ],
+    'diagrams' => [
+        'name' => 'Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents (ITFlow keeps their versions)',
+        'files' => ['functions/mit_diagrams.php', 'agent/mit_diagrams_ajax.php', 'agent/js/mit_diagrams.js', 'agent/modals/mit_diagram/*.php', 'admin/database_updates/mountaineerit/M066.php',
+            'scripts/mit_drawio_update.sh', 'mit_drawio/*', 'mit_drawio/*/*', 'mit_drawio/*/*/*'],
+        'tests' => ['tests/smoke/58-diagrams.spec.js', 'tests/scenarios/scenario-diagrams.php'],
+        'assumes' => [
+            'ITFlow\'s client files live in uploads/clients/<client>/<file_reference_name> (files table: file_name, file_ext, file_size, file_client_id, file_folder_id, file_archived_at); agent/file.php serves them; folderOwnedId checks a folder.',
+            'ITFlow\'s document save (agent/post/document.php add / edit) turns data: images into files with saveBase64Images(html, <root>/uploads/documents/, "uploads/documents/", id) and keeps the content before in document_versions; documentContentRaw / documentHtmlPurify (classes and the uploads address kept).',
+            'The document editor is TinyMCE ".tinymce" (js/app.js init, toolbar as groups) inside a form with an add_document / edit_document submit; the document page shows the content in .itflow-document-body.',
+            'agent/files.php builds each item\'s ⋮ menu in filesItemMenu($item) (kind, id, name, archived, row) and has an Upload split button with "Document from template" in its menu.',
+        ],
+        'watch' => ['function saveBase64Images(', 'function documentContentRaw(', 'function documentHtmlPurify(', 'function filesItemMenu(', 'itflow-document-body', 'Document from template', "selector: '.tinymce',"],
+        'overlap' => ['drawio', 'diagram', 'network_map', 'mxgraph', 'diagrams.net'],
+    ],
     'minimum_commit' => [
         'name' => 'Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it',
         'files' => ['functions/mit_minimum.php', 'admin/database_updates/mountaineerit/M065.php'],

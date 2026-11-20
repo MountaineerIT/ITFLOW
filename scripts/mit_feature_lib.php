@@ -352,7 +352,7 @@ function mfUses(array $features, $rev = null) {
     foreach ($features as $key => $feature) {
         $u = ['functions' => [], 'tables' => [], 'columns' => [], 'hooks' => [], 'selectors' => [], 'watch' => []];
         foreach ($feature['files_found'] as $file) {
-            if (preg_match('~^tests/|^scripts/mit_|\.md$|\.txt$~', $file)) {
+            if (preg_match('~^tests/|^scripts/mit_|^mit_drawio/|\.md$|\.txt$~', $file)) { // mit_drawio/: draw.io's own app (third-party) - not read for ITFlow names
                 continue;
             }
             $text = mfRead($file);

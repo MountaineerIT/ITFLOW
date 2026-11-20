@@ -242,6 +242,7 @@ function filesItemMenu($item) {
             $html .= "<a class=\"dropdown-item ajax-modal\" href=\"#\" data-modal-url=\"modals/file/file_move.php?id=$id\"><i class=\"fas fa-fw fa-folder-open me-2\"></i>Move</a>";
             $html .= "<a class=\"dropdown-item ajax-modal\" href=\"#\" data-modal-url=\"modals/link/link.php?from=file&amp;id=$id\"><i class=\"fas fa-fw fa-link me-2\"></i>Link</a>";
         }
+        $html .= function_exists('mitDiagramFileMenu') ? mitDiagramFileMenu($item) : ''; // Mountaineer IT: Edit diagram, Earlier versions (draw.io)
         $archive_name = 'file';
     } else {
         $html .= "<a class=\"dropdown-item\" href=\"document.php?client_id=$client_id&amp;document_id=$id\"><i class=\"fas fa-fw fa-arrow-right me-2\"></i>Open</a>";
@@ -339,6 +340,7 @@ $preview = []; // the grid's previewer payload
                         <a class="dropdown-item ajax-modal" href="#" data-modal-size="lg" data-modal-url="modals/document/document_add_from_template.php?client_id=<?= $client_id ?>&folder_id=<?= $folder_id ?>">
                             <i class="fas fa-fw fa-puzzle-piece me-2"></i>Document from template
                         </a>
+                        <?= function_exists('mitDiagramNewMenuItem') ? mitDiagramNewMenuItem($client_id, $folder_id) : '' // Mountaineer IT: a draw.io diagram ?>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/folder/folder_add.php?client_id=<?= $client_id ?>&current_folder_id=<?= $folder_id ?>">
                             <i class="fas fa-fw fa-folder-plus me-2"></i>New folder
