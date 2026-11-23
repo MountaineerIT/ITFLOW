@@ -15,7 +15,12 @@ const CLIENT = Number(db.val('SELECT client_id FROM clients WHERE client_archive
 const quotePage = () => `agent/quote.php?quote_id=${made.quoteId}`;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABgAAAAQCAIAAACDRijCAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAHElEQVQ4jWOUqzjBQA3ARBVTRg0aNWjUoBFsEACHZAF+6AIbvgAAAABJRU5ErkJggg==', 'base64');
 
+// One step failing must not leave the rest behind (a leftover "Smoke 60 tracked laptop" is picked before this run's own)
+const tidy = (what, fn) => { try { fn(); } catch (e) { console.log(`60 cleanup (${what}): ${e.message}`); } };
+const dropProducts = (where) => tidy('products', () => db.exec(`DELETE FROM product_stock WHERE stock_product_id IN (SELECT product_id FROM products WHERE ${where}); DELETE FROM products WHERE ${where}`));
+
 test.beforeAll(() => {
+    dropProducts("product_name LIKE 'Smoke 60 %'");
     const n = Number(db.val('SELECT COALESCE(MAX(quote_number), 0) + 1 FROM quotes'));
     made.quoteId = db.insert(`INSERT INTO quotes SET quote_prefix = 'Q-', quote_number = ${n}, quote_scope = 'Smoke 60 pricing', quote_date = CURDATE(),
         quote_expire = DATE_ADD(CURDATE(), INTERVAL 30 DAY), quote_amount = 0, quote_currency_code = 'USD', quote_status = 'Draft', quote_url_key = ${db.q(made.urlKey)},
@@ -27,14 +32,14 @@ test.beforeAll(() => {
 
 test.afterAll(() => {
     for (const id of made.invoiceIds) {
-        db.exec(`DELETE FROM mit_procurement_items WHERE invoice_id = ${id}; DELETE FROM invoice_items WHERE item_invoice_id = ${id}; DELETE FROM history WHERE history_invoice_id = ${id}; DELETE FROM invoices WHERE invoice_id = ${id}`);
+        tidy('invoice', () => db.exec(`DELETE FROM order_items WHERE order_item_id IN (SELECT order_item_id FROM mit_order_item_links WHERE invoice_id = ${id}); DELETE FROM invoice_items WHERE item_invoice_id = ${id}; DELETE FROM history WHERE history_invoice_id = ${id}; DELETE FROM invoices WHERE invoice_id = ${id}`));
     }
     if (made.quoteId) {
-        db.php(`mitQuoteImagesDelete(${made.quoteId});`);
-        db.exec(`DELETE FROM quote_items WHERE item_quote_id = ${made.quoteId}; DELETE FROM history WHERE history_quote_id = ${made.quoteId}; DELETE FROM quotes WHERE quote_id = ${made.quoteId}`);
+        tidy('quote images', () => db.php(`quoteImagesDeleteFor("item_quote_id = ${made.quoteId}");`)); // ITFlow's since 26.12
+        tidy('quote', () => db.exec(`DELETE FROM quote_items WHERE item_quote_id = ${made.quoteId}; DELETE FROM history WHERE history_quote_id = ${made.quoteId}; DELETE FROM quotes WHERE quote_id = ${made.quoteId}`));
     }
     if (made.productId) {
-        db.exec(`DELETE FROM product_stock WHERE stock_product_id = ${made.productId}; DELETE FROM products WHERE product_id = ${made.productId}`);
+        dropProducts(`product_id = ${made.productId}`);
     }
 });
 
@@ -45,7 +50,7 @@ test('a line added on the page from a product takes its cost; cost + markup work
     const row = page.locator('form[data-mit-add-row]');
     await expect(row, 'the add row').toBeVisible();
     await expect(page.locator('[data-billing-add]'), "ITFlow 26.11.8's one field is replaced").toHaveCount(0);
-    for (const field of ['name', 'description', 'qty', 'frequency', 'item_cost', 'item_price_method', 'item_price_percent', 'price', 'tax_id']) {
+    for (const field of ['name', 'description', 'qty', 'frequency', 'cost', 'price_method', 'price_percent', 'price', 'tax_id']) {
         await expect(row.locator(`[name=${field}]`), `${field} on the row`).toHaveCount(1);
     }
     const fieldBox = async (f) => row.locator(`[name=${f}]`).boundingBox();
@@ -56,7 +61,7 @@ test('a line added on the page from a product takes its cost; cost + markup work
     await expect(page.locator('.itflow-ac-panel').first(), 'the product list').toBeVisible();
     await page.locator('.itflow-ac-panel .itflow-select-option, .itflow-ac-panel [role=option]').first().click();
     await expect(row.locator('[name=price]')).toHaveValue('1200.00');
-    await expect(row.locator('[name=item_cost]'), "the product's cost").toHaveValue('950.00');
+    await expect(row.locator('[name=cost]'), "the product's cost").toHaveValue('950.00');
     expect(Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId}`)), 'nothing added on the pick').toBe(0);
     await row.locator('[name=qty]').fill('2');
     await row.locator('[name=description]').fill('Picked, then the quantity typed');
@@ -72,9 +77,9 @@ test('a line added on the page from a product takes its cost; cost + markup work
     await row.locator('[name=name]').fill('Smoke 60 typed cable');
     await row.locator('[name=name]').press('Escape');
     await row.locator('[name=frequency]').selectOption('month');
-    await row.locator('[name=item_price_method]').selectOption('markup');
-    await row.locator('[name=item_price_percent]').fill('50');
-    await row.locator('[name=item_cost]').fill('10');
+    await row.locator('[name=price_method]').selectOption('markup');
+    await row.locator('[name=price_percent]').fill('50');
+    await row.locator('[name=cost]').fill('10');
     await expect(row.locator('[name=price]'), 'cost + 50% markup').toHaveValue('15.00');
     await row.locator('[name=price]').press('Enter');
     await expect.poll(() => Number(db.val(`SELECT COUNT(*) FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 typed cable'`)), { message: 'typed line added' }).toBe(1);
@@ -86,7 +91,7 @@ test('a line added on the page from a product takes its cost; cost + markup work
     // Cost + markup set in the Edit Line window's save (agent/post.php billing_item_save with our fields)
     const token = await csrf(page);
     await db.pagePost(page, 'post.php', { csrf_token: token, billing_item_save: '1', type: 'quote', doc_id: String(made.quoteId), name: 'Smoke 60 firewall', description: '',
-        qty: '2', price: '125', tax_id: '0', product_id: '0', frequency: '', mit_pricing_present: '1', item_cost: '100', item_price_method: 'markup', item_price_percent: '25' });
+        qty: '2', price: '125', tax_id: '0', product_id: '0', frequency: '', pricing: '1', cost: '100', price_method: 'markup', price_percent: '25' });
     const line = db.one(`SELECT item_id, item_price, item_cost, item_price_method, item_price_percent, item_quantity FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 firewall'`);
     expect(line, 'the line was saved').toBeTruthy();
     made.lineId = Number(line.item_id);
@@ -117,18 +122,18 @@ test('Edit Line window: margin and an image upload', async ({ page }) => {
     const errors = watch(page);
     await visit(page, quotePage(), errors);
     const modal = await openModal(page, `modals/billing/billing_item.php?type=quote&doc_id=${made.quoteId}&item_id=${made.lineId}`, 'lg');
-    await expect(modal.locator('[data-mit-cost]')).toHaveValue('100.00');
-    await modal.locator('select[name=item_price_method]').selectOption('margin');
-    await modal.locator('input[name=item_price_percent]').fill('20');
-    await modal.locator('[data-mit-cost]').fill('80');
-    await modal.locator('[data-mit-cost]').dispatchEvent('input');
+    await expect(modal.locator('[data-pricing-cost]')).toHaveValue('100.00');
+    await modal.locator('select[name=price_method]').selectOption('margin');
+    await modal.locator('input[name=price_percent]').fill('20');
+    await modal.locator('[data-pricing-cost]').fill('80');
+    await modal.locator('[data-pricing-cost]').dispatchEvent('input');
     await expect(modal.locator('input[name=price]'), 'price from cost 80 at 20% margin').toHaveValue('100.00');
     await modal.locator('input[name=item_image]').setInputFiles({ name: 'smoke.png', mimeType: 'image/png', buffer: PNG });
     await Promise.all([page.waitForNavigation(), modal.locator('button[type=submit]').click()]);
     await expectClean(page, errors);
     const line = db.one(`SELECT item_price, item_cost, item_price_method, item_price_percent, item_image FROM quote_items WHERE item_id = ${made.lineId}`);
     expect([Number(line.item_price), Number(line.item_cost), line.item_price_method, Number(line.item_price_percent)]).toEqual([100, 80, 'margin', 20]);
-    expect(line.item_image, 'image stored as our own copy').toMatch(/^uploads\/mit_images\/[a-f0-9]{32}\.(png|jpg)$/);
+    expect(line.item_image, 'image stored as our own copy').toMatch(/^uploads\/(quote_images|mit_images)\/[a-f0-9]{32}\.(png|jpg)$/);
     const img = await db.pageGet(page, '/' + line.item_image);
     expect(img.status, 'image served').toBe(200);
 });
@@ -138,8 +143,8 @@ test("the client's copy and the PDF: picture yes, our cost never", async ({ page
     const guest = `guest/guest_view_quote.php?quote_id=${made.quoteId}&url_key=${made.urlKey}`;
     await visit(page, guest, errors);
     const html = await page.content();
-    expect(html, 'line picture on the guest page').toMatch(/uploads\/mit_images\/[a-f0-9]{32}/);
-    for (const staffOnly of ['data-mit-line-cost', 'data-mit-profit-box', 'Our cost', 'ONLY STAFF', 'data-mit-cost']) {
+    expect(html, 'line picture on the guest page').toMatch(/uploads\/(quote_images|mit_images)\/[a-f0-9]{32}/);
+    for (const staffOnly of ['data-mit-line-cost', 'data-mit-profit-box', 'Our cost', 'ONLY STAFF', 'data-mit-cost', 'data-pricing-cost']) {
         expect(html, `guest page shows ${staffOnly}`).not.toContain(staffOnly);
     }
     await visit(page, quotePage(), errors);
@@ -179,11 +184,12 @@ test('quote -> invoice: "Send to procurement" orders a tracked product with none
     const line = db.one(`SELECT item_id, item_product_id, item_quantity FROM invoice_items WHERE item_invoice_id = ${invoiceId} AND item_name = 'Smoke 60 tracked laptop'`);
     expect(Number(line.item_product_id), 'invoice line ordered for the client: no product, so nothing comes off the shelf').toBe(0);
     expect(Number(db.val(`SELECT COALESCE(SUM(stock_qty), 0) FROM product_stock WHERE stock_product_id = ${made.productId}`)), 'shelf untouched').toBe(0);
-    const proc = db.one(`SELECT source, quantity, unit_cost, product_id, invoice_item_id, status, client_id FROM mit_procurement_items WHERE invoice_id = ${invoiceId} AND name = 'Smoke 60 tracked laptop'`);
+    const proc = db.one(`SELECT l.source, order_item_quantity AS quantity, order_item_cost AS unit_cost, order_item_product_id AS product_id, l.invoice_item_id, order_item_status AS status, order_item_client_id AS client_id
+        FROM order_items JOIN mit_order_item_links l ON l.order_item_id = order_items.order_item_id WHERE l.invoice_id = ${invoiceId} AND order_item_name = 'Smoke 60 tracked laptop'`); // ITFlow's To Order + our link (26.12)
     expect(proc, 'on the list to order').toBeTruthy();
     expect([proc.source, Number(proc.quantity), Number(proc.unit_cost), Number(proc.product_id), Number(proc.invoice_item_id), proc.status, Number(proc.client_id)])
         .toEqual(['quote', 2, 950, made.productId, Number(line.item_id), 'waiting', CLIENT]);
-    expect(Number(db.val(`SELECT COUNT(*) FROM mit_procurement_items WHERE invoice_id = ${invoiceId} AND name = 'Smoke 60 setup labour'`)), 'labour (no cost) not ordered').toBe(0);
+    expect(Number(db.val(`SELECT COUNT(*) FROM order_items JOIN mit_order_item_links l ON l.order_item_id = order_items.order_item_id WHERE l.invoice_id = ${invoiceId} AND order_item_name = 'Smoke 60 setup labour'`)), 'labour (no cost) not ordered').toBe(0);
     // The invoice page shows the line as waiting to order
     await visit(page, `agent/invoice.php?invoice_id=${invoiceId}`, errors);
     await expect(page.locator(`#line-${line.item_id}`), 'on the line itself').toContainText('Waiting to order');
@@ -204,7 +210,7 @@ test('product picture: uploaded on the product, copied onto a new quote line fro
     await submit(modal, 'edit_product');
     await expectClean(page, errors);
     const image = db.val(`SELECT product_image FROM products WHERE product_id = ${made.productId}`);
-    expect(image, 'product image stored').toMatch(/^uploads\/mit_images\/[a-f0-9]{32}\.(png|jpg)$/);
+    expect(image, 'product image stored').toMatch(/^uploads\/(quote_images|mit_images)\/[a-f0-9]{32}\.(png|jpg)$/);
     expect(Number(db.val(`SELECT product_cost FROM products WHERE product_id = ${made.productId}`)), 'ITFlow\'s product cost untouched by our save').toBe(950);
     // A new quote line from the product gets its own copy of the picture
     await visit(page, quotePage(), errors);
@@ -212,11 +218,12 @@ test('product picture: uploaded on the product, copied onto a new quote line fro
     await db.pagePost(page, 'post.php', { csrf_token: token, billing_item_save: '1', type: 'quote', doc_id: String(made.quoteId), name: 'Smoke 60 tracked laptop again', description: '',
         qty: '1', price: '1200', tax_id: '0', product_id: String(made.productId), frequency: '' });
     const lineImage = db.val(`SELECT item_image FROM quote_items WHERE item_quote_id = ${made.quoteId} AND item_name = 'Smoke 60 tracked laptop again'`);
-    expect(lineImage, 'line has its own copy').toMatch(/^uploads\/mit_images\//);
+    expect(lineImage, 'line has its own copy').toMatch(/^uploads\/(quote_images|mit_images)\//);
     expect(lineImage).not.toBe(image);
     // Remove the product's picture: its file goes, the line's copy stays
     const m2 = await openModal(page, `modals/product/product_edit.php?id=${made.productId}`, 'lg');
-    await m2.locator('input[name=product_image_remove]').check();
+    // ITFlow's picture field (js/picture_field.js): its window's Remove sets the hidden input to 1
+    await m2.locator('input[name=product_image_remove]').evaluate((el) => { el.value = '1'; });
     await submit(m2, 'edit_product');
     expect(db.val(`SELECT product_image FROM products WHERE product_id = ${made.productId}`), 'product image removed').toBeNull();
     expect((await db.pageGet(page, '/' + image)).status, 'its file is gone').toBe(404);
@@ -232,7 +239,7 @@ test("an invoice's add row: item, description, qty, price and tax - no cost (cus
     await visit(page, `agent/invoice.php?client_id=${CLIENT}&invoice_id=${invoiceId}`, errors);
     const row = page.locator('form[data-mit-add-row]');
     await expect(row).toBeVisible();
-    await expect(row.locator('[name=item_cost]'), 'no cost on invoices').toHaveCount(0);
+    await expect(row.locator('[name=cost]'), 'no cost on invoices').toHaveCount(0);
     await expect(row.locator('[name=frequency]'), 'no Billed on invoices').toHaveCount(0);
     await row.locator('[name=name]').fill('Smoke 60 invoice labour');
     await row.locator('[name=name]').press('Escape');
