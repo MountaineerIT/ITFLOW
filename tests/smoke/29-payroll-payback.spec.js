@@ -45,6 +45,22 @@ test('one mileage rate: Admin > Timesheets sets ITFlow\'s too, and the labels us
     }
 });
 
+// No mileage rate: ITFlow's Log a trip hides "In their own vehicle", and our note in its window says why (mitReimbTripRateNote - one line in
+// agent/modals/trip/trip_form.php). Written after the hook proof (Nov 23) found nothing opened the window with the rate missing.
+test('no mileage rate: the trip window says why there is no own-vehicle switch', async ({ page }) => {
+    test.skip(!featureOn('mitReimbOn'), 'Reimbursements are off');
+    const db = require('./mitdb');
+    const rate = db.val('SELECT config_mileage_rate FROM settings WHERE company_id = 1');
+    db.exec('UPDATE settings SET config_mileage_rate = 0 WHERE company_id = 1');
+    try {
+        await visit(page, 'agent/trips.php');
+        const modal = await openModal(page, 'modals/trip/trip_add.php', 'lg');
+        await expect(modal.locator('[data-mit-trip-rate-missing]'), 'the note in Log a trip').toHaveCount(1);
+    } finally {
+        db.exec(`UPDATE settings SET config_mileage_rate = ${rate === null ? 0 : Number(rate)} WHERE company_id = 1`);
+    }
+});
+
 test('a trip and a purchase go to payroll: one box, the timesheet, approve pays them, ITFlow keeps its hands off, reopen', async ({ page }) => {
     test.setTimeout(120000);
     const errors = watch(page);
