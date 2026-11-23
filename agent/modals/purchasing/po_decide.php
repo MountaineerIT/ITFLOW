@@ -30,6 +30,7 @@ ob_start();
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="po_id" value="<?= intval($po['po_id']) ?>">
     <input type="hidden" name="approve" value="<?= $approve ? 1 : 0 ?>">
+    <?= function_exists('mitPoSeenTotalField') ? mitPoSeenTotalField($po) : '' // Mountaineer IT: the total the approver saw ?>
 
     <div class="modal-body">
         <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded bg-body-tertiary small">

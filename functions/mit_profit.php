@@ -21,14 +21,14 @@ function mitProfitPartsAdd(array &$clients, callable $client, $period, $scope) {
     if (!function_exists('mitTicketPartsReady') || !mitTicketPartsReady() || !defined('LABOR_PROFIT_INVOICE_STATUSES')) {
         return;
     }
-    $sql = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation, SUM(part.unit_cost * part.quantity) AS v
+    $sql = mysqli_query($mysqli, "SELECT clients.client_id, client_name, client_abbreviation, SUM(part.unit_cost * part.quantity) AS v
         FROM mit_ticket_parts part
         JOIN invoice_items ON item_id = part.invoice_item_id
-        JOIN invoices ON item_invoice_id = invoice_id
-        JOIN clients ON invoice_client_id = client_id
+        JOIN invoices ON invoice_items.item_invoice_id = invoices.invoice_id
+        JOIN clients ON invoices.invoice_client_id = clients.client_id
         WHERE item_archived_at IS NULL AND item_product_id = 0 AND part.unit_cost > 0
-        AND invoice_status IN (" . LABOR_PROFIT_INVOICE_STATUSES . ") AND " . reportRangeSql('invoice_date', $period) . " $scope
-        GROUP BY client_id, client_name, client_abbreviation");
+        AND invoices.invoice_status IN (" . LABOR_PROFIT_INVOICE_STATUSES . ") AND " . reportRangeSql('invoices.invoice_date', $period) . clientScopeSql('clients.client_id') . "
+        GROUP BY clients.client_id, client_name, client_abbreviation");
     while ($sql && ($row = mysqli_fetch_assoc($sql))) {
         $id = $client($row);
         $clients[$id]['parts'] = ($clients[$id]['parts'] ?? 0.0) + floatval($row['v']);

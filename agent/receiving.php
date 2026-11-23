@@ -167,5 +167,6 @@ $line_count = array_sum(array_map('count', $by_po));
     <?php } ?>
 </div>
 
+<?= function_exists('mitProcReceivingExtras') ? mitProcReceivingExtras() : '' // Mountaineer IT: "Fill in each asset's details" ?>
 <script src="<?= staticFileUrl('/js/purchase_orders.js') ?>"></script>
 <?php require_once "../includes/footer.php";

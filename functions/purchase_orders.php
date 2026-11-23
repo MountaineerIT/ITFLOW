@@ -814,6 +814,7 @@ function poMayApprove(array $po) {
     if (poLevel() < 3 || $po['po_status'] !== 'pending') {
         return false;
     }
+    if (function_exists('mitPoMayApproveOwn') && ($mit_own = mitPoMayApproveOwn($po)) !== null) { return $mit_own; } // Mountaineer IT: "their own" also means shaped it (added items, changed lines, sent it)
     if (!empty($session_is_admin) || intval($po['po_created_by']) !== intval($session_user_id)) {
         return true;
     }
@@ -827,7 +828,8 @@ function poTell($user_id, array $po, $text, $email = false, $subject = '') {
     if (!$user_id) {
         return;
     }
-    mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Purchase Order', notification = '" . escapeSql(mb_substr($text, 0, 1000)) . "',
+    [$mit_bell, $email] = function_exists('mitPoTellSwitches') ? mitPoTellSwitches($email) : [true, $email]; // Mountaineer IT: our notification switches for approvers (po_app / po_email)
+    if ($mit_bell) mysqli_query($mysqli, "INSERT INTO notifications SET notification_type = 'Purchase Order', notification = '" . escapeSql(mb_substr($text, 0, 1000)) . "',
         notification_action = '/agent/purchase_order.php?po_id=" . intval($po['po_id']) . "', notification_user_id = $user_id, notification_entity_id = " . intval($po['po_id']));
     if (!$email) {
         return;
@@ -884,6 +886,7 @@ function poDecide(array $po, $approve, $note, &$error = '') {
     $note = mb_substr(trim((string) $note), 0, 255);
     $note_sql = $note === '' ? 'NULL' : "'" . escapeSql($note) . "'";
     if ($approve) {
+        if (function_exists('mitPoSeenTotalProblem') && ($error = mitPoSeenTotalProblem($po)) !== '') { return false; } // Mountaineer IT: refused when the total changed since the approver saw it
         mysqli_query($mysqli, "UPDATE purchase_orders SET po_status = 'approved', po_approved_by = " . intval($session_user_id) . ", po_approved_at = NOW(), po_approval_note = $note_sql WHERE po_id = $po_id");
         $own = intval($po['po_created_by']) === intval($session_user_id);
         poLog($po, 'Edit', poWho() . ($own ? ' approved their own ' : ' approved ') . poNumber($po) . ($note !== '' ? " - $note" : ''), poLogClient($po_id));
@@ -1059,7 +1062,7 @@ function poReceive(array $in) {
         mysqli_begin_transaction($mysqli);
         try {
             // Our own stock goes on the shelf
-            if (!$client_id && intval($line['po_item_product_id']) && intval($line['product_track_stock'])) {
+            if (!$client_id && intval($line['po_item_product_id']) && intval($line['product_track_stock']) && !(function_exists('mitProcReceiveNoShelf') && mitProcReceiveNoShelf($line))) { // Mountaineer IT: a ticket part goes to its ticket, not the shelf
                 if ($can_stock) {
                     $stock_id = productStockMove(intval($line['po_item_product_id']), $qty, 'received', ['unit_cost' => $line['po_item_cost'], 'note' => "Received on $number"]);
                     $done['stock'] += $qty;
@@ -1108,6 +1111,7 @@ function poReceive(array $in) {
             mysqli_query($mysqli, "INSERT INTO po_receipts SET po_receipt_po_id = " . intval($line['po_item_po_id']) . ", po_receipt_item_id = " . intval($line['po_item_id']) . ",
                 po_receipt_quantity = $qty, po_receipt_serials = " . ($serials ? "'" . escapeSql(implode("\n", $serials)) . "'" : 'NULL') . ",
                 po_receipt_asset_ids = " . ($asset_ids ? "'" . implode(',', $asset_ids) . "'" : 'NULL') . ", po_receipt_stock_id = " . intval($stock_id) . ", po_receipt_by = " . intval($session_user_id));
+            if (function_exists('mitProcAfterReceive')) { mitProcAfterReceive($line, $qty, $serials, intval(mysqli_insert_id($mysqli)), $asset_ids); } // Mountaineer IT: ticket parts (note, assets on the ticket), invoice lines' stock given back
             mysqli_query($mysqli, "UPDATE po_items SET po_item_received = po_item_received + $qty WHERE po_item_id = " . intval($line['po_item_id']));
             mysqli_commit($mysqli);
         } catch (Throwable $e) {
@@ -1177,6 +1181,7 @@ function poUndoReceipt($po_receipt_id, &$error = '') {
     $also = [];
     mysqli_begin_transaction($mysqli);
     try {
+        if (function_exists('mitProcUndoReceiptExtras')) { mitProcUndoReceiptExtras($receipt); } // Mountaineer IT: undo what our receiving extras did (mit_po_receipt_extras)
         foreach ($asset_ids as $asset_id) {
             mysqli_query($mysqli, "DELETE FROM assets WHERE asset_id = $asset_id");
             mysqli_query($mysqli, "DELETE FROM rack_units WHERE unit_asset_id = $asset_id");

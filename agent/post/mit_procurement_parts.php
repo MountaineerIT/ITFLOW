@@ -2,12 +2,13 @@
 
 /*
  * Mountaineer IT - procurement part 2 (functions/mit_procurement_parts.php): an invoice's lines to
- * procurement, and parts on tickets (add, change, remove, bill).
+ * ITFlow's To Order, parts on tickets (add, change, remove, bill), and lines of ITFlow's purchase orders on a project
+ * (functions/mit_procurement_extras.php mitPoSetProject).
  */
 
 defined('FROM_POST_HANDLER') || die("Direct file access is not allowed");
 
-mitModuleGuard('procurement', ['mit_part', 'mit_proc_']);
+mitModuleGuard('procurement', ['mit_part', 'mit_proc_', 'mit_po_']);
 
 if (isset($_POST['mit_proc_from_invoice'])) {
 
@@ -56,7 +57,7 @@ if (isset($_POST['mit_proc_from_invoice'])) {
         redirect();
     }
     logAudit('Procurement', 'Create', escapeSql(mitProcWho() . " sent $sent line(s) of an invoice to procurement"), $client_id, $invoice_id);
-    flashAlert("$sent line" . ($sent === 1 ? '' : 's') . ' sent to procurement - see Procurement > To order');
+    flashAlert("$sent line" . ($sent === 1 ? '' : 's') . ' sent to procurement - see Purchasing > To Order');
     redirect();
 }
 
@@ -105,4 +106,24 @@ if (isset($_POST['mit_parts_bill'])) {
     }
     flashAlert($message);
     redirect("invoice.php?invoice_id=$invoice_id");
+}
+
+if (isset($_POST['mit_po_set_project'])) {
+
+    validateCSRFToken();
+
+    $po = poForRequest(intval($_POST['po_id'] ?? 0), 2);
+    $line_ids = array_map('intval', (array) ($_POST['line_ids'] ?? []));
+    if (!$line_ids) {
+        flashAlert('Tick the lines to put on the project.', 'error');
+        redirect();
+    }
+    $result = mitPoSetProject($po, $line_ids, intval($_POST['project_id'] ?? 0));
+    $problems = [];
+    foreach ($result['problems'] as $name => $why) {
+        $problems[] = escapeHtml($name) . ' - ' . escapeHtml($why);
+    }
+    $message = $result['changed'] ? ($result['changed'] . ' line' . ($result['changed'] === 1 ? '' : 's') . (intval($_POST['project_id'] ?? 0) ? ' put on the project' : ' taken off their project')) : 'Nothing changed';
+    flashAlert($message . ($problems ? '. Left as they were: ' . implode('; ', $problems) : ''), $problems ? 'warning' : 'success');
+    redirect(mitPoUrl($po['po_id']));
 }

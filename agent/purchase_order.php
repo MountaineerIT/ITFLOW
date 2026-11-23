@@ -125,6 +125,7 @@ if (!$po || !poAccessible($po['po_id'])) {
                         <?php if ($can_edit && in_array($status, ['pending', 'approved'], true)) { ?>
                             <a class="dropdown-item confirm-link" href="post.php?po_back_to_draft=<?= $po_id ?>&csrf_token=<?= $csrf ?>" data-confirm-title="Back to draft?" data-confirm-text="To change it. <?= $status === 'approved' ? 'It will need approving again if it is over the approval amount.' : 'It stops waiting for approval.' ?>" data-confirm-button="Back to Draft"><i class="fas fa-fw fa-pencil-alt text-secondary me-2"></i>Back to Draft</a>
                         <?php } ?>
+                        <?= function_exists('mitPoProjectMenuItem') ? mitPoProjectMenuItem($po) : '' // Mountaineer IT: lines on a project ?>
                         <?php if ($can_bill) { ?>
                             <a class="dropdown-item ajax-modal" href="#" data-modal-url="<?= $modal('po_bill') ?>"><i class="fas fa-fw fa-receipt text-secondary me-2"></i>Record Vendor Bill</a>
                         <?php } ?>
@@ -199,6 +200,7 @@ if (!$po || !poAccessible($po['po_id'])) {
                                         <?php if ($product_link !== '' && $item['product_name'] !== $item['po_item_name']) { ?>
                                             <span><i class="fas fa-fw fa-box-open me-1"></i><a class="text-reset" href="<?= $product_link ?>"><?= escapeHtml($item['product_name']) ?></a></span>
                                         <?php } ?>
+                                        <?= function_exists('mitPoItemFor') ? mitPoItemFor($item) : '' // Mountaineer IT: the line's project, ticket, invoice ?>
                                     </div>
                                     <?php if (trim((string) $item['po_item_description']) !== '') { ?>
                                         <div class="small text-body-secondary"><?= nl2br(escapeHtml($item['po_item_description'])) ?></div>

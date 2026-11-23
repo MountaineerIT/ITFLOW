@@ -272,6 +272,7 @@ if (isset($_POST['po_receive'])) {
     validateCSRFToken();
     poRequireLevel(2);
 
+    if (function_exists('mitProcLock')) { mitProcLock('receive'); } // Mountaineer IT: one receive at a time - a double click can't receive the same items twice
     $done = poReceive((array) ($_POST['received'] ?? []));
     if (!$done['lines']) {
         flashAlert('Type how many came in on at least one line.', 'error');
@@ -281,6 +282,7 @@ if (isset($_POST['po_receive'])) {
         . ($done['stock'] > 0 ? ' - ' . billingQuantity($done['stock']) . ' on the shelf' : '')
         . ($done['assets'] ? ' - ' . $done['assets'] . ' asset' . ($done['assets'] === 1 ? '' : 's') . ' made' : '');
     flashAlert(escapeHtml($said) . ($done['skipped'] ? '<br>' . escapeHtml(implode('. ', $done['skipped'])) . '.' : ''), $done['skipped'] ? 'warning' : 'success');
+    if (function_exists('mitProcReceiveReview')) { mitProcReceiveReview($_POST); } // Mountaineer IT: "Fill in each asset's details" - back to Receiving, which opens each new asset
     // Back to the PO when one was being received, else Receiving
     $po_id = intval($_POST['po_id'] ?? 0);
     redirect($po_id ? poPageUrl($po_id) : 'receiving.php');

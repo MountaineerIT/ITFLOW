@@ -6,7 +6,10 @@
  */
 require __DIR__ . '/bootstrap.php';
 $client_id = scenarioClient();
-$made = ['products' => [], 'invoices' => [], 'quotes' => []];
+$made = ['products' => [], 'invoices' => [], 'quotes' => [], 'pos' => []];
+$vendor = intval(scenarioValue("SELECT vendor_id FROM vendors WHERE vendor_client_id = 0 AND vendor_archived_at IS NULL ORDER BY vendor_id LIMIT 1"));
+$old_approval = intval(scenarioValue("SELECT config_po_approval FROM settings WHERE company_id = 1"));
+mysqli_query($mysqli, "UPDATE settings SET config_po_approval = 0 WHERE company_id = 1"); // before poSettings() reads it
 try {
     mysqli_query($mysqli, "INSERT INTO products SET product_name = 'ZZ scen twin laptop', product_price = 1000, product_track_stock = 1, product_type = 'product', product_cost = 800,
         product_currency_code = 'USD', product_tax_id = 0, product_category_id = 0");
@@ -32,17 +35,25 @@ try {
     scenarioCheck('line A keeps its product (took the shelf unit)', intval($inv_lines[0]['item_product_id']), $pid);
     scenarioCheck('line B ordered: no product', intval($inv_lines[1]['item_product_id']), 0);
     scenarioCheck('shelf 1 -> 0', productOnHand($pid), 0.0);
-    $proc = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT item_id, invoice_item_id, description FROM mit_procurement_items WHERE invoice_id = $iid"));
+    $proc = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT o.order_item_id AS item_id, links.invoice_item_id, o.order_item_description AS description FROM order_items o
+        JOIN mit_order_item_links links ON links.order_item_id = o.order_item_id WHERE links.invoice_id = $iid"));
     scenarioCheck('the item points at line B (the ordered one)', intval($proc['invoice_item_id'] ?? 0), intval($inv_lines[1]['item_id']));
     scenarioCheck('... and carries line B\'s description', $proc['description'] ?? '', 'Office B');
     // Receiving the ordered unit: it goes to the client - the shelf stays at 0
-    mitProcAfterReceive(['proc_item_id' => $proc['item_id'], 'po_prefix' => 'PO-', 'po_number' => 9998, 'client_id' => $client_id, 'po_id' => 0, 'name' => 'ZZ scen twin laptop', 'unit_cost' => 800], 1, '', 0, [], []);
+    $po_id = $made['pos'][] = poCreate($vendor, [intval($proc['item_id'] ?? 0)], $error);
+    poMarkOrdered(poRow($po_id), date('Y-m-d'), '', $error);
+    poReceive([intval(poItems($po_id)[0]['po_item_id'] ?? 0) => ['qty' => 1]]);
     scenarioCheck('received for the client: shelf still 0 (no phantom stock)', productOnHand($pid), 0.0);
     scenarioCheck('line A still moves stock as ITFlow\'s (product kept)', intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT item_product_id FROM invoice_items WHERE item_id = " . intval($inv_lines[0]['item_id'])))[0]), $pid);
 } finally {
     $_POST = [];
+    mysqli_query($mysqli, "UPDATE settings SET config_po_approval = $old_approval WHERE company_id = 1");
+    foreach (array_filter($made['pos']) as $id) {
+        mysqli_query($mysqli, "DELETE FROM logs WHERE log_type = 'Purchase Order' AND log_entity_id = " . intval($id));
+        mysqli_query($mysqli, "DELETE FROM purchase_orders WHERE po_id = " . intval($id));
+    }
     foreach ($made['invoices'] as $id) {
-        mysqli_query($mysqli, "DELETE FROM mit_procurement_items WHERE invoice_id = " . intval($id));
+        mysqli_query($mysqli, "DELETE FROM order_items WHERE order_item_id IN (SELECT order_item_id FROM mit_order_item_links WHERE invoice_id = " . intval($id) . ")");
         mysqli_query($mysqli, "DELETE FROM invoice_items WHERE item_invoice_id = " . intval($id));
         mysqli_query($mysqli, "DELETE FROM history WHERE history_invoice_id = " . intval($id));
         mysqli_query($mysqli, "DELETE FROM invoices WHERE invoice_id = " . intval($id));
