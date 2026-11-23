@@ -169,6 +169,13 @@ try {
         ticketMailScheduleAgentCancelled(ticketRow($t4));
         $tm = array_values(array_filter($mails($t4, $since), function ($x) use ($admin_email) { return $x['email_recipient'] === $admin_email; }));
         scenarioCheck('... and when the booking goes to someone else, told without one', [count($tm), (string) ($tm[0]['email_cal_str'] ?? 'x')], [1, '']);
+        // A synced agent helping on a ticket is told of their booking without the .ics too (ticketHelperMail)
+        if (function_exists('ticketHelperMail')) {
+            $since = $last_mail();
+            ticketHelperMail($t4, $admin, "$day 15:00:00", "$day 16:00:00", 'booked');
+            $tm = array_values(array_filter($mails($t4, $since), function ($x) use ($admin_email) { return $x['email_recipient'] === $admin_email; }));
+            scenarioCheck('... and as a helper, their booking without one', [count($tm), (string) ($tm[0]['email_cal_str'] ?? 'x')], [1, '']);
+        }
         ticketCancelSchedule(ticketRow($t4));
         scenarioCheck('control - a lead who is not synced gets the .ics', mitOutlookSyncsEmail($tech_email), false);
     } else {
