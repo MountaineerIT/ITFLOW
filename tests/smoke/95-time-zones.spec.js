@@ -61,6 +61,11 @@ test("note times: typed on the agent's own clock, stored on the company's", asyn
     };
     try {
         await save(ZONE);
+        // Dispatch's working hours moved onto their clock (mitDispatchViewerHours), not the company's as they are
+        await visit(page, 'agent/dispatch.php', errors);
+        const shown = JSON.parse((await page.locator('[data-business-hours]').first().getAttribute('data-business-hours')) || '{}');
+        const company = JSON.parse(php('echo json_encode(dispatchBusinessHours());').trim() || '{}');
+        expect(shown.startTime, "Dispatch's working hours on their clock").not.toBe(company.startTime);
         await visit(page, `agent/ticket.php?client_id=${client}&ticket_id=${ticket}`, errors);
         await expect(page.locator('form:has(#workTimes) [data-mit-reply-zone]'), 'the box says whose clock').toContainText(ZONE);
         // The box's "now" (what an untyped date / end fills in from) is on their clock, not the company's

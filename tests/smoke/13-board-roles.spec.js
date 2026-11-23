@@ -180,7 +180,12 @@ test('board roles: the menu count leaves hidden boards out; a quick ticket lands
     expect(await badge(adminPage), "the admin's count has it").toBe(adminBefore + 1);
 
     const saved = db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'quick_ticket_board'");
-    db.exec(`INSERT INTO mit_settings SET setting_name = 'quick_ticket_board', setting_value = '${made.hidden}' ON DUPLICATE KEY UPDATE setting_value = '${made.hidden}'`);
+    // Set where Admin > Settings > Tickets sets it (mitQuickTicketBoardField / mitQuickTicketBoardSave)
+    await visit(adminPage, 'admin/settings_ticket.php');
+    await expect(adminPage.locator('select[name=mit_quick_ticket_board]'), 'the Quick ticket board picker').toHaveCount(1);
+    await adminPage.locator('select[name=mit_quick_ticket_board]').selectOption(String(made.hidden), { force: true });
+    await submit(adminPage.locator('form[data-settings-form]'), 'edit_ticket_settings');
+    expect(db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'quick_ticket_board'"), 'saved from the settings page').toBe(String(made.hidden));
     try {
         await visit(page, `agent/client_overview.php?client_id=${made.clientId}`);
         const subject = smokeName('quick ticket hidden board');

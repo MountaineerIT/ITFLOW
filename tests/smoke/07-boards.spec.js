@@ -155,11 +155,23 @@ test('boards: round-robin hands a ticket moved in unassigned to a member', async
 test('boards: dashboard board filter, and the Board Performance report', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     const errors = watch(page);
+    // An unassigned ticket on the board, so Needs attention has a ticket link for the picker to follow
+    const number = Number(db.val('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
+    db.exec('UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1');
+    const unassigned = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${number}, ticket_source = 'Agent', ticket_subject = ${db.q(smokeName('board unassigned'))},
+        ticket_details = 'x', ticket_priority = 'Low', ticket_status = 1, ticket_created_by = 1, ticket_assigned_to = 0, ticket_url_key = 'k${Date.now()}', ticket_client_id = ${made.clientId}`);
+    db.exec(`INSERT INTO mit_ticket_boards SET ticket_id = ${unassigned}, board_id = ${made.boards[1]}`);
+    try {
     await visit(page, `agent/dashboard.php?board=${made.boards[1]}`, errors);
     await expect(page.locator('#mitDashBoard'), 'the dashboard board picker').toHaveValue(String(made.boards[1]));
     // (Your boards links each go to their own board - only ITFlow's Needs attention ones follow the picker)
-    for (const href of await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]:not([data-mit-dash-boards] a)').evaluateAll((links) => links.map((a) => a.getAttribute('href')))) {
+    const attention = await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]:not([data-mit-dash-boards] a)').evaluateAll((links) => links.map((a) => a.getAttribute('href')));
+    expect(attention.length, 'Needs attention has ticket links to check (the board has an unassigned ticket)').toBeGreaterThan(0);
+    for (const href of attention) {
         expect(href, 'Needs attention opens Tickets on the same board').toContain(`board=${made.boards[1]}`);
+    }
+    } finally {
+        db.exec(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${unassigned}; DELETE FROM mit_board_moves WHERE ticket_id = ${unassigned}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${unassigned}; DELETE FROM tickets WHERE ticket_id = ${unassigned}`);
     }
     await visit(page, 'agent/dashboard.php', errors);
     await expect(page.locator('#mitDashBoard'), 'remembered').toHaveValue(String(made.boards[1]));

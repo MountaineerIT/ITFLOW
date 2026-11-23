@@ -17,7 +17,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 7 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
-| [Dispatch board, Workload, This week](#dispatch) | 4 | 6 | 30 | 12 | 47 | 10 |
+| [Dispatch board, Workload, This week](#dispatch) | 4 | 7 | 30 | 12 | 47 | 10 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 27 |
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
@@ -470,7 +470,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).
 - ticketSlaState for SLA counts; Admin > SLA working hours.
 
-**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`, `tests/scenarios/scenario-dispatch-hours.php`, `tests/scenarios/scenario-sched-sources.php`
+**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`, `tests/scenarios/scenario-dispatch-hours.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/smoke/95-time-zones.spec.js`
 
 **Hooks in ITFlow's files**
 
