@@ -86,6 +86,17 @@ test('note time locks: submitted / approved days and days to come', async ({ pag
     expect(await flash(page), 'refused').toMatch(new RegExp(`The note was not changed: .* ${made.lockedStatus}`));
     expect(reply('Smoke lock today').work_start, 'unchanged').toBe(`${today} 00:05:00`);
 
+    // A note already on the submitted day: its time can't be changed in Edit Note (mitTsReplyTimeGuard)
+    db.run(`INSERT INTO ticket_replies SET ticket_reply = 'Smoke lock already there', ticket_reply_type = 'Public', ticket_reply_time_worked = '00:30:00',
+        ticket_reply_work_start = '${made.lockedDay} 10:00:00', ticket_reply_work_end = '${made.lockedDay} 10:30:00', ticket_reply_by = 1,
+        ticket_reply_created_at = '${made.lockedDay} 10:30:00', ticket_reply_ticket_id = ${made.ticketId}`);
+    const there = reply('Smoke lock already there');
+    const lockedEdit = await openModal(page, `modals/ticket/ticket_reply_edit.php?id=${there.id}`, 'lg');
+    await fillForm(lockedEdit, { time: '01:00:00' });
+    await submit(lockedEdit, 'edit_ticket_reply');
+    expect(await flash(page), 'refused').toContain('The time on this note stays 00:30:00');
+    expect(reply('Smoke lock already there').worked, 'its time unchanged').toBe('00:30:00');
+
     // Today on an approved timesheet: the time is not counted at all
     if (made.current) {
         db.run(`UPDATE mit_timesheets SET status = 'approved' WHERE sheet_id = ${made.current.sheet_id}`);
