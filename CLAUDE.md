@@ -96,6 +96,9 @@ model: see DEPLOYMENT.md.
   refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
   off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
   line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
+  `--baseline-from=<earlier.jsonl>` (Nov 23) reuses an earlier run's passing baselines on the same code - the container restarted every
+  20-30 min and each start spent ~10 min on baselines. Tests skip only when the feature is off (`featureOn('mitX')` in smoke helpers.js),
+  never because our element is missing - that hid lost hooks (the 06 quote step skipped from 26.12 until Nov 23).
 - Rebuilding the test install (Nov 17, 26.11.8.5 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
   base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
   granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,

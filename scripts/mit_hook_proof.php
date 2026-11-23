@@ -7,6 +7,7 @@
  *
  *   php scripts/mit_hook_proof.php --list [--feature=key,key]                    the hook sites and how each would be switched off
  *   php scripts/mit_hook_proof.php --copy=N [--feature=key,key] [--site=file:line | --sites=list.txt] [--out=results.jsonl]
+ *       [--baseline-from=earlier.jsonl]   reuse the passing baselines of an earlier run on the same code (a run cut short)
  *
  * Features whose tests use the shared stand-ins (Microsoft 365 / Outlook / mail parser at 127.0.0.1:8765, QuickBooks, usage,
  * NinjaOne, Customer Thermometer, AI, Align - one state each for every copy) must run on one copy, one at a time - two copies at
@@ -32,7 +33,7 @@ require __DIR__ . '/mit_feature_lib.php';
 
 $opts = [];
 foreach (array_slice($argv, 1) as $arg) {
-    if (preg_match('/^--([a-z]+)(?:=(.*))?$/', $arg, $m)) {
+    if (preg_match('/^--([a-z-]+)(?:=(.*))?$/', $arg, $m)) {
         $opts[$m[1]] = $m[2] ?? true;
     }
 }
@@ -212,8 +213,17 @@ $record = function (array $row) use ($out) {
     }
 };
 
-// Baseline: each feature's tests must pass untouched on this copy, or its sites can't be judged
+// Baseline: each feature's tests must pass untouched on this copy, or its sites can't be judged. --baseline-from takes the
+// passing ones an earlier run recorded (only for the same code - a container that restarts often never got past them)
 $baseline = [];
+if (!empty($opts['baseline-from']) && $opts['baseline-from'] !== true && is_readable($opts['baseline-from'])) {
+    foreach (file($opts['baseline-from'], FILE_IGNORE_NEW_LINES) as $line) {
+        $row = json_decode($line, true);
+        if (isset($row['baseline']) && !empty($row['ok'])) {
+            $baseline[$row['baseline']] = '';
+        }
+    }
+}
 foreach ($sites as $s) {
     foreach (array_keys($s['features']) as $key) {
         if (!isset($baseline[$key])) {
