@@ -1,4 +1,4 @@
-// Admin > Settings > Notifications: our rows (functions/mit_notifications.php) in ITFlow's table, and who is emailed when a ticket is
+// Admin > Settings > Notifications: our sections (functions/mit_notifications.php - board / PO / timesheet switches; assigning and helper copies are ITFlow's own since 26.12), and who is emailed when a ticket is
 // scheduled - defaults per kind of visit, changeable in the Schedule window for one booking:
 //  - remote defaults with nobody ticked: a remote booking queues no "Ticket Scheduled" email;
 //  - switching the window to Onsite ticks the onsite defaults (contact + an extra address): both are emailed;
@@ -68,7 +68,7 @@ test('notifications: who is emailed for remote and onsite bookings, and per book
     const errors = watch(page);
     await visit(page, 'admin/settings_notification.php', errors);
     await expect(page.locator('[data-mit-schedule-defaults]'), 'the scheduling defaults table').toHaveCount(1);
-    await expect(page.locator('input[data-mit-notify="assign_email"]'), 'the other rows').toHaveCount(1);
+    await expect(page.locator('input[data-mit-notify="board_email"]'), 'our other rows (board / PO / timesheet switches)').toHaveCount(1);
 
     // A client whose contact has an email address, and a ticket
     await visit(page, 'agent/clients.php', errors);

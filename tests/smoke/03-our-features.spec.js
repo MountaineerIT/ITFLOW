@@ -80,17 +80,33 @@ test('timesheets: who is behind, and reminding them', async ({ page }) => {
     await expectClean(page, errors);
 });
 
-test('Dispatch board, day and week', async ({ page }) => {
+test('Dispatch: our board picker narrows ITFlow\'s queue, Workload and This week; cards carry the board', async ({ page }) => {
     const errors = watch(page);
-    await visit(page, 'agent/mit_dispatch.php', errors);
-    test.skip(!/mit_dispatch\.php/.test(page.url()), 'Dispatch is switched off');
-    await page.waitForTimeout(1000); // the board draws itself
-    await expectClean(page, errors);
-    for (const queue of ['unassigned', 'unscheduled']) {
-        const { status, text } = await fetchText(page, `mit_dispatch_ajax.php?queue=${queue}`);
-        expect(status).toBe(200);
-        expect(() => JSON.parse(text), `queue ${queue}: ${text.slice(0, 200)}`).not.toThrow();
+    const db = require('./mitdb');
+    await visit(page, 'agent/dispatch.php', errors);
+    test.skip(!/dispatch\.php/.test(page.url()) || await page.locator('#itflowDispatch').count() === 0, 'Dispatch is switched off');
+    await expect(page.locator('[data-mit-dispatch-board]'), 'our board picker in the toolbar').toHaveCount(1);
+    await expect(page.locator('[data-mit-dispatch-board-techs]'), '"Only its members"').toHaveCount(1);
+    const n = 480000 + Math.floor(Math.random() * 9000);
+    const id = db.insert(`INSERT INTO tickets SET ticket_prefix = 'ZZ-', ticket_number = ${n}, ticket_subject = 'ZZboard ${n}', ticket_details = 'x', ticket_priority = 'Low',
+        ticket_status = 1, ticket_created_by = 1, ticket_assigned_to = 0, ticket_client_id = 1, ticket_url_key = 'zzb${n}'`);
+    db.exec(`INSERT INTO mit_ticket_boards SET ticket_id = ${id}, board_id = 2`);
+    try {
+        const queue = async (board) => (await getJson(page, `ajax.php?dispatch_queue=unassigned&q=ZZboard%20${n}&board=${board}`)).tickets || [];
+        const onTwo = await queue('2');
+        expect(onTwo.map((t) => t.id), 'on its board').toContain(id);
+        expect(onTwo.find((t) => t.id === id).mit_board, 'the card names its board').toBeTruthy();
+        expect((await queue('3')).map((t) => t.id), 'not on another board').not.toContain(id);
+        expect((await queue('all')).map((t) => t.id), 'on All boards').toContain(id);
+        for (const url of ['ajax.php?dispatch_workload=1&board=2&agents=1', 'ajax.php?dispatch_week=1&board=2&agents=1&first_day=1']) {
+            const { status, text } = await fetchText(page, url);
+            expect(status, url).toBe(200);
+            expect(() => JSON.parse(text), `${url}: ${text.slice(0, 200)}`).not.toThrow();
+        }
+    } finally {
+        db.exec(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${id}; DELETE FROM mit_board_moves WHERE ticket_id = ${id}; DELETE FROM tickets WHERE ticket_id = ${id}`);
     }
+    await expectClean(page, errors);
 });
 
 test('calendar draws', async ({ page }) => {
@@ -100,33 +116,28 @@ test('calendar draws', async ({ page }) => {
     await expectClean(page, errors);
 });
 
-test('cron health address and alert settings', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'admin/cron.php', errors);
-    const url = page.locator('#mitHealthUrl');
-    test.skip(await url.count() === 0, 'cron alerts card not shown');
-    const healthPath = new URL(await url.inputValue()).pathname + new URL(await url.inputValue()).search;
-
-    // The right key answers OK (200) or PROBLEM (503) - either way plain text, no PHP error
-    const right = await fetchText(page, healthPath);
-    expect([200, 503]).toContain(right.status);
-    expect(right.text).toMatch(/^(OK|PROBLEM)\n/);
-    expect(right.text).not.toMatch(/Fatal error|Warning:/);
-    // A wrong key or none is refused
+test('our old health address answers as ITFlow\'s /health.php', async ({ page }) => {
+    const db = require('./mitdb');
+    await visit(page, 'agent/dashboard.php');
+    const key = db.val("SELECT config_cron_health_key FROM settings WHERE company_id = 1");
+    test.skip(!key, 'no health key made yet');
+    const ours = await fetchText(page, `/mit_health.php?key=${encodeURIComponent(key)}`);
+    const theirs = await fetchText(page, `/health.php?key=${encodeURIComponent(key)}`);
+    expect([200, 503]).toContain(ours.status);
+    expect(ours.status, 'the same answer').toBe(theirs.status);
+    expect(ours.text.split('\n')[0]).toBe(theirs.text.split('\n')[0]);
     expect((await fetchText(page, '/mit_health.php?key=wrong')).status).toBe(403);
-    expect((await fetchText(page, '/mit_health.php')).status).toBe(403);
-
     // The top bar warning matches: shown exactly when the address reports a problem
-    await expect(page.locator('#mitCronHealth')).toHaveCount(right.status === 503 ? 1 : 0);
+    await expect(page.locator('#mitCronHealth')).toHaveCount(ours.status === 503 ? 1 : 0);
 });
 
-test('purchase order action buttons are buttons', async ({ page }) => {
-    await visit(page, 'agent/mit_purchase_orders.php?show=all');
-    const link = page.locator('a[href*="mit_purchase_order.php?po_id="]').first();
+test('purchase order: our "Link to a project" opens as a button', async ({ page }) => {
+    await visit(page, 'agent/purchase_orders.php');
+    const link = page.locator('a[href*="purchase_order.php?"][href*="po_id="]').first();
     test.skip(await link.count() === 0, 'no purchase orders');
     await visit(page, await link.evaluate((a) => a.href));
-    // Every action opening a window keeps its button look (a second class attribute would be dropped by the browser)
-    const plain = await page.locator('[data-modal-url*="po_action.php"]').evaluateAll((links) => links
+    // A window opener keeps its button look (a second class attribute would be dropped by the browser)
+    const plain = await page.locator('[data-modal-url*="po_project.php"]').evaluateAll((links) => links
         .filter((a) => !a.classList.contains('ajax-modal') || !(a.classList.contains('btn') || a.classList.contains('dropdown-item')))
         .map((a) => a.textContent.trim()));
     expect(plain).toEqual([]);
@@ -149,62 +160,6 @@ test('reply box starts open on Public note', async ({ page }) => {
     // Cancel still shuts it
     await page.click('#cancelReply');
     await expect(page.locator('#replyComposer')).not.toHaveClass(/\bshow\b/);
-    await expectClean(page, errors);
-});
-
-test('Dispatch workload', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'agent/mit_dispatch.php', errors);
-    test.skip(!/mit_dispatch\.php/.test(page.url()), 'Dispatch is switched off');
-    await page.click('[data-md-view=workload]');
-    await page.locator('.mit-wl-row').first().waitFor();
-    await expect(page.locator('[data-md-board]')).toContainText('Team average');
-
-    const techs = JSON.parse(await page.locator('#mitDispatch').getAttribute('data-techs')).map((t) => t.id);
-    // Every board - the admin's own default is "My boards" once they are on one
-    const workload = await getJson(page, `mit_dispatch_ajax.php?workload=1&board=all&techs=${techs.join(',')}`);
-    expect(workload.techs.length, 'a row per agent').toBe(techs.length);
-    for (const t of workload.techs) {
-        expect(Object.keys(t.sla).sort()).toEqual(['at_risk', 'breached', 'none', 'paused', 'running']);
-        const counted = Object.values(t.sla).reduce((a, b) => a + b, 0);
-        expect(counted, `${t.name}: every open ticket has an SLA state`).toBe(t.open);
-    }
-
-    // Move to: give an unbooked ticket to another agent, and back
-    const owner = workload.techs.find((t) => t.tickets.some((k) => k.role === 'lead' && !k.schedule_start));
-    test.skip(!owner || techs.length < 2, 'no unbooked ticket to move');
-    const ticket = owner.tickets.find((k) => k.role === 'lead' && !k.schedule_start);
-    const other = techs.find((id) => id !== owner.id);
-    const token = await page.locator('#mitDispatch').getAttribute('data-csrf');
-    const assign = (tech) => page.evaluate(async ([id, tech, token]) => (await fetch('mit_dispatch_ajax.php', {
-        method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({assign: 1, csrf_token: token, ticket_id: id, tech_id: tech}).toString()})).json(), [ticket.id, tech, token]);
-    expect((await assign(other)).ok, 'moved').toBe(true);
-    const after = await getJson(page, `mit_dispatch_ajax.php?workload=1&board=all&techs=${other}`);
-    expect(after.techs[0].tickets.some((k) => k.id === ticket.id), 'on the other agent now').toBe(true);
-    expect((await assign(owner.id)).ok, 'moved back').toBe(true);
-    await expectClean(page, errors);
-});
-
-test('Dispatch this week: in vs closed, SLA, by agent', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'agent/mit_dispatch.php', errors);
-    test.skip(!/mit_dispatch\.php/.test(page.url()), 'Dispatch is switched off');
-    await page.locator('.mit-stats canvas[data-ms-chart]').waitFor();
-    await expect(page.locator('[data-md-stats]')).toContainText('SLA this week');
-
-    const techs = JSON.parse(await page.locator('#mitDispatch').getAttribute('data-techs')).map((t) => t.id);
-    const week = await getJson(page, `mit_dispatch_ajax.php?week_stats=1&first_day=1&techs=${techs.join(',')}`);
-    expect(week.days.length, 'seven days').toBe(7);
-    expect(new Date(week.week[0] + 'T12:00:00').getDay(), 'a Monday week starts on Monday').toBe(1);
-    expect(week.days.reduce((a, d) => a + d.inbound, 0), 'inbound adds up').toBe(week.totals.inbound);
-    expect(week.days.reduce((a, d) => a + d.closed, 0), 'closed adds up').toBe(week.totals.closed);
-    expect(week.totals.net).toBe(week.totals.inbound - week.totals.closed);
-    expect(week.techs.length, 'a row per agent').toBe(techs.length);
-    expect(week.techs.reduce((a, t) => a + t.closed, 0), 'agents close no more than the team').toBeLessThanOrEqual(week.totals.closed);
-    for (const key of ['response_met', 'response_missed', 'resolution_met', 'resolution_missed', 'breached_now', 'at_risk_now']) {
-        expect(typeof week.sla[key], `sla.${key}`).toBe('number');
-    }
     await expectClean(page, errors);
 });
 

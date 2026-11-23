@@ -44,88 +44,11 @@ test('open a ticket to work on', async ({ page }) => {
     expect(made.ticketId, `ticket page after saving (${page.url()} - ${await flash(page)})`).toBeGreaterThan(0);
 });
 
-test('procurement: item to order, PO, approve, order, receive', async ({ page }) => {
-    test.skip(!made.clientId, 'no client');
+test('purchasing: ITFlow\'s To Order, Purchase Orders and Receiving pages open (the flow itself is ITFlow\'s since 26.12 - 37 / 62 / 63 check ours on it)', async ({ page }) => {
     const errors = watch(page);
-    await visit(page, 'agent/mit_procurement.php', errors);
-    test.skip(!/mit_procurement\.php/.test(page.url()), 'Procurement is switched off');
-    const name = smokeName('PO item');
-
-    // An item to order for the client, with no cost yet
-    let modal = await openModal(page, 'modals/mit_procurement/item.php');
-    await fillForm(modal, { name, quantity: '2', client_id: String(made.clientId) });
-    await submit(modal, 'mit_proc_save_item');
-    expect(await flash(page)).toContain('added to the list to order');
-    const row = page.locator('#mitProcForm tr', { has: page.locator(`input[aria-label="Select ${name}"]`) });
-    await expect(row, 'the item on To order').toHaveCount(1);
-    // A second item on the same PO - Receiving's menu count is of items, not POs
-    const name2 = smokeName('PO item two');
-    modal = await openModal(page, 'modals/mit_procurement/item.php');
-    await fillForm(modal, { name: name2, quantity: '1', client_id: String(made.clientId) });
-    await submit(modal, 'mit_proc_save_item');
-    const row2 = page.locator('#mitProcForm tr', { has: page.locator(`input[aria-label="Select ${name2}"]`) });
-
-    // Tick both, pick a vendor, Create PO
-    await row.locator('input[name="item_ids[]"]').check();
-    await row2.locator('input[name="item_ids[]"]').check();
-    const vendor = await page.locator('#mitPoVendor option:not([value="0"])').first().getAttribute('value');
-    test.skip(!vendor, 'no vendors to order from');
-    await page.selectOption('#mitPoVendor', vendor);
-    await submit(page.locator('#mitProcForm'), 'mit_po_create');
-    expect(page.url(), await flash(page)).toMatch(/mit_purchase_order\.php\?po_id=\d+/);
-    const poId = Number(new URL(page.url()).searchParams.get('po_id'));
-    made.poId = poId;
-    const poUrl = `agent/mit_purchase_order.php?po_id=${poId}`;
-
-    // Give the line a cost: 2 x 300.00, over the default approval amount
-    const lines = page.locator('form:has(button[name=mit_po_save_lines])');
-    await expect(lines).toContainText(name);
-    await lines.locator('input[name$="[cost]"]').first().fill('300');
-    await submit(lines, 'mit_po_save_lines');
-    expect(await flash(page)).toContain('Quantities and costs saved');
-    await expect(page.locator('input[name$="[cost]"]').first()).toHaveValue('300.00');
-    await expect(page.locator('body')).toContainText('600.00');
-
-    // Submit; approve when it waits for approval (the admin may approve, logged as self-approved)
-    await Promise.all([page.waitForNavigation(), page.click('a[href*="mit_po_submit="]')]);
-    await expectClean(page);
-    expect(await flash(page)).toMatch(/Sent for approval|Submitted/);
-    if (await page.locator('[data-modal-url*="action=approve"]').count()) {
-        modal = await openModal(page, `modals/mit_procurement/po_action.php?po_id=${poId}&action=approve`);
-        await fillForm(modal, { note: 'Smoke test approval' });
-        await submit(modal, 'mit_po_decide');
-        expect(await flash(page)).toContain('Approved');
+    for (const url of ['agent/to_order.php', 'agent/purchase_orders.php', 'agent/receiving.php']) {
+        await visit(page, url, errors);
     }
-    await expect(page.locator('h2 + .badge')).toHaveText('Approved');
-
-    modal = await openModal(page, `modals/mit_procurement/po_action.php?po_id=${poId}&action=ordered`);
-    await fillForm(modal, { vendor_order_number: 'SMOKE-1' });
-    await submit(modal, 'mit_po_ordered');
-    expect(await flash(page)).toContain('Marked ordered');
-    await expect(page.locator('h2 + .badge')).toHaveText('Ordered');
-
-    // The side menu counts every item still to arrive (it counted POs before)
-    await visit(page, 'agent/mit_receiving.php', errors);
-    const waiting = await page.locator('#mitReceiveForm [data-mit-got]').count();
-    await expect(page.locator('.app-sidebar a[href="/agent/mit_receiving.php"] .badge'), 'Receiving counts items').toHaveText(String(waiting));
-
-    // Receive both on Receiving, making no assets and adding nothing to stock
-    await visit(page, `agent/mit_receiving.php?po_id=${poId}`, errors);
-    const line = page.locator('#mitReceiveForm tr', { hasText: name }).filter({ hasNotText: name2 });
-    await expect(line).toHaveCount(1);
-    await line.locator('input[name$="[qty]"]').fill('2');
-    await page.locator('#mitReceiveForm tr', { hasText: name2 }).locator('input[name$="[qty]"]').fill('1');
-    const form = page.locator('#mitReceiveForm');
-    await form.locator('#mitOptAssets').uncheck();
-    await form.locator('#mitOptStock').uncheck();
-    await submit(form, 'mit_po_receive');
-    const message = await flash(page);
-    expect(message).toContain('Received 2 lines on 1 PO');
-    expect(message, 'no assets or stock when not ticked').not.toMatch(/asset|stock/i);
-
-    await visit(page, poUrl, errors);
-    await expect(page.locator('h2 + .badge')).toHaveText('Received');
-    await expect(page.locator('body')).toContainText(`received 2 × ${name}`);
     await expectClean(page, errors);
 });
 
@@ -208,21 +131,21 @@ test('an additional agent on the ticket, then taken off', async ({ page, browser
     await expect(prop).toHaveCount(1);
     await expect(prop).not.toContainText(techName);
 
-    const modal = await openModal(page, `modals/ticket/mit_ticket_tech.php?ticket_id=${made.ticketId}`);
+    const modal = await openModal(page, `modals/ticket/ticket_helper.php?ticket_id=${made.ticketId}`);
     const techId = await modal.locator('select[name=user_id] option').evaluateAll((options, name) =>
         (options.find((o) => o.dataset.name === name) || {}).value, techName);
     expect(techId, `${techName} offered as a helper (needs access to the client)`).toBeTruthy();
-    await fillForm(modal, { user_id: techId, tech_mode: 'none' }); // not booked - no invite email
-    await submit(modal, 'mit_save_ticket_tech');
+    await fillForm(modal, { user_id: techId, helper_mode: 'none' }); // not booked - no invite email
+    await submit(modal, 'save_ticket_helper');
     expect(await flash(page)).not.toMatch(/error|cannot|not on/i);
     await expect(prop).toContainText(techName);
 
     // Their own window has Remove
-    const edit = await openModal(page, `modals/ticket/mit_ticket_tech.php?ticket_id=${made.ticketId}&user_id=${techId}`);
-    const remove = await edit.locator('a[href*="mit_remove_ticket_tech="]').getAttribute('href');
+    const edit = await openModal(page, `modals/ticket/ticket_helper.php?ticket_id=${made.ticketId}&user_id=${techId}`);
+    const remove = await edit.locator('a[href*="remove_ticket_helper="]').getAttribute('href');
     await page.goto(new URL(remove, page.url()).href, { referer: page.url() }); // back to the ticket, as the link does
     await expectClean(page);
-    expect(await flash(page)).toContain('removed from the ticket');
+    expect(await flash(page)).not.toMatch(/error|cannot/i);
     await visit(page, ticketUrl());
     await expect(prop).not.toContainText(techName);
 });
@@ -265,7 +188,7 @@ test('a ticket in a project leaves the Tickets board and comes back when taken o
     expect(await calendar('tickets'), 'project booking left out of Scheduled tickets').toHaveLength(0);
     const booked = await calendar('projects');
     expect(booked, 'project booking under Projects').toHaveLength(1);
-    expect(booked[0].extendedProps.tech_color, 'tech color kept for the dot').toBeTruthy();
+    expect(booked[0].extendedProps.agent_color || booked[0].extendedProps.tech_color, 'the agent colour kept for the dot (ITFlow 26.12: agent_color)').toBeTruthy();
     await action(page, `cancel_ticket_schedule=${made.ticketId}`, ticketUrl());
 
     // Taken out of the project, it is a service ticket again
@@ -407,23 +330,6 @@ test.afterAll(async ({ browser }) => {
     }
     if (made.recurringId) {
         await action(page, `delete_recurring_ticket=${made.recurringId}`, 'agent/recurring_tickets.php');
-    }
-    // A PO this run left short of Received: delete (draft) or cancel it - its item goes back on To order
-    if (made.poId) {
-        await page.goto(`agent/mit_purchase_order.php?po_id=${made.poId}`);
-        const out = page.locator('a[href*="mit_po_delete="], a[href*="mit_po_cancel="]');
-        if (await out.count()) {
-            await page.goto(new URL(await out.first().getAttribute('href'), page.url()).href, { referer: page.url() });
-        }
-    }
-    // Smoke test items still waiting to be ordered (this run's, or an earlier failed run's): Not needed
-    await page.goto('agent/mit_procurement.php');
-    const waiting = page.locator('#mitProcForm input[name="item_ids[]"][aria-label^="Select Smoke test PO item"]');
-    if (await waiting.count()) {
-        for (const box of await waiting.all()) {
-            await box.check();
-        }
-        await submit(page.locator('#mitProcForm'), 'mit_proc_cancel_items');
     }
     if (made.quoteId) {
         await action(page, `delete_quote=${made.quoteId}`, `agent/quote.php?quote_id=${made.quoteId}`);

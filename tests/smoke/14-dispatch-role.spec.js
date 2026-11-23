@@ -1,6 +1,6 @@
-// The Dispatch permission (M035, functions/mit_dispatch.php): with Dispatch View the Technician (ITFLOW_TECH_EMAIL) sees the
-// board marked "View only" and is refused when booking or assigning; with no Dispatch the page, its menu entry and its
-// requests are refused. The role's Dispatch level is set in Admin > Roles > Edit and put back at the end, even when a step fails.
+// Our Dispatch permission (M035, functions/mit_dispatch.php - hooked into ITFlow 26.12's dispatchCan / dispatchCanEdit): with Dispatch
+// View the Technician (ITFLOW_TECH_EMAIL) sees ITFlow's board read-only and is refused when assigning; with no Dispatch the page, its
+// menu entry and its requests are refused. The role's Dispatch level is set in Admin > Roles > Edit and put back at the end, even when a step fails.
 
 const fs = require('fs');
 const path = require('path');
@@ -53,17 +53,18 @@ test('dispatch role: View sees the board but cannot change it', async ({ page, b
 
     const tech = await techPage(browser);
     const errors = watch(tech);
-    await visit(tech, 'agent/mit_dispatch.php', errors);
-    test.skip(await tech.locator('#mitDispatch').count() === 0, 'Dispatch switched off');
-    await expect(tech.locator('[data-md-view-only]'), 'marked View only').toBeVisible();
-    await expect(tech.locator('.app-sidebar a[href="/agent/mit_dispatch.php"]'), 'still in the menu').toHaveCount(1);
+    await visit(tech, 'agent/dispatch.php', errors);
+    test.skip(await tech.locator('#itflowDispatch').count() === 0, 'Dispatch switched off');
+    await expect(tech.locator('.app-sidebar a[href="/agent/dispatch.php"]'), 'still in the menu').toHaveCount(1);
     const answers = await tech.evaluate(async () => {
-        const csrf = document.getElementById('mitDispatch').dataset.csrf;
-        const queue = await fetch('/agent/mit_dispatch_ajax.php?queue=unassigned&board=all');
-        const body = new URLSearchParams({ assign: '1', csrf_token: csrf, ticket_id: '1', tech_id: '1' });
-        const assign = await fetch('/agent/mit_dispatch_ajax.php', { method: 'POST', body });
-        return { queue: queue.status, assign: assign.status, canEdit: document.getElementById('mitDispatch').dataset.canEdit };
+        const csrf = document.getElementById('itflowDispatch').dataset.csrf;
+        const queue = await fetch('/agent/ajax.php?dispatch_queue=unassigned&board=all');
+        const body = new URLSearchParams({ dispatch_assign: '1', csrf_token: csrf, ticket_id: '1', agent_id: '1' });
+        const assign = await fetch('/agent/ajax.php', { method: 'POST', body });
+        const ours = await fetch('/agent/mit_dispatch_ajax.php?contacts=1');
+        return { queue: queue.status, assign: assign.status, ours: ours.status, canEdit: document.getElementById('itflowDispatch').dataset.canEdit };
     });
+    expect(answers.ours, 'our Schedule window\'s requests load').toBe(200);
     expect(answers.queue, 'the queue loads').toBe(200);
     expect(answers.canEdit, 'the board is drawn read-only').toBe('0');
     expect(answers.assign, 'assigning is refused').toBe(403);
@@ -76,11 +77,11 @@ test('dispatch role: no Dispatch, no board', async ({ page, browser }) => {
     await dispatchLevel(page, 0);
     const tech = await techPage(browser);
     await tech.goto('agent/dashboard.php');
-    await expect(tech.locator('.app-sidebar a[href="/agent/mit_dispatch.php"]'), 'not in the menu').toHaveCount(0);
-    await tech.goto('agent/mit_dispatch.php');
-    await expect(tech.locator('#mitDispatch'), 'the page is refused').toHaveCount(0);
-    const status = await tech.evaluate(async () => (await fetch('/agent/mit_dispatch_ajax.php?queue=unassigned&board=all')).status);
-    expect(status, 'its requests are refused').toBe(403);
+    await expect(tech.locator('.app-sidebar a[href="/agent/dispatch.php"]'), 'not in the menu').toHaveCount(0);
+    await tech.goto('agent/dispatch.php');
+    await expect(tech.locator('#itflowDispatch'), 'the page is refused').toHaveCount(0);
+    const status = await tech.evaluate(async () => [(await fetch('/agent/ajax.php?dispatch_queue=unassigned')).status, (await fetch('/agent/mit_dispatch_ajax.php?contacts=1')).status]);
+    expect(status, 'its requests (ITFlow\'s and ours) are refused').toEqual([403, 403]);
     await tech.context().close();
 });
 

@@ -78,11 +78,11 @@
             + esc(b.color || '#6c757d') + '"></span>' + esc(b.name) + '</span>' : '';
     };
 
-    // ---------- the Schedule window ----------
+    // ---------- the Schedule window (further down the page than this script - found once the page has loaded) ----------
 
-    const modal = document.getElementById('dispatchScheduleModal');
-    const fields = modal && modal.querySelector('[data-mit-dispatch-fields]');
-    const form = modal && modal.querySelector('[data-dispatch-schedule]');
+    let modal = null;
+    let fields = null;
+    let form = null;
     const notifyWho = {tech: 'Agent', contact: 'Contact', watchers: 'Watchers', site: 'Site contact', primary: 'Primary contact'};
     let details = null;
     let notifyTouched = false;
@@ -205,7 +205,13 @@
         }
     }
 
-    if (modal && fields && form) {
+    function bindModal() {
+        modal = document.getElementById('dispatchScheduleModal');
+        fields = modal && modal.querySelector('[data-mit-dispatch-fields]');
+        form = modal && modal.querySelector('[data-dispatch-schedule]');
+        if (!modal || !fields || !form) {
+            return;
+        }
         // Our ticks say who is emailed - ITFlow's "Email the contact" tick goes
         const tell = form.elements.tell_client;
         if (tell && tell.closest('.form-check')) {
@@ -247,11 +253,16 @@
             }
         }
     }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindModal);
+    } else {
+        bindModal();
+    }
 
     // Every request Dispatch makes: the board picked; a booking also takes the Schedule window's details and ticks
     window.itflowDispatchExtra = function (method, params) {
         params = Object.assign({}, params);
-        if (board !== 'all' && (params.dispatch_queue !== undefined || params.dispatch_workload !== undefined || params.dispatch_week !== undefined)) {
+        if (params.dispatch_queue !== undefined || params.dispatch_workload !== undefined || params.dispatch_week !== undefined) {
             params.board = board;
         }
         if (params.dispatch_book !== undefined && fields) {

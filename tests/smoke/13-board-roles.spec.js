@@ -140,9 +140,9 @@ test('board roles: the technician sees only their boards and their own tickets',
     found = await listed();
     expect(found, 'not in global search').not.toContain(ids.plain);
 
-    const dispatch = await page.goto('agent/mit_dispatch.php');
+    const dispatch = await page.goto('agent/dispatch.php');
     if (dispatch.status() < 400 && !page.url().includes('dashboard')) {
-        const queue = await getJson(page, '/agent/mit_dispatch_ajax.php?queue=unassigned&board=all');
+        const queue = await getJson(page, '/agent/ajax.php?dispatch_queue=unassigned&board=all');
         expect((queue.tickets || queue).map((t) => Number(t.id)), 'not in the Dispatch queue').not.toContain(ids.plain);
     }
 

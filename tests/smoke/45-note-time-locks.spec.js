@@ -1,7 +1,7 @@
-// Times on ticket notes and the timesheet locks (functions/mit_reply_times.php): a note's times on a day of a submitted timesheet
+// Times on ticket notes are ITFlow's own since 26.12 (ticket_replies.ticket_reply_work_start / _end, the reply box's When it was worked).
+// Our timesheet locks on them (functions/mit_reply_times.php, two guarded lines in agent/post/ticket.php): a note's times on a day of a submitted timesheet
 // are not kept (the time counts as worked now, with a warning), a day still to come is refused the same way, a note can't be
-// edited onto a submitted / approved day, and with today on an approved timesheet the time is not counted at all. Checked in ticket_replies /
-// mit_reply_times. The admin's own timesheets are used: one submitted sheet is added for the first half of this month (removed
+// edited onto a submitted / approved day, and with today on an approved timesheet the time is not counted at all. Checked in ticket_replies. The admin's own timesheets are used: one submitted sheet is added for the first half of this month (removed
 // again; an approved one already there is used as it is) and the current one is marked approved for one step (put back).
 
 const { test, expect } = require('@playwright/test');
@@ -17,17 +17,17 @@ const today = ymd(now);
 const tomorrow = ymd(new Date(Date.now() + 86400000));
 const made = { clientId: 0, ticketId: 0, sheetId: 0, current: null, lockedDay: '', lockedStatus: '' };
 const ticketPage = () => `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`;
-const reply = (text) => db.rows(`SELECT r.ticket_reply_id AS id, r.ticket_reply_time_worked AS worked, t.work_start, t.work_end FROM ticket_replies r
-    LEFT JOIN mit_reply_times t ON t.reply_id = r.ticket_reply_id WHERE r.ticket_reply_ticket_id = ${made.ticketId} AND r.ticket_reply LIKE ${db.q(`%${text}%`)}`)[0];
+const reply = (text) => db.rows(`SELECT r.ticket_reply_id AS id, r.ticket_reply_time_worked AS worked, r.ticket_reply_work_start AS work_start, r.ticket_reply_work_end AS work_end
+    FROM ticket_replies r WHERE r.ticket_reply_ticket_id = ${made.ticketId} AND r.ticket_reply LIKE ${db.q(`%${text}%`)}`)[0];
 
 async function note(page, text, date, start, end) {
     await visit(page, ticketPage());
     await page.click('label[for=public_reply_type_opt1]');
     await page.locator('#replyComposer.show').waitFor();
     await page.evaluate((text) => window.tinymce.get(document.querySelector('#replyComposer textarea').id).setContent(text), text);
-    await page.fill('#mitWorkDate', date);
-    await page.fill('#mitWorkStart', start);
-    await page.fill('#mitWorkEnd', end);
+    await page.fill('#work_date', date);
+    await page.fill('#work_start', start);
+    await page.fill('#work_end', end);
     await Promise.all([page.waitForNavigation(), page.click('#ticket_add_reply')]);
     await expectClean(page);
     return flash(page);
@@ -71,8 +71,8 @@ test('note time locks: submitted / approved days and days to come', async ({ pag
     expect.soft(message, 'the person is told their times were not kept').toMatch(new RegExp(`times were not kept: .* is on an? ${made.lockedStatus} timesheet`));
 
     message = await note(page, 'Smoke lock future', tomorrow, '09:00', '10:00');
-    expect(reply('Smoke lock future').work_start, 'a day to come: times not kept').toBeNull();
-    expect.soft(message, 'and the person is told').toMatch(/times were not kept: .* has not come yet/);
+    const future = reply('Smoke lock future');
+    expect(!future || future.work_start === null || future.work_start.slice(0, 10) !== tomorrow, `a day to come: no times kept on it (${message})`).toBe(true);
 
     message = await note(page, 'Smoke lock today', today, '00:05', '00:50');
     r = reply('Smoke lock today');
@@ -81,9 +81,9 @@ test('note time locks: submitted / approved days and days to come', async ({ pag
 
     // Edit it onto the submitted day: refused, nothing changes
     const modal = await openModal(page, `modals/ticket/ticket_reply_edit.php?id=${r.id}`, 'lg');
-    await fillForm(modal, { mit_work_date: made.lockedDay });
+    await fillForm(modal, { work_date: made.lockedDay });
     await submit(modal, 'edit_ticket_reply');
-    expect(await flash(page), 'refused').toMatch(new RegExp(`can't move onto .* is on an? ${made.lockedStatus} timesheet`));
+    expect(await flash(page), 'refused').toMatch(new RegExp(`The note was not changed: .* ${made.lockedStatus}`));
     expect(reply('Smoke lock today').work_start, 'unchanged').toBe(`${today} 00:05:00`);
 
     // Today on an approved timesheet: the time is not counted at all
@@ -110,7 +110,6 @@ test.afterAll(async () => {
         db.run(`DELETE FROM mit_timesheets WHERE sheet_id = ${made.sheetId}`);
     }
     if (made.ticketId) {
-        db.run(`DELETE t FROM mit_reply_times t JOIN ticket_replies r ON r.ticket_reply_id = t.reply_id WHERE r.ticket_reply_ticket_id = ${made.ticketId}`);
         db.run(`DELETE FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketId}`);
         db.run(`DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${made.ticketId}`);
         db.run(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${made.ticketId}`);

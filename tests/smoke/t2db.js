@@ -38,7 +38,7 @@ function php(code) {
 function deleteTickets(ids) {
     ids = ids.filter(Boolean).map(Number);
     if (ids.length) {
-        php(`foreach ([${ids.join(',')}] as $id) { mysqli_query($mysqli, "DELETE FROM mit_ticket_techs WHERE ticket_id = $id"); ticketDeleteForGood($id); }`);
+        php(`foreach ([${ids.join(',')}] as $id) { mysqli_query($mysqli, "DELETE FROM mit_ticket_techs WHERE ticket_id = $id"); mysqli_query($mysqli, "DELETE FROM ticket_helpers WHERE ticket_id = $id"); ticketDeleteForGood($id); }`);
     }
 }
 

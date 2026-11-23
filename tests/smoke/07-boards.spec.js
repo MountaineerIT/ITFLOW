@@ -104,10 +104,10 @@ test('boards: a new ticket is routed, escalated, and shows on its board', async 
     await expect(page.locator(`a[href*="ticket_id=${made.ticketId}"]`), 'not on the board it left').toHaveCount(0);
 
     // Dispatch's queue follows the board picked (escalating unassigned it, so it waits under No agent)
-    const queue = await page.goto('agent/mit_dispatch.php');
+    const queue = await page.goto('agent/dispatch.php');
     if (queue.status() < 400 && !page.url().includes('dashboard')) {
-        const on = await getJson(page, `/agent/mit_dispatch_ajax.php?queue=unassigned&board=${made.boards[1]}`);
-        const off = await getJson(page, `/agent/mit_dispatch_ajax.php?queue=unassigned&board=${made.boards[0]}`);
+        const on = await getJson(page, `/agent/ajax.php?dispatch_queue=unassigned&board=${made.boards[1]}`);
+        const off = await getJson(page, `/agent/ajax.php?dispatch_queue=unassigned&board=${made.boards[0]}`);
         const ids = (json) => (json.tickets || json).map((t) => Number(t.id));
         expect(ids(on), 'in the Dispatch queue of its board').toContain(made.ticketId);
         expect(ids(off), 'not in the queue of the board it left').not.toContain(made.ticketId);

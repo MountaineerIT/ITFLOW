@@ -3,8 +3,8 @@
 // see the booking on the calendar and Dispatch. Everything it makes is named
 // "Smoke test ..." and deleted again at the end, even when a step fails.
 // Nothing is emailed to a customer: the contact has no email address and the
-// note is internal (the booking email goes to the agent it is booked for) - until the
-// email-reply test gives it a reserved @example.invalid address, which never delivers.
+// note is internal (the booking email goes to the agent it is booked for). The reply box's To line is ITFlow's
+// own since 26.12 (40-reply-recipients checks our helpers in it).
 
 const { test, expect } = require('@playwright/test');
 const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, fetchText, getJson, expectClean } = require('./helpers');
@@ -129,7 +129,7 @@ test('book it and see it on the calendar and Dispatch', async ({ page }) => {
     expect(booking.end, 'booking end time (Mountaineer IT calendar)').toContain(`${when.date} 11:00`);
 
     await visit(page, 'agent/calendar.php');
-    const dispatch = await fetchText(page, `mit_dispatch_ajax.php?items&from=${when.date}&to=${when.date}&techs=`);
+    const dispatch = await fetchText(page, `ajax.php?dispatch_items=1&from=${when.date}&to=${when.date}&agents=`);
     if (dispatch.status === 200) { // 403 when Dispatch is off or not allowed
         expect(dispatch.text).not.toMatch(/Fatal error|Warning:/);
         expect(() => JSON.parse(dispatch.text)).not.toThrow();
@@ -149,11 +149,12 @@ test('Dispatch Schedule dialog: the title is edited with the booking', async ({ 
     const techId = await modal.locator('select[name=schedule_tech]').inputValue();
     const start = (await modal.locator('input[name=scheduled_date_time]').inputValue()).replace('T', ' ') + ':00';
     const csrf = await page.locator('input[name=csrf_token]').first().inputValue();
+    // ITFlow's dispatch_book, carrying our Schedule window's details (agent/js/mit_dispatch.js -> mitDispatchBeforeBook)
     const book = (subject) => page.evaluate(async (body) => {
-        const response = await fetch('mit_dispatch_ajax.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(body) });
+        const response = await fetch('ajax.php', { method: 'POST', credentials: 'same-origin', body: new URLSearchParams(body) });
         return response.json();
     }, {
-        book: 1, csrf_token: csrf, ticket_id: made.ticketId, tech_id: techId, start, minutes: 60, onsite: 0, contact: 0,
+        dispatch_book: 1, csrf_token: csrf, ticket_id: made.ticketId, agent_id: techId, start, minutes: 60, onsite: 0, tell_client: 0,
         detail_subject: subject, detail_client_id: d.ticket.client_id, detail_contact_id: d.ticket.contact_id, detail_priority: d.ticket.priority,
         detail_status: d.ticket.status_id, detail_category_id: d.ticket.category_id, detail_sla: d.ticket.sla_id,
     });
@@ -167,50 +168,6 @@ test('Dispatch Schedule dialog: the title is edited with the booking', async ({ 
     expect(refused.error).toContain('subject');
     await visit(page, ticketPage);
     await expect(page.locator('body')).toContainText(renamed);
-});
-
-test('email reply goes only to the people ticked, and the choice is remembered', async ({ page }) => {
-    test.skip(!made.ticketId, 'no ticket');
-    const errors = watch(page);
-    const ticketPage = `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`;
-    await visit(page, ticketPage, errors);
-    // The contact needs an address for "Email reply" - a reserved one that never delivers
-    const contactUrl = await page.locator('[data-modal-url*="modals/contact/contact.php?id="]').first().getAttribute('data-modal-url');
-    const contactId = new URL(contactUrl, page.url()).searchParams.get('id');
-    const modal = await openModal(page, `modals/contact/contact_edit.php?id=${contactId}`, 'lg');
-    await fillForm(modal, { email: 'smoke-contact@example.invalid' });
-    await submit(modal, 'edit_contact');
-    await visit(page, ticketPage, errors);
-    test.skip(await page.locator('label[for=public_reply_type_opt2]').count() === 0, 'mail is not set up on this install');
-
-    await page.click('label[for=public_reply_type_opt2]');
-    const box = page.locator('#mitSendTo');
-    await expect(box, 'the To line').toBeVisible();
-    const selected = () => box.locator('select').evaluate((el) => [...el.selectedOptions].map((o) => o.value));
-    expect(await selected(), 'the contact starts in To').toEqual(['smoke-contact@example.invalid']);
-    // As a person does: take the contact's chip out, type another address and add it
-    await box.locator('.itflow-select').click();
-    await page.keyboard.type('smoke-copy@example.invalid');
-    await page.keyboard.press('Enter');
-    await page.keyboard.press('Escape');
-    await box.locator('select').evaluate((el) => {
-        el.querySelector('option[value="smoke-contact@example.invalid"]').selected = false;
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    expect(await selected()).toEqual(['smoke-copy@example.invalid']);
-    const form = page.locator('form:has(#replyComposer)');
-    await fillForm(form, { ticket_reply: 'Smoke test emailed reply' });
-    await submit(form, 'add_ticket_reply');
-
-    // Who it went to is in the ticket's history - only the address ticked
-    await visit(page, ticketPage, errors);
-    const history = page.locator('.card', { has: page.locator('.card-title i.fa-history') });
-    await expect(history).toContainText('Reply emailed to smoke-copy@example.invalid');
-    await expect(history).not.toContainText('smoke-contact@example.invalid');
-    // Next time it starts from the same choice
-    await page.click('label[for=public_reply_type_opt2]');
-    expect(await selected(), 'To starts from the last choice').toEqual(['smoke-copy@example.invalid']);
-    await expectClean(page, errors);
 });
 
 test('our boxes on the ticket page', async ({ page }) => {

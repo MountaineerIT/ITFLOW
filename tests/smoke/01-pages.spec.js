@@ -105,7 +105,7 @@ test('one of each record page', async ({ page }) => {
         ['agent/projects.php', /project\.php\?.*project_id=\d+/],
         ['agent/recurring_invoices.php', /recurring_invoice\.php\?.*recurring_invoice_id=\d+/],
         ['agent/vendors.php', /vendor\.php\?.*vendor_id=\d+/],
-        ['agent/mit_purchase_orders.php', /mit_purchase_order\.php\?.*po_id=\d+/],
+        ['agent/purchase_orders.php', /purchase_order\.php\?.*po_id=\d+/],
         ['agent/mit_timesheets.php', /mit_timesheet\.php\?.+/],
     ];
     const urls = [];

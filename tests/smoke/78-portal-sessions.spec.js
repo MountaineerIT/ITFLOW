@@ -36,8 +36,8 @@ async function signIn(browser) {
     await page.fill('input[name=password]', made.password);
     await Promise.all([page.waitForNavigation(), page.click('button[name=login]')]);
     if (made.secret && await page.locator('input[name=current_code]').count()) {
-        await page.fill('input[name=current_code]', totp(made.secret));
-        await Promise.all([page.waitForNavigation(), page.locator('button[type=submit]').first().click()]);
+        // ITFlow's code box sends itself once six digits are in (data-otp-submit)
+        await Promise.all([page.waitForNavigation(), page.fill('input[name=current_code]', totp(made.secret))]);
     }
     expect(await signedIn(page), 'signed in to the portal').toBe(true);
     return { context, page };

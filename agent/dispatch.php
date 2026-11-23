@@ -20,6 +20,11 @@ if (!moduleOn('dispatch')) {
     flashAlert(moduleOffText('dispatch'), 'error');
     redirect('/agent/dashboard.php');
 }
+// Mountaineer IT: the role's Dispatch permission (functions/mit_dispatch.php mitDispatchLevel)
+if (!dispatchCan()) {
+    flashAlert('The Dispatch board needs the Dispatch permission (Admin > Roles).', 'error');
+    redirect('/agent/dashboard.php');
+}
 
 $agents = dispatchAgents();
 $state = dispatchState();

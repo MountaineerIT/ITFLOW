@@ -1,351 +1,80 @@
-// The calendar's sidebar lists: To schedule and Left behind (functions/mit_left_behind.php) follow the Whose picker -
-// Everyone = everyone's - and a ticket whose booked day has gone is left behind (marked on the calendar, and in Dispatch's
-// Left behind tab) until it is booked again. Makes its own client and ticket ("Smoke test ...") and deletes them, even when a step fails; the
-// calendar's Whose choice is put back.
+// The calendar is ITFlow's own since 26.12 (To schedule, Left behind, 7 days, side by side, Dispatch's meetings and clashes - built from
+// ours). Ours on top (functions/mit_calendar.php mitServiceCalendarItems, agent/js/calendar.js eventDidMount, agent/calendar.php's style):
+// a booked service ticket is drawn in the one service colour set on Admin > Settings > Ticket (admin/includes/mit_calendar_card.php), its
+// agent's colour kept as tech_color and drawn as a bar down the left of the block ([data-mit-agent], an inset box-shadow); an unassigned
+// booking has no bar. Rows are made in the database and removed after; the service colour and Whose are put back.
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, getJson, expectClean } = require('./helpers');
+const { watch, visit, submit, getJson, expectClean } = require('./helpers');
+const { sql, one, deleteTickets, makeTicket } = require('./t2db');
 
-test.describe.configure({ mode: 'serial' });
+const tag = `ZZcol${Date.now() % 1000000}`;
+const made = { tickets: [], color: null, state: undefined };
 
-const made = { clientName: smokeName('client'), clientId: 0, ticketId: 0, whose: null, eventId: 0 };
-
-function day(offset, time = '10:00') {
+function ymd(offset) {
     const d = new Date(Date.now() + offset * 86400000);
     const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${time}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// Book through the calendar's own move request
-async function book(page, start) {
-    return page.evaluate(async ([id, start]) => {
-        const root = document.getElementById('itflowCalendar');
-        const body = new URLSearchParams({ calendar_move: 1, csrf_token: root.dataset.csrf, kind: 'ticket', id, start });
-        return (await fetch('ajax.php', { method: 'POST', credentials: 'same-origin', body })).json();
-    }, [String(made.ticketId), start]);
-}
-
-async function pickWhose(page, value) {
-    await page.evaluate((v) => {
-        const select = document.getElementById('calendarAgent');
-        select.value = v;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-    }, String(value));
-}
-
-test('calendar: To schedule and Left behind follow Whose, and a passed booking is left behind', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'agent/calendar.php', errors);
-    test.skip(await page.locator('#mitLeftBehind').count() === 0, 'needs Support edit (scheduling) and the Left behind list');
-    const me = await page.locator('#itflowCalendar').getAttribute('data-user-id');
-    made.whose = await page.locator('#calendarAgent').inputValue();
-
-    await visit(page, 'agent/clients.php');
-    let modal = await openModal(page, 'modals/client/client_add.php', 'lg');
-    await fillForm(modal, { name: made.clientName, contact: 'Smoke Contact' });
-    await submit(modal, 'add_client');
-    await visit(page, `agent/clients.php?q=${encodeURIComponent(made.clientName)}`);
-    made.clientId = Number(new URL(await page.locator('a[href*="client_id="]', { hasText: made.clientName }).first().getAttribute('href'), page.url()).searchParams.get('client_id'));
-    expect(made.clientId).toBeGreaterThan(0);
-    modal = await openModal(page, `modals/ticket/ticket_add.php?client_id=${made.clientId}`, 'lg');
-    await fillForm(modal, { subject: smokeName('ticket'), details: 'Opened by the smoke tests.', priority: 'Low', assigned_to: me });
-    await submit(modal, 'add_ticket');
-    made.ticketId = Number(new URL(page.url()).searchParams.get('ticket_id'));
-    expect(made.ticketId, `ticket page after saving (${await flash(page)})`).toBeGreaterThan(0);
-
-    // To schedule: mine, and everyone's on Everyone
-    await visit(page, 'agent/calendar.php', errors);
-    const ids = (json) => (json.tickets || []).map((t) => t.id);
-    expect(ids(await getJson(page, `ajax.php?calendar_unscheduled=1&user_id=${me}&client_id=${made.clientId}`)), 'To schedule, mine').toContain(made.ticketId);
-    const everyone = await getJson(page, `ajax.php?calendar_unscheduled=1&user_id=0&client_id=${made.clientId}`);
-    expect(ids(everyone), 'To schedule, everyone\'s').toContain(made.ticketId);
-    expect(everyone.tickets.find((t) => t.id === made.ticketId).agent, 'with the agent named').toBeTruthy();
-    await pickWhose(page, 0);
-    await expect(page.locator(`#calendarUnscheduled [data-ticket="${made.ticketId}"]`), 'in the list on Everyone').toHaveCount(1);
-
-    // Booked three days ago and still open: left behind - in the list (Everyone and mine) and marked on the calendar
-    expect((await book(page, day(-3))).ok, 'booked in the past').toBe(true);
-    await visit(page, 'agent/calendar.php', errors);
-    await pickWhose(page, 0);
-    await expect(page.locator(`#mitLeftBehind [data-ticket="${made.ticketId}"]`), 'left behind, Everyone').toHaveCount(1);
-    await pickWhose(page, me);
-    await expect(page.locator(`#mitLeftBehind [data-ticket="${made.ticketId}"]`), 'left behind, mine').toHaveCount(1);
-    const date = day(-3).slice(0, 10);
-    const items = await getJson(page, `ajax.php?calendar_items=1&from=${date}&to=${date}&sources=tickets`);
-    const item = items.find((i) => i.id === `ticket-${made.ticketId}`);
-    expect(item && item.className, 'its old booking is marked').toContain('mit-left-behind');
-    // and in Dispatch's Left behind tab (every agent's)
-    const dispatch = await page.evaluate(async () => {
-        const res = await fetch('mit_dispatch_ajax.php?queue=left_behind&board=all', { credentials: 'same-origin' });
-        return res.ok ? res.json() : null;
-    });
-    if (dispatch) { // Dispatch can be switched off
-        expect(dispatch.tickets.map((t) => t.id), 'in Dispatch\'s Left behind tab').toContain(made.ticketId);
-        expect(dispatch.counts.left_behind, 'counted on the tab').toBeGreaterThan(0);
-    }
-
-    // Booked again for tomorrow: no longer left behind
-    expect((await book(page, day(1))).ok, 'booked again').toBe(true);
-    expect(ids(await getJson(page, `ajax.php?mit_left_behind=1&user_id=0&client_id=${made.clientId}`)), 'moved on').not.toContain(made.ticketId);
-    await expectClean(page, errors);
-});
-
-test('dispatch: an agent\'s meetings show beside their bookings, count as a clash, and bookings carry onsite / remote', async ({ page }) => {
-    test.skip(!made.ticketId, 'no ticket');
-    const errors = watch(page);
-    await visit(page, 'agent/calendar.php', errors);
-    const me = await page.locator('#itflowCalendar').getAttribute('data-user-id');
-    const tomorrow = day(1).slice(0, 10);
-    // A meeting tomorrow 10:00 - 11:00 with me on it - the ticket was booked tomorrow 10:00 above
-    const modal = await openModal(page, 'modals/calendar/calendar_event_add.php', 'lg');
-    await fillForm(modal, { title: 'Smoke test meeting', start_date: tomorrow, start_time: '10:00', end_date: tomorrow, end_time: '11:00', 'agents[]': [me], send_invites: false });
-    await submit(modal, 'add_event');
-
-    const dispatch = await page.evaluate(async ([date, me]) => {
-        const res = await fetch(`/agent/mit_dispatch_ajax.php?items=1&from=${date}&to=${date}&techs=${me}`, { credentials: 'same-origin' });
-        return res.ok ? res.json() : null;
-    }, [tomorrow, me]);
-    test.skip(dispatch === null, 'Dispatch is switched off');
-    const meeting = dispatch.find((i) => i.extendedProps.kind === 'event' && i.title === 'Smoke test meeting');
-    expect(meeting, 'the meeting on my Dispatch column').toBeTruthy();
-    made.eventId = meeting.extendedProps.event_id;
-    expect(meeting.editable, 'a one-off entry moves on Dispatch (functions/mit_event_agents.php)').toBe(true);
-    const booking = dispatch.find((i) => i.extendedProps.kind === 'ticket' && i.extendedProps.ticket_id === made.ticketId);
-    expect(booking && ['fa-car', 'fa-headset'], 'the booking says onsite or remote').toContain(booking && booking.extendedProps.icon);
-
-    // A service ticket's booking: the service color (Admin > Settings > Ticket), the agent's color as a dot
-    await visit(page, 'admin/settings_ticket.php', errors);
-    const colorField = page.locator('#mitServiceTicketColor');
-    const serviceColor = await colorField.inputValue();
-    expect(booking.color, 'the service color').toBe(serviceColor);
-    expect(booking.extendedProps.tech_color, 'the agent color').toMatch(/^#[0-9a-f]{6}$/i);
-    expect(booking.extendedProps.agent_name, 'the agent\'s name, shown beside the time').toBeTruthy();
-    await colorField.fill('#123456');
-    await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
-    const recolored = await page.evaluate(async ([date, me]) => (await (await fetch(`/agent/mit_dispatch_ajax.php?items=1&from=${date}&to=${date}&techs=${me}`)).json()), [tomorrow, me]);
+async function serviceColor(page, color) {
     await visit(page, 'admin/settings_ticket.php');
-    await page.locator('#mitServiceTicketColor').fill(serviceColor);
-    await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
-    expect(recolored.find((i) => i.extendedProps.ticket_id === made.ticketId && i.extendedProps.kind === 'ticket').color, 'a new service color').toBe('#123456');
-    // Drawn with a bar in the agent's color on Dispatch's day view
-    await visit(page, `agent/mit_dispatch.php?date=${tomorrow}`, errors);
-    await page.click('[data-md-view="day"]');
-    const column = page.locator(`.mit-dispatch-col[data-tech="${me}"]`);
-    if (await column.count()) {
-        const striped = column.locator('[data-mit-agent]').first();
-        await striped.waitFor();
-        expect(await striped.evaluate((el) => getComputedStyle(el).boxShadow), 'the agent bar').toContain('inset');
+    const field = page.locator('#mitServiceTicketColor');
+    const was = await field.inputValue();
+    if (color) {
+        await field.fill(color);
+        await submit(page.locator('form:has(button[name=mit_edit_calendar_colors])'), 'mit_edit_calendar_colors');
     }
+    return was;
+}
 
-    // Booking over it: the meeting is named as a clash
-    await visit(page, 'agent/calendar.php', errors);
-    const moved = await book(page, `${tomorrow} 10:30`);
-    expect((moved.conflicts || []).join(' | '), 'the meeting as a clash').toContain('Smoke test meeting');
-    await expectClean(page, errors);
-});
-
-test('dispatch week: the agent names stay at the left when the days scroll sideways', async ({ browser, baseURL }) => {
-    const use = test.info().project.use;
-    const context = await browser.newContext({ storageState: use.storageState, baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors, viewport: { width: 1000, height: 700 } });
-    const page = await context.newPage();
-    const errors = watch(page);
-    const response = await page.goto('agent/mit_dispatch.php');
-    test.skip(response.status() >= 400 || !(await page.locator('[data-md-view="week"]').count()), 'Dispatch is switched off');
-    const view = await page.locator('[data-md-view].active, [data-md-view].btn-secondary').first().getAttribute('data-md-view').catch(() => 'day');
-    await page.click('[data-md-view="week"]');
-    try {
-        const name = page.locator('.mit-dispatch-week tbody th').first();
-        await name.waitFor();
-        const before = (await name.boundingBox()).x;
-        const scrolled = await page.evaluate(() => {
-            // Whichever box around the table scrolls sideways (it depends on the screen width)
-            let scroller = document.querySelector('.mit-dispatch-week').parentElement;
-            while (scroller && !(scroller.scrollWidth > scroller.clientWidth + 5 && getComputedStyle(scroller).overflowX !== 'visible')) {
-                scroller = scroller.parentElement;
-            }
-            if (!scroller) {
-                return 0;
-            }
-            scroller.scrollLeft = 200;
-            return scroller.scrollLeft;
-        });
-        test.skip(scrolled === 0, 'the week fits without scrolling');
-        expect(Math.abs((await name.boundingBox()).x - before), 'the name did not move').toBeLessThan(2);
-        const corner = await page.locator('.mit-dispatch-week thead th').first().evaluate((th) => getComputedStyle(th).backgroundColor);
-        expect(corner, 'the corner is solid, so the days do not show through').not.toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
-        await expectClean(page, errors);
-    } finally {
-        if (view && view !== 'week') {
-            await page.click(`[data-md-view="${view}"]`); // put the agent's view back (it is remembered)
-            await page.waitForTimeout(500);
-        }
+test.afterAll(async ({ browser }) => {
+    deleteTickets(made.tickets);
+    if (made.state !== undefined) {
+        sql(`UPDATE user_settings SET user_config_calendar_state = ${made.state === null ? 'NULL' : `'${made.state.replace(/'/g, "''")}'`} WHERE user_id = 1`);
+    }
+    if (made.color) {
+        const use = test.info().project.use;
+        const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
+        await serviceColor(await context.newPage(), made.color).catch(() => {});
         await context.close();
     }
 });
 
-test.afterAll(async ({ browser }) => {
-    const use = test.info().project.use;
-    const context = await browser.newContext({ storageState: use.storageState, baseURL: use.baseURL, ignoreHTTPSErrors: use.ignoreHTTPSErrors });
-    const page = await context.newPage();
-    if (made.whose !== null) {
-        await page.goto('agent/calendar.php');
-        await pickWhose(page, made.whose);
-        await page.waitForTimeout(1500); // the choice is saved to the account a moment after the change
-    }
-    // The meeting - found again when a failed step never learnt its id
-    if (!made.eventId && made.ticketId) {
-        await page.goto('agent/calendar.php');
-        const date = day(1).slice(0, 10);
-        made.eventId = await page.evaluate(async (date) => {
-            const calendars = [...document.querySelectorAll('[data-calendar]')].map((box) => box.dataset.calendar).join(',');
-            const items = await (await fetch(`ajax.php?calendar_items=1&from=${date}&to=${date}&calendars=${calendars}`, { credentials: 'same-origin' })).json();
-            const found = items.find((i) => i.title === 'Smoke test meeting');
-            return found ? found.extendedProps.event_id : 0;
-        }, date);
-    }
-    if (made.eventId) {
-        await action(page, `delete_event=${made.eventId}`, 'agent/calendar.php');
-    }
-    if (made.ticketId) {
-        await action(page, `delete_ticket=${made.ticketId}`, `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.ticketId}`);
-    }
-    if (made.clientId) {
-        await action(page, `delete_client=${made.clientId}`, `agent/client_overview.php?client_id=${made.clientId}`);
-    }
-    await context.close();
-});
-
-test('calendar: the 7 days view moves a day at a time, so a weekend can be crossed without changing weeks', async ({ page }) => {
+test('calendar: service bookings in the service colour, the agent\'s colour as a bar', async ({ page }) => {
     const errors = watch(page);
+    const date = ymd(1);
+    const mine = makeTicket({ subject: `${tag} mine`, client: 1, assigned: 1 });
+    const nobody = makeTicket({ subject: `${tag} nobody`, client: 1, assigned: 0 });
+    made.tickets.push(mine, nobody);
+    sql(`UPDATE tickets SET ticket_schedule = '${date} 10:00:00', ticket_schedule_end = '${date} 11:00:00' WHERE ticket_id = ${mine}`);
+    sql(`UPDATE tickets SET ticket_schedule = '${date} 13:00:00', ticket_schedule_end = '${date} 14:00:00' WHERE ticket_id = ${nobody}`);
+
+    made.color = await serviceColor(page, '#123456');
     await visit(page, 'agent/calendar.php', errors);
-    const seven = page.locator('button', { hasText: /^7 days$/ });
-    await expect(seven, 'the 7 days button beside Week').toHaveCount(1);
-    const days = async () => (await page.locator('[role="columnheader"]').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    // The view the agent had, to put back: Month (day names only), Week (7 dated), Day (1) or List (none)
-    const before = await days();
-    const was = before.length === 0 ? 'List' : (before.length === 1 ? 'Day' : (/\d/.test(before[0]) ? 'Week' : 'Month'));
-    await seven.click();
-    await expect.poll(async () => (await days()).length, 'seven day columns').toBe(7);
-    const first = await days();
-    await page.locator('button[title*="next" i], button[aria-label*="next" i]').first().click();
-    await expect.poll(async () => (await days())[0], 'next moves one day').toBe(first[1]);
-    expect((await days())[6], 'a new day at the end').not.toBe(first[6]);
-    // Bookings in it are drawn as in Week (time, who, icon, detail on separate lines) - a timed entry drawn in Month's one-line
-    // style (is-daygrid) means the view is not seen as a time grid (agent/js/calendar.js checks the name starts with timeGrid)
-    expect(await page.locator('.itflow-cal-event.is-daygrid').evaluateAll((els) => els.filter((e) => /\d:\d\d/.test(e.textContent)).length),
-        'timed entries drawn as time-grid blocks').toBe(0);
-    // Remembered like the other views: back on 7 dated days (from today) - once the account has it (saved 0.8 s after a change)
-    await page.waitForResponse((r) => r.url().includes('ajax.php') && r.request().method() === 'POST' && (r.request().postData() || '').includes('mit_calendar_state'), { timeout: 5000 }).catch(() => {});
-    await page.reload();
-    await expect.poll(async () => (await days()).length, 'still 7 days after a reload').toBe(7);
-    expect((await days())[0], 'dated days, not month names').toMatch(/\d/);
-    // Put the agent's own view back
-    await page.locator('button', { hasText: new RegExp(`^${was}$`) }).first().click();
-    await page.waitForTimeout(600);
-});
+    const items = await getJson(page, `ajax.php?calendar_items=1&from=${date}&to=${date}&sources=tickets`);
+    const a = items.find((i) => i.id === `ticket-${mine}`);
+    const b = items.find((i) => i.id === `ticket-${nobody}`);
+    expect(a && a.color, 'the service colour').toBe('#123456');
+    expect(a.extendedProps.tech_color, 'the agent\'s colour kept for the bar').toMatch(/^#[0-9a-f]{6}$/i);
+    expect(b && b.color, 'unassigned: the service colour too').toBe('#123456');
+    expect(b.extendedProps.tech_color, 'and no bar').toBeUndefined();
 
-test('calendar: Left behind sits under the calendar, as wide as it, both on the screen', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'agent/calendar.php', errors);
-    const card = page.locator('#mitLeftBehindCard');
-    await expect(card, 'the Left behind card').toHaveCount(1);
-    await page.waitForTimeout(800); // its list loads
-    const cal = await page.locator('#calendar').boundingBox();
-    const box = await card.boundingBox();
-    expect(box.y, 'under the calendar').toBeGreaterThan(cal.y + cal.height - 1);
-    expect(Math.abs(box.width - cal.width), 'as wide as the calendar (its card)').toBeLessThan(60);
-    expect(await page.locator('.itflow-cal-side #mitLeftBehindCard').count(), 'not in the left column').toBe(0);
-    // With rows to drag: one row shows (the rest scroll inside it) and the whole card is on the screen under the calendar
-    const rows = page.locator('#mitLeftBehind > *');
-    if (await rows.count()) {
-        const list = await page.locator('#mitLeftBehind').boundingBox();
-        const row = await rows.first().boundingBox();
-        expect(list.height, 'one row of tickets').toBeLessThan(row.height * 1.5);
-        expect(box.y + box.height, 'the card ends on the screen').toBeLessThanOrEqual(page.viewportSize().height);
-    }
-});
-
-test('calendar: a short booking keeps its text inside its block (FullCalendar centres it, so it ran out above)', async ({ page }) => {
-    const db = require('./mitdb');
-    const errors = watch(page);
-    await visit(page, 'agent/calendar.php', errors);
-    const me = Number(await page.locator('#itflowCalendar').getAttribute('data-user-id'));
-    const client = Number(db.val('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1'));
-    test.skip(!client, 'no client');
-    const subject = smokeName('short booking');
-    const date = day(1, '10:00').slice(0, 10);
-    const id = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = 990000 + FLOOR(RAND() * 9999), ticket_subject = ${db.q(subject)},
-        ticket_details = '', ticket_priority = 'Low', ticket_status = 2, ticket_schedule = '${date} 10:00:00', ticket_schedule_end = '${date} 10:30:00',
-        ticket_url_key = MD5(RAND()), ticket_created_at = NOW(), ticket_created_by = ${me}, ticket_assigned_to = ${me}, ticket_client_id = ${client}`);
-    const before = await page.locator('#calendarAgent').inputValue();
-    try {
-        await visit(page, `agent/calendar.php?date=${date}`, errors);
-        await pickWhose(page, me);
-        await page.locator('button', { hasText: /^Week$/ }).first().click();
-        const text = page.locator('.itflow-cal-event.is-timegrid', { hasText: subject });
-        await expect(text).toHaveCount(1);
-        const [inner, block] = await text.evaluate((e) => [e.getBoundingClientRect().top, e.parentElement.parentElement.getBoundingClientRect().top]);
-        expect(inner, 'the text starts inside the half-hour block, not above it').toBeGreaterThanOrEqual(block - 1);
-        expect(await text.evaluate((e) => getComputedStyle(e.parentElement).overflow), 'and is cut off at its bottom').toBe('hidden');
-        await expectClean(page, errors);
-    } finally {
-        db.exec(`DELETE FROM tickets WHERE ticket_id = ${id}`);
-        await pickWhose(page, before).catch(() => {});
-    }
-});
-
-test('calendar + Dispatch: bookings at the same time sit side by side, open or completed, none on top of another', async ({ page }) => {
-    // slotEventOverlap: false in agent/js/calendar.js and agent/js/mit_dispatch.js (26.11.2.5 - the user's choice): FullCalendar's default
-    // drew bookings starting together on top of each other, half hidden
-    const db = require('./mitdb');
-    const errors = watch(page);
-    await visit(page, 'agent/calendar.php', errors);
-    const me = Number(await page.locator('#itflowCalendar').getAttribute('data-user-id'));
-    const client = Number(db.val('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1'));
-    test.skip(!client, 'no client');
-    const date = day(0).slice(0, 10);
-    const made = [];
-    const booking = (subject, from, to, done) => db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = 990000 + FLOOR(RAND() * 9999),
-        ticket_subject = ${db.q(subject)}, ticket_details = '', ticket_priority = 'Low', ticket_status = ${done ? 5 : 2},
-        ticket_schedule = '${date} ${from}:00', ticket_schedule_end = '${date} ${to}:00', ticket_url_key = MD5(RAND()), ticket_created_at = NOW(),
-        ticket_created_by = ${me}, ticket_assigned_to = ${me}, ticket_client_id = ${client}${done ? ', ticket_resolved_at = NOW(), ticket_closed_at = NOW()' : ''}`);
-    const openSubject = smokeName('over open');
-    const doneSubject = smokeName('over done');
-    const before = await page.locator('#calendarAgent').inputValue();
-    try {
-        made.push(booking(openSubject, '13:00', '14:00', false));
-        made.push(booking(doneSubject, '13:00', '14:00', true));
-
-        const check = async (scope, where) => {
-            const done = page.locator(`${scope} [data-kind="ticket"]`, { hasText: doneSubject }).first();
-            const open = page.locator(`${scope} [data-kind="ticket"]`, { hasText: openSubject }).first();
-            await expect(open).toBeVisible();
-            const [d, o] = [await done.boundingBox(), await open.boundingBox()];
-            const apart = o.x + o.width <= d.x + 2 || d.x + d.width <= o.x + 2;
-            expect(apart, `${where}: side by side, not on top of each other (${JSON.stringify([o, d])})`).toBeTruthy();
-            expect(Math.abs(o.width - d.width), `${where}: the same width`).toBeLessThan(6);
-            // The completed one opens when clicked
-            await page.mouse.click(d.x + d.width / 2, d.y + 6);
-            await expect(page.locator('.modal.show .modal-title'), `${where}: a click on the completed one opens it`).toContainText(doneSubject.slice(0, 20));
-            await page.locator('.modal.show [data-bs-dismiss="modal"]').first().click();
-            await expect(page.locator('.modal.show')).toHaveCount(0);
-        };
-
-        await visit(page, `agent/calendar.php?date=${date}`, errors);
-        await pickWhose(page, me);
-        await page.locator('#itflowCalendar button', { hasText: /^Day$/ }).first().click();
-        await check('#itflowCalendar', 'calendar');
-
-        if (await page.request.get('agent/mit_dispatch.php').then((r) => r.ok())) {
-            await visit(page, 'agent/mit_dispatch.php', errors);
-            await page.locator('[data-md-view="day"]').first().click();
-            await page.locator('[data-md-nav="0"]').first().click();
-            await page.waitForLoadState('networkidle');
-            await check('.mit-dispatch', 'Dispatch');
-        }
-        await expectClean(page, errors);
-    } finally {
-        made.forEach((id) => db.exec(`DELETE FROM tickets WHERE ticket_id = ${id}`));
-        await pickWhose(page, before).catch(() => {});
-    }
+    // Drawn: the week with everyone's bookings - the assigned one has the bar
+    made.state = one('SELECT user_config_calendar_state FROM user_settings WHERE user_id = 1');
+    await visit(page, `agent/calendar.php?date=${date}`, errors);
+    await page.evaluate(() => {
+        const select = document.getElementById('calendarAgent');
+        select.value = '0';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.locator('#itflowCalendar button', { hasText: /^Week$/ }).first().click();
+    const block = page.locator('[data-kind="ticket"]', { hasText: `${tag} mine` }).first();
+    await expect(block).toBeVisible();
+    expect(await block.getAttribute('data-mit-agent'), 'marked for the bar').toBe('1');
+    expect(await block.evaluate((el) => getComputedStyle(el).boxShadow), 'the bar').toContain('inset');
+    const plain = page.locator('[data-kind="ticket"]', { hasText: `${tag} nobody` }).first();
+    await expect(plain).toBeVisible();
+    expect(await plain.getAttribute('data-mit-agent'), 'no bar when nobody is on it').toBeNull();
+    await expectClean(page, errors);
 });
