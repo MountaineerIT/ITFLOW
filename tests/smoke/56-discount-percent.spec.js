@@ -127,6 +127,11 @@ test('discounts: New Invoice keeps a percentage typed in it', async ({ page }) =
     try {
         expect(invoice, 'the invoice was made').toBeGreaterThan(0);
         expect(db.val(`SELECT ROUND(percent) FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${invoice}`), 'its 15% kept').toBe('15');
+        // ... and Edit Invoice changes it (the same save, in edit_invoice)
+        const today = new Date().toISOString().slice(0, 10);
+        await db.pagePost(page, '/agent/post.php', { csrf_token: await csrf(page), edit_invoice: '1', invoice_id: String(invoice), date: today, due: today,
+            category, scope, invoice_discount: '', mit_discount_present: '1', mit_discount_mode: 'percent', mit_discount_percent: '25', mit_discount_product: '0' });
+        expect(db.val(`SELECT ROUND(percent) FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${invoice}`), 'Edit Invoice: 25% now').toBe('25');
     } finally {
         if (invoice) {
             db.exec(`DELETE FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${invoice}; DELETE FROM history WHERE history_invoice_id = ${invoice}; DELETE FROM invoices WHERE invoice_id = ${invoice}`);
