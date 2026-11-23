@@ -5,7 +5,7 @@
 // left (agent, time, visit, who is emailed), Ticket on the right, the other open tickets as a slim strip, nothing to scroll on a laptop.
 const { test, expect } = require('@playwright/test');
 const { watch } = require('./helpers');
-const { one, deleteTickets, makeTicket } = require('./t2db');
+const { one, sql, deleteTickets, makeTicket } = require('./t2db');
 const { dispatchState, dragToAgent, userId } = require('./dispatch');
 
 const tag = `ZZmrg${Date.now() % 1000000}`;
@@ -67,5 +67,45 @@ test.describe.serial('dispatch schedule window', () => {
         expect(one(`SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = ${a} AND ticket_history_description LIKE '%asset to ACME-PC1%'`)).toBe('1');
         expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`)).not.toBeNull();
         expect(errors).toEqual([]);
+    });
+
+    // Found in the full test (Nov 22): Enter in a merge's reason booked the ticket (the Schedule form); the ticket number showed twice; the
+    // strip's count stayed as it was after a merge; a move started from the visit's default email ticks, not the ones kept for the booking.
+    test('the strip merges on Enter, counts down, and a move keeps the email ticks', async ({ page }) => {
+        await page.setViewportSize({ width: 1366, height: 768 });
+        const errors = watch(page);
+        sql(`INSERT INTO contacts SET contact_name = '${tag} Contact', contact_email = '${tag.toLowerCase()}@example.invalid', contact_client_id = 1`);
+        const contact = Number(one(`SELECT contact_id FROM contacts WHERE contact_name = '${tag} Contact' ORDER BY contact_id DESC LIMIT 1`));
+        try {
+            const a = makeTicket({ subject: `${tag} Strip A`, client: 1, assigned: 0, contact });
+            const b = makeTicket({ subject: `${tag} Strip B`, client: 1, assigned: 1, contact });
+            const c = makeTicket({ subject: `${tag} Strip C`, client: 1, assigned: 1, contact });
+            made.push(a, b, c);
+            const modal = await dragToAgent(page, { ticketId: a, agentId: userId('tech@test.test'), search: `${tag} Strip A` });
+            await expect(modal.locator('.mit-ds-ticket a'), 'the subject only - the number is in the title').toHaveText(`${tag} Strip A`);
+            const strip = modal.locator('[data-dispatch-schedule-others]');
+            await expect(strip, 'two others').toContainText('2 other open tickets');
+            await strip.locator('> .fw-semibold').click();
+            const rowB = strip.locator(`[data-other="${b}"]`);
+            await rowB.locator('.dropdown-toggle').click();
+            await rowB.locator('[data-merge="keep-this"]').click();
+            await rowB.locator('[data-merge-reason]').fill('Same problem - smoke test');
+            await rowB.locator('[data-merge-reason]').press('Enter');
+            await expect(rowB, 'merged - its row goes').toHaveCount(0, { timeout: 10000 });
+            await expect(modal, 'the Schedule window stays open (nothing booked)').toBeVisible();
+            expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`), 'Enter did not book this ticket').toBeNull();
+            expect(one(`SELECT ticket_closed_at IS NOT NULL FROM tickets WHERE ticket_id = ${b}`), 'the other was merged and closed').toBe('1');
+            await expect(strip, 'the count follows').toContainText('1 other open ticket for');
+
+            // Book it with the agent's email unticked, then the kept ticks come back for a move
+            await modal.locator('#mitN_tech').uncheck();
+            await modal.locator('button[type=submit]').click();
+            await expect(modal).toBeHidden({ timeout: 10000 });
+            const details = await page.evaluate(async (id) => (await fetch(`mit_dispatch_ajax.php?details=${id}`)).json(), a);
+            expect(details.notify_kept && details.notify_kept.tech, 'the booking\'s ticks kept - the agent unticked').toBe(false);
+            expect(errors).toEqual([]);
+        } finally {
+            sql(`DELETE FROM contacts WHERE contact_id = ${contact}`);
+        }
     });
 });

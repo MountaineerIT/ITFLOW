@@ -122,6 +122,21 @@ function mitDispatchContacts($client_id) {
     return $contacts;
 }
 
+
+/** The email ticks kept for a booked ticket ({tech, contact, ..., extra: []}), or null - not booked, or nothing kept (functions/mit_notifications.php). */
+function mitDispatchKeptNotify(array $row) {
+    global $mysqli;
+    if (empty($row['ticket_schedule']) || !function_exists('mitScheduleKeptReady') || !mitScheduleKeptReady()) {
+        return null;
+    }
+    $kept = json_decode((string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT choice FROM mit_ticket_schedule_notify WHERE ticket_id = " . intval($row['ticket_id'])))[0] ?? ''), true);
+    if (!is_array($kept)) {
+        return null;
+    }
+    $kept['extra'] = array_values(array_filter((array) ($kept['extra'] ?? []), 'is_string'));
+    return $kept;
+}
+
 /**
  * What the Schedule dialog shows of a ticket, so the client, contact, priority, status, category and SLA can be put right as it is
  * scheduled: the current values and the choices for each (clients this agent can see, the client's contacts, ticket
@@ -165,6 +180,8 @@ function mitDispatchDetails($ticket_id) {
         'asset_id' => intval($row['ticket_asset_id']),
         'other_asset_ids' => $other_assets = mitDispatchTicketOtherAssets($row['ticket_id']),
         'assets' => mitDispatchAssets($row['ticket_client_id'], $row['ticket_contact_id'], array_merge([intval($row['ticket_asset_id'])], $other_assets)),
+        // A booked ticket's email ticks as they were chosen (mit_ticket_schedule_notify) - a move starts from them, not the visit's defaults
+        'notify_kept' => mitDispatchKeptNotify($row),
     ];
 }
 
@@ -286,8 +303,7 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
         logTicketHistory($ticket_id, "$session_name moved the ticket from " . escapeSql($old_name) . " to " . escapeSql($client_name));
         logAudit("Ticket", "Change", "$session_name moved ticket $reference from " . escapeSql($old_name) . " to " . escapeSql($client_name), $client_id, $ticket_id);
         $changed[] = "client $client_name";
-        $row['ticket_contact_id'] = 0;
-        $row['contact_name'] = '';
+        $row['ticket_contact_id'] = 0; // contact_name kept, so the contact's history line names who it was
     } else {
         $client_id = $old_client_id;
     }

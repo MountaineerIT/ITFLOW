@@ -611,7 +611,7 @@ function mitAiIndexRun($budget_seconds = 50) {
         if (mitAiKbReady()) {
             mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN kb_articles a ON a.kb_article_id = s.kb_article_id
                 WHERE a.kb_article_archived_at IS NOT NULL OR a.kb_article_published_at IS NULL");
-        } elseif (mitAiKbColumn()) {
+        } elseif (mitAiKbColumn() && isset($GLOBALS['config_module_enable_kb'])) { // only when ITFlow's settings say it is off - not when they weren't loaded
             mysqli_query($mysqli, "DELETE FROM mit_ai_sources WHERE kb_article_id IS NOT NULL");
         }
         if ($done) {

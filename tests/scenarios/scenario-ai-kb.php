@@ -69,6 +69,18 @@ try {
     mysqli_query($mysqli, "UPDATE kb_articles SET kb_article_archived_at = NOW(), kb_article_updated_at = kb_article_updated_at WHERE kb_article_id = $published");
     $run();
     scenarioCheck('archived: out', (bool) $source($published), false);
+
+    echo "the real cron job, run on its own as the server does\n";
+    $cron_article = $article("ZZ Cron-indexed widget calibration $stamp", '<p>Calibrate the zygomorphic widget before use.</p>', true);
+    $cron = function () {
+        mitSetSetting('ai_helper_since', '');
+        mitSetSetting('ai_helper_pass_started', '');
+        return (string) shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php mit_ai_index.php 2>&1');
+    };
+    $out = $cron();
+    scenarioCheck("cron/mit_ai_index.php puts a published article in ($out)", (bool) $source($cron_article), true);
+    $cron();
+    scenarioCheck('... and a second run keeps it (it once read ITFlow\'s settings as missing and dropped every article)', (bool) $source($cron_article), true);
 } finally {
     foreach ($articles as $id) {
         mysqli_query($mysqli, "DELETE FROM kb_articles WHERE kb_article_id = $id");

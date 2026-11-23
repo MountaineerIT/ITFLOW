@@ -108,7 +108,8 @@
         if (!data.notify) {
             return '';
         }
-        const set = data.notify[onsite() ? '1' : '0'];
+        // A booked ticket being moved: the ticks kept for it (mitDispatchKeptNotify), else the visit kind's defaults
+        const set = details && details.notify_kept ? Object.assign({extra: []}, details.notify_kept) : data.notify[onsite() ? '1' : '0'];
         return '<div class="col-12 fw-semibold small"><i class="fas fa-fw fa-envelope me-1 text-body-secondary"></i>Email about this booking</div><div class="col-12" data-mit-notify><div class="d-flex flex-wrap gap-3">'
             + Object.keys(notifyWho).map(function (who) {
                 return '<div class="form-check"><input class="form-check-input" type="checkbox" id="mitN_' + who + '" data-who="' + who + '"' + (set[who] ? ' checked' : '')
@@ -252,13 +253,30 @@
         // The other open tickets: one line for one, a count that opens the list for several
         if (others) {
             const shape = function () {
-                const many = others.querySelectorAll('[data-other]').length > 1;
+                const n = others.querySelectorAll('[data-other]').length;
+                const many = n > 1;
                 others.classList.toggle('mit-many', many);
                 if (!many) {
                     others.classList.remove('mit-open');
                 }
+                // ITFlow's count, kept right as merges take rows away
+                const head = others.querySelector(':scope > .fw-semibold');
+                const text = head ? Array.prototype.find.call(head.childNodes, function (node) { return node.nodeType === 3 && /\d+ other open ticket/.test(node.textContent); }) : null;
+                if (text && n) {
+                    text.textContent = text.textContent.replace(/\d+ other open tickets?/, n + ' other open ticket' + (n === 1 ? '' : 's'));
+                }
             };
             new MutationObserver(shape).observe(others, {childList: true});
+            // Enter in a merge's reason merges (as our window before 26.12 did) - it is inside the Schedule form, which would book the ticket
+            others.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && e.target.closest('[data-merge-reason]')) {
+                    e.preventDefault();
+                    const go = e.target.closest('[data-merge-form]') && e.target.closest('[data-merge-form]').querySelector('[data-merge-go]');
+                    if (go && !go.disabled) {
+                        go.click();
+                    }
+                }
+            });
             others.addEventListener('click', function (e) {
                 if (others.classList.contains('mit-many') && e.target.closest('.fw-semibold') && !e.target.closest('[data-other]')) {
                     others.classList.toggle('mit-open');
@@ -302,6 +320,11 @@
         }
         modal.addEventListener('dispatch:schedule', function (e) {
             const ticket = e.detail.ticket;
+            // The title already says which ticket - its line in the title bar keeps the subject only
+            const line = modal.querySelector('.mit-ds-ticket a');
+            if (line && ticket.reference && line.textContent.indexOf(ticket.reference + ' ') === 0) {
+                line.textContent = line.textContent.slice(ticket.reference.length + 1);
+            }
             details = null;
             notifyTouched = false;
             fields.innerHTML = '<div class="small text-body-secondary"><i class="fas fa-spinner fa-spin me-1"></i>Loading the ticket\'s details...</div>';
@@ -314,6 +337,7 @@
                 }
                 details = d;
                 details.ticketId = ticket.id;
+                notifyTouched = !!d.notify_kept; // kept ticks are a choice already made - the visit kind doesn't switch them
                 render(d);
             }).catch(function () {
                 fields.innerHTML = '';

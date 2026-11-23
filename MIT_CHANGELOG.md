@@ -25,6 +25,8 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Editing a ticket no longer drops an SLA you picked by hand (ITFlow worked it out again on every edit); it is only worked out again when the priority or project changes.
 - Quote to invoice: a stock-tracked product is ticked "Send to procurement" only when the shelf doesn't have enough, the window shows how many are on the shelf, and it says plainly that a ticked one is ordered instead of taken from stock.
 - Trip drivers and expense "Paid by" no longer offer disabled agents.
+- Dispatch's Schedule window: Enter in a merge's reason merges (it booked the ticket); the ticket number shows once; the other-tickets count goes down after a merge; moving a booking starts from the email ticks chosen for it, not the defaults; a client change's contact history line names the old contact.
+- Ask Bob: the library job run on its own (as the server does) now keeps Knowledge Base articles - it read the Knowledge Base as switched off and dropped them.
 
 ## 26.11.8.12 - 2026-11-20
 - The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).

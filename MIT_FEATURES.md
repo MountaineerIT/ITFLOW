@@ -17,7 +17,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 6 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
-| [Dispatch board, Workload, This week](#dispatch) | 4 | 5 | 30 | 12 | 46 | 10 |
+| [Dispatch board, Workload, This week](#dispatch) | 4 | 5 | 30 | 12 | 47 | 10 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 27 |
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
@@ -33,7 +33,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [NinjaOne RMM sync and live status](#ninjaone) | 10 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 16 | 7 | 25 | 4 |
 | [MSP Align (read only)](#align) | 5 | 1 | 10 | 7 | 11 | 9 |
-| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 16 | 14 | 26 | 14 | 52 | 3 |
+| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 16 | 14 | 26 | 14 | 53 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 2 | 1 | 2 | 0 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
@@ -503,7 +503,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** assets, categories, clients, contacts, credentials, modules, notifications, slas, ticket_assets, ticket_replies, tickets, trips
 
-**ITFlow columns** asset_archived_at, asset_client_id, asset_contact_id, asset_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_priority, ticket_project_id, ticket_reply_ticket_id, ticket_reply_type, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_id
+**ITFlow columns** asset_archived_at, asset_client_id, asset_contact_id, asset_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_priority, ticket_project_id, ticket_reply_ticket_id, ticket_reply_type, ticket_schedule, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_id
 
 **ITFlow page ids / classes its scripts and styles use** `#dispatchScheduleModal`
 
@@ -1179,7 +1179,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, kb_articles, networks, settings, tags, ticket_replies, tickets
 
-**ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, kb_article_archived_at, kb_article_content, kb_article_created_at, kb_article_id, kb_article_published_at, kb_article_review_months, kb_article_summary, kb_article_title, kb_article_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
+**ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, config_module_enable_kb, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, kb_article_archived_at, kb_article_content, kb_article_created_at, kb_article_id, kb_article_published_at, kb_article_review_months, kb_article_summary, kb_article_title, kb_article_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
 
 **Watched in ITFlow's code** `callAiApi` `aiRedact` `getAiModel` `aiCleanHtml` `aiDocumentSplit` `document_form.php` `kbClosedText` `kb_article_form.php` `add_kb_article` `kb_article_published_at`
 

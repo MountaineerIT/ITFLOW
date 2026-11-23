@@ -1734,7 +1734,9 @@ model: see DEPLOYMENT.md.
     ITFlow's own elements (no hook) - modal-xl + modal-dialog-scrollable, `[data-mit-ds]`; Booking column (`.col-lg-5`: ITFlow's agent / date / how long /
     visit, our email ticks `[data-mit-dispatch-notify]`) and Ticket column (`.mit-ds-right`: our fields); ITFlow's `[data-dispatch-schedule-ticket]` line in
     the title bar (`.mit-ds-ticket`); `[data-dispatch-schedule-others]` a slim strip (explanation hidden; several = `.mit-many`, Show / Hide); Other assets is
-    ITFlow's chip picker (class select2). Smoke 92 checks columns, fit at 1366 x 768 and the strip.
+    ITFlow's chip picker (class select2). Smoke 92 checks columns, fit at 1366 x 768 and the strip. Full test (Nov 22): Enter in `[data-merge-reason]` clicks `[data-merge-go]` (the merge form sits inside
+    the Schedule form, which would book); the title-bar line drops the reference; the strip's count follows merges; `mitDispatchKeptNotify` ->
+    details `notify_kept` (a booked ticket's `mit_ticket_schedule_notify` choice) starts a move's ticks; smoke: second test of 92.
   - Quick ticket (functions/quick_ticket.php): the board it lands on - `mitQuickTicketBoardInput` / `Field` / `Save` (functions/mit_boards.php;
     hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php) - used even when the maker's role can't see that board
     (the user's choice, Nov 22: `mitBoardAfterCreate` accepts exactly the quick_ticket_board when `quick_ticket` is posted). Boards by role, also
@@ -1786,7 +1788,7 @@ model: see DEPLOYMENT.md.
   column), `mitAiKbSource` - published (`kb_article_published_at` set), unarchived articles only (the user's choice), client 0 (any agent with Support view
   reads every article in ITFlow), head "Knowledge Base article ..."; `mitAiSourceKind` / `mitAiReadSource` read any kind (ticket | document | kb) for the
   index, explain, the write-up's cited sources; the index pass has a third cursor (`ai_helper_cursor_kb`), and every run drops sources of articles archived or
-  back to drafts (bulk actions can keep the updated time) or all of them with the Knowledge Base off; search treats articles like documents (kept places,
+  back to drafts (bulk actions can keep the updated time) or all of them with the Knowledge Base off (only when ITFlow's settings are loaded - `cron/mit_ai_index.php` requires load_global_settings.php, else kbOn() read false and every run dropped the articles; scenario-ai-kb runs the real job); search treats articles like documents (kept places,
   weight), kind 'kb', link `/agent/kb_article.php?kb_article_id=`; `mitAiIndexVersion` carries 'k'; admin page "Knowledge Base N of M published";
   consistency check covers them; `kb_articles` is on the wall check's table list (MIT_AI_READS). Write up: a second panel button `[data-mit-ai-writeup-kb]`
   (only when `kbClosedText(2) === ''`) opens `agent/modals/mit_ai/kb_article.php` - ITFlow's `modals/kb/kb_article_form.php` posting ITFlow's
