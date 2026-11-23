@@ -113,6 +113,11 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
         item_id: String(lineId), field: 'qty', value: '5' });
     expect(JSON.parse(set.text).message || '', 'refused, saying why').toContain('billed from parts');
     expect(Number(db.val(`SELECT item_quantity FROM invoice_items WHERE item_id = ${lineId}`)), 'the line keeps the parts\' quantity').toBe(2);
+    // ... nor in the Edit Line window (agent/post/billing.php billing_item_save)
+    const line2 = db.one(`SELECT item_name, item_description, item_price, item_tax_id FROM invoice_items WHERE item_id = ${lineId}`);
+    await db.pagePost(page, '/agent/post.php', { csrf_token: await csrf(page), billing_item_save: '1', type: 'invoice', doc_id: String(invoice), item_id: String(lineId),
+        name: line2.item_name, description: line2.item_description || '', qty: '5', price: line2.item_price, tax_id: line2.item_tax_id || '0', product_id: '0' });
+    expect(Number(db.val(`SELECT item_quantity FROM invoice_items WHERE item_id = ${lineId}`)), 'the Edit Line window can\'t change it either').toBe(2);
     await expectClean(page, errors);
 });
 
