@@ -46,7 +46,7 @@ $access = ['tickets' => true, 'docs' => true, 'financial' => true, 'sales' => tr
 $look = function () use ($client_id, $access, $tag, $hidden) {
     $counts = [];
     foreach (clientOverviewAttention($client_id, $access, null) as $item) {
-        $counts[$item['label']] = intval($item['count']);
+        $counts[$item['icon']] = intval($item['count']); // by its icon - ITFlow names an item of one in the singular ('one')
     }
     $open = array_map(function ($r) { return intval($r['ticket_id']); }, clientOverviewOpenTickets($client_id, 50)['tickets']);
     $team = dashboardTeamWorkload(50);
@@ -60,11 +60,11 @@ $look = function () use ($client_id, $access, $tag, $hidden) {
     }
     $dash = 0;
     foreach (dashboardAttention($access) as $item) {
-        if ($item['label'] === 'Unassigned tickets') {
+        if (strpos((string) ($item['url'] ?? ''), 'assigned=unassigned') !== false) {
             $dash = intval($item['count']);
         }
     }
-    return ['dash_unassigned' => $dash, 'unassigned' => $counts['Unassigned tickets'] ?? 0, 'unbilled' => $counts['Resolved, not invoiced'] ?? 0, // items with nothing in them are left out
+    return ['dash_unassigned' => $dash, 'unassigned' => $counts['user-slash'] ?? 0, 'unbilled' => $counts['receipt'] ?? 0, // items with nothing in them are left out
         'listed' => in_array($hidden, $open, true), 'team_unassigned' => intval($team['unassigned'] ?? 0), 'trend' => $trend, 'replies' => $replies];
 };
 try {

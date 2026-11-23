@@ -1,48 +1,52 @@
 <?php
 /*
- * Cron health: a job that fails shows in mitCronProblems, /mit_health.php answers 503 naming it, the watcher job emails the admins
- * once (not again on the next run), and emails again when it is fixed. Puts the job's status and the watcher's state back.
+ * Cron health is ITFlow's own since 26.12 (functions/cron_health.php, /health.php, the Cron Watch job). Ours on top of it
+ * (functions/mit_cron_health.php): the Microsoft 365 certificate our app signs in with is one of ITFlow's problems when its renewal
+ * failed (mitCronExtraProblems, hooked at the end of cronHealthProblems) - so /health.php reports it -, /mit_health.php (the address our
+ * monitors use) answers exactly as /health.php, and the top bar's warning (mitCronNavHtml) lists the problems for admins.
+ * Puts the renewal error back as it was.
  */
 require __DIR__ . '/bootstrap.php';
-$job = 'mit_project_tickets';
-$row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT cron_job_last_status, cron_job_last_error, cron_job_last_error_at FROM cron_jobs WHERE cron_job_name = '$job'"));
-if (!$row) {
-    echo "  skip - no $job job\n";
+if (!function_exists('mitM365App') || !mitM365App()) {
+    echo "  skip - no Microsoft 365 app on this install (tests/mocks ms stand-in sets one up)\n";
     exit(0);
 }
-$state_before = mitSetting('cron_alert_state', '');
-$mails = function () use ($mysqli) {
-    return mysqli_fetch_all(mysqli_query($mysqli, "SELECT email_id, email_recipient, email_subject, email_content FROM email_queue WHERE email_subject LIKE 'ITFlow cron%' AND email_id > " . intval($GLOBALS['zz_from'] ?? 0)), MYSQLI_ASSOC);
-};
-$GLOBALS['zz_from'] = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(MAX(email_id), 0) FROM email_queue"))[0]);
-$admins = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM users JOIN user_roles ON role_id = user_role_id WHERE role_is_admin = 1 AND user_type = 1 AND user_status = 1 AND user_archived_at IS NULL"))[0]);
-// Each step in its own run (mitCronProblems is read once per request), as cron runs it
-$watch = function () {
-    return shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php mit_cron_watch.php 2>&1');
+$saved = mitSetting('m365_renew_error');
+$key = (string) scenarioValue("SELECT config_cron_health_key FROM settings WHERE company_id = 1");
+$get = function ($path, $with_key = true) use ($key, $config_base_url) {
+    $out = shell_exec('curl -s -w "\n%{http_code}" -H ' . escapeshellarg("Host: $config_base_url") . ' ' . escapeshellarg("http://127.0.0.1/$path" . ($with_key ? "?key=$key" : '')));
+    $code = substr(trim((string) $out), -3);
+    return [$code, trim(substr(trim((string) $out), 0, -3))];
 };
 try {
-    $watch(); // settle what is there now
-    $GLOBALS['zz_from'] = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(MAX(email_id), 0) FROM email_queue"))[0]);
-    mysqli_query($mysqli, "UPDATE cron_jobs SET cron_job_last_status = 'Failed', cron_job_last_error = 'ZZ scenario failure', cron_job_last_error_at = NOW() WHERE cron_job_name = '$job'");
-    $key = mitCronHealthKey();
-    $out = shell_exec('curl -s -w "\n%{http_code}" -H "Host: ' . $config_base_url . '" ' . escapeshellarg("http://127.0.0.1/mit_health.php?key=$key"));
-    scenarioCheck('health address 503', substr(trim($out), -3), '503');
-    scenarioCheck('health address names the job', stripos($out, 'Project') !== false || stripos($out, $job) !== false, true);
-    $watch();
-    $m = $mails();
-    scenarioCheck('watcher: one email per admin', count($m), $admins);
-    scenarioCheck('... about the failure', $m && strpos($m[0]['email_content'], 'ZZ scenario failure') !== false || ($m && stripos($m[0]['email_content'], 'project') !== false), true);
-    $watch();
-    scenarioCheck('watcher: not again on the next run', count($mails()), $admins);
-    mysqli_query($mysqli, "UPDATE cron_jobs SET cron_job_last_status = 'Completed' WHERE cron_job_name = '$job'");
-    $watch();
-    $m = $mails();
-    scenarioCheck('watcher: fixed - emailed again', count($m), 2 * $admins);
-    scenarioCheck('... saying it is fixed', $m && (strpos(end($m)['email_content'], 'Fixed') !== false || strpos(end($m)['email_content'], 'All clear') !== false), true);
+    mitDeleteSetting('m365_renew_error');
+    $keys = array_column(cronHealthProblems(true), 'key');
+    scenarioCheck('control - a healthy certificate is no problem', in_array('m365_certificate', $keys, true), false);
+    [$code, $body] = $get('mit_health.php');
+    scenarioCheck('control - /mit_health.php does not name Microsoft 365', stripos($body, 'Microsoft 365') === false, true);
+
+    mitSetSetting('m365_renew_error', 'ZZ scenario renewal refused');
+    $problems = cronHealthProblems(true);
+    $mine = array_values(array_filter($problems, function ($p) { return $p['key'] === 'm365_certificate'; }));
+    scenarioCheck('a failed renewal is one of ITFlow\'s cron problems', count($mine), 1);
+    scenarioCheck('... with the error as its detail', ($mine[0]['detail'] ?? ''), 'ZZ scenario renewal refused');
+
+    [$code, $body] = $get('health.php');
+    [$mcode, $mbody] = $get('mit_health.php');
+    scenarioCheck('/health.php answers 503 naming Microsoft 365', [$code, stripos($body, 'Microsoft 365') !== false], ['503', true]);
+    scenarioCheck('/mit_health.php answers the same', [$mcode, $mbody], [$code, $body]);
+    [$code] = $get('mit_health.php', false);
+    scenarioCheck('/mit_health.php without the key is refused like /health.php', $code, $get('health.php', false)[0]);
+
+    scenarioCheck('... and still there when the request asks again (ITFlow keeps its answer)', in_array('m365_certificate', array_column(cronHealthProblems(), 'key'), true), true);
+    $GLOBALS['session_is_admin'] = true;
+    $html = mitCronNavHtml();
+    scenarioCheck('top bar: admins see the warning with the certificate', strpos($html, 'id=\'mitCronHealth\'') !== false && strpos($html, 'Microsoft 365 certificate') !== false, true);
+    scenarioCheck('top bar: its count is ITFlow\'s problems', (bool) preg_match('/navbar-badge\'>' . count($problems) . '</', $html), true);
+    $GLOBALS['session_is_admin'] = false;
+    scenarioCheck('top bar: nothing for an agent who is not an admin', mitCronNavHtml(), '');
+    $GLOBALS['session_is_admin'] = true;
 } finally {
-    mysqli_query($mysqli, "UPDATE cron_jobs SET cron_job_last_status = '" . escapeSql($row['cron_job_last_status']) . "', cron_job_last_error = " . ($row['cron_job_last_error'] === null ? 'NULL' : "'" . escapeSql($row['cron_job_last_error']) . "'") . ",
-        cron_job_last_error_at = " . ($row['cron_job_last_error_at'] === null ? 'NULL' : "'" . $row['cron_job_last_error_at'] . "'") . " WHERE cron_job_name = '$job'");
-    mitSetSetting('cron_alert_state', $state_before);
-    mysqli_query($mysqli, "DELETE FROM email_queue WHERE email_subject LIKE 'ITFlow cron%' AND email_id > " . intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT 0"))[0]) . " AND email_status = 0 AND email_queued_at > NOW() - INTERVAL 10 MINUTE");
+    $saved === null ? mitDeleteSetting('m365_renew_error') : mitSetSetting('m365_renew_error', $saved);
 }
 exit($GLOBALS['mit_scenario_failed'] ? 1 : 0);

@@ -142,6 +142,7 @@ function cronHealthProblems($fresh = false) {
         // Every job stops itself, so none of them is late either
         $problems[] = ['key' => 'off', 'job' => '', 'label' => 'Cron', 'kind' => 'off', 'detail' => '',
             'text' => 'Cron is switched off on Maintenance > Cron - every job stops itself until it\'s turned back on.'];
+        $problems = function_exists('mitCronExtraProblems') ? array_merge($problems, mitCronExtraProblems()) : $problems; // Mountaineer IT
         return $problems;
     }
 
@@ -174,7 +175,8 @@ function cronHealthProblems($fresh = false) {
         }
     }
     // Mountaineer IT: the Microsoft 365 certificate our app signs in with (functions/mit_cron_health.php)
-    return function_exists('mitCronExtraProblems') ? array_merge($problems, mitCronExtraProblems()) : $problems;
+    $problems = function_exists('mitCronExtraProblems') ? array_merge($problems, mitCronExtraProblems()) : $problems; // kept in the cache too
+    return $problems;
 }
 
 /** Who the alerts go to: name keyed by address - the addresses set, or every active admin with one. */
