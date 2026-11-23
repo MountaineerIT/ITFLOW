@@ -116,7 +116,7 @@ if (isset($_POST['edit_ticket_settings'])) {
         settingsRefuse('ticket', $errors);
     }
 
-    $mit_changed = function_exists('mitQuickTicketSettingsSave') ? (array) mitQuickTicketSettingsSave($_POST) : []; // Mountaineer IT: Quick ticket defaults, counted in the message
+    $mit_changed = function_exists('mitQuickTicketBoardSave') ? mitQuickTicketBoardSave($_POST) : []; // Mountaineer IT: the board quick tickets land on, counted in the message
     settingsSave('ticket', $before, $after, 'settings', $mit_changed);
 
     redirect();

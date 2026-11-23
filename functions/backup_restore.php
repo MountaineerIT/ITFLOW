@@ -254,6 +254,8 @@ function backupRestoreRunQueued(mysqli &$mysqli): ?array
     }
     // Taken away first: a restore that stops part way - the server restarted - is looked at, not started again unattended
     @unlink(backupRestoreRequestFile());
+    // Mountaineer IT: unpacked next to the backups, not in a small /tmp (functions/mit_backup_restore.php)
+    if (function_exists('mitRestoreUseTempDir')) { mitRestoreUseTempDir(); }
 
     $who = (string) ($request['who'] ?? 'An admin');
     $base = ['who' => $who, 'file' => (string) ($request['file'] ?? ''), 'label' => (string) ($request['label'] ?? ''), 'queued' => (string) ($request['queued'] ?? '')];

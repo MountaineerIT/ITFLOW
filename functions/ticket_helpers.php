@@ -164,6 +164,12 @@ function ticketHelperSave(array $ticket, $user_id, $mode, $start = '', $end = ''
     if (!isset($agents[$user_id])) {
         return [false, 'Pick an agent who can open this ticket.', []];
     }
+    // Mountaineer IT: a helper must be able to work the ticket - Support edit and the client (the user's rule; functions/mit_ticket_techs.php)
+    if ($mode !== 'none' || !isset(ticketHelpers($ticket_id)[$user_id])) {
+        if (function_exists('mitAgentCanWorkTicket') && !mitAgentCanWorkTicket($user_id, $ticket['ticket_client_id'])) {
+            return [false, $agents[$user_id]['name'] . "'s role can't work this client's tickets (it needs Support edit).", []];
+        }
+    }
     $name = $agents[$user_id]['name'];
     if ($user_id === intval($ticket['ticket_assigned_to'])) {
         return [false, "$name is the lead agent on this ticket.", []];
@@ -268,6 +274,10 @@ function ticketHelpersLeadCancelled($ticket_id, $old_start) {
 
 /** A helper's booking's calendar UID - their own, so it never replaces the lead's. */
 function ticketHelperUid($ticket_id, $user_id) {
+    // Mountaineer IT: a helper booked before 26.12 keeps the UID their calendar already has (functions/mit_ticket_techs.php)
+    if (function_exists('mitTicketHelperUid') && ($mit_uid = mitTicketHelperUid($ticket_id, $user_id)) !== '') {
+        return $mit_uid;
+    }
     return 'ticket-' . intval($ticket_id) . '-helper-' . intval($user_id) . '@' . ($_SERVER['SERVER_NAME'] ?? 'itflow');
 }
 
@@ -308,6 +318,10 @@ function ticketHelperMail($ticket_id, $user_id, $start, $end, $kind) {
     } else {
         $opts['added'] = true;
         $subject = "Ticket - [$reference] - " . $ticket['ticket_subject'];
+    }
+    // Mountaineer IT: an agent whose Outlook is synced gets the booking there - no second copy from an invite (functions/mit_outlook.php)
+    if ($cal_str !== '' && function_exists('mitOutlookSyncsEmail') && mitOutlookSyncsEmail($agent['email'])) {
+        $cal_str = '';
     }
     emailQueue([$agent + ['footnote' => "You get this as an agent helping on $reference."]], $subject,
         ticketAgentEmailContent($ticket, 'helper', $opts), ['from' => ticketEmailFrom()] + ($cal_str !== '' ? ['cal_str' => $cal_str] : []));

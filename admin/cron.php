@@ -601,7 +601,6 @@ $status_looks = [
 
 </div>
 
-<?php require_once "includes/mit_cron_card.php"; // Mountaineer IT: cron alerts and health address ?>
 <script src="<?= staticFileUrl('/js/auto_reload.js') ?>"></script>
 
 <?php require_once "../includes/footer.php"; ?>

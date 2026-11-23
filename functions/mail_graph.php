@@ -103,13 +103,17 @@ function mailGraphToken($permission, $fresh = false) {
         return $token !== '' && in_array($permission, $had, true) ? $token : null;
     }
 
-    $response = mailGraphHttp('POST', MAIL_MICROSOFT_LOGIN_URL . rawurlencode($tenant) . '/oauth2/v2.0/token', [], [
+    $token_url = MAIL_MICROSOFT_LOGIN_URL . rawurlencode($tenant) . '/oauth2/v2.0/token';
+    $token_fields = [
         'client_id' => $client_id,
         'client_secret' => $secret,
         'grant_type' => 'refresh_token',
         'refresh_token' => $refresh_token,
         'scope' => MAIL_GRAPH_SCOPE,
-    ]);
+    ];
+    // Mountaineer IT: our Microsoft 365 app signs in with a certificate, not a secret (functions/mit_m365.php)
+    if (function_exists('mitMicrosoftTokenFields')) { $token_fields = mitMicrosoftTokenFields($token_url, $token_fields); }
+    $response = mailGraphHttp('POST', $token_url, [], $token_fields);
     $token = (string) ($response['json']['access_token'] ?? '');
 
     if ($token === '') {

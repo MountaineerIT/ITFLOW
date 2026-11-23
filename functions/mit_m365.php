@@ -17,9 +17,9 @@
  *     through mitMicrosoftTokenFields(), which swaps the marker for a signed certificate
  *     assertion.
  *  4. Mail goes through Microsoft Graph rather than SMTP/IMAP (no "Authenticated SMTP" switch
- *     needed on the mailbox): cron/mail_queue.php hands each message to mitM365GraphSendMail(),
- *     and cron/ticket_email_parser.php reads the mailbox through mitM365GraphMailbox()
- *     (classes in functions/mit_m365_mailbox.php). Without the Mail permissions it stays on SMTP/IMAP.
+ *     needed on the mailbox) - ITFlow does that itself since 26.12 (functions/mail_graph.php); its
+ *     token request is signed with our certificate (one guarded line in mailGraphToken). Without
+ *     the Mail permissions it stays on SMTP/IMAP.
  *  5. The certificate lasts a year and is replaced 30 days before it runs out - the app adds
  *     its new key itself (Graph addKey, which needs no extra permission).
  *
@@ -665,7 +665,7 @@ function mitM365UpdatePermissions($token) {
     mitM365GrantConsent($token, $sp, $graph, $exchange);
 
     mitSetSetting('m365_permissions_version', MIT_M365_PERMISSIONS_VERSION);
-    mitDeleteSettings('m365_mail_graph_');  // prefix: the token, its expiry and scopes - the next one picks up the new permissions
+    if (function_exists('mailGraphForget')) { mailGraphForget(); } // ITFlow's Graph token (functions/mail_graph.php) - the next one carries the new permissions
     return mitM365App();
 }
 
@@ -1012,207 +1012,19 @@ function mitM365Forget() {
  */
 
 /**
- * A Graph token for the connected mailbox that carries $permission (Mail.Send, Mail.ReadWrite), or
- * null when ITFlow's mail is not on our app or the app does not have that permission yet - the
- * caller then stays on SMTP/IMAP. Throws when the mailbox is on our app but Microsoft refuses.
+ * The Graph permissions the connected mailbox's last token carried, without the resource prefix (ITFlow's settings.config_mail_graph_scopes,
+ * functions/mail_graph.php - ITFlow sends and reads mail through Graph itself since 26.12). An app given the Mail permissions by hand in
+ * Entra counts as updated (m365_permissions_version), so our card stops offering "Update permissions".
  */
-function mitM365MailGraphToken($permission) {
+function mitM365MailGraphScopes() {
     global $mysqli;
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT config_mail_graph_scopes FROM settings WHERE company_id = 1"));
+    $scopes = function_exists('mailGraphScopesOf') ? mailGraphScopesOf($row[0] ?? '') : [];
     $app = mitM365App();
-    if (!$app) {
-        return null;
-    }
-    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT config_mail_oauth_client_id, config_mail_oauth_client_secret, config_mail_oauth_tenant_id,
-        config_mail_oauth_refresh_token FROM settings WHERE company_id = 1"));
-    if (!$row || $row['config_mail_oauth_client_id'] !== $app['client_id'] || $row['config_mail_oauth_client_secret'] !== MIT_M365_CERT_SECRET
-        || empty($row['config_mail_oauth_refresh_token'])) {
-        return null;
-    }
-
-    $token = mitDecryptSecret(mitSetting('m365_mail_graph_token', ''));  // '' for an older, unencrypted copy - a new one is fetched
-    $expires = mitSetting('m365_mail_graph_expires', '');
-    // A token for the refresh token on file - a newly connected mailbox gets a new one
-    $for = sha1($row['config_mail_oauth_refresh_token']);
-    if ($token === '' || $expires === '' || strtotime($expires) - 120 <= time() || mitSetting('m365_mail_graph_for', '') !== $for) {
-        // The mailbox's refresh token is good for Graph as well as Exchange
-        $token_url = MIT_M365_LOGIN . '/' . rawurlencode($row['config_mail_oauth_tenant_id']) . '/oauth2/v2.0/token';
-        $response = mitHttp('POST', $token_url, [], mitMicrosoftTokenFields($token_url, [
-            'client_id' => $app['client_id'],
-            'client_secret' => MIT_M365_CERT_SECRET,
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $row['config_mail_oauth_refresh_token'],
-            'scope' => 'https://graph.microsoft.com/.default offline_access',
-        ]));
-        if (empty($response['json']['access_token'])) {
-            throw new RuntimeException(mitM365Error($response, 'Signing in to Microsoft 365 as the mailbox'));
-        }
-        $token = $response['json']['access_token'];
-        mitSetSetting('m365_mail_graph_token', mitEncryptSecret($token));
-        mitSetSetting('m365_mail_graph_expires', date('Y-m-d H:i:s', time() + intval($response['json']['expires_in'] ?? 3600)));
-        mitSetSetting('m365_mail_graph_scopes', (string) ($response['json']['scope'] ?? ''));
-        if (!empty($response['json']['refresh_token'])) {
-            $for = sha1($response['json']['refresh_token']);
-            $refresh = mysqli_real_escape_string($mysqli, $response['json']['refresh_token']);
-            mysqli_query($mysqli, "UPDATE settings SET config_mail_oauth_refresh_token = '$refresh' WHERE company_id = 1");
-        }
-        mitSetSetting('m365_mail_graph_for', $for);
-    }
-
-    $scopes = mitM365MailGraphScopes();
-    if (in_array('Mail.Send', $scopes, true) && in_array('Mail.ReadWrite', $scopes, true) && intval($app['permissions_version']) !== MIT_M365_PERMISSIONS_VERSION) {
-        // Permissions added by hand in Entra count as an update too
+    if ($app && in_array('Mail.Send', $scopes, true) && in_array('Mail.ReadWrite', $scopes, true) && intval($app['permissions_version']) !== MIT_M365_PERMISSIONS_VERSION) {
         mitSetSetting('m365_permissions_version', MIT_M365_PERMISSIONS_VERSION);
     }
-    return in_array($permission, $scopes, true) ? $token : null;
-}
-
-/** The Graph permissions on the mailbox's last token, without the resource prefix. */
-function mitM365MailGraphScopes() {
-    $scopes = [];
-    foreach (preg_split('/\s+/', trim((string) mitSetting('m365_mail_graph_scopes', ''))) as $scope) {
-        if ($scope !== '') {
-            $scopes[] = preg_replace('#^https://graph\.microsoft\.com/#i', '', $scope);
-        }
-    }
     return $scopes;
-}
-
-/** A message bigger than this goes to Graph as a draft with its attachments uploaded, not in one request (Graph takes 4 MB). */
-const MIT_M365_MIME_LIMIT = 3000000;
-/** Upload-session chunk size - Microsoft wants a multiple of 320 KiB. */
-const MIT_M365_UPLOAD_CHUNK = 327680 * 12;
-
-/**
- * Hook in cron/mail_queue.php: does Graph send ITFlow's mail? (Then the SMTP sign-in is skipped.)
- * Throws PHPMailer's exception when the mailbox is on our app but Microsoft refuses the sign-in,
- * so the queue records why instead of quietly trying SMTP.
- */
-function mitM365GraphSendReady() {
-    try {
-        return mitM365MailGraphToken('Mail.Send') !== null;
-    } catch (Throwable $e) {
-        throw new PHPMailer\PHPMailer\Exception($e->getMessage());
-    }
-}
-
-/**
- * Hook in cron/mail_queue.php: send a message PHPMailer has put together through Graph - as its finished
- * MIME (attachments and calendar invites as built), or, when too big for one request, as a draft with
- * its attachments uploaded. Throws PHPMailer's exception on failure.
- */
-function mitM365GraphSendMail($mail) {
-    $GLOBALS['mit_dev_sending_redirected'] = mitDevSendingRedirected($mail); // development mode: only to the test inbox
-    try {
-        $token = mitM365MailGraphToken('Mail.Send');
-        if (!$token) {
-            throw new RuntimeException('ITFlow\'s Microsoft 365 app cannot send for this mailbox (Mail.Send).');
-        }
-        $mail->preSend();
-        $mime = $mail->getSentMIMEMessage();
-        if (strlen($mime) > MIT_M365_MIME_LIMIT) {
-            mitM365GraphSendLarge($token, $mail);
-            return true;
-        }
-        $response = mitHttp('POST', MIT_M365_GRAPH . '/me/sendMail', ['Authorization: Bearer ' . $token, 'Content-Type: text/plain'],
-            base64_encode($mime), 120);
-        if ($response['status'] !== 202) {
-            throw new RuntimeException(mitM365Error($response, 'Sending through Microsoft 365'));
-        }
-        return true;
-    } catch (PHPMailer\PHPMailer\Exception $e) {
-        throw $e;
-    } catch (Throwable $e) {
-        throw new PHPMailer\PHPMailer\Exception($e->getMessage());
-    } finally {
-        $GLOBALS['mit_dev_sending_redirected'] = false;
-    }
-}
-
-/** A big message: a draft, its attachments (uploaded in chunks when large), then send. */
-function mitM365GraphSendLarge($token, $mail) {
-    $people = function (array $list) {
-        $out = [];
-        foreach ($list as $person) {
-            $out[] = ['emailAddress' => ['address' => $person[0], 'name' => $person[1] ?? '']];
-        }
-        return $out;
-    };
-    $draft = mitGraph('POST', '/me/messages', $token, [
-        'subject' => $mail->Subject,
-        'body' => ['contentType' => $mail->ContentType === 'text/plain' ? 'Text' : 'HTML', 'content' => $mail->Body],
-        'from' => ['emailAddress' => ['address' => $mail->From, 'name' => $mail->FromName]],
-        'toRecipients' => $people($mail->getToAddresses()),
-        'ccRecipients' => $people($mail->getCcAddresses()),
-        'replyTo' => $people(array_values($mail->getReplyToAddresses())),
-    ]);
-    if ($draft['status'] !== 201 || empty($draft['json']['id'])) {
-        throw new RuntimeException(mitM365Error($draft, 'Sending through Microsoft 365 (creating the message)'));
-    }
-    $message = '/me/messages/' . rawurlencode($draft['json']['id']);
-    $attachments = $mail->getAttachments();
-    if (!empty($mail->Ical)) {
-        $attachments[] = [$mail->Ical, 'invite.ics', 'invite.ics', 'base64', 'text/calendar', true, 'attachment', 'invite.ics'];
-    }
-    try {
-        foreach ($attachments as $attachment) {
-            $content = $attachment[5] ? $attachment[0] : (string) @file_get_contents($attachment[0]);
-            $item = ['name' => $attachment[2], 'contentType' => $attachment[4] ?: 'application/octet-stream',
-                'isInline' => $attachment[6] === 'inline', 'contentId' => $attachment[7]];
-            if (strlen($content) < MIT_M365_MIME_LIMIT) {
-                $added = mitGraph('POST', "$message/attachments", $token, ['@odata.type' => '#microsoft.graph.fileAttachment',
-                    'contentBytes' => base64_encode($content)] + $item);
-                if ($added['status'] !== 201) {
-                    throw new RuntimeException(mitM365Error($added, 'Sending through Microsoft 365 (attaching ' . $attachment[2] . ')'));
-                }
-                continue;
-            }
-            $session = mitGraph('POST', "$message/attachments/createUploadSession", $token,
-                ['AttachmentItem' => ['attachmentType' => 'file', 'size' => strlen($content)] + $item]);
-            $upload_url = $session['json']['uploadUrl'] ?? '';
-            if ($session['status'] !== 201 || $upload_url === '') {
-                throw new RuntimeException(mitM365Error($session, 'Sending through Microsoft 365 (uploading ' . $attachment[2] . ')'));
-            }
-            $total = strlen($content);
-            for ($offset = 0; $offset < $total; $offset += MIT_M365_UPLOAD_CHUNK) {
-                $chunk = substr($content, $offset, MIT_M365_UPLOAD_CHUNK);
-                // The upload address carries its own authorisation - no bearer token
-                $put = mitHttp('PUT', $upload_url, ['Content-Type: application/octet-stream',
-                    'Content-Range: bytes ' . $offset . '-' . ($offset + strlen($chunk) - 1) . '/' . $total], $chunk, 300);
-                if ($put['status'] !== 200 && $put['status'] !== 201) {
-                    throw new RuntimeException(mitM365Error($put, 'Sending through Microsoft 365 (uploading ' . $attachment[2] . ')'));
-                }
-            }
-        }
-        $sent = mitGraph('POST', "$message/send", $token);
-        if ($sent['status'] !== 202) {
-            throw new RuntimeException(mitM365Error($sent, 'Sending through Microsoft 365'));
-        }
-    } catch (Throwable $e) {
-        mitGraph('DELETE', $message, $token);  // no half-built draft left in the mailbox
-        throw $e;
-    }
-}
-
-/**
- * Hook for Admin > Settings > Mail > Tests "Test IMAP": when the parser reads the mailbox through
- * Graph, test that instead. ['ok' => bool, 'message' => ...], or null to run ITFlow's IMAP test.
- */
-function mitM365GraphMailboxTest($username) {
-    try {
-        $token = mitM365MailGraphToken('Mail.ReadWrite');
-        if (!$token) {
-            return null;
-        }
-        $base = trim((string) $username) !== '' ? '/users/' . rawurlencode(trim($username)) : '/me';
-        $inbox = mitGraph('GET', "$base/mailFolders/inbox?\$select=unreadItemCount,totalItemCount", $token);
-        if ($inbox['status'] !== 200) {
-            throw new RuntimeException(mitM365Error($inbox, 'Opening the Inbox of ' . ($username ?: 'the mailbox')));
-        }
-        return ['ok' => true, 'message' => 'Connected through Microsoft Graph to ' . ($username ?: 'the mailbox') . ' - '
-            . intval($inbox['json']['unreadItemCount'] ?? 0) . ' unread of ' . intval($inbox['json']['totalItemCount'] ?? 0) . ' in the Inbox.'];
-    } catch (Throwable $e) {
-        return ['ok' => false, 'message' => 'Microsoft Graph mailbox test failed: ' . $e->getMessage()];
-    }
 }
 
 /**
@@ -1223,36 +1035,6 @@ function mitM365GraphMailboxTest($username) {
 function mitM365KeepCertificateSecret($client_id, $secret) {
     $app = mitM365App();
     return ($app && trim((string) $client_id) === $app['client_id']) ? MIT_M365_CERT_SECRET : (string) $secret;
-}
-
-/** Hook in cron/ticket_email_parser.php: will Graph read the mailbox? (Then the IMAP sign-in is skipped.) */
-function mitM365GraphMailboxReady() {
-    try {
-        return mitM365MailGraphToken('Mail.ReadWrite') !== null;
-    } catch (Throwable $e) {
-        return true;  // mitM365GraphMailbox() logs Microsoft's reason and stops the run
-    }
-}
-
-/**
- * Hook in cron/ticket_email_parser.php: the mailbox as an ImapEngine-like object read through Graph,
- * or null when it stays on IMAP. $username is the IMAP username - the signed-in mailbox or a shared one.
- */
-function mitM365GraphMailbox($provider, $username) {
-    if ($provider !== 'microsoft_oauth') {
-        return null;
-    }
-    try {
-        $token = mitM365MailGraphToken('Mail.ReadWrite');
-    } catch (Throwable $e) {
-        logApp("Cron-Email-Parser", "error", "Microsoft 365: " . $e->getMessage());
-        cronJobStop('', 1);
-    }
-    if (!$token) {
-        return null;
-    }
-    require_once __DIR__ . '/mit_m365_mailbox.php';
-    return new MitGraphMailbox($token, (string) $username);
 }
 
 // Each person's Outlook calendar, on the same app

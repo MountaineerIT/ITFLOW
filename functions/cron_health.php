@@ -173,7 +173,8 @@ function cronHealthProblems($fresh = false) {
                 'text' => "$label is behind - it last ran " . timeAgo($job['cron_job_last_run_at']) . '.'];
         }
     }
-    return $problems;
+    // Mountaineer IT: the Microsoft 365 certificate our app signs in with (functions/mit_cron_health.php)
+    return function_exists('mitCronExtraProblems') ? array_merge($problems, mitCronExtraProblems()) : $problems;
 }
 
 /** Who the alerts go to: name keyed by address - the addresses set, or every active admin with one. */

@@ -106,6 +106,10 @@ function ticketReplyRecipients($ticket_id) {
             $add($row['user_email'], $row['user_name'], 'agent', false, selectOptionUser($row['user_id'], $row['user_name'], $row['user_avatar']));
         }
     }
+    // Mountaineer IT: the agents helping on it can be added too (functions/mit_ticket_techs.php)
+    if (function_exists('mitReplyRecipientsHelpers')) {
+        mitReplyRecipientsHelpers($ticket_id, $add);
+    }
     foreach ($contacts as $email => $contact) {
         $add($email, $contact['contact_name'], 'client', false, $contact['look']);
     }

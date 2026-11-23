@@ -922,3 +922,43 @@ function mitBoardReportEntry() {
         'description' => 'Each service board: tickets in, escalated on and resolved, the typical first reply and time to resolve, SLAs met and what is open now - and where escalations go.',
     ];
 }
+
+/*
+ * ITFlow's Quick ticket (26.12 - functions/quick_ticket.php, built from ours): the board a quick ticket lands on. Kept in
+ * mit_settings quick_ticket_board (0 = as any new ticket - the board rules, else the default board). One line each in
+ * agent/modals/ticket/ticket_quick.php (mitQuickTicketBoardInput - the hidden mit_board that add_ticket's mitBoardAfterCreate
+ * reads), admin/settings_ticket.php's Quick tickets section (mitQuickTicketBoardField) and admin/post/settings_ticket.php
+ * (mitQuickTicketBoardSave - its line counted in ITFlow's "saved" message).
+ */
+function mitQuickTicketBoardInput() {
+    $board = intval(mitSetting('quick_ticket_board', '0'));
+    return $board ? '<input type="hidden" name="mit_board" value="' . $board . '" data-mit-quick-board>' : '';
+}
+
+function mitQuickTicketBoardField() {
+    if (!mitBoardsReady()) {
+        return '';
+    }
+    $boards = ['0' => 'As any new ticket (the board rules, else the default board)'];
+    foreach (mitBoards() as $id => $board) {
+        $boards[(string) $id] = $board['board_name'];
+    }
+    return settingsSelect('mit_quick_ticket_board', (string) intval(mitSetting('quick_ticket_board', '0')), $boards,
+        ['icon' => 'fa-columns', 'label' => 'Board it lands on', 'help' => 'With Assigned to Nobody, the board\'s round-robin may pick someone.']);
+}
+
+/** Returns the change line for settingsSave's $also_changed, or []. */
+function mitQuickTicketBoardSave(array $post) {
+    if (!array_key_exists('mit_quick_ticket_board', $post) || !mitBoardsReady()) {
+        return [];
+    }
+    $board = intval($post['mit_quick_ticket_board']);
+    if ($board && !isset(mitBoards()[$board])) {
+        $board = 0;
+    }
+    if ($board === intval(mitSetting('quick_ticket_board', '0'))) {
+        return [];
+    }
+    mitSetSetting('quick_ticket_board', (string) $board);
+    return ['Quick ticket board: ' . ($board ? mitBoards()[$board]['board_name'] : 'as any new ticket')];
+}

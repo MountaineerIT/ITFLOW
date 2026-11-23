@@ -40,7 +40,6 @@ $agent_q = $on_portal ? '' : $q;
 $portal_q = $on_portal ? $q : '';
 
 $filters = "user_type = 1 AND (user_name LIKE '%$agent_q%' OR user_email LIKE '%$agent_q%' OR role_name LIKE '%$agent_q%')" . ($role_filter ? " AND user_role_id = $role_filter" : '');
-$filters .= function_exists('mitServiceUserListSql') ? mitServiceUserListSql('users.user_id', 'users.user_archived_at') : ''; // Mountaineer IT: API / service accounts have their own section below (archived ones stay here)
 $joins = "LEFT JOIN user_roles ON user_role_id = role_id
     LEFT JOIN user_settings ON user_settings.user_id = users.user_id";
 
@@ -848,7 +847,6 @@ $csrf = $_SESSION['csrf_token'];
     require_once "../includes/filter_footer.php";
     ?>
 </div>
-<?= function_exists('mitServiceUsersSection') ? mitServiceUsersSection() : '' // Mountaineer IT: API / service accounts ?>
 
 <script src="<?= staticFileUrl('/js/bulk_actions.js') ?>"></script>
 

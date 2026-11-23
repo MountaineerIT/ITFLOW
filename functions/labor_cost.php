@@ -210,6 +210,8 @@ function laborProfitAdd(array &$clients, callable $client, array $period, $with_
     while ($row = mysqli_fetch_assoc($sql)) {
         $clients[$client($row)]['parts'] = floatval($row['v']);
     }
+    // Mountaineer IT: lines billed from ticket parts carry no product - their parts' own cost (functions/mit_profit.php)
+    if (function_exists('mitProfitPartsAdd')) { mitProfitPartsAdd($clients, $client, $period, $scope); }
 
     foreach ($clients as &$row) {
         $row['labor'] = round($row['labor'] ?? 0.0, 2);

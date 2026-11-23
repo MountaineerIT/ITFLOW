@@ -39,6 +39,7 @@ ob_start();
 <form action="/agent/post.php" method="post" autocomplete="off" id="quickTicketForm" data-timer="<?= escapeHtml($quick['timer']) ?>" data-call="<?= $from_call ? 1 : 0 ?>" data-primary="<?= $quick['primary'] ? 1 : 0 ?>" data-open-tickets="<?= $quick['open_tickets'] ? 1 : 0 ?>">
     <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
     <input type="hidden" name="quick_ticket" value="1">
+    <?= function_exists('mitQuickTicketBoardInput') ? mitQuickTicketBoardInput() : '' // Mountaineer IT: the board it lands on ?>
     <input type="hidden" name="quick_ticket_timer" value="" id="quickTicketTimer">
     <input type="hidden" name="quick_ticket_paused" value="" id="quickTicketPaused">
     <input type="hidden" name="quick_ticket_call" value="<?= $from_call ? 1 : 0 ?>">

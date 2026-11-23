@@ -209,7 +209,7 @@ function mitCtDueTickets($limit = MIT_CT_SEND_BATCH) {
         LEFT JOIN mit_ct_surveys s ON s.ticket_id = t.ticket_id
         WHERE s.survey_id IS NULL AND $done IS NOT NULL AND $done >= '$start' AND t.ticket_archived_at IS NULL
         AND c.contact_email != '' AND c.contact_archived_at IS NULL AND cl.client_archived_at IS NULL
-        AND " . mitBoardSql('t') . " IN ($boards) AND " . (function_exists('mitNoResponseNotSql') ? mitNoResponseNotSql('t') : '1') . "
+        AND " . mitBoardSql('t') . " IN ($boards) AND " . (function_exists('ticketNoResponseReady') && ticketNoResponseReady() ? 'NOT (t.ticket_no_response_at <=> t.ticket_resolved_at)' : '1') /* resolved - no response: no survey (ITFlow's tickets.ticket_no_response_at) */ . "
         AND NOT EXISTS (SELECT 1 FROM ticket_history h WHERE h.ticket_history_ticket_id = t.ticket_id AND h.ticket_history_description LIKE '%merged this ticket into%')
         ORDER BY done_at, t.ticket_id LIMIT " . intval($limit));
     return mysqli_fetch_all($result, MYSQLI_ASSOC);

@@ -91,7 +91,8 @@ function invoiceBulkCan($action) {
         case 'cancel':
             return $sales >= 2;
         case 'email':
-            return $sales >= 2 && !empty($config_smtp_provider);
+            // Mountaineer IT: QuickBooks Online sends the invoices while it is connected (functions/mit_qbo.php)
+            return $sales >= 2 && !empty($config_smtp_provider) && !(function_exists('mitQboConnected') && mitQboConnected());
         case 'pay':
             return billingMoneyCan('take');
         case 'delete':
@@ -139,6 +140,10 @@ function invoiceBulkWhyNot($action, array $row) {
     $status = (string) $row['invoice_status'];
     if (!hasClientAccess($row['invoice_client_id'])) {
         return 'not one of your clients';
+    }
+    // Mountaineer IT: in a QuickBooks Online batch - QuickBooks has it (functions/mit_qbo_billing.php)
+    if (function_exists('mitQboInvoiceLock') && mitQboInvoiceLock(intval($row['invoice_id'])) !== '') {
+        return 'in a QuickBooks Online batch';
     }
     switch ($action) {
         case 'sent':

@@ -31,49 +31,6 @@
         }
     }
 
-    // The ticket timer stops when the note is sent. ITFlow's agent/js/ticket_time_tracking.js clears it 100 ms after the
-    // Add button is clicked - lost when the page moves on sooner (a quick server) or the form is sent another way, so the
-    // timer kept running. Here it is cleared as the form really goes: the time inputs are already read into what is sent,
-    // and a submit stopped by a check (nothing posted) leaves the timer alone. Keys as ITFlow's: <id>-startTime / -pausedTime.
-    document.addEventListener('submit', function (e) {
-        const form = e.target;
-        const ticketId = new URLSearchParams(window.location.search).get('ticket_id');
-        if (e.defaultPrevented || !ticketId || !form || !form.querySelector || !form.querySelector('#ticket_add_reply')) {
-            return;
-        }
-        try {
-            localStorage.removeItem(ticketId + '-startTime');
-            localStorage.removeItem(ticketId + '-pausedTime');
-            localStorage.removeItem('ticket-timer-running-' + ticketId);
-            sessionStorage.setItem('mit-timer-posted-' + ticketId, '1');
-        } catch (err) {
-            // storage blocked - nothing to clear
-        }
-    });
-    // Back on the ticket after sending it: the timer stays stopped at 0, even with Admin's timer auto-start on (that
-    // starts it when a ticket is opened, not again after each note). ITFlow's timer script runs after this one and sees a
-    // paused 0; the marker goes once it has, so the next visit auto-starts as usual.
-    (function () {
-        const ticketId = new URLSearchParams(window.location.search).get('ticket_id');
-        try {
-            if (ticketId && sessionStorage.getItem('mit-timer-posted-' + ticketId)) {
-                sessionStorage.removeItem('mit-timer-posted-' + ticketId);
-                if (!localStorage.getItem(ticketId + '-startTime') && !localStorage.getItem(ticketId + '-pausedTime')) {
-                    localStorage.setItem(ticketId + '-pausedTime', '0');
-                    document.addEventListener('DOMContentLoaded', function () {
-                        setTimeout(function () {
-                            if (localStorage.getItem(ticketId + '-pausedTime') === '0' && !localStorage.getItem(ticketId + '-startTime')) {
-                                localStorage.removeItem(ticketId + '-pausedTime');
-                            }
-                        }, 0);
-                    });
-                }
-            }
-        } catch (err) {
-            // storage blocked
-        }
-    })();
-
     const cfg = window.mitTicketLayout || {};
     const root = document.querySelector('.ticket-layout');
     const main = root && root.querySelector(':scope > .ticket-layout-main');

@@ -29,6 +29,20 @@ if (intval($row['config_enable_cron']) === 0) {
     cronJobStop("Cron: is not enabled -- Quitting..");
 }
 
+// Secrets still under the old derived key move to config.php's key (mitUpgradeSecrets) - once a day (it ran from our Cron Watch
+// job until ITFlow 26.12 brought its own; this job runs every day whatever is set up)
+try {
+    if (function_exists('mitUpgradeSecrets') && mitSetting('secrets_upgraded_on', '') !== date('Y-m-d')) {
+        mitSetSetting('secrets_upgraded_on', date('Y-m-d'));
+        $mit_upgraded = mitUpgradeSecrets();
+        if ($mit_upgraded) {
+            echo "Re-encrypted $mit_upgraded secret(s) with config.php's key\n";
+        }
+    }
+} catch (Throwable $e) {
+    echo "Secret upgrade failed: " . $e->getMessage() . "\n";
+}
+
 $mit_fails = [];
 foreach (mitConsistencyChecks() as $mit_finding) {
     $mit_line = strtoupper($mit_finding['level']) . " [{$mit_finding['area']}] {$mit_finding['text']}" . ($mit_finding['items'] ? ': ' . implode('; ', $mit_finding['items']) : '');
