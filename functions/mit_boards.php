@@ -962,3 +962,26 @@ function mitQuickTicketBoardSave(array $post) {
     mitSetSetting('quick_ticket_board', (string) $board);
     return ['Quick ticket board: ' . ($board ? mitBoards()[$board]['board_name'] : 'as any new ticket')];
 }
+
+/** Each ticket's board: ticket_id => board row (no row = the default board). For lists that tag their tickets (Dispatch's queue). */
+function mitBoardsOfTickets(array $ticket_ids) {
+    global $mysqli;
+    $ticket_ids = array_values(array_filter(array_map('intval', $ticket_ids)));
+    $boards = mitBoardsReady() ? mitBoards() : [];
+    if (count($boards) < 2 || !$ticket_ids) {
+        return [];
+    }
+    $default = mitBoardDefaultId();
+    $of = array_fill_keys($ticket_ids, $default);
+    $sql = mysqli_query($mysqli, "SELECT ticket_id, board_id FROM mit_ticket_boards WHERE ticket_id IN (" . implode(',', $ticket_ids) . ")");
+    while ($row = mysqli_fetch_row($sql)) {
+        $of[intval($row[0])] = isset($boards[intval($row[1])]) ? intval($row[1]) : $default;
+    }
+    $out = [];
+    foreach ($of as $ticket_id => $board_id) {
+        if (isset($boards[$board_id])) {
+            $out[$ticket_id] = $boards[$board_id];
+        }
+    }
+    return $out;
+}

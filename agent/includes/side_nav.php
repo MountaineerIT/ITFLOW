@@ -110,11 +110,12 @@
                                 </p>
                             </a>
                         </li>
-                        <?php if (moduleOn('dispatch')) { ?>
+                        <?php if (moduleOn('dispatch') && (!function_exists('mitDispatchLevel') || mitDispatchLevel() >= 1)) { // Mountaineer IT: the role's Dispatch permission ?>
                             <li class="nav-item">
                                 <a href="/agent/dispatch.php" class="nav-link <?php if (basename($_SERVER["PHP_SELF"]) == "dispatch.php") { echo "active"; } ?>">
                                     <i class="nav-icon fas fa-people-arrows"></i>
-                                    <p>Dispatch</p>
+                                    <p>Dispatch<?php $mit_dispatch_count = function_exists('mitDispatchNavCount') ? mitDispatchNavCount() : 0; // Mountaineer IT: unassigned on the agent's boards
+                                        if ($mit_dispatch_count) { ?><span class="right badge rounded-pill text-light" title="Unassigned tickets on your boards"><?= $mit_dispatch_count ?></span><?php } ?></p>
                                 </a>
                             </li>
                         <?php } ?>

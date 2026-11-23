@@ -39,7 +39,7 @@ $tell_client = intval($config_ticket_client_general_notifications) === 1;
     data-first-day="<?= $first_day ?>"
     data-default-minutes="<?= CALENDAR_TICKET_MINUTES ?>"
     data-lengths="<?= escapeHtml(json_encode(DISPATCH_LENGTHS)) ?>"
-    data-business-hours="<?= escapeHtml(json_encode(dispatchBusinessHours())) ?>"
+    data-business-hours="<?= escapeHtml(json_encode(function_exists('mitDispatchViewerHours') ? mitDispatchViewerHours(dispatchBusinessHours()) : dispatchBusinessHours())) /* Mountaineer IT: an away agent's clock */ ?>"
     data-zone="<?= timezoneShifted() ? escapeHtml(timezoneView()) : '' ?>"
     data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : substr(timezoneNow(), 0, 10) ?>">
 
@@ -85,6 +85,7 @@ $tell_client = intval($config_ticket_client_general_notifications) === 1;
                     </div>
                 </div>
             </div>
+            <?php require "includes/mit_dispatch_extras.php"; // Mountaineer IT: the service board picker (functions/mit_dispatch.php) ?>
         </div>
     </div>
 
@@ -195,6 +196,7 @@ $tell_client = intval($config_ticket_client_general_notifications) === 1;
                         </select>
                     </div>
                 </div>
+                <?= function_exists('mitDispatchScheduleFields') ? mitDispatchScheduleFields() : '' // Mountaineer IT: the ticket's details and who is emailed ?>
                 <?php if ($tell_client) { ?>
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" role="switch" name="tell_client" value="1" id="dispatchTellClient" checked>

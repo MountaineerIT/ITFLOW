@@ -27,12 +27,14 @@ const DISPATCH_LENGTHS = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480];
 
 /** May the signed-in agent see Dispatch? */
 function dispatchCan() {
-    return moduleOn('dispatch') && lookupUserPermission('module_support') >= 1;
+    return moduleOn('dispatch') && lookupUserPermission('module_support') >= 1
+        && (!function_exists('mitDispatchLevel') || mitDispatchLevel() >= 1); // Mountaineer IT: the role's Dispatch permission (functions/mit_dispatch.php)
 }
 
 /** May they book, move and assign there? */
 function dispatchCanEdit() {
-    return moduleOn('dispatch') && calendarCanScheduleTickets();
+    return moduleOn('dispatch') && calendarCanScheduleTickets()
+        && (!function_exists('mitDispatchLevel') || mitDispatchLevel() >= 2); // Mountaineer IT: the role's Dispatch permission
 }
 
 /** The agents who can be dispatched to - active, and able to work tickets (Support at Modify, or an admin): user_id => [id, name, color]. */
@@ -138,6 +140,7 @@ function dispatchQueue($tab, array $filters = []) {
     global $mysqli;
     // A project's tickets are left to the project while they are kept apart (functions/project_tickets.php)
     $where = TICKET_OPEN_SQL . " AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . projectTicketsServiceSql('tickets.ticket_project_id');
+    $where .= function_exists('mitDispatchBoardSql') ? mitDispatchBoardSql() : ''; // Mountaineer IT: the service board(s) picked
     $client_id = intval($filters['client_id'] ?? 0);
     if ($client_id && hasClientAccess($client_id)) {
         $where .= " AND ticket_client_id = $client_id";
@@ -187,6 +190,7 @@ function dispatchQueue($tab, array $filters = []) {
             'booked' => $row['ticket_schedule'] ? date('D, M j', strtotime(timezoneToView($row['ticket_schedule']))) : '',
         ];
     }
+    $tickets = function_exists('mitDispatchQueueBoards') ? mitDispatchQueueBoards($tickets) : $tickets; // Mountaineer IT: each card's board
     return ['tab' => $tab, 'counts' => $counts, 'tickets' => $tickets];
 }
 
@@ -239,6 +243,8 @@ function dispatchItems($from, $to, array $agent_ids) {
         }
         unset($item);
     }
+    // Mountaineer IT: each agent's Outlook busy times (functions/mit_dispatch.php)
+    $items = function_exists('mitDispatchOutlookItems') ? array_merge($items, mitDispatchOutlookItems($from, $to, $agent_ids)) : $items;
     return timezoneItems($items);
 }
 
@@ -528,7 +534,7 @@ function dispatchWorkload(array $agent_ids, $first_day = 0) {
         LEFT JOIN clients ON client_id = ticket_client_id
         LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
         " . ($helpers ? "LEFT JOIN ticket_helpers th ON th.ticket_id = tickets.ticket_id AND th.user_id IN ($in)" : '') . "
-        WHERE " . TICKET_OPEN_SQL . " AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . "
+        WHERE " . TICKET_OPEN_SQL . " AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . (function_exists('mitDispatchBoardSql') ? mitDispatchBoardSql() : '') /* Mountaineer IT: board */ . "
         AND (ticket_assigned_to IN ($in)" . ($helpers ? ' OR th.user_id IS NOT NULL' : '') . ")");
     $order = ['breached' => 0, 'at_risk' => 1, 'running' => 2, 'paused' => 3, 'none' => 4];
     $quiet_before = time() - DISPATCH_QUIET_DAYS * 86400;
@@ -672,7 +678,8 @@ function dispatchWeekStats(array $agent_ids, $first_day = 0) {
     [$from, $to] = dispatchWeek($first_day);
     $start = "'$from 00:00:00'";
     $end = "'$to 23:59:59'";
-    $scope = "tickets.ticket_archived_at IS NULL" . clientScopeSql('tickets.ticket_client_id');
+    $scope = "tickets.ticket_archived_at IS NULL" . clientScopeSql('tickets.ticket_client_id')
+        . (function_exists('mitDispatchBoardSql') ? mitDispatchBoardSql() : ''); // Mountaineer IT: the service board(s) picked
     $one = function ($sql) use ($mysqli) {
         return intval(mysqli_fetch_row(mysqli_query($mysqli, $sql))[0] ?? 0);
     };

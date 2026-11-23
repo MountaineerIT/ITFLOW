@@ -2565,6 +2565,10 @@ function ticketScheduleConflicts($user_id, $start, $end, $ticket_id = 0) {
         }
     }
     // Tickets they are helping on (functions/ticket_helpers.php)
+    // Mountaineer IT: their Outlook busy times too, once they have connected Outlook (functions/mit_outlook.php)
+    if (function_exists('mitOutlookBusyConflicts')) {
+        $conflicts = array_merge($conflicts, mitOutlookBusyConflicts($user_id, $start, $end));
+    }
     return array_merge($conflicts, ticketHelperConflicts($user_id, $start, $end, $ticket_id));
 }
 

@@ -1,29 +1,124 @@
 <?php
 
 /*
- * Mountaineer IT - times on ticket notes: when the work on a note with time worked was done - date, start and end, as the
- * person's clock read them (stored as typed, like the California work times) - in mit_reply_times (M028). The reply box
- * asks for them whenever time is logged (agent/js/mit_reply_times.js keeps them in step with ITFlow's timer: end = now,
- * start = end less the timer, until they are typed; typed times set the length). Edit reply has them too.
- * A note without a row (from before, the API, bulk resolve, email) counts as ending when it was posted.
- * Timesheets count ticket time on the day it was worked (mitTsReplyWorkRows in functions/mit_timesheets.php).
- * Hooks: agent/ticket.php (mitReplyTimesField in the reply box, mitReplyTimesText beside a note's time),
- * agent/modals/ticket/ticket_reply_edit.php (mitReplyTimesEditField), agent/post/ticket.php add_ticket_reply
- * (mitReplyTimesFromPost + mitReplyTimesSavePending) and edit_ticket_reply (mitReplyTimesFromEdit + mitReplyTimesSavePending).
+ * Mountaineer IT - when the work on a ticket note was done, for timesheets. Since 26.12 ITFlow keeps it itself
+ * (ticket_replies.ticket_reply_work_start / _end on the company's clock, the reply box's When it was worked - built from ours; M067
+ * moved our mit_reply_times there, out of each person's own clock). What stays ours:
+ *  - timesheets read a note's work on the person's own clock (mitReplyPersonClock - their timesheet zone, with its history), so
+ *    ticket time lands on the day they worked it (mitTsReplyWorkRows; California checks compare with their typed times);
+ *  - a note's time can't go onto a day whose timesheet is submitted / approved / closed, nor today when today is on an approved one
+ *    (mitReplyWorkGuardAdd - one guarded line after ITFlow's work-time block in add_ticket_reply; the time is kept, the times dropped,
+ *    with a warning kept in ITFlow's "Reply added" message by mitReplyTimesFlash), and an edit can't move it onto or off such a day
+ *    (mitReplyWorkGuardEdit - one guarded line before ITFlow's update in edit_ticket_reply);
+ *  - the timesheet's day panel puts a note's times right (mitReplyTimesQuickSet, agent/mit_timesheet_ajax.php save_entry).
+ * Notes without times (older ones, the API, bulk resolve, email) count as ending when posted.
  */
 
-/** Has database update M028 run? */
+/** ITFlow keeps notes' work times (database 3.7.8). */
 function mitReplyTimesReady() {
+    return function_exists('ticketWorkTimesReady') && ticketWorkTimesReady();
+}
+
+/** A company-clock datetime as the person's own clock read it then (their timesheet zone in force - functions/mit_timesheets.php). */
+function mitReplyPersonClock($user_id, $datetime) {
+    if (!$datetime || !function_exists('mitTsZoneAt')) {
+        return $datetime;
+    }
+    [$zone] = mitTsZoneAt($user_id, (string) $datetime);
+    return $zone ? (new DateTime((string) $datetime))->setTimezone(new DateTimeZone($zone))->format('Y-m-d H:i:s') : $datetime;
+}
+
+/** A datetime on the person's own clock (their zone now) as the company's clock reads it - for storing in ITFlow's columns. */
+function mitReplyCompanyClock($user_id, $datetime) {
+    $zone = function_exists('mitTsOwnZone') ? mitTsOwnZone($user_id) : '';
+    if (!$datetime || $zone === '') {
+        return $datetime;
+    }
+    return (new DateTime((string) $datetime, new DateTimeZone($zone)))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s');
+}
+
+/** A note's work times on its author's own clock: ['work_start', 'work_end'] or null when it has none. */
+function mitReplyTimesOf($ticket_reply_id) {
     global $mysqli;
-    static $ready = null;
-    if ($ready === null) {
-        try {
-            $ready = mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE 'mit_reply_times'")) === 1;
-        } catch (Throwable $e) {
-            $ready = false;
+    if (!mitReplyTimesReady()) {
+        return null;
+    }
+    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_work_start, ticket_reply_work_end FROM ticket_replies WHERE ticket_reply_id = " . intval($ticket_reply_id)));
+    if (!$row || !$row['ticket_reply_work_start'] || !$row['ticket_reply_work_end']) {
+        return null;
+    }
+    return ['work_start' => mitReplyPersonClock($row['ticket_reply_by'], $row['ticket_reply_work_start']),
+        'work_end' => mitReplyPersonClock($row['ticket_reply_by'], $row['ticket_reply_work_end'])];
+}
+
+/** The day a note counts on for its author's timesheet: the day its work started, else the day it was posted - both where they were. */
+function mitReplyPersonDate($user_id, $work_start, $created_at) {
+    if ($work_start) {
+        return substr((string) mitReplyPersonClock($user_id, $work_start), 0, 10);
+    }
+    return function_exists('mitTsLocalDate') ? mitTsLocalDate($user_id, $created_at) : substr((string) $created_at, 0, 10);
+}
+
+/**
+ * add_ticket_reply, after ITFlow's work-time block (one line): [time worked, $work_sql]. Today on the author's approved timesheet = no time
+ * at all (its hours are stored - the time would be on no timesheet); work times on a submitted / approved / closed day (or one still to come)
+ * are dropped with a warning and the note counts as worked now.
+ */
+function mitReplyWorkGuardAdd(array $post, $time_worked, $work_sql) {
+    global $session_user_id;
+    if (!function_exists('mitTsReady') || !mitTsReady() || mitReplyTimesSeconds($time_worked) <= 0) {
+        return [$time_worked, $work_sql];
+    }
+    $now_approved = function () use ($session_user_id) {
+        if (!function_exists('mitTsApprovedDates') || !function_exists('mitTsLocalDate')) {
+            return false;
+        }
+        $today = mitTsLocalDate($session_user_id, date('Y-m-d H:i:s'));
+        if (!mitTsApprovedDates($session_user_id, $today, $today)) {
+            return false;
+        }
+        mitReplyTimesWarn('The time was not counted: today is on your approved timesheet - ask for it to be reopened, then add the time to the note.');
+        return true;
+    };
+    if (!preg_match("/ticket_reply_work_start = '([0-9: -]{19})'/", (string) $work_sql, $match)) {
+        return $now_approved() ? ['00:00:00', ''] : [$time_worked, $work_sql];
+    }
+    $date = substr((string) mitReplyPersonClock($session_user_id, $match[1]), 0, 10);
+    $locked = mitReplyTimesLocked($session_user_id, $date);
+    if ($locked) {
+        if ($now_approved()) {
+            return ['00:00:00', ''];
+        }
+        mitReplyTimesWarn('The times were not kept: ' . date('M j', strtotime($date)) . ' ' . mitReplyTimesLockedText($locked) . ', so the time counts as worked now.');
+        return [$time_worked, ''];
+    }
+    return [$time_worked, $work_sql];
+}
+
+/** edit_ticket_reply, before ITFlow's update (one line): refused (message, back to the ticket) when the edit moves the note onto or off a locked day. */
+function mitReplyWorkGuardEdit($ticket_reply_id, $work_sql) {
+    global $mysqli;
+    if (!function_exists('mitTsReady') || !mitTsReady() || !mitReplyTimesReady() || trim((string) $work_sql) === '') {
+        return;
+    }
+    $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_reply_work_start FROM ticket_replies WHERE ticket_reply_id = " . intval($ticket_reply_id)));
+    if (!$reply) {
+        return;
+    }
+    $user_id = intval($reply['ticket_reply_by']);
+    $old = mitReplyPersonDate($user_id, $reply['ticket_reply_work_start'], $reply['ticket_reply_created_at']);
+    $new = preg_match("/ticket_reply_work_start = '([0-9: -]{19})'/", (string) $work_sql, $match)
+        ? substr((string) mitReplyPersonClock($user_id, $match[1]), 0, 10) : mitReplyPersonDate($user_id, null, $reply['ticket_reply_created_at']);
+    if ($old === $new) {
+        return;
+    }
+    foreach ([$old => false, $new => true] as $date => $future) {
+        $locked = mitReplyTimesLocked($user_id, $date, $future);
+        if ($locked) {
+            flashAlert('The note was not changed: ' . date('M j', strtotime($date)) . ' ' . escapeHtml(mitReplyTimesLockedText($locked)) . '.', 'error');
+            redirect();
         }
     }
-    return $ready;
 }
 
 /** A date (Y-m-d) and HH:MM start / end -> ['Y-m-d H:i:s' start, end] (an end before the start runs past midnight), or null. */
@@ -56,15 +151,6 @@ function mitReplyTimesSeconds($time) {
 function mitReplyTimesClock($seconds) {
     $seconds = max(0, min(86399, intval($seconds)));
     return sprintf('%02d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
-}
-
-/** What to save once the note exists: [start, end], 'delete', or null (nothing). */
-function mitReplyTimesPending($set = false) {
-    static $pending = null;
-    if ($set !== false) {
-        $pending = $set;
-    }
-    return $pending;
 }
 
 /**
@@ -102,231 +188,6 @@ function mitReplyTimesFlash() {
         unset($GLOBALS['mit_reply_times_warning']);
     }
 }
-
-/**
- * Hook in add_ticket_reply, after ITFlow has made the time worked from Hrs / Mins / Secs: the note's times from the form.
- * Typed times decide the length (unless they agree with it to the minute, keeping the timer's seconds). Returns the time
- * worked to store; mitReplyTimesSavePending() writes the times once the note is in. A note whose times can't be read, or
- * fall on a submitted / approved timesheet, keeps its length and counts as ending when posted (with a message).
- */
-function mitReplyTimesFromPost(array $post, $time_worked) {
-    global $session_user_id;
-    mitReplyTimesPending(null);
-    $seconds = mitReplyTimesSeconds($time_worked);
-    if (!mitReplyTimesReady() || $seconds <= 0) {
-        return $time_worked;
-    }
-    // Counted now (no times, or times on a locked day): not when today is on an approved timesheet - its hours are stored, so the
-    // time would be on no timesheet at all
-    $now_approved = function () use ($session_user_id) {
-        if (!function_exists('mitTsApprovedDates') || !function_exists('mitTsLocalDate')) {
-            return false;
-        }
-        $today = mitTsLocalDate($session_user_id, date('Y-m-d H:i:s'));
-        if (!mitTsApprovedDates($session_user_id, $today, $today)) {
-            return false;
-        }
-        mitReplyTimesWarn('The time was not counted: today is on your approved timesheet - ask for it to be reopened, then add the time to the note.');
-        return true;
-    };
-    $range = mitReplyTimesParse($post['mit_work_date'] ?? '', $post['mit_work_start'] ?? '', $post['mit_work_end'] ?? '');
-    if (!$range) {
-        return $now_approved() ? '00:00:00' : $time_worked;
-    }
-    $locked = mitReplyTimesLocked($session_user_id, substr($range[0], 0, 10));
-    if ($locked) {
-        if ($now_approved()) {
-            return '00:00:00';
-        }
-        mitReplyTimesWarn('The times were not kept: ' . date('M j', strtotime($range[0])) . ' ' . mitReplyTimesLockedText($locked) . ', so the time counts as worked now.');
-        return $time_worked;
-    }
-    $length = strtotime($range[1]) - strtotime($range[0]);
-    mitReplyTimesPending($range);
-    return abs($length - $seconds) < 60 ? $time_worked : mitReplyTimesClock($length);
-}
-
-/**
- * Hook in edit_ticket_reply, before ITFlow's save: the times as edited. New times decide the length; the same times with
- * a new length move the start (the end stays). A note without times keeps having none unless its times are changed from
- * what the form showed (when it ended by its posting). Moving time onto or off a day whose timesheet is submitted,
- * approved or closed - or onto a day still to come - is refused. Returns the time worked to store.
- */
-function mitReplyTimesFromEdit($ticket_reply_id, array $post, $time_worked) {
-    global $mysqli;
-    mitReplyTimesPending(null);
-    $ticket_reply_id = intval($ticket_reply_id);
-    if (!mitReplyTimesReady() || !$ticket_reply_id) {
-        return $time_worked;
-    }
-    $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_reply_time_worked FROM ticket_replies WHERE ticket_reply_id = $ticket_reply_id"));
-    if (!$reply) {
-        return $time_worked;
-    }
-    $old = mitReplyTimesOf($ticket_reply_id);
-    // Without times it counts on the day it was posted where its author was (as the timesheets count it)
-    $old_date = $old ? substr($old['work_start'], 0, 10)
-        : (function_exists('mitTsLocalDate') ? mitTsLocalDate($reply['ticket_reply_by'], $reply['ticket_reply_created_at']) : substr($reply['ticket_reply_created_at'], 0, 10));
-    $seconds = mitReplyTimesSeconds($time_worked);
-    $range = null;
-    if ($seconds > 0) {
-        $range = mitReplyTimesParse($post['mit_work_date'] ?? '', $post['mit_work_start'] ?? '', $post['mit_work_end'] ?? '');
-        if ($range && !$old) {
-            // Left as the form filled them in: not times anyone typed, so the note stays without them
-            $shown = mitReplyTimesShown($reply);
-            if (substr($range[0], 0, 16) === substr($shown['work_start'], 0, 16) && substr($range[1], 0, 16) === substr($shown['work_end'], 0, 16)) {
-                $range = null;
-            }
-        }
-        $same = $range && $old && substr($range[0], 0, 16) === substr($old['work_start'], 0, 16) && substr($range[1], 0, 16) === substr($old['work_end'], 0, 16);
-        if ($same && $seconds !== mitReplyTimesSeconds($reply['ticket_reply_time_worked'])) {
-            // Only the length changed: the end stays, the start moves
-            $range[0] = date('Y-m-d H:i:s', strtotime($range[1]) - $seconds);
-        } elseif ($range) {
-            $length = strtotime($range[1]) - strtotime($range[0]);
-            $time_worked = abs($length - $seconds) < 60 ? $time_worked : mitReplyTimesClock($length);
-        }
-    }
-    $new_date = $range ? substr($range[0], 0, 10) : $old_date;
-    if ($new_date !== $old_date) {
-        foreach ([$old_date, $new_date] as $date) {
-            $locked = mitReplyTimesLocked($reply['ticket_reply_by'], $date, $date === $new_date);
-            if ($locked) {
-                flashAlert('This note\'s time can\'t move ' . ($date === $old_date ? 'off ' : 'onto ') . date('M j', strtotime($date)) . ' - that day ' . mitReplyTimesLockedText($locked) . '.', 'error');
-                redirect();
-            }
-        }
-    }
-    // Times out (length 0): a row goes; times not given or not changed on a note without them: nothing to store
-    mitReplyTimesPending($seconds > 0 ? $range : 'delete');
-    return $time_worked;
-}
-
-/** After the note is saved: write (or remove) its times. */
-function mitReplyTimesSavePending($ticket_reply_id) {
-    global $mysqli, $session_user_id;
-    $pending = mitReplyTimesPending();
-    $ticket_reply_id = intval($ticket_reply_id);
-    if (!$ticket_reply_id || $pending === null || !mitReplyTimesReady()) {
-        return;
-    }
-    if ($pending === 'delete') {
-        mysqli_query($mysqli, "DELETE FROM mit_reply_times WHERE reply_id = $ticket_reply_id");
-    } else {
-        [$start, $end] = array_map('escapeSql', $pending);
-        mysqli_query($mysqli, "INSERT INTO mit_reply_times SET reply_id = $ticket_reply_id, work_start = '$start', work_end = '$end', set_by = " . intval($session_user_id) . "
-            ON DUPLICATE KEY UPDATE work_start = '$start', work_end = '$end', set_by = " . intval($session_user_id) . ", set_at = NOW()");
-    }
-    mitReplyTimesPending(null);
-    if (function_exists('mitTsForget')) {
-        mitTsForget();
-    }
-}
-
-/** One note's times, or null. */
-function mitReplyTimesOf($ticket_reply_id) {
-    global $mysqli;
-    if (!mitReplyTimesReady()) {
-        return null;
-    }
-    return mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT work_start, work_end FROM mit_reply_times WHERE reply_id = " . intval($ticket_reply_id))) ?: null;
-}
-
-/** "Tue Oct 20, 9:10 - 9:40 AM" (the end's day too when it runs past midnight). */
-function mitReplyTimesWords($start, $end) {
-    $from = strtotime($start);
-    $to = strtotime($end);
-    $same_half = date('A', $from) === date('A', $to) && date('Y-m-d', $from) === date('Y-m-d', $to);
-    return date('D M j, ', $from) . date($same_half ? 'g:i' : 'g:i A', $from) . ' - '
-        . (date('Y-m-d', $from) !== date('Y-m-d', $to) ? date('D ', $to) : '') . date('g:i A', $to);
-}
-
-/** agent/ticket.php: beside a note's time, when it was worked. */
-function mitReplyTimesText($ticket_reply_id, $ticket_id) {
-    global $mysqli;
-    static $cache = [];
-    $ticket_id = intval($ticket_id);
-    if (!mitReplyTimesReady()) {
-        return '';
-    }
-    if (!isset($cache[$ticket_id])) {
-        $cache[$ticket_id] = [];
-        $sql = mysqli_query($mysqli, "SELECT t.reply_id, t.work_start, t.work_end FROM mit_reply_times t JOIN ticket_replies ON ticket_reply_id = t.reply_id
-            WHERE ticket_reply_ticket_id = $ticket_id");
-        while ($row = mysqli_fetch_assoc($sql)) {
-            $cache[$ticket_id][intval($row['reply_id'])] = $row;
-        }
-    }
-    $row = $cache[$ticket_id][intval($ticket_reply_id)] ?? null;
-    return $row ? ' <span class="text-nowrap" data-mit-reply-times title="When the work was done">(' . escapeHtml(mitReplyTimesWords($row['work_start'], $row['work_end'])) . ')</span>' : '';
-}
-
-/**
- * The reply box: a time strip - ITFlow's timer (moved in by agent/js/mit_reply_times.js) and Date worked / Start - End -
- * above one row of Status and the send buttons. The script keeps the times in step with the timer.
- */
-function mitReplyTimesField() {
-    if (!mitReplyTimesReady()) {
-        return '';
-    }
-    return '<div class="col-12" data-mit-reply-times-field>'
-        . '<style>
-            .mit-reply-foot { --bs-gutter-y: .6rem; }
-            .mit-reply-foot > [data-mit-reply-times-field] { order: -1; }
-            .mit-reply-foot > .mit-status-col { flex: 1 1 11rem; width: auto; max-width: 22rem; }
-            .mit-reply-foot > .mit-send-col { flex: 0 0 auto; width: auto; margin-left: auto; }
-            .mit-reply-foot > .mit-send-col .btn { white-space: nowrap; }
-            .mit-time-strip { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem 1rem; padding: .6rem .75rem; border: 1px solid var(--bs-border-color); border-radius: .6rem; background: var(--bs-body-bg); }
-            .mit-time-strip .mit-strip-part { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
-            .mit-time-strip .mit-strip-label { font-size: .75rem; color: var(--bs-secondary-color); }
-            .mit-time-strip #hours, .mit-time-strip #minutes, .mit-time-strip #seconds { flex: 0 0 3.1rem; width: 3.1rem; text-align: center; padding-left: .25rem; padding-right: .25rem; }
-            .mit-time-strip #mitWorkDate { flex: 0 0 10rem; width: 10rem; }
-            .mit-time-strip #mitWorkStart, .mit-time-strip #mitWorkEnd { flex: 0 0 8.75rem; width: 8.75rem; }
-            .mit-time-strip [data-mit-times-mode] { font-size: .75rem; color: var(--bs-secondary-color); align-self: center; }
-          </style>'
-        . '<div class="mit-time-strip">'
-        . '<div class="mit-strip-part" data-mit-time-slot><span class="mit-strip-label">Time worked</span></div>'
-        . '<div class="mit-strip-part"><span class="mit-strip-label">When</span>'
-        . '<div class="input-group">'
-        . '<input type="date" class="form-control" id="mitWorkDate" name="mit_work_date" aria-label="Date worked" title="Date worked">'
-        . '<input type="time" step="60" class="form-control" id="mitWorkStart" name="mit_work_start" aria-label="Start" title="Start">'
-        . '<span class="input-group-text px-2">-</span>'
-        . '<input type="time" step="60" class="form-control" id="mitWorkEnd" name="mit_work_end" aria-label="End" title="End">'
-        . '</div></div>'
-        . '<span data-mit-times-mode></span>'
-        . '</div>'
-        . '<div class="small text-danger mt-1" data-mit-times-error hidden></div>'
-        . '</div><script src="' . mitAsset('/agent/js/mit_reply_times.js') . '"></script>';
-}
-
-/** What the edit form shows for a note without times: ending when it was posted, as long as its time worked. */
-function mitReplyTimesShown(array $reply) {
-    $end = strtotime($reply['ticket_reply_created_at'] ?? 'now');
-    return ['work_start' => date('Y-m-d H:i:s', $end - mitReplyTimesSeconds($reply['ticket_reply_time_worked'] ?? '')), 'work_end' => date('Y-m-d H:i:s', $end)];
-}
-
-/** Edit reply: the note's times (or, for an older note, when it ended by its posting). */
-function mitReplyTimesEditField($ticket_reply_id) {
-    global $mysqli;
-    if (!mitReplyTimesReady()) {
-        return '';
-    }
-    $row = mitReplyTimesOf($ticket_reply_id);
-    if (!$row) {
-        $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_created_at, ticket_reply_time_worked FROM ticket_replies WHERE ticket_reply_id = " . intval($ticket_reply_id)));
-        $row = mitReplyTimesShown($reply ?: []);
-    }
-    return '<div class="row g-2 mt-1">'
-        . '<div class="col-sm-4"><label class="form-label small mb-1">Date worked</label><input type="date" class="form-control" name="mit_work_date" value="' . substr($row['work_start'], 0, 10) . '"></div>'
-        . '<div class="col-6 col-sm-4"><label class="form-label small mb-1">Start</label><input type="time" step="60" class="form-control" name="mit_work_start" value="' . substr($row['work_start'], 11, 5) . '"></div>'
-        . '<div class="col-6 col-sm-4"><label class="form-label small mb-1">End</label><input type="time" step="60" class="form-control" name="mit_work_end" value="' . substr($row['work_end'], 11, 5) . '"></div>'
-        . '<div class="col-12 form-text mt-0">Change the times and the length follows them; change only the length and the start moves.</div>'
-        . '</div>';
-}
-
-/*
- * ---------- for the timesheets (functions/mit_timesheets.php) ----------
- */
 
 /**
  * Notes with time worked by these people that count on $from - $to: the day they were worked - from their times, else
@@ -379,38 +240,36 @@ function mitTsKeepPublicNotes($ticket_id) {
     }
 }
 
-/** mitTsReplyWorkRows() from the database. */
+/** mitTsReplyWorkRows() from the database - each note's times on its author's own clock. */
 function mitTsReplyWorkRowsRead(array $user_ids, $from, $to) {
     global $mysqli;
     $settings = mitTsSettings();
     $billable = mitTsBillableSql($settings['billable']);
     $where = "ticket_reply_archived_at IS NULL AND ticket_reply_time_worked > '00:00:00' AND ticket_reply_by IN (" . implode(',', $user_ids) . ")"
         . ($settings['ticket_internal'] ? '' : ' AND ' . mitTsPublicNotesSql());
-    // Posted two days either side (people in other time zones), or worked within the dates
+    // Two days either side - people in other time zones - by when it was posted, or when it was worked
     $wide_from = escapeSql(date('Y-m-d', strtotime("$from -2 days")) . ' 00:00:00');
     $wide_to = escapeSql(date('Y-m-d', strtotime("$to +3 days")) . ' 00:00:00');
-    $day_from = escapeSql($from . ' 00:00:00');
-    $day_to = escapeSql(date('Y-m-d', strtotime("$to +1 day")) . ' 00:00:00');
     $ready = mitReplyTimesReady();
     $columns = "ticket_reply_id, ticket_reply_by, ticket_reply_created_at, TIME_TO_SEC(ticket_reply_time_worked) AS seconds,
-            IF($billable, 1, 0) AS billable, ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_client_id, client_name";
-    // Two parts, each on its own index (database update M029: replies by person and posting time; M028: times by start) -
-    // notes without times by when they were posted, notes with times by when they were worked
-    $sql = "SELECT $columns, " . ($ready ? 'mrt.work_start, mrt.work_end' : 'NULL AS work_start, NULL AS work_end') . ", ticket_reply_created_at AS sort_at
+            IF($billable, 1, 0) AS billable, ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_client_id, client_name,
+            " . ($ready ? 'ticket_reply_work_start AS work_start, ticket_reply_work_end AS work_end' : 'NULL AS work_start, NULL AS work_end');
+    // Two parts, each on its own index: notes without times by when they were posted, notes with times by when they were worked
+    $sql = "SELECT $columns, ticket_reply_created_at AS sort_at
         FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id LEFT JOIN clients ON client_id = ticket_client_id
-        " . ($ready ? 'LEFT JOIN mit_reply_times mrt ON mrt.reply_id = ticket_reply_id' : '') . "
-        WHERE $where AND ticket_reply_created_at >= '$wide_from' AND ticket_reply_created_at < '$wide_to'" . ($ready ? ' AND mrt.reply_id IS NULL' : '');
+        WHERE $where AND ticket_reply_created_at >= '$wide_from' AND ticket_reply_created_at < '$wide_to'" . ($ready ? ' AND ticket_reply_work_start IS NULL' : '');
     if ($ready) {
-        $sql .= " UNION ALL SELECT $columns, mrt.work_start, mrt.work_end, mrt.work_start AS sort_at
-            FROM mit_reply_times mrt JOIN ticket_replies ON ticket_reply_id = mrt.reply_id JOIN tickets ON ticket_id = ticket_reply_ticket_id
-            LEFT JOIN clients ON client_id = ticket_client_id
-            WHERE $where AND mrt.work_start >= '$day_from' AND mrt.work_start < '$day_to'";
+        $sql .= " UNION ALL SELECT $columns, ticket_reply_work_start AS sort_at
+            FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id LEFT JOIN clients ON client_id = ticket_client_id
+            WHERE $where AND ticket_reply_work_start >= '$wide_from' AND ticket_reply_work_start < '$wide_to'";
     }
     $result = mysqli_query($mysqli, "$sql ORDER BY sort_at, ticket_reply_id");
     $rows = [];
     while ($row = mysqli_fetch_assoc($result)) {
         $user_id = intval($row['ticket_reply_by']);
-        $date = $row['work_start'] ? substr($row['work_start'], 0, 10) : mitTsLocalDate($user_id, $row['ticket_reply_created_at']);
+        $start = $row['work_start'] ? mitReplyPersonClock($user_id, $row['work_start']) : null;
+        $end = $row['work_end'] ? mitReplyPersonClock($user_id, $row['work_end']) : null;
+        $date = $start ? substr($start, 0, 10) : mitTsLocalDate($user_id, $row['ticket_reply_created_at']);
         if ($date < $from || $date > $to) {
             continue;
         }
@@ -418,7 +277,7 @@ function mitTsReplyWorkRowsRead(array $user_ids, $from, $to) {
             'user_id' => $user_id, 'date' => $date, 'reply_id' => intval($row['ticket_reply_id']), 'ticket_id' => intval($row['ticket_id']),
             'reference' => ticketReference($row), 'ticket_prefix' => $row['ticket_prefix'], 'ticket_number' => $row['ticket_number'], 'subject' => $row['ticket_subject'], 'client_id' => intval($row['ticket_client_id']),
             'client_name' => (string) $row['client_name'], 'billable' => intval($row['billable']), 'seconds' => intval($row['seconds']),
-            'start' => $row['work_start'], 'end' => $row['work_end'], 'est' => !$row['work_start'],
+            'start' => $start, 'end' => $end, 'est' => !$start,
         ];
     }
     return $rows;
@@ -512,9 +371,10 @@ function mitReplyTimesQuickSet($ticket_reply_id, $user_id, $date, $start, $end) 
     }
     $length = strtotime($range[1]) - strtotime($range[0]);
     $time_worked = abs($length - mitReplyTimesSeconds($reply['ticket_reply_time_worked'])) < 60 ? $reply['ticket_reply_time_worked'] : mitReplyTimesClock($length);
-    mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_time_worked = '" . escapeSql($time_worked) . "' WHERE ticket_reply_id = $ticket_reply_id");
-    mitReplyTimesPending($range);
-    mitReplyTimesSavePending($ticket_reply_id);
+    // Kept on the company's clock in ITFlow's columns
+    $store = [mitReplyCompanyClock($user_id, $range[0]), mitReplyCompanyClock($user_id, $range[1])];
+    mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_time_worked = '" . escapeSql($time_worked) . "', ticket_reply_work_start = '" . escapeSql($store[0]) . "',
+        ticket_reply_work_end = '" . escapeSql($store[1]) . "' WHERE ticket_reply_id = $ticket_reply_id");
 
     $period = mitTsPeriodFor($date);
     $words = substr($range[0], 11, 5) . ' - ' . substr($range[1], 11, 5) . ' on ' . $date;

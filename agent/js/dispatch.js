@@ -108,6 +108,7 @@
     }
 
     function request(method, params) {
+        params = window.itflowDispatchExtra ? window.itflowDispatchExtra(method, params) : params; // Mountaineer IT: board, the Schedule window's extras (agent/js/mit_dispatch.js)
         const query = new URLSearchParams(params).toString();
         const options = {method: method, credentials: 'same-origin'};
         if (method === 'POST') {
@@ -145,9 +146,10 @@
         });
     }
     function shownAgents() {
-        return agents.filter(function (a) {
+        const shown = agents.filter(function (a) {
             return state.hidden.indexOf(a.id) === -1;
         });
+        return window.itflowDispatchAgents ? window.itflowDispatchAgents(shown) : shown; // Mountaineer IT: only a board's members (agent/js/mit_dispatch.js)
     }
     function dot(color) {
         return '<span class="itflow-dispatch-dot me-1" style="background: ' + esc(color) + '"></span>';
@@ -185,6 +187,7 @@
             scheduleForm.elements.onsite.value = ticket.onsite ? '1' : '0';
             scheduleError.hidden = true;
             loadOthers(ticket);
+            scheduleModalEl.dispatchEvent(new CustomEvent('dispatch:schedule', {detail: {ticket: ticket}})); // Mountaineer IT: the ticket's details (agent/js/mit_dispatch.js)
             bootstrap.Modal.getOrCreateInstance(scheduleModalEl).show();
         });
     }
@@ -415,7 +418,7 @@
             queueEl.innerHTML = queueTickets.map(function (t) {
                 return '<div class="itflow-dispatch-item' + (canEdit ? ' is-movable' : '') + '" data-ticket="' + t.id + '" data-reference="' + esc(t.reference) + '" data-priority="' + esc(t.priority) + '" title="' + esc(canEdit ? 'Drag onto an agent and a time - click for a quick look' : 'Click for a quick look') + '">'
                     + '<div class="d-flex align-items-center gap-2"><span class="itflow-cal-priority bg-' + (priorityTones[t.priority] || 'secondary') + '" title="' + esc(t.priority) + '"></span>'
-                    + '<span class="small fw-semibold text-truncate">' + esc(t.reference + ' ' + t.subject) + '</span></div>'
+                    + '<span class="small fw-semibold text-truncate">' + esc(t.reference + ' ' + t.subject) + '</span>' + (window.itflowDispatchCardExtra ? window.itflowDispatchCardExtra(t) : '') + '</div>'
                     + '<div class="small text-body-secondary text-truncate">' + esc([t.client, t.agent_name, t.booked ? 'booked ' + t.booked : t.age, t.onsite ? 'Onsite' : ''].filter(Boolean).join(' · ')) + '</div></div>';
             }).join('');
         }).catch(function (error) {

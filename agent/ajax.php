@@ -3300,11 +3300,16 @@ if (isset($_GET['dispatch_queue']) || isset($_GET['dispatch_items']) || isset($_
     $_POST = timezoneMovePost($_POST);
 
     if (isset($_POST['dispatch_book'])) {
+        // Mountaineer IT: the booking checked, then the Schedule window's ticket details saved and its email ticks taken (functions/mit_dispatch.php)
+        if (function_exists('mitDispatchBeforeBook') && ($mit_why = mitDispatchBeforeBook($_POST)) !== '') {
+            $fail($mit_why);
+        }
         [$ok, $message, $conflicts] = dispatchBook($_POST['ticket_id'] ?? 0, $_POST['agent_id'] ?? 0, (string) ($_POST['start'] ?? ''),
             $_POST['minutes'] ?? CALENDAR_TICKET_MINUTES, !empty($_POST['onsite']), !empty($_POST['tell_client']));
         if (!$ok) {
             $fail($message);
         }
+        $message .= !empty($GLOBALS['mit_dispatch_details_message']) ? '. ' . $GLOBALS['mit_dispatch_details_message'] : ''; // Mountaineer IT
         echo json_encode(['ok' => true, 'message' => $message, 'conflicts' => $conflicts]);
         exit;
     }

@@ -38,5 +38,4 @@ echo settingsPageStart('project');
 </form>
 
 <?php
-require_once "includes/mit_project_card.php"; // Mountaineer IT: project tickets kept apart
 require_once "../includes/footer.php";

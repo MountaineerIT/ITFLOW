@@ -977,13 +977,13 @@ function mitTsDeleteBlocked($ticket_id, $client_id = 0) {
         return '';
     }
     $ready = function_exists('mitReplyTimesReady') && mitReplyTimesReady();
-    $result = mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_prefix, ticket_number, " . ($ready ? 'mrt.work_start' : 'NULL AS work_start') . "
-        FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id " . ($ready ? 'LEFT JOIN mit_reply_times mrt ON mrt.reply_id = ticket_reply_id' : '') . "
+    $result = mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_created_at, ticket_prefix, ticket_number, " . ($ready ? 'ticket_reply_work_start AS work_start' : 'NULL AS work_start') . "
+        FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id
         WHERE $which AND ticket_reply_archived_at IS NULL AND ticket_reply_time_worked > '00:00:00'
         AND ticket_reply_by IN (" . implode(',', array_keys($submitted)) . ")" . (mitTsSettings()['ticket_internal'] ? '' : ' AND ' . mitTsPublicNotesSql()));
     while ($row = mysqli_fetch_assoc($result)) {
         $user_id = intval($row['ticket_reply_by']);
-        $date = $row['work_start'] ? substr($row['work_start'], 0, 10) : mitTsLocalDate($user_id, $row['ticket_reply_created_at']);
+        $date = mitReplyPersonDate($user_id, $row['work_start'], $row['ticket_reply_created_at']); // functions/mit_reply_times.php
         foreach ($submitted[$user_id] as $sheet) {
             if ($date >= $sheet['period_start'] && $date <= $sheet['period_end']) {
                 $who = mitTsUsers([$user_id])[$user_id]['user_name'] ?? "user $user_id";
