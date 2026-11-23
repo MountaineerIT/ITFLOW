@@ -570,6 +570,7 @@ function billingItemDelete($type, $doc_id, $item_id) {
         quoteImagesDeleteFor("item_id = $item_id");
     }
     mysqli_query($mysqli, "DELETE FROM {$t['items']} WHERE item_id = $item_id");
+    if ($type === 'invoice' && function_exists('mitTicketPartsLineGone')) { mitTicketPartsLineGone($item_id); } // Mountaineer IT: ticket parts billed on this line can be billed again
     $product_id = intval($item['item_product_id']);
     if ($type === 'invoice' && $product_id && intval(getFieldById('products', $product_id, 'product_track_stock')) === 1 && floatval($item['item_quantity']) > 0) {
         productStockMove($product_id, floatval($item['item_quantity']), 'returned', [

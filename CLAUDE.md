@@ -1677,7 +1677,7 @@ model: see DEPLOYMENT.md.
   reload - one line before it). Conflicts: admin/backup.php (theirs; `mitRestoreRowButton` before Download in each row's actions, and the Restoring
   box shows our `mit_restore_card.php` instead of ITFlow's "not from this page" sentence), admin/cron.php (our card, then their auto_reload
   script), includes/billing_paper.php (theirs + `mitPaperLineImage` before the editable name). Smoke 60 adds a line through the new field.
-  Functional pass (26.11.8.1): a line billed from ticket parts keeps the parts' quantity - `mitPartLineQtyProblem` (functions/mit_procurement_parts.php)
+  Functional pass (26.11.8.1): a line billed from ticket parts keeps the parts' quantity - `mitPartLineQtyProblem` (functions/mit_procurement_parts.php; its message says to delete the line - since 26.12.1 `mitTicketPartsLineGone`, one line in ITFlow's billingItemDelete, frees the line's parts at once, not at the daily tidy)
   refuses another one in `agent/ajax.php` billing_item_set (field qty) and `agent/post/billing.php` billing_item_save (one line each), and
   `mitConsistencyParts` warns about lines that already differ (`scenario-part-line-qty.php`); the QuickBooks strip + procurement summary in
   `agent/invoice.php` sit in `<div data-billing-live="mit-invoice">` so ITFlow's refetch redraws them; `mitQboInvoiceBar` sets

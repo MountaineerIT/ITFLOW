@@ -300,6 +300,7 @@ hook	functions/billing.php	mitQboTagTimeLines	2
 hook	functions/billing.php	mitSeatNotTagDescribe	2
 hook	functions/billing.php	mitSeatNotTagFilter	2
 hook	functions/billing.php	mitSeatNotTagSql	4
+hook	functions/billing.php	mitTicketPartsLineGone	2
 hook	functions/billing.php	mitUsageApply	2
 hook	functions/billing.php	mitUsageSeatCount	2
 hook	functions/billing.php	mitUsageSeatDescribe	2

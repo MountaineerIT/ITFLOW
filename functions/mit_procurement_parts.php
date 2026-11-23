@@ -875,6 +875,25 @@ function mitProcTidy() {
     return $log;
 }
 
+
+/**
+ * ITFlow's billingItemDelete (one guarded line): ticket parts billed on a deleted invoice line can be billed again at once
+ * (To Bill, the ticket's Bill parts) - before, the daily tidy (mitProcTidy) freed them. Stock is not touched: billed parts
+ * lines carry no item_product_id, so ITFlow returns nothing for them either.
+ */
+function mitTicketPartsLineGone($item_id) {
+    global $mysqli;
+    $item_id = intval($item_id);
+    if ($item_id <= 0) {
+        return;
+    }
+    try {
+        mysqli_query($mysqli, "UPDATE mit_ticket_parts SET invoice_id = 0, invoice_item_id = 0, billed_at = NULL WHERE invoice_item_id = $item_id");
+    } catch (Throwable $e) {
+        // database update pending
+    }
+}
+
 /**
  * An invoice line billed from ticket parts (mit_ticket_parts.invoice_item_id) keeps the parts' quantity: its stock was taken (or
  * ordered) by the part, and the line carries no product (ITFlow would not move stock for it), so a quantity changed on the invoice -
@@ -895,6 +914,6 @@ function mitPartLineQtyProblem($type, $item_id, $new_qty) {
     if (abs($new_qty - round((float) $row[0], 2)) < 0.005) {
         return '';
     }
-    return 'This line was billed from parts on a ticket (' . rtrim(rtrim(number_format((float) $row[0], 2, '.', ''), '0'), '.') . ' of them) - change the part on the ticket, not the quantity here.';
+    return 'This line was billed from parts on a ticket (' . rtrim(rtrim(number_format((float) $row[0], 2, '.', ''), '0'), '.') . ' of them), so it keeps their quantity. To bill another number, delete this line (the parts go back to To Bill), change the part on the ticket, then bill it again.';
 }
 

@@ -53,6 +53,10 @@ try {
     scenarioCheck('in step: not reported', strpos($parts_findings(), "line $part_line ") === false, true);
     mysqli_query($mysqli, "UPDATE invoice_items SET item_quantity = 5 WHERE item_id = $part_line");
     scenarioCheck('a line that differs from its parts is reported', strpos($parts_findings(), "line $part_line ZZ part line cable: line 5, parts 3") !== false, true);
+
+    echo "deleting the line (as the refusal says)\n";
+    scenarioCheck('ITFlow deletes the line', (bool) billingItemDelete('invoice', $invoice, $part_line), true);
+    scenarioCheck('its parts can be billed again at once', scenarioValue("SELECT COUNT(*) FROM mit_ticket_parts WHERE ticket_id = $ticket AND invoice_id = 0 AND invoice_item_id = 0 AND billed_at IS NULL"), '2');
 } finally {
     mysqli_query($mysqli, "DELETE FROM mit_ticket_parts WHERE ticket_id = $ticket");
     if ($invoice) {

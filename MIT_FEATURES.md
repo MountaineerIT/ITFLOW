@@ -782,7 +782,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/unbilled_time.php`: mitToBillCard, mitToBillCell, mitToBillHead, mitToBillMerge, mitToBillRowAttrs, mitToBillScript, mitToBillStatNote, mitToBillTotals, mit_part_value, mit_to_bill
 - `api/v1/clients/delete.php`: mitTicketPartsDeleting
 - `functions.php`: mit_procurement
-- `functions/billing.php`: mitProcQuoteConvertGroups
+- `functions/billing.php`: mitProcQuoteConvertGroups, mitTicketPartsLineGone
 - `functions/purchase_orders.php`: mitPoMayApproveOwn, mitPoSeenTotalProblem, mitPoTellSwitches, mitProcAfterReceive, mitProcReceiveNoShelf, mitProcUndoReceiptExtras, mit_po_receipt_extras, mit_bell, mit_own
 - `functions/ticket.php`: mitTicketPartsDeleting
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
