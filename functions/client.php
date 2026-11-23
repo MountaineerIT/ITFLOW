@@ -232,3 +232,127 @@ function clientMerge($from_id, $into_id) {
 
     return $notes;
 }
+
+/*
+ * ---------- deleting a client for good (agent/post/client.php delete_client, api/v1/clients/delete.php) ----------
+ * Everything that was only theirs goes, the way each kind of record is deleted on its own: tickets with their replies,
+ * tasks, attachments, watchers and history (ticketDeleteForGood), invoices / quotes / recurring invoices with their lines,
+ * payments and history, documents with their versions, domains with their DNS records, and every link between their
+ * records. The company's own records that only named the client - expenses, purchasing lines, import rules, RMM, AI
+ * usage - stay, with no client. The caller checks first (rights, reconciled money, QuickBooks, timesheets) and logs it.
+ * Both callers used to carry their own shorter list, which left the rows above behind with no client to show them.
+ */
+
+/** The client's ids in one table - [] when the table or column is not here. */
+function clientDeleteIds($table, $id_column, $client_column, $client_id) {
+    global $mysqli;
+    $ids = [];
+    try {
+        $sql = mysqli_query($mysqli, "SELECT `$id_column` FROM `$table` WHERE `$client_column` = " . intval($client_id));
+    } catch (Throwable $e) {
+        return [];
+    }
+    while ($sql && ($row = mysqli_fetch_row($sql))) {
+        $ids[] = intval($row[0]);
+    }
+    return $ids;
+}
+
+/** Run a query that may name a table or column an older database lacks. */
+function clientDeleteQuery($query) {
+    global $mysqli;
+    try {
+        return mysqli_query($mysqli, $query);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function clientDeleteForGood($client_id) {
+    $client_id = intval($client_id);
+    if (!$client_id) {
+        return false;
+    }
+
+    // Tickets - each the way a single ticket is deleted
+    foreach (clientDeleteIds('tickets', 'ticket_id', 'ticket_client_id', $client_id) as $ticket_id) {
+        ticketDeleteForGood($ticket_id);
+    }
+    clientDeleteQuery("UPDATE rmm_alerts SET rmm_alert_ticket_id = 0 WHERE rmm_alert_ticket_id NOT IN (SELECT ticket_id FROM tickets) AND rmm_alert_ticket_id > 0");
+
+    // Invoices, quotes and recurring invoices with their lines, payments and history. Stock is not put back: what was invoiced went out.
+    foreach (clientDeleteIds('invoices', 'invoice_id', 'invoice_client_id', $client_id) as $invoice_id) {
+        clientDeleteQuery("DELETE FROM invoice_items WHERE item_invoice_id = $invoice_id");
+        clientDeleteQuery("DELETE FROM payments WHERE payment_invoice_id = $invoice_id");
+        clientDeleteQuery("DELETE FROM history WHERE history_invoice_id = $invoice_id");
+        clientDeleteQuery("UPDATE expenses SET expense_invoice_id = NULL, expense_invoice_item_id = NULL WHERE expense_invoice_id = $invoice_id");
+        clientDeleteQuery("UPDATE trips SET trip_invoice_id = 0, trip_invoice_item_id = 0 WHERE trip_invoice_id = $invoice_id");
+        clientDeleteQuery("UPDATE contract_blocks SET contract_block_invoice_id = 0 WHERE contract_block_invoice_id = $invoice_id");
+    }
+    clientDeleteQuery("DELETE FROM invoices WHERE invoice_client_id = $client_id");
+    foreach (clientDeleteIds('quotes', 'quote_id', 'quote_client_id', $client_id) as $quote_id) {
+        if (function_exists('quoteImagesDeleteFor')) {
+            quoteImagesDeleteFor("item_quote_id = $quote_id");
+        }
+        clientDeleteQuery("DELETE FROM quote_items WHERE item_quote_id = $quote_id");
+        clientDeleteQuery("DELETE FROM history WHERE history_quote_id = $quote_id");
+    }
+    clientDeleteQuery("DELETE FROM quotes WHERE quote_client_id = $client_id");
+    foreach (clientDeleteIds('recurring_invoices', 'recurring_invoice_id', 'recurring_invoice_client_id', $client_id) as $recurring_id) {
+        clientDeleteQuery("DELETE FROM recurring_invoice_items WHERE item_recurring_invoice_id = $recurring_id");
+        clientDeleteQuery("DELETE FROM history WHERE history_recurring_invoice_id = $recurring_id");
+        clientDeleteQuery("DELETE FROM recurring_payments WHERE recurring_payment_recurring_invoice_id = $recurring_id");
+        clientDeleteQuery("UPDATE recurring_expenses SET recurring_expense_recurring_invoice_id = 0 WHERE recurring_expense_recurring_invoice_id = $recurring_id");
+    }
+    clientDeleteQuery("DELETE FROM recurring_invoices WHERE recurring_invoice_client_id = $client_id");
+
+    // Links between their records (services, software, documents, files ...), then the records with children of their own
+    foreach (LINK_ENTITIES as $type => $entity) {
+        foreach (clientDeleteIds($entity['table'], $entity['id'], $entity['client'], $client_id) as $id) {
+            linkRemoveAll($type, $id);
+        }
+    }
+    foreach (clientDeleteIds('documents', 'document_id', 'document_client_id', $client_id) as $document_id) {
+        clientDeleteQuery("DELETE FROM document_versions WHERE document_version_document_id = $document_id");
+        removeDirectory(dirname(__DIR__) . "/uploads/documents/$document_id");
+    }
+    foreach (clientDeleteIds('domains', 'domain_id', 'domain_client_id', $client_id) as $domain_id) {
+        clientDeleteQuery("DELETE FROM records WHERE record_domain_id = $domain_id");
+        domainDeleteForGood($domain_id);
+    }
+    foreach (clientDeleteIds('assets', 'asset_id', 'asset_client_id', $client_id) as $asset_id) {
+        clientDeleteQuery("DELETE FROM rack_units WHERE unit_asset_id = $asset_id");
+        clientDeleteQuery("UPDATE rmm_devices SET rmm_device_asset_id = 0 WHERE rmm_device_asset_id = $asset_id");
+        clientDeleteQuery("UPDATE rmm_alerts SET rmm_alert_asset_id = 0 WHERE rmm_alert_asset_id = $asset_id");
+    }
+    clientDeleteQuery("DELETE calendar_event_attendees FROM calendar_event_attendees JOIN calendar_events ON event_id = attendee_event_id WHERE event_client_id = $client_id");
+
+    // The company's own records that only named them stay, with no client
+    $keep = ['expenses', 'recurring_expenses', 'order_items', 'po_items', 'expense_import_rules', 'income_import_rules',
+        'rmm_clients', 'rmm_devices', 'rmm_alerts', 'managed_instances', 'ai_usage'];
+    $last = ['logs', 'notifications'];
+    foreach (clientMergeTables() as [$table, $column]) {
+        if (in_array($table, $last, true)) {
+            continue;
+        }
+        clientDeleteQuery(in_array($table, $keep, true)
+            ? "UPDATE `$table` SET `$column` = 0 WHERE `$column` = $client_id"
+            : "DELETE FROM `$table` WHERE `$column` = $client_id");
+    }
+    // One-per-client rows and lists the client is on (most cascade; not on every database)
+    foreach ([['sla_assignments', 'sla_assignment_client_id'], ['kb_search_misses', 'kb_search_miss_client_id'], ['client_onboardings', 'onboarding_client_id'],
+        ['client_tags', 'client_id'], ['kb_article_clients', 'client_id'], ['ticket_template_portal_clients', 'client_id'], ['user_client_permissions', 'client_id'],
+        ['client_saved_payment_methods', 'saved_payment_client_id'], ['client_payment_provider', 'client_id']] as [$table, $column]) {
+        clientDeleteQuery("DELETE FROM `$table` WHERE `$column` = $client_id");
+    }
+
+    removeDirectory(dirname(__DIR__) . "/uploads/clients/$client_id");
+    $deleted = clientDeleteQuery("DELETE FROM clients WHERE client_id = $client_id");
+    $count = $deleted ? mysqli_affected_rows($GLOBALS['mysqli']) : 0;
+    foreach ($last as $table) {
+        clientDeleteQuery("DELETE FROM `$table` WHERE " . ($table === 'logs' ? 'log_client_id' : 'notification_client_id') . " = $client_id");
+    }
+    // The company's own-client setting does not point at a client that is gone
+    clientDeleteQuery("UPDATE settings SET config_internal_client_id = 0 WHERE config_internal_client_id = $client_id");
+    return $count;
+}

@@ -288,7 +288,7 @@ function invoiceBulkRun($action, array $invoice_ids, array $opts = []) {
                 $receipt_to = billingEmailQueue(billingEmailRecipients($client_id), $subject, $email);
                 if ($receipt_to) {
                     foreach ($applied as $entry) {
-                        billingLog('invoice', $entry['invoice']['invoice_id'], 'Sent', 'Payment receipt emailed to ' . implode(', ', $receipt_to));
+                        billingLog('invoice', $entry['invoice']['invoice_id'], getFieldById('invoices', $entry['invoice']['invoice_id'], 'invoice_status'), 'Payment receipt emailed to ' . implode(', ', $receipt_to));
                     }
                     $result['receipts']++;
                 }

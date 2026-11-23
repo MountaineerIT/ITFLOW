@@ -235,6 +235,16 @@ model: see DEPLOYMENT.md.
   leave disabled agents out (user_status 1; the record's own driver / payer kept). Both also in ITFlow's master.
   Role crawl (Nov 22): `agent/includes/inc_all_client.php` answers a missing / 0 client_id with ITFlow's own "Nothing to see here" (as for a
   client that isn't there) - client_overview, files, document, document_edit, rack were PHP fatals; smoke: last test of 01. In ITFlow's master too.
+  Client delete (Nov 23, the user's go-ahead): `clientDeleteForGood($client_id)` (functions/client.php) is the one delete behind Clients > Delete
+  (`agent/post/client.php`) and `api/v1/clients/delete.php` - each carried its own shorter list and left rows behind (ticket watchers / history /
+  attachments / tasks / SLA history, invoice / quote / recurring lines' history, recurring payments, document versions, DNS records, links between
+  records, rack places, credits, SLA choices, access rules, portal announcements, texts ...). Tickets go through ticketDeleteForGood; every table of
+  clientMergeTables() is deleted, except the company's own records that only named the client (expenses, recurring expenses, purchasing lines, import
+  rules, RMM, managed instances, AI usage), which keep their row with client 0; stock is not put back (what was invoiced went out). Scenario
+  `scenario-client-delete.php`. Receipts: a payment receipt's history line records the invoice's status after the payment (Paid / Partial), not
+  "Sent" (`billingPaymentReceiptSend`, Add Payment's bulk receipt, invoiceBulkRun Mark Paid); `scenario-receipt-history.php`. Left as ITFlow's on
+  purpose: saving Microsoft 365 / Google mail empties the SMTP / IMAP server fields - those providers always use their own fixed servers
+  (cron/mail_queue.php), and old values left there once sent the token to the old server.
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -472,7 +482,7 @@ model: see DEPLOYMENT.md.
   nothing was ordered yet. Daily cron job `mit_procurement_tidy` (`cron/mit_procurement_tidy.php`,
   `mitProcTidy`) cancels waiting items of deleted tickets/clients and frees parts whose invoice line went;
   a deleted ticket's unbilled stock parts go back on the shelf through `mitTicketPartsDeleting` (one line in
-  `functions/ticket.php` ticketDeleteForGood and in `agent/post/client.php` client delete) before the
+  `functions/ticket.php` ticketDeleteForGood, which a client delete now uses for each ticket) before the
   `mit_ticket_parts` FK cascade removes them.
   Part 2: `functions/mit_procurement_parts.php` (ours, required from mit_procurement.php), M010
   (`mit_ticket_parts`, `products.product_vendor_id`). Quote -> invoice ticks: `mitProcQuoteConvertFields` (26.12.1: a stock-tracked product starts ticked only when productOnHand is short, `[data-mit-proc-on-hand]` column; smoke 60)
@@ -1067,8 +1077,8 @@ model: see DEPLOYMENT.md.
   200 OK / 503 PROBLEM for an outside uptime monitor - the only alert when cron itself stops. Settings card
   `admin/includes/mit_cron_card.php` (one require at the end of `admin/cron.php`), handlers `admin/post/mit_cron_health.php`.
 - Audit fixes (Oct 20, 26.10.72) in our code: Graph mail listing pages on past flagged mail and fails the job on errors
-  other than throttling (`functions/mit_m365_mailbox.php`); `api/v1/clients/delete.php` calls `mitQuoteImagesDelete` /
-  `mitTicketPartsDeleting` (hooks, like agent/post/client.php); reimbursed purchases keep their expense in step
+  other than throttling (`functions/mit_m365_mailbox.php`); `api/v1/clients/delete.php` puts ticket parts back (now through
+  clientDeleteForGood -> ticketDeleteForGood); reimbursed purchases keep their expense in step
   (`mitReimbSyncExpense`, delete removes it) and become expenses from cron when approval is off (`mitReimbRecordEnded`);
   `mitLock` / `mitUnlock` (mit_common) around timesheet decide / reopen, PO create / add items, vendor bill, receiving and
   billing parts (`mitProcLock` now refuses when busy); NinjaOne: an asset deleted in ITFlow is reported, not re-created
@@ -1753,7 +1763,8 @@ model: see DEPLOYMENT.md.
     for our lists, `mitProfitDefaultBasis` / `mitProfitPartsAdd` (functions/mit_profit.php - laborProfitBasis, laborProfitAdd).
   - Note work times (ticket_replies.ticket_reply_work_*): `functions/mit_reply_times.php` - timesheets read them on the person's own
     clock (`mitReplyPersonClock`) - one zone per entry, the one in force at its start (end converted with the start as anchor); the quick fix stores with that zone (`mitReplyCompanyClock(..., $anchor)`) - scenario-ts-zone-entry; the reply box itself on the agent's own clock (the user's choice, Nov 22 - ITFlow takes company time): `mitReplyViewNow` (#workTimes data-now), `mitReplyWorkFromView` (add / edit_ticket_reply after ticketWorkRange), `mitReplyWorkToView` (note header, edit window), `mitReplyViewZoneHint` (`[data-mit-reply-zone]`) - ITFlow's viewer zone (timezoneToView / FromView); smoke: last test of 95, `mitReplyWorkGuardAdd` / `Edit` (one line each in add / edit_ticket_reply), quick fix from the day panel.
-  - Time zone: ITFlow's Preferences field; timezoneSave calls `mitTsSaveZone` (history in mit_ts_zone_changes) and mitTsSaveZone writes
+  - Time zone: ITFlow's Preferences field (the user confirmed Nov 23: ticket time lands on a timesheet in the zone in force when the work was
+    done, not the zone it was typed in later); timezoneSave calls `mitTsSaveZone` (history in mit_ts_zone_changes) and mitTsSaveZone writes
     ITFlow's user_config_timezone - kept in step both ways.
   - Microsoft 365 mail: ITFlow's Graph send / mailbox (functions/mail_graph.php); mailGraphToken's token request is signed with our
     certificate (`mitMicrosoftTokenFields`, one line); `mitM365MailGraphScopes` reads config_mail_graph_scopes. Our app, certificate,

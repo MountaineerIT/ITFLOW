@@ -614,7 +614,7 @@ function billingPaymentReceiptSend(array $applied, array $payment, $notify = fal
     $sent = billingEmailQueue(billingEmailRecipients($first['client_id']), $subject, $email);
     if ($sent) {
         foreach ($applied as $entry) {
-            billingLog('invoice', $entry['invoice']['invoice_id'], 'Sent', 'Payment receipt emailed to ' . implode(', ', $sent));
+            billingLog('invoice', $entry['invoice']['invoice_id'], getFieldById('invoices', $entry['invoice']['invoice_id'], 'invoice_status'), 'Payment receipt emailed to ' . implode(', ', $sent));
         }
     }
     if ($notify && count($applied) === 1) {

@@ -530,7 +530,7 @@ if (isset($_POST['add_bulk_payment'])) {
         $receipt_to = billingEmailQueue(billingEmailRecipients($client_id), $subject, $email);
         if ($receipt_to) {
             foreach ($applied_payments as $entry) {
-                billingLog('invoice', $entry['invoice_id'], 'Sent', 'Payment receipt emailed to ' . implode(', ', $receipt_to));
+                billingLog('invoice', $entry['invoice_id'], getFieldById('invoices', $entry['invoice_id'], 'invoice_status'), 'Payment receipt emailed to ' . implode(', ', $receipt_to));
             }
             logAudit("Payment", "Email", "Bulk Payment receipt for multiple Invoices queued to " . escapeSql(implode(', ', $receipt_to)), $client_id);
             $alert_message = " - receipt queued to <strong>" . escapeHtml(implode(', ', $receipt_to)) . "</strong>";

@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 195 | 2 | 2 | 16 | 45 | 6 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 197 | 2 | 2 | 16 | 45 | 6 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
@@ -24,7 +24,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Times on ticket notes (start / end)](#reply_times) | 1 | 3 | 13 | 4 | 20 | 7 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 23 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 21 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 26 | 57 | 21 | 92 | 20 |
@@ -776,7 +776,6 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/modals/purchasing/po_decide.php`: mitPoSeenTotalField
 - `agent/modals/quote/quote_to_invoice.php`: mitProcQuoteConvertFields
 - `agent/post/billing.php`: mitPartLineQtyProblem, mitToBillAfter, mitToBillFlash, mitToBillMerge, mit_why
-- `agent/post/client.php`: mitTicketPartsDeleting
 - `agent/post/purchase_order.php`: mitProcLock, mitProcReceiveReview
 - `agent/post/quote.php`: mitProcAfterQuoteConvert
 - `agent/project.php`: mitProcProjectCard
@@ -784,7 +783,6 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/receiving.php`: mitProcReceivingExtras
 - `agent/ticket.php`: mitTicketPartsCard
 - `agent/unbilled_time.php`: mitToBillCard, mitToBillCell, mitToBillHead, mitToBillMerge, mitToBillRowAttrs, mitToBillScript, mitToBillStatNote, mitToBillTotals, mit_part_value, mit_to_bill
-- `api/v1/clients/delete.php`: mitTicketPartsDeleting
 - `functions.php`: mit_procurement
 - `functions/billing.php`: mitProcQuoteConvertGroups, mitTicketPartsLineGone
 - `functions/purchase_orders.php`: mitPoMayApproveOwn, mitPoSeenTotalProblem, mitPoTellSwitches, mitProcAfterReceive, mitProcReceiveNoShelf, mitProcUndoReceiptExtras, mit_po_receipt_extras, mit_bell, mit_own

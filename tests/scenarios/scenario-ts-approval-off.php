@@ -35,6 +35,10 @@ try {
     mysqli_query($mysqli, "INSERT INTO users SET user_name = 'ZZ No Approval', user_email = 'zz-noappr@example.invalid', user_password = 'x', user_type = 1, user_status = 1, user_role_id = 2");
     $U = mysqli_insert_id($mysqli);
     mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $U, schedule = '0,0,0,0,0,0,0', pay_type = 'hourly', hire_date = '2026-01-01', ca_rules = 0, keeps_timesheet = 1");
+    // A bank earned every period, of its own - the test install's banks may earn nothing (the rebuilt fixture's PTO / Sick are "not earned"); set up before the period, or it earns nothing for it
+    mysqli_query($mysqli, "INSERT INTO mit_leave_banks SET bank_name = 'ZZ Earned each period', bank_codes = '', bank_method = 'period', bank_rate = 240, bank_per_worked = 0,
+        bank_year_start = 'jan1', bank_waiting_days = 0, bank_allow_negative = 0, bank_sort = 99, bank_created_at = '2026-01-01'");
+    $B = mysqli_insert_id($mysqli);
     $client = scenarioClient();
     $trip = function ($date, $miles) use ($mysqli, $U, $client) {
         mysqli_query($mysqli, "INSERT INTO trips SET trip_date = '$date', trip_purpose = 'ZZ', trip_source = 'A', trip_destination = 'B', trip_miles = $miles, round_trip = 0,
@@ -69,6 +73,11 @@ try {
         }
         mysqli_query($mysqli, "DELETE FROM mit_settings WHERE setting_name LIKE 'ts_payroll_closed_{$U}_%'");
         mysqli_query($mysqli, "DELETE FROM users WHERE user_id = $U");
+    }
+    if (!empty($B)) {
+        mysqli_query($mysqli, "DELETE FROM mit_leave_ledger WHERE bank_id = $B");
+        mysqli_query($mysqli, "DELETE FROM mit_leave_rates WHERE bank_id = $B");
+        mysqli_query($mysqli, "DELETE FROM mit_leave_banks WHERE bank_id = $B");
     }
     $restore();
 }
