@@ -109,6 +109,30 @@ test('Dispatch View: the Technician sees the board and is refused book, unbook, 
     await context.close();
 });
 
+// The side menu's Dispatch count (mitDispatchNavCount - unassigned tickets on the agent's own boards): one more unassigned ticket on one of
+// the admin's boards, one more in the count. Written after the hook proof (Nov 23) found nothing noticed it gone.
+test('the Dispatch menu count: unassigned tickets on your boards', async ({ page }) => {
+    const errors = watch(page);
+    const badge = async () => {
+        await visit(page, 'agent/dispatch.php', errors);   // the count is worked out fresh on Dispatch itself
+        const b = page.locator('.app-sidebar a[href="/agent/dispatch.php"] .badge');
+        return (await b.count()) ? Number(await b.first().innerText()) : 0;
+    };
+    const myBoard = one("SELECT m.board_id FROM mit_board_members m JOIN mit_boards b ON b.board_id = m.board_id AND b.board_archived_at IS NULL WHERE m.user_id = 1 ORDER BY m.board_id LIMIT 1");
+    const before = await badge();
+    const ticket = makeTicket({ subject: `${tag} menu count`, client: Number(one('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1')) });
+    if (myBoard) {
+        sql(`INSERT INTO mit_ticket_boards SET ticket_id = ${ticket}, board_id = ${myBoard}`);
+    }
+    try {
+        expect(await badge(), 'one more unassigned ticket on your boards').toBe(before + 1);
+    } finally {
+        sql(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${ticket}`);
+        deleteTickets([ticket]);
+    }
+    await expectClean(page, errors);
+});
+
 test.afterAll(() => {
     if (made.level !== undefined && made.level !== null) {
         sql(`UPDATE user_role_permissions p JOIN modules m USING (module_id) SET p.user_role_permission_level = ${Number(made.level)} WHERE p.user_role_id = ${roleId} AND m.module_name = 'module_dispatch'`);
