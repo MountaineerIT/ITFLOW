@@ -46,6 +46,16 @@ try {
     $GLOBALS['session_is_admin'] = false;
     scenarioCheck('top bar: nothing for an agent who is not an admin', mitCronNavHtml(), '');
     $GLOBALS['session_is_admin'] = true;
+
+    // With cron switched off ITFlow returns early - the certificate problem is still added (the hook in that branch)
+    $cron_was = scenarioValue("SELECT config_enable_cron FROM settings WHERE company_id = 1");
+    mysqli_query($mysqli, "UPDATE settings SET config_enable_cron = 0 WHERE company_id = 1");
+    try {
+        $off = array_column(cronHealthProblems(true), 'key');
+        scenarioCheck('cron switched off: still told about the certificate', [in_array('off', $off, true), in_array('m365_certificate', $off, true)], [true, true]);
+    } finally {
+        mysqli_query($mysqli, "UPDATE settings SET config_enable_cron = " . intval($cron_was) . " WHERE company_id = 1");
+    }
 } finally {
     $saved === null ? mitDeleteSetting('m365_renew_error') : mitSetSetting('m365_renew_error', $saved);
 }
