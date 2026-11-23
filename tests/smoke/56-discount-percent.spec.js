@@ -161,6 +161,12 @@ test('discounts: quotes and recurring invoices keep the percentage - new, edit, 
         expect(pct('quote', quote), 'New Quote keeps 10%').toBe('10');
         await post({ edit_quote: '1', quote_id: String(quote), date: today, expire: later, category, scope: qscope, quote_discount: '', ...percent(12) });
         expect(pct('quote', quote), 'Edit Quote: 12%').toBe('12');
+        // The quote page, its totals by how often they are billed, says "Discount (12%)" (mitDiscountLabel - includes/billing_paper.php)
+        db.exec(`INSERT INTO quote_items SET item_name = ${db.q(made.tag + ' monthly')}, item_description = '', item_quantity = 1, item_price = 100, item_subtotal = 100, item_tax = 0,
+            item_total = 100, item_order = 1, item_tax_id = 0, item_product_id = 0, item_frequency = 'month', item_quote_id = ${quote}`);
+        db.php(`billingRecalc('quote', ${quote});`);
+        await visit(page, `agent/quote.php?quote_id=${quote}`);
+        await expect(page.locator('body'), 'the quote page names the percentage').toContainText('Discount (12%)');
         await post({ add_quote_copy: '1', quote_id: String(quote), client_id: String(CLIENT), date: today, expire: later });
         const qcopy = Number(db.val(`SELECT MAX(quote_id) FROM quotes WHERE quote_client_id = ${CLIENT} AND quote_scope = ${db.q(qscope)} AND quote_id <> ${quote}`) || 0);
         made2.quotes.push(qcopy);
