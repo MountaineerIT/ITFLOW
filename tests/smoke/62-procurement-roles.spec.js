@@ -211,3 +211,20 @@ test('admin: approves what was on screen, records the bill, prints the PO', asyn
     await db.pageGet(page, `post.php?po_cancel=${made.pos[0]}&csrf_token=${encodeURIComponent(token)}`);
     expect(po(made.pos[0]).po_status, 'a received PO cannot be cancelled').toBe('received');
 });
+
+// One receive at a time (mitProcLock('receive') at the start of ITFlow's po_receive - a double click can't receive the same items twice): while
+// another session holds the lock, a receive waits and is refused. Written after the hook proof (Nov 23) found nothing noticed the lock gone.
+test('receiving: a second receive while one is running is refused', async ({ page }) => {
+    test.setTimeout(90000);
+    const { spawn } = require('child_process');
+    const holder = spawn('mysql', [process.env.ITFLOW_DB || 'itflow', '-N', '-e', "SELECT GET_LOCK('mit_proc_receive', 5); SELECT SLEEP(40);"], { stdio: 'ignore' });
+    try {
+        await new Promise((r) => setTimeout(r, 1500));   // the other session has the lock
+        await visit(page, 'agent/clients.php');   // a page with a form, for the token
+        const res = await db.pagePost(page, 'post.php', { csrf_token: await csrf(page), po_receive: '1' });
+        await visit(page, 'agent/purchase_orders.php');
+        expect(res.text + (await page.content()), 'refused while another receive runs').toContain('Someone else is doing this right now');
+    } finally {
+        holder.kill();
+    }
+});
