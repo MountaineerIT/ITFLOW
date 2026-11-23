@@ -185,6 +185,9 @@ test('admin: approves what was on screen, records the bill, prints the PO', asyn
     const pid = made.pos[1];
     await visit(page, `agent/purchase_order.php?po_id=${pid}`, errors);
     const token = await csrf(page);
+    // The Approve window carries the total the approver sees (mitPoSeenTotalField), so a PO changed meanwhile is refused (the window comes as JSON)
+    const decide = (await db.pageGet(page, `modals/purchasing/po_decide.php?po_id=${pid}&approve=1`)).text.replace(/\\"/g, '"');
+    expect(decide, 'the Approve window carries the total shown').toContain(`name="mit_seen_total" value="${Number(po(pid).po_total).toFixed(2)}"`);
     await db.pagePost(page, 'post.php', { csrf_token: token, po_decide: '1', po_id: String(pid), approve: '1', mit_seen_total: '1.00', note: '' });
     expect(po(pid).po_status, 'a stale total is refused').toBe('pending');
     await db.pagePost(page, 'post.php', { csrf_token: token, po_decide: '1', po_id: String(pid), approve: '1', mit_seen_total: po(pid).po_total, note: 'ok' });
