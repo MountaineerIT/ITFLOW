@@ -5,7 +5,7 @@
 // again; an approved one already there is used as it is) and the current one is marked approved for one step (put back).
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, expectClean } = require('./helpers');
+const { smokeName, watch, visit, openModal, fillForm, submit, flash, expectClean, csrf } = require('./helpers');
 const db = require('./db');
 
 test.describe.configure({ mode: 'serial' });
@@ -96,6 +96,13 @@ test('note time locks: submitted / approved days and days to come', async ({ pag
     await submit(lockedEdit, 'edit_ticket_reply');
     expect(await flash(page), 'refused').toContain('The time on this note stays 00:30:00');
     expect(reply('Smoke lock already there').worked, 'its time unchanged').toBe('00:30:00');
+    // ... nor archived (that would take its time off the sheet too)
+    await visit(page, ticketPage());
+    const token = await csrf(page);
+    await page.goto(`/agent/post.php?archive_ticket_reply=${there.id}&csrf_token=${encodeURIComponent(token)}`, { referer: page.url() });
+    await page.waitForLoadState('load');
+    expect(await flash(page), 'archiving refused').toContain('The time on this note stays 00:30:00');
+    expect(db.value(`SELECT ticket_reply_archived_at FROM ticket_replies WHERE ticket_reply_id = ${there.id}`), 'not archived').toBeNull();
 
     // Today on an approved timesheet: the time is not counted at all
     if (made.current) {
