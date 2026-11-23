@@ -233,6 +233,8 @@ model: see DEPLOYMENT.md.
   SLA picked by hand (not the one getTicketSlaId gives) - ITFlow 26.12 re-applied it on every edit, so any edit dropped a hand-picked SLA (our
   26.10.95 fix, lost when ITFlow's file was taken); smoke: the edit step of 15. `functions/trips.php` tripDrivers and `functions/expenses.php` expensePayers
   leave disabled agents out (user_status 1; the record's own driver / payer kept). Both also in ITFlow's master.
+  Role crawl (Nov 22): `agent/includes/inc_all_client.php` answers a missing / 0 client_id with ITFlow's own "Nothing to see here" (as for a
+  client that isn't there) - client_overview, files, document, document_edit, rack were PHP fatals; smoke: last test of 01. In ITFlow's master too.
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.

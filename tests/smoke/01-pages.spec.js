@@ -118,3 +118,15 @@ test('one of each record page', async ({ page }) => {
     expect(urls.length, 'record pages found').toBeGreaterThan(0);
     expect(await crawl(page, urls)).toEqual([]);
 });
+
+// A client page opened without a client in its address (typed or cut short) - ITFlow's "Nothing to see here", not a page of warnings
+// and a fatal (found by the role crawl, Nov 22: agent/includes/inc_all_client.php had no answer for a missing client_id)
+test('client pages without a client', async ({ page }) => {
+    for (const path of ['agent/client_overview.php', 'agent/files.php', 'agent/document.php?document_id=1', 'agent/rack.php?rack_id=1']) {
+        const res = await page.goto(path);
+        const body = await page.locator('body').innerText();
+        expect(body, `${path}: no PHP error`).not.toMatch(PHP_ERROR);
+        expect(body, `${path}: says there is nothing to see`).toContain('Nothing to see here');
+        expect(res.status(), path).toBeLessThan(500);
+    }
+});

@@ -8,6 +8,13 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/page_title.php';
 // Perms
 enforceUserPermission('module_client');
 
+// A client page opened without a client (an address typed or cut short) - as for a client that isn't there, not a page of warnings
+if (intval($_GET['client_id'] ?? 0) <= 0) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/header.php';
+    echo "<center><h1 class='text-secondary mt-5'>Nothing to see here</h1><a class='btn btn-lg btn-secondary mt-3' href='javascript:history.back()'><i class='fas fa-fw fa-arrow-left'></i> Go Back</a></center>";
+    exit;
+}
+
 if (isset($_GET['client_id'])) {
     $client_id = intval($_GET['client_id']);
 
