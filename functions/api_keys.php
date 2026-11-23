@@ -26,7 +26,13 @@ function apiKeyRow($api_key_id) {
  * the address's, still works for whatever was set up that way.
  */
 function apiKeyFromRequest() {
-    foreach ([$_SERVER['HTTP_X_API_KEY'] ?? null, $_POST['api_key'] ?? null, $_GET['api_key'] ?? null] as $key) {
+    // Mountaineer IT: also "Authorization: Bearer <key>" - our API took it since 26.10.73 (Apache doesn't always hand PHP that header in $_SERVER)
+    $bearer = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ''));
+    if ($bearer === '' && function_exists('getallheaders')) {
+        $bearer = (string) (array_change_key_case(getallheaders() ?: [], CASE_LOWER)['authorization'] ?? '');
+    }
+    $bearer = preg_match('/^Bearer\s+(\S+)$/i', $bearer, $bearer_match) ? $bearer_match[1] : null;
+    foreach ([$_SERVER['HTTP_X_API_KEY'] ?? null, $bearer, $_POST['api_key'] ?? null, $_GET['api_key'] ?? null] as $key) {
         if (is_string($key) && trim($key) !== '') {
             return trim($key);
         }

@@ -57,5 +57,4 @@ echo settingsPageStart('quote');
 </form>
 
 <?php
-require_once "includes/mit_quote_card.php"; // Mountaineer IT
 require_once "../includes/footer.php";

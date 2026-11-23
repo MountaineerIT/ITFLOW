@@ -244,4 +244,6 @@ function timezoneSave($user_id, array $post) {
     $zone = (string) $post['timezone'];
     $value = in_array($zone, timezone_identifiers_list(), true) && $zone !== timezoneCompany() ? "'" . escapeSql($zone) . "'" : 'NULL';
     mysqli_query($mysqli, "INSERT INTO user_settings SET user_id = $user_id, user_config_timezone = $value ON DUPLICATE KEY UPDATE user_config_timezone = $value");
+    // Mountaineer IT: their timesheet follows, with when it counts from - so ticket time can't move in or out of a period handed in (functions/mit_timesheets.php)
+    if (function_exists('mitTsSaveZone')) { mitTsSaveZone($user_id, $value === 'NULL' ? '' : $zone); }
 }

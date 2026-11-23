@@ -396,6 +396,10 @@ function mitTsSaveZone($user_id, $zone) {
         mitTsZoneChanges($user_id, true);
     }
     mysqli_query($mysqli, "INSERT INTO mit_timesheet_people SET user_id = $user_id, time_zone = $sql ON DUPLICATE KEY UPDATE time_zone = $sql");
+    // ITFlow's own time zone setting follows (26.12: user_settings.user_config_timezone - the calendar, Dispatch, booking emails)
+    if (function_exists('timezoneUsersReady') && timezoneUsersReady()) {
+        mysqli_query($mysqli, "INSERT INTO user_settings SET user_id = $user_id, user_config_timezone = $sql ON DUPLICATE KEY UPDATE user_config_timezone = $sql");
+    }
     mitTsForget();
     logAudit('Timesheet', 'Edit', escapeSql(mitTsWho() . ' changed the timesheet time zone of user ' . $user_id . ' from ' . ($old ?: 'the company\'s')
         . ' to ' . ($zone ?: 'the company\'s') . ', counting from ' . $effective), 0, $user_id);
@@ -1981,8 +1985,6 @@ function mitTsPreferenceFields($user_id) {
         . (mitTsRemindersOn($user_id) ? ' checked' : '') . '><label class="form-check-label" for="mitTsReminders">Remind me to fill it in</label></div></div>'
         // Admins set their own pay type here - Admin > Users does not edit your own account
         . (!empty($GLOBALS['session_is_admin']) ? mitTsPayTypeField($user_id, 'col-md-8') : '')
-        . (mitTsZoneColumn() ? '<div class="col-md-8"><label class="form-label" for="mitTsTimeZone">My time zone</label>' . mitTsZoneSelect('mit_ts_time_zone', mitTsOwnZone($user_id), 'mitTsTimeZone')
-            . '<div class="form-text">Working remotely? Your timesheet days, the day your ticket time falls on, and the times on the calendar, Dispatch and your booking emails follow this. A timesheet change counts from now - after any timesheet you have already submitted - and is logged.</div></div>' : '')
         . '<div class="col-12"><label class="form-label">Charge codes I use</label><div class="d-flex flex-wrap gap-3">';
     foreach (mitTsCodesFor($user_id) as $code_id => $code) {
         $html .= '<div class="form-check"><input class="form-check-input" type="checkbox" name="mit_ts_codes[]" value="' . intval($code_id) . '" id="mitTsCode' . intval($code_id) . '"'
@@ -2004,9 +2006,7 @@ function mitTsSavePreferences($user_id, array $post) {
         mitTsSavePayType($user_id, $post);
         logAudit('User', 'Edit', escapeSql(($GLOBALS['session_name'] ?? '') . ' set their own employment to ' . (MIT_TS_PAY_TYPES[$post['mit_pay_type']] ?? '')));
     }
-    if (isset($post['mit_ts_time_zone']) && mitTsOwnZone($user_id) !== (string) $post['mit_ts_time_zone']) {
-        mitTsSaveZone($user_id, $post['mit_ts_time_zone']);
-    }
+    // The time zone is ITFlow's own field on Preferences since 26.12 - timezoneSave passes it to mitTsSaveZone
     $shown = array_map('intval', (array) ($post['mit_ts_codes'] ?? []));
     $hidden = array_diff(array_keys(mitTsCodesFor($user_id)), $shown);
     mitSetUserPreference($user_id, 'timesheet.hidden_codes', implode(',', $hidden));

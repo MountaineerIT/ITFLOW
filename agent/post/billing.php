@@ -127,7 +127,6 @@ if (isset($_POST['billing_item_save'])) {
         flashAlert(escapeHtml($error), 'error');
         billingPostBack($type, $doc_id, $item_id ? 'items' : 'add-line');
     }
-    if ($type === 'quote' && function_exists('mitQuoteItemSave')) { mitQuoteItemSave($saved, $_POST, $_FILES, !$item_id); mitImageErrorFlash(); } // Mountaineer IT: our cost, pricing, image
     if (function_exists('mitQboLineCategorySave')) { mitQboLineCategorySave($type, $saved, $_POST); } // Mountaineer IT: the line's category (QuickBooks income account)
     if (function_exists('mitMinimumSave') && ($mit_why = mitMinimumSave($type, $saved, $_POST)) !== '') { flashAlert(escapeHtml($mit_why), 'error'); billingPostBack($type, $doc_id, 'items'); } // Mountaineer IT: a minimum commit line
 
@@ -250,7 +249,6 @@ if (isset($_GET['billing_item_delete'])) {
     $item_id = intval($_GET['billing_item_delete']);
     $row = billingPostDocument($type, $doc_id);
     if ($type === 'invoice' && function_exists('mitQboGuardInvoice')) { mitQboGuardInvoice($doc_id); } // Mountaineer IT: locked while in a QuickBooks batch
-    if ($type === 'quote' && function_exists('mitQuoteItemDelete')) { mitQuoteItemDelete($item_id); } // Mountaineer IT: the line's image file
 
     $item = billingItemDelete($type, $doc_id, $item_id);
     if (!$item) {

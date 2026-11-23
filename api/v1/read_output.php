@@ -14,6 +14,8 @@ if ($sql && mysqli_num_rows($sql) > 0) {
     while ($row = mysqli_fetch_assoc($sql)) {
         $return_arr['data'][] = $row;
     }
+    // Mountaineer IT: what things cost us never goes out through the API (functions/mit_quotes.php)
+    $return_arr['data'] = function_exists('mitApiHideCost') ? mitApiHideCost($return_arr['data']) : $return_arr['data'];
 
     // Each record's tags, when the endpoint names the kind it reads ($api_tag_entity, as in tagEntity())
     if (!empty($api_tag_entity)) {
