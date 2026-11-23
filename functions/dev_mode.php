@@ -111,6 +111,7 @@ function devModeConfigSet(bool $on, string $mail_to): string
     if (function_exists('opcache_invalidate')) {
         @opcache_invalidate($file, true);
     }
+    if (function_exists('mitDevRetireOldLines')) { mitDevRetireOldLines($file); } // Mountaineer IT: our pre-26.12 lines set off - ITFlow's decide
     foreach ($lines as $name => $value) {
         $GLOBALS[$name] = $value;
     }

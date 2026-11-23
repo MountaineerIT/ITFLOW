@@ -9,7 +9,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 79 | 14 | 12 | 45 | 233 | 40 |
 | [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 192 | 2 | 2 | 15 | 42 | 6 |
-| [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 4 |
+| [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
@@ -164,6 +164,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 - `cron/mail_queue.php`: mit_common
 - `functions.php`: mit_common, mit_ct
+- `functions/dev_mode.php`: mitDevRetireOldLines
 - `functions/logging.php`: mitDevMode
 - `includes/cron_jobs.php`: mit_ct
 

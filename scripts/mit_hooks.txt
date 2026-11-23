@@ -328,6 +328,7 @@ hook	functions/contract_signature.php	mit_line	2
 hook	functions/cron_health.php	mitCronExtraProblems	4
 hook	functions/cron_health.php	mit_cron_health	1
 hook	functions/dashboard.php	mitBoardDashAnd	6
+hook	functions/dev_mode.php	mitDevRetireOldLines	2
 hook	functions/dispatch.php	mitDispatchBoardSql	6
 hook	functions/dispatch.php	mitDispatchLevel	4
 hook	functions/dispatch.php	mitDispatchOutlookItems	2

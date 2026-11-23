@@ -19,12 +19,33 @@
  * Bridge (26.12): before ITFlow had it, ours was $config_mit_dev_mode / $config_mit_dev_mail_to. A server switched on with
  * those names only is on in ITFlow's too (below, at load) - else a copy restored from production would email real clients,
  * charge cards and read production's mailbox under ITFlow's code. Database update M067 writes ITFlow's names into
- * config.php once. When ITFlow's own setting is there, it decides.
+ * config.php once. On if either says so; switching it in Admin > Backup sets ours off (mitDevRetireOldLines), so ITFlow's decides.
  */
 
-if (!isset($GLOBALS['config_dev_mode']) && !empty($GLOBALS['config_mit_dev_mode'])) {
+if (empty($GLOBALS['config_dev_mode']) && !empty($GLOBALS['config_mit_dev_mode'])) {
+    // On if either says so (a line of ITFlow's saying false must not switch a copy of production back to real mail)
     $GLOBALS['config_dev_mode'] = 1;
-    $GLOBALS['config_dev_mail_to'] = (string) ($GLOBALS['config_mit_dev_mail_to'] ?? '');
+    if ((string) ($GLOBALS['config_dev_mail_to'] ?? '') === '') {
+        $GLOBALS['config_dev_mail_to'] = (string) ($GLOBALS['config_mit_dev_mail_to'] ?? '');
+    }
+}
+
+/**
+ * ITFlow's devModeConfigSet (one guarded line, after config.php is written): our old lines are set off, so from the first time
+ * development mode is switched in Admin > Backup (or by M067) ITFlow's two lines alone decide - and switching off works.
+ */
+function mitDevRetireOldLines($file) {
+    $text = @file_get_contents($file);
+    if ($text === false || !preg_match('/^\$config_mit_dev_(mode|mail_to)\s*=/m', $text)) {
+        return;
+    }
+    $text = preg_replace('/^\$config_mit_dev_mode\s*=.*;[ \t]*$/m', '$config_mit_dev_mode = 0;', $text);
+    $text = preg_replace('/^\$config_mit_dev_mail_to\s*=.*;[ \t]*$/m', "\$config_mit_dev_mail_to = '';", $text);
+    if (@file_put_contents($file, $text, LOCK_EX) !== false && function_exists('opcache_invalidate')) {
+        @opcache_invalidate($file, true);
+    }
+    $GLOBALS['config_mit_dev_mode'] = 0;
+    $GLOBALS['config_mit_dev_mail_to'] = '';
 }
 
 /** Is this install in development mode? ITFlow's setting (functions/dev_mode.php), or ours from before 26.12. */

@@ -331,8 +331,9 @@ if ($m067_table('cron_jobs')) {
 }
 
 // Development mode switched on with our old names: written in ITFlow's too (functions/dev_mode.php)
-if (!isset($GLOBALS['config_dev_mode']) && !empty($GLOBALS['config_mit_dev_mode']) && function_exists('devModeConfigSet')) {
-    $m067_dev_error = devModeConfigSet(true, (string) ($GLOBALS['config_mit_dev_mail_to'] ?? ''));
+// (functions/mit_dev_mode.php's bridge has already set ITFlow's variable by now, so ours is what to look at; writing them also sets ours off)
+if (!empty($GLOBALS['config_mit_dev_mode']) && function_exists('devModeConfigSet')) {
+    $m067_dev_error = devModeConfigSet(true, (string) (($GLOBALS['config_dev_mail_to'] ?? '') ?: ($GLOBALS['config_mit_dev_mail_to'] ?? '')));
     if ($m067_dev_error !== '') {
         error_log("Mountaineer IT M067: development mode could not be written to config.php - $m067_dev_error");
     }

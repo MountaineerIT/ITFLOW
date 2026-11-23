@@ -1741,7 +1741,7 @@ model: see DEPLOYMENT.md.
   - Cron health (functions/cron_health.php, Cron Watch, /health.php): `mitCronExtraProblems` (the Microsoft 365 certificate - one line at
     the end of cronHealthProblems), `mitCronNavHtml` (top-bar warning), `/mit_health.php` = require of health.php. mitUpgradeSecrets
     runs daily from cron/mit_consistency.php.
-  - Dev mode (functions/dev_mode.php): `functions/mit_dev_mode.php` bridges `$config_mit_dev_mode` -> `$config_dev_mode` at load (M067
+  - Dev mode (functions/dev_mode.php): `functions/mit_dev_mode.php` bridges `$config_mit_dev_mode` -> `$config_dev_mode` at load - on if either says so; ITFlow's devModeConfigSet sets ours off (`mitDevRetireOldLines`, one line), so after the first switch in Admin > Backup ITFlow's lines alone decide (M067
     writes ITFlow's names), keeps `mitDevAllows` for our integrations and the custom-action hook.
   - Restore (functions/backup_restore.php, queued, cron): `mitRestoreUseTempDir` at the start of backupRestoreRunQueued; setup /
     restore_cli keep `mitRestoreItflowUpdates`.

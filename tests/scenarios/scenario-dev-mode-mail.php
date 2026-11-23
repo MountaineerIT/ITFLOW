@@ -39,7 +39,9 @@ $run = function () {
 };
 try {
     // On, with a test inbox
-    scenarioCheck('switched on in config.php, with our old names only (the bridge)', $set('config_mit_dev_mode', 1) . $set('config_mit_dev_mail_to', 'test-inbox@example.invalid'), '');
+    // ITFlow's own lines there saying off (as its Admin > Backup switch leaves them): ours saying on still wins - on if either says so
+    scenarioCheck('switched on in config.php, with our old names only (the bridge)', $set('config_dev_mode', false) . $set('config_dev_mail_to', '')
+        . $set('config_mit_dev_mode', 1) . $set('config_mit_dev_mail_to', 'test-inbox@example.invalid'), '');
     $queue("$tag one");
     $out = $run();
     $mine = array_values(array_filter($sent(), function ($m) use ($tag) { return strpos($m, "$tag one") !== false; }));
@@ -163,8 +165,14 @@ try {
         scenarioCleanup();
     }
 
+    // Switched in Admin > Backup (ITFlow's devModeConfigSet): our old lines are set off, so ITFlow's alone decide - and off is off
+    $set('config_mit_dev_mode', 1);
+    scenarioCheck("ITFlow's switch: off written", devModeConfigSet(false, ''), '');
+    $text = (string) file_get_contents($config);
+    scenarioCheck('... our old lines set off with it', [(bool) preg_match('/^\$config_mit_dev_mode = 0;/m', $text), (bool) preg_match("/^\\\$config_mit_dev_mail_to = '';/m", $text)], [true, true]);
+    scenarioCheck('... and the copy is out of development mode', trim((string) shell_exec('cd ' . escapeshellarg(getcwd()) . ' && php -r ' . escapeshellarg('require "config.php"; require "functions.php"; echo mitDevMode() ? "on" : "off";') . ' 2>&1')), 'off');
+
     // Off again: mail goes to the real recipient
-    $set('config_mit_dev_mode', 0);
     $queue("$tag three");
     $run();
     $mine = array_values(array_filter($sent(), function ($m) use ($tag) { return strpos($m, "$tag three") !== false; }));
