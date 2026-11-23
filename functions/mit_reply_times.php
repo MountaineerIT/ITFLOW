@@ -20,17 +20,27 @@ function mitReplyTimesReady() {
 }
 
 /** A company-clock datetime as the person's own clock read it then (their timesheet zone in force - functions/mit_timesheets.php). */
-function mitReplyPersonClock($user_id, $datetime) {
+function mitReplyPersonClock($user_id, $datetime, $anchor = null) {
     if (!$datetime || !function_exists('mitTsZoneAt')) {
         return $datetime;
     }
-    [$zone] = mitTsZoneAt($user_id, (string) $datetime);
+    // One zone for a whole entry: the one in force when its work started ($anchor) - an end converted with a later zone could fall before its start
+    [$zone] = mitTsZoneAt($user_id, (string) ($anchor ?: $datetime));
     return $zone ? (new DateTime((string) $datetime))->setTimezone(new DateTimeZone($zone))->format('Y-m-d H:i:s') : $datetime;
 }
 
-/** A datetime on the person's own clock (their zone now) as the company's clock reads it - for storing in ITFlow's columns. */
-function mitReplyCompanyClock($user_id, $datetime) {
-    $zone = function_exists('mitTsOwnZone') ? mitTsOwnZone($user_id) : '';
+/**
+ * A datetime on the person's own clock as the company's clock reads it - for storing in ITFlow's columns. Their zone now, or - for an
+ * entry already stored ($anchor = its company-clock start) - the zone it is listed with (mitReplyPersonClock), so a fix to an older
+ * entry stays where it was shown.
+ */
+function mitReplyCompanyClock($user_id, $datetime, $anchor = null) {
+    if ($anchor && function_exists('mitTsZoneAt')) {
+        [$zone] = mitTsZoneAt($user_id, (string) $anchor);
+        $zone = (string) $zone;
+    } else {
+        $zone = function_exists('mitTsOwnZone') ? mitTsOwnZone($user_id) : '';
+    }
     if (!$datetime || $zone === '') {
         return $datetime;
     }
@@ -48,7 +58,7 @@ function mitReplyTimesOf($ticket_reply_id) {
         return null;
     }
     return ['work_start' => mitReplyPersonClock($row['ticket_reply_by'], $row['ticket_reply_work_start']),
-        'work_end' => mitReplyPersonClock($row['ticket_reply_by'], $row['ticket_reply_work_end'])];
+        'work_end' => mitReplyPersonClock($row['ticket_reply_by'], $row['ticket_reply_work_end'], $row['ticket_reply_work_start'])];
 }
 
 /** The day a note counts on for its author's timesheet: the day its work started, else the day it was posted - both where they were. */
@@ -268,7 +278,7 @@ function mitTsReplyWorkRowsRead(array $user_ids, $from, $to) {
     while ($row = mysqli_fetch_assoc($result)) {
         $user_id = intval($row['ticket_reply_by']);
         $start = $row['work_start'] ? mitReplyPersonClock($user_id, $row['work_start']) : null;
-        $end = $row['work_end'] ? mitReplyPersonClock($user_id, $row['work_end']) : null;
+        $end = $row['work_end'] ? mitReplyPersonClock($user_id, $row['work_end'], $row['work_start'] ?: null) : null;
         $date = $start ? substr($start, 0, 10) : mitTsLocalDate($user_id, $row['ticket_reply_created_at']);
         if ($date < $from || $date > $to) {
             continue;
@@ -347,7 +357,7 @@ function mitReplyTimesQuickSet($ticket_reply_id, $user_id, $date, $start, $end) 
     if ($why !== '') {
         return $why;
     }
-    $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_type, ticket_reply_created_at, ticket_reply_time_worked, ticket_reply_archived_at,
+    $reply = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_by, ticket_reply_type, ticket_reply_created_at, ticket_reply_time_worked, ticket_reply_archived_at, ticket_reply_work_start,
         ticket_id, ticket_prefix, ticket_number, ticket_client_id FROM ticket_replies JOIN tickets ON ticket_id = ticket_reply_ticket_id WHERE ticket_reply_id = $ticket_reply_id"));
     if (!$reply || intval($reply['ticket_reply_by']) !== $user_id || $reply['ticket_reply_archived_at'] !== null || $reply['ticket_reply_type'] === 'Client'
         || mitReplyTimesSeconds($reply['ticket_reply_time_worked']) <= 0) {
@@ -372,7 +382,9 @@ function mitReplyTimesQuickSet($ticket_reply_id, $user_id, $date, $start, $end) 
     $length = strtotime($range[1]) - strtotime($range[0]);
     $time_worked = abs($length - mitReplyTimesSeconds($reply['ticket_reply_time_worked'])) < 60 ? $reply['ticket_reply_time_worked'] : mitReplyTimesClock($length);
     // Kept on the company's clock in ITFlow's columns
-    $store = [mitReplyCompanyClock($user_id, $range[0]), mitReplyCompanyClock($user_id, $range[1])];
+    // with the zone the entry is listed with (its old start, else when it was posted), not the person's zone now
+    $anchor = $reply['ticket_reply_work_start'] ?: $reply['ticket_reply_created_at'];
+    $store = [mitReplyCompanyClock($user_id, $range[0], $anchor), mitReplyCompanyClock($user_id, $range[1], $anchor)];
     mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_time_worked = '" . escapeSql($time_worked) . "', ticket_reply_work_start = '" . escapeSql($store[0]) . "',
         ticket_reply_work_end = '" . escapeSql($store[1]) . "' WHERE ticket_reply_id = $ticket_reply_id");
 
