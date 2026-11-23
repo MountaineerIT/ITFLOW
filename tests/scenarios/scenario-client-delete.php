@@ -76,6 +76,9 @@ try {
     $made['rack_units'] = $has('rack_units') ? $ins('rack_units', ['unit_rack_id' => $rack, 'unit_asset_id' => $asset]) : 0;
     $service = $ins('services', ['service_client_id' => $client, 'service_name' => 'zz']);
     $link = $has('service_assets') ? $ins('service_assets', ['service_id' => $service, 'asset_id' => $asset]) : 0;
+    // ITFlow 26.12.1's phone systems: a call of theirs goes with them, their phone system domain stays with no client (as ITFlow's own delete did)
+    $domain_row = $has('phone_domains') ? $ins('phone_domains', ['phone_domain_system_id' => 0, 'phone_domain_name' => "zz$stamp.pbx", 'phone_domain_client_id' => $client]) : 0;
+    $call = $has('phone_calls') ? $ins('phone_calls', ['phone_call_system_id' => 0, 'phone_call_uuid' => "zz-$stamp", 'phone_call_started_at' => date('Y-m-d H:i:s'), 'phone_call_client_id' => $client]) : 0;
     // Settings for the client
     $ins('user_client_permissions', ['user_id' => 1, 'client_id' => $client, 'permission_type' => 'allow']);
 
@@ -103,10 +106,19 @@ try {
     }
     scenarioCheck('... the access rules naming them', $count("SELECT COUNT(*) FROM user_client_permissions WHERE client_id = $client"), 0);
     echo "the company's own records stay\n";
+    if ($call) {
+        scenarioCheck('their call is gone', $count("SELECT COUNT(*) FROM phone_calls WHERE phone_call_id = $call"), 0);
+    }
+    if ($domain_row) {
+        scenarioCheck('their phone system domain stays, linked to no client', scenarioValue("SELECT phone_domain_client_id FROM phone_domains WHERE phone_domain_id = $domain_row"), '0');
+    }
     scenarioCheck('the expense is kept, with no client', scenarioValue("SELECT expense_client_id FROM expenses WHERE expense_id = $expense"), '0');
     echo "another client\n";
     scenarioCheck('their ticket and its watcher are untouched', $count("SELECT (SELECT COUNT(*) FROM tickets WHERE ticket_id = $other_ticket) + (SELECT COUNT(*) FROM ticket_watchers WHERE watcher_id = $other_watcher)"), 2);
 } finally {
+    if (!empty($domain_row)) {
+        mysqli_query($mysqli, "DELETE FROM phone_domains WHERE phone_domain_id = " . intval($domain_row));
+    }
     if (!empty($expense)) {
         mysqli_query($mysqli, "DELETE FROM expenses WHERE expense_id = " . intval($expense));
     }
