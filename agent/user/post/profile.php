@@ -137,6 +137,12 @@ if (isset($_POST['edit_your_user_preferences'])) {
     mitTsSavePreferences($session_user_id, $_POST); // Mountaineer IT: timesheet
     mitThemeSavePreference($session_user_id, $_POST); // Mountaineer IT: look
 
+    // Your desk phone - its calls pop up (functions/phone.php)
+    if (phoneTablesReady() && array_key_exists('phone_line', $_POST)) {
+        $phone_line = phoneLineValue($_POST['phone_line']);
+        mysqli_query($mysqli, "UPDATE user_settings SET user_config_phone_line = " . ($phone_line === '' ? 'NULL' : "'" . escapeSql($phone_line) . "'") . " WHERE user_id = $session_user_id");
+    }
+
     logAudit("User Account", "Edit", "$session_name updated their preferences");
 
     flashAlert("Your preferences are saved");

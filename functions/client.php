@@ -79,7 +79,8 @@ function clientMergeTables() {
         ['portal_announcements', 'announcement_client_id'], ['sms_messages', 'sms_message_client_id'],
         ['kb_article_feedback', 'kb_article_feedback_client_id'], ['order_items', 'order_item_client_id'], ['po_items', 'po_item_client_id'],
         ['expense_import_rules', 'import_rule_client_id'], ['income_import_rules', 'import_rule_client_id'],
-        ['rmm_clients', 'rmm_client_client_id'], ['rmm_devices', 'rmm_device_client_id'], ['rmm_alerts', 'rmm_alert_client_id'],
+        ['rmm_clients', 'rmm_client_client_id'], ['rmm_devices', 'rmm_device_client_id'], ['rmm_alerts', 'rmm_alert_client_id'], ['rmm_networks', 'rmm_network_client_id'], ['rmm_seen', 'rmm_seen_client_id'],
+        ['phone_domains', 'phone_domain_client_id'], ['phone_calls', 'phone_call_client_id'], ['phone_devices', 'phone_device_client_id'], ['phone_events', 'phone_event_client_id'],
         ['managed_instances', 'managed_instance_client_id'], ['ai_usage', 'ai_usage_client_id'],
         ['logs', 'log_client_id'], ['notifications', 'notification_client_id'],
     ];
@@ -329,7 +330,8 @@ function clientDeleteForGood($client_id) {
 
     // The company's own records that only named them stay, with no client
     $keep = ['expenses', 'recurring_expenses', 'order_items', 'po_items', 'expense_import_rules', 'income_import_rules',
-        'rmm_clients', 'rmm_devices', 'rmm_alerts', 'managed_instances', 'ai_usage'];
+        'rmm_clients', 'rmm_devices', 'rmm_alerts', 'rmm_networks', 'rmm_seen', 'phone_domains', 'managed_instances', 'ai_usage'];
+    // (ITFlow 26.12.1: the client's calls, phones and call events go with it; its phone system domains stay, no longer linked - as ITFlow's own delete did)
     $last = ['logs', 'notifications'];
     foreach (clientMergeTables() as [$table, $column]) {
         if (in_array($table, $last, true)) {

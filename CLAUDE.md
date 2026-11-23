@@ -1799,6 +1799,13 @@ model: see DEPLOYMENT.md.
     po_receive (`mitProcLock('receive')`, `mitProcReceiveReview`), agent/purchase_order.php (`mitPoProjectMenuItem`, `mitPoItemFor` under
     each line), agent/receiving.php (`mitProcReceivingExtras`). Now ITFlow's rules: receiving always shelves own stock and makes assets
     where a type is picked; undoing a receipt needs Full Procurement; draft POs are cancelled, not deleted.
+- ITFlow 26.12.1 (Nov 23, 26.12.1.1 - master, 18 commits; database 4.1.1 -> 4.1.7): phone systems (functions/phone.php - FusionPBX, desk phones,
+  screen pops, `phone_*` tables), network platforms (functions/rmm_unifi.php, rmm_network.php - UniFi, `rmm_networks` / `rmm_seen`, interface
+  links from the platform), rack holders (4.1.3 rack_units slot / holder / position), P&L by quarter, RMM fixes. No name clashes; the report's
+  overlaps were word matches (ITFlow's RMM is Tactical + UniFi - our NinjaOne stays). The user chose 26.12.1.1 (ITFlow's version + ours) for it.
+  Conflicts: admin/includes/side_nav.php (our Integrations line, then theirs), agent/user/user_preferences.php (our Timesheet section, then
+  their My desk phone), agent/post/client.php (our clientDeleteForGood kept - their new phone step moved into it: clientMergeTables now lists
+  the phone / rmm tables, and clientDeleteForGood keeps phone_domains, rmm_networks, rmm_seen with client 0, deletes calls / phones / events).
 - AI helper and ITFlow's Knowledge Base (Nov 22, 26.12.1 - the user's request: Ask Bob reads the new Knowledge Base; Write up can save to it,
   published or draft). Library: M070 `mit_ai_sources.kb_article_id` (UNIQUE, FK kb_articles CASCADE); `mitAiKbColumn` / `mitAiKbReady` (kbOn() + the
   column), `mitAiKbSource` - published (`kb_article_published_at` set), unarchived articles only (the user's choice), client 0 (any agent with Support view
