@@ -22,7 +22,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
-| [Times on ticket notes (start / end)](#reply_times) | 1 | 3 | 13 | 4 | 20 | 7 |
+| [Times on ticket notes (start / end)](#reply_times) | 1 | 5 | 13 | 4 | 20 | 7 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 21 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
@@ -679,7 +679,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ticket_replies.ticket_reply_time_worked holds the length; the timer fields are #hours / #minutes / #seconds.
 - flashAlert keeps one message (mitReplyTimesFlash adds the time warning back).
 
-**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`
+**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-ts-zone-entry.php`
 
 **Hooks in ITFlow's files**
 

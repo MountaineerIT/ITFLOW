@@ -202,7 +202,7 @@ return [
     'reply_times' => [
         'name' => 'Times on ticket notes (start / end)',
         'files' => ['functions/mit_reply_times.php'],
-        'tests' => ['tests/smoke/09-note-times.spec.js', 'tests/smoke/45-note-time-locks.spec.js', 'tests/smoke/74-ts-ticket-moves.spec.js'],
+        'tests' => ['tests/smoke/09-note-times.spec.js', 'tests/smoke/45-note-time-locks.spec.js', 'tests/smoke/74-ts-ticket-moves.spec.js', 'tests/smoke/95-time-zones.spec.js', 'tests/scenarios/scenario-ts-zone-entry.php'],
         'assumes' => [
             'ticket_replies.ticket_reply_time_worked holds the length; the timer fields are #hours / #minutes / #seconds.',
             'flashAlert keeps one message (mitReplyTimesFlash adds the time warning back).',

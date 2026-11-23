@@ -4,7 +4,7 @@
 // (mit_timesheet_people.time_zone) and a dated change (mit_ts_zone_changes), so ticket time can't move in or out of a period handed in;
 // back on the company's clock clears it. The admin's zone is put back.
 const { test, expect } = require('@playwright/test');
-const { watch, visit, fillForm, submit, expectClean } = require('./helpers');
+const { watch, visit, fillForm, submit, openModal, expectClean } = require('./helpers');
 const { sql, one, php, makeTicket, deleteTickets } = require('./t2db');
 
 const ZONE = 'Asia/Tokyo';
@@ -74,6 +74,15 @@ test("note times: typed on the agent's own clock, stored on the company's", asyn
         const want = (t) => php(`echo (new DateTime('${day} ${t}', new DateTimeZone('${ZONE}')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s');`).trim();
         expect([row.s, row.e], 'kept on the company clock').toEqual([want('09:00:00'), want('10:00:00')]);
         await expect(page.locator('[title="When the work was done"]').first(), 'shown back on their clock').toContainText('9:00');
+        // Edit Note: its times on their clock in the window, and a change typed there stored on the company's
+        const replyId = one(`SELECT ticket_reply_id FROM ticket_replies WHERE ticket_reply_ticket_id = ${ticket} ORDER BY ticket_reply_id DESC LIMIT 1`);
+        const edit = await openModal(page, `modals/ticket/ticket_reply_edit.php?id=${replyId}`, 'lg');
+        await expect(edit.locator('input[name=work_start]'), 'the edit window on their clock').toHaveValue('09:00');
+        await expect(edit.locator('[data-mit-reply-zone]'), 'the edit window says whose clock').toContainText(ZONE);
+        await edit.locator('input[name=work_end]').fill('10:30');
+        await submit(edit.locator('form').first(), 'edit_ticket_reply');
+        const edited = JSON.parse(one(`SELECT JSON_OBJECT('s', ticket_reply_work_start, 'e', ticket_reply_work_end) FROM ticket_replies WHERE ticket_reply_id = ${replyId}`));
+        expect([edited.s, edited.e], 'an edit typed on their clock, kept on the company clock').toEqual([want('09:00:00'), want('10:30:00')]);
         await expectClean(page, errors);
     } finally {
         deleteTickets([ticket]);
