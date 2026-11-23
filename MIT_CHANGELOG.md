@@ -29,6 +29,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Ask Bob: the library job run on its own (as the server does) now keeps Knowledge Base articles - it read the Knowledge Base as switched off and dropped them.
 - A client page opened without a client in its address shows ITFlow's "Nothing to see here" instead of a page of errors.
 
+- Tests: Employment set in Admin > Users (new login, edit, invite) and the two checks on ITFlow's in-place invoice lines (a QuickBooks batch, a parts line's quantity) now have tests that fail if they are lost - the hook proof had found none.
 ## 26.11.8.12 - 2026-11-20
 - The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).
 - Credits for the third-party software included in this build: the draw.io editor (Apache License 2.0, © JGraph Holdings Ltd / draw.io AG - included unchanged, not affiliated with draw.io) and the Inter typeface (SIL Open Font License). The diagram editor's bar now names the editor and links to its license.

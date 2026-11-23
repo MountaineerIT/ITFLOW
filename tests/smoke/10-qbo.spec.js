@@ -142,6 +142,10 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
             account: '1', payment_method: 'Cash', reference: 'Smoke test refused', currency_code: 'USD', balance: '110', email_receipt: '0' });
         await visit(page, invoicePage(), errors);
         await expect(page.locator('body'), 'no payment while batched').not.toContainText('Smoke test refused');
+        // ITFlow 26.11.8's in-place add (agent/ajax.php billing_item_add) is refused too - the invoice is still a Draft, so only our lock stops it
+        await post(page, '/agent/ajax.php', { billing_item_add: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test refused add', description: '',
+            qty: '1', price: '1', tax_id: '0', product_id: '0' });
+        expect(db.value(`SELECT COUNT(*) FROM invoice_items WHERE item_invoice_id = ${made.invoiceId} AND item_name = 'Smoke test refused add'`), 'no line added while batched').toBe('0');
     });
     const state = await mock(page, '/_state');
     const qbo = state.invoices.find((i) => i.PrivateNote && i.PrivateNote.includes('From ITFlow invoice'));

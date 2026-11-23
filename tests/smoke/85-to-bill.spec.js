@@ -6,7 +6,7 @@
 // clients, tickets, parts and category, and removes them and the invoices it made.
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, expectClean } = require('./helpers');
+const { smokeName, watch, visit, expectClean, csrf } = require('./helpers');
 const db = require('./mitdb');
 
 test.describe.configure({ mode: 'serial' });
@@ -107,6 +107,12 @@ test('one client: parts beside the ticket, in the total, on the same invoice', a
     expect(Number(db.val(`SELECT invoice_id FROM mit_ticket_parts WHERE part_id = ${made.cable}`)), 'the cable waits').toBe(0);
     expect(Number(db.val(`SELECT COUNT(*) FROM ticket_replies WHERE ticket_reply_ticket_id = ${made.ticketA} AND ticket_reply LIKE 'Billed 1 part%'`)), 'a note on the ticket').toBe(1);
     expect(Number(db.val(`SELECT invoice_amount FROM invoices WHERE invoice_id = ${invoice}`)), "the invoice's amount: the hour + 220").toBeCloseTo(hour + 220, 2);
+    // ITFlow 26.11.8's in-place quantity (agent/ajax.php billing_item_set) can't take a parts line away from its parts' quantity
+    const lineId = db.val(`SELECT item_id FROM invoice_items WHERE item_invoice_id = ${invoice} AND item_name = ${db.q(N.ssd)}`);
+    const set = await db.pagePost(page, '/agent/ajax.php', { csrf_token: await csrf(page), billing_item_set: '1', type: 'invoice', doc_id: String(invoice),
+        item_id: String(lineId), field: 'qty', value: '5' });
+    expect(JSON.parse(set.text).message || '', 'refused, saying why').toContain('billed from parts');
+    expect(Number(db.val(`SELECT item_quantity FROM invoice_items WHERE item_id = ${lineId}`)), 'the line keeps the parts\' quantity').toBe(2);
     await expectClean(page, errors);
 });
 

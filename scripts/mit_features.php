@@ -265,7 +265,7 @@ return [
     'timesheets' => [
         'name' => 'Timesheets, payroll, leave, California rules, holidays, reimbursements',
         'files' => ['functions/mit_timesheet*.php', 'functions/mit_ts_*.php', 'functions/mit_leave.php', 'functions/mit_invites.php', 'functions/mit_reimbursements.php', 'agent/mit_timesheet*.php', 'agent/js/mit_timesheet.js', 'agent/modals/mit_timesheet/*.php', 'agent/modals/mit_reimburse/*.php', 'agent/post/mit_timesheets.php', 'agent/post/mit_reimbursements.php', 'agent/mit_receipt.php', 'agent/reports/mit_payroll.php', 'agent/includes/mit_timesheet_nav.php', 'admin/mit_timesheets.php', 'admin/modals/mit_timesheets/*.php', 'admin/post/mit_timesheets.php', 'cron/mit_timesheets.php'],
-        'tests' => ['tests/smoke/04-permissions.spec.js', 'tests/smoke/05-california.spec.js', 'tests/smoke/19-own-employment.spec.js', 'tests/smoke/29-payroll-payback.spec.js', 'tests/smoke/31-rest-breaks.spec.js', 'tests/smoke/7[0-9]-*.spec.js', 'tests/scenarios/scenario-ts-*.php', 'tests/scenarios/fixture-hourly.php'],
+        'tests' => ['tests/smoke/04-permissions.spec.js', 'tests/smoke/05-california.spec.js', 'tests/smoke/19-own-employment.spec.js', 'tests/smoke/29-payroll-payback.spec.js', 'tests/smoke/41-admin-employment.spec.js', 'tests/smoke/31-rest-breaks.spec.js', 'tests/smoke/7[0-9]-*.spec.js', 'tests/scenarios/scenario-ts-*.php', 'tests/scenarios/fixture-hourly.php'],
         'assumes' => [
             'Ticket time = ticket_replies.ticket_reply_time_worked by ticket_reply_by; billable by tickets.ticket_billable.',
             'Mileage is ITFlow trips (trip_own_vehicle, tripClaim, config_mileage_rate); purchases are ITFlow expenses (expense_paid_by, expenseReimburse, reimbursementDelete).',
