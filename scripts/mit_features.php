@@ -380,7 +380,7 @@ return [
     'discount_percent' => [
         'name' => 'Percentage discounts: ITFlow\'s Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks',
         'files' => ['functions/mit_discount.php', 'admin/database_updates/mountaineerit/M064.php'],
-        'tests' => ['tests/smoke/56-discount-percent.spec.js', 'tests/scenarios/scenario-discount-percent.php'],
+        'tests' => ['tests/smoke/56-discount-percent.spec.js', 'tests/scenarios/scenario-discount-percent.php', 'tests/scenarios/scenario-discount-pdf.php'],
         'assumes' => [
             'ITFlow\'s billingRecalc (functions/billing.php) reads *_discount_amount and works every total out from it - invoices, quotes, recurring invoices; billingLinesOpen says when lines may still change.',
             'recurringInvoiceGenerate and quoteConvert copy the discount dollars and call billingRecalc on the new document; billingItems gives item_subtotal / item_product_id / item_name.',
