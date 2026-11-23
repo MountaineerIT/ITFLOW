@@ -92,7 +92,7 @@ return [
     'emails' => [
         'name' => 'Email look: logo inside the message, resolved wording, notification switches',
         'files' => ['functions/mit_notifications.php', 'agent/js/mit_schedule_notify.js'],
-        'tests' => ['tests/scenarios/scenario-mail-logo.php', 'tests/smoke/25-notifications.spec.js'],
+        'tests' => ['tests/scenarios/scenario-mail-logo.php', 'tests/smoke/25-notifications.spec.js', 'tests/scenarios/scenario-sched-booking.php', 'tests/scenarios/scenario-sched-gaps.php'],
         'assumes' => [
             'Every email is built by ITFlow\'s emailHtml / emailQueue / ticketMailSend and sent by cron/mail_queue.php.',
             'emailHtml links the logo as https://<base url>/uploads/settings/<file> (mitMailInlineImages embeds it).',

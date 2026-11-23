@@ -13,7 +13,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
-| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 2 | 8 | 7 | 18 | 6 |
+| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 6 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 6 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
@@ -297,7 +297,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Each recipient is greeted by emailQueue ("Hello <name>,") - our wording must not greet again.
 - ticketMailSchedule / ticketMailAssigned / recurringTicketMailAssigned are where schedule and assignment mail is built.
 
-**Tests** `tests/scenarios/scenario-mail-logo.php`, `tests/smoke/25-notifications.spec.js`
+**Tests** `tests/scenarios/scenario-mail-logo.php`, `tests/smoke/25-notifications.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-gaps.php`
 
 **Hooks in ITFlow's files**
 
