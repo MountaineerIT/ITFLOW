@@ -6,6 +6,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 
 ## 26.12.1.1 - 2026-11-23
 - ITFlow 26.12.1 is in (database 4.1.1 -> 4.1.7). New in ITFlow: phone systems (FusionPBX calls matched to contacts, Add to Ticket with talk time, Yealink / Polycom desk phones as Phone assets, screen pops with "My desk phone" in Preferences), network platforms (UniFi device sync, sites' networks and VLANs, which switch port each asset plugs into, tickets when devices go offline), rack holders (devices side by side, e.g. server nodes in a chassis), Profit and Loss by quarter, and RMM sync fixes. Nothing of ours overlaps it - ITFlow's RMM is Tactical and UniFi; our NinjaOne sync stays.
+- Diagram from this client's assets: a rack holder (ITFlow 26.12.1's chassis with devices side by side) is drawn as one box naming what is in it - its devices were drawn as boxes of their own over it.
 - Deleting a client also removes its calls, phones and call events and unlinks its phone system domains, as ITFlow's own delete does; the new RMM network records stay, with no client, like its RMM devices.
 
 ## 26.12.1 - 2026-11-22

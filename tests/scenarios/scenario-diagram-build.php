@@ -59,6 +59,13 @@ try {
     $rack = $made['racks'][] = $q("INSERT INTO racks SET rack_name = 'ZZ Rack A', rack_units = 12, rack_location_id = $hq, rack_client_id = $client_id");
     $q("INSERT INTO rack_units SET unit_start_number = 10, unit_end_number = 11, unit_device = 'Core switch', unit_face = 'front', unit_rack_id = $rack, unit_asset_id = $sw");
     $q("INSERT INTO rack_units SET unit_start_number = 1, unit_end_number = 2, unit_device = 'Rear PDU', unit_face = 'rear', unit_rack_id = $rack");
+    // ITFlow 4.1.3: a holder (chassis) with two devices in it - named inside its box, not drawn over it
+    $holder = $q("INSERT INTO rack_units SET unit_start_number = 5, unit_end_number = 6, unit_device = 'Blade chassis', unit_face = 'front', unit_rack_id = $rack");
+    if (mitColumnReady('rack_units', 'unit_parent_id')) {
+        foreach (['Node one', 'Node two'] as $i => $node) {
+            $q("INSERT INTO rack_units SET unit_start_number = 5, unit_end_number = 6, unit_device = '$node', unit_face = 'front', unit_rack_id = $rack, unit_parent_id = $holder, unit_position = " . ($i + 1));
+        }
+    }
 
     [$xml, $summary] = mitDiagramFromAssets($client_id);
     $dom = $model($xml);
@@ -83,6 +90,10 @@ try {
     scenarioCheck('workstations left out by default', $cell($dom, "a$lt"), null);
     scenarioCheck('another client\'s assets never', $cell($dom, "a$foreign"), null);
     scenarioCheck('the rack: the front unit at U10-11, the rear one beside it', [strpos($xml, 'Core switch') !== false, strpos($xml, 'Rear PDU') !== false, strpos($xml, 'ZZ Rack A - rear') !== false], [true, true, true]);
+    if (mitColumnReady('rack_units', 'unit_parent_id')) {
+        scenarioCheck('a holder names what is in it, in its own box', strpos($xml, 'Blade chassis (Node one, Node two)') !== false, true);
+        scenarioCheck('... and its devices are not boxes of their own over it', substr_count($xml, 'Node one'), 1);
+    }
 
     [$xml] = mitDiagramFromAssets($client_id, ['workstations' => 1, 'ips' => 0, 'locations' => [$hq], 'racks' => 0]);
     $dom = $model($xml);
@@ -166,6 +177,7 @@ try {
         mysqli_query($mysqli, "DELETE FROM ai_providers WHERE ai_provider_id = $provider_id");
     }
     foreach ($made['racks'] as $id) {
+        mysqli_query($mysqli, "DELETE FROM rack_units WHERE unit_rack_id = $id AND unit_parent_id IS NOT NULL");
         mysqli_query($mysqli, "DELETE FROM rack_units WHERE unit_rack_id = $id");
         mysqli_query($mysqli, "DELETE FROM racks WHERE rack_id = $id");
     }
