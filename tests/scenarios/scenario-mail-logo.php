@@ -56,7 +56,7 @@ try {
 
     // Through the mail queue job for real, when the Microsoft 365 stand-in is sending here (it keeps each message as sent)
     $state_file = '/srv/mockms/state.json';
-    if (is_readable($state_file) && function_exists('mitM365GraphSendReady') && mitM365GraphSendReady()) {
+    if (is_readable($state_file) && function_exists('mailGraphToken') && mailGraphToken('Mail.Send') !== null) {
         echo "through the mail queue\n";
         $tag = 'ZZ logo ' . bin2hex(random_bytes(4));
         mysqli_query($mysqli, "UPDATE email_queue SET email_status = 9 WHERE email_status = 0");

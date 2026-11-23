@@ -14,7 +14,6 @@ ob_end_clean();
 $U = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_email = 'zz-fixture@example.invalid'"))[0] ?? 0);
 if ($U) {
     $T = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT ticket_id FROM tickets WHERE ticket_number = 990011"))[0] ?? 0);
-    mysqli_query($mysqli, "DELETE FROM mit_reply_times WHERE reply_id IN (SELECT ticket_reply_id FROM ticket_replies WHERE ticket_reply_ticket_id = $T)");
     mysqli_query($mysqli, "DELETE FROM ticket_replies WHERE ticket_reply_ticket_id = $T");
     mysqli_query($mysqli, "DELETE FROM tickets WHERE ticket_id = $T");
     foreach (['mit_time_entries', 'mit_timesheets', 'mit_leave_ledger', 'mit_timesheet_people', 'mit_ts_days', 'mit_ts_work_periods'] as $table) {
@@ -52,7 +51,7 @@ $reply('2026-08-03 15:00:00', '05:00:00');
 $reply('2026-08-11 11:00:00', '03:00:00', 'Internal');
 $reply('2026-08-11 16:00:00', '02:07:00');
 $late = $reply('2026-08-13 10:00:00', '01:00:00');
-mysqli_query($mysqli, "INSERT INTO mit_reply_times SET reply_id = $late, work_start = '2026-08-12 20:00:00', work_end = '2026-08-12 21:00:00'");
+mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_work_start = '2026-08-12 20:00:00', ticket_reply_work_end = '2026-08-12 21:00:00' WHERE ticket_reply_id = $late"); // ITFlow keeps them since 26.12
 mitLeavePost($U, $bank, '2026-07-01', 600, 'adjust', null, 'ZZ fixture');
 // "I could not take a rest break" on a day not under California rules: a record, no premium
 mysqli_query($mysqli, "INSERT INTO mit_ts_days SET user_id = $U, work_date = '2026-08-05', rest_missed = 1, updated_by = $U");

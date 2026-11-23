@@ -7,7 +7,7 @@
  */
 require __DIR__ . '/bootstrap.php';
 $state_file = '/srv/mockms/state.json';
-if (!is_readable($state_file) || !mitM365GraphSendReady()) {
+if (!is_readable($state_file) || (!function_exists('mailGraphToken') || mailGraphToken('Mail.Send') === null)) {
     echo "  skip - no Microsoft 365 stand-in sending mail here\n";
     exit(0);
 }
@@ -25,12 +25,21 @@ $queue = function ($subject) use ($mysqli) {
     addToMailQueue([['from' => 'service@mountaineerit.test', 'from_name' => 'ZZ', 'recipient' => 'real.customer@example.invalid', 'recipient_name' => 'Real Customer',
         'subject' => $subject, 'body' => 'zz']]);
 };
+// A variable in config.php, as Admin > Backup writes it (ITFlow's devModeConfigSet writes $config_dev_mode / $config_dev_mail_to;
+// ours before 26.12 were $config_mit_dev_mode / $config_mit_dev_mail_to - still honoured, functions/mit_dev_mode.php)
+$set = function ($name, $value) use ($config) {
+    $text = (string) file_get_contents($config);
+    $line = "\$$name = " . var_export($value, true) . ";";
+    $pattern = '/^\$' . $name . '\s*=.*;[ \t]*$/m';
+    $text = preg_match($pattern, $text) ? preg_replace($pattern, $line, $text) : rtrim($text) . "\n$line\n";
+    return file_put_contents($config, $text) === false ? 'not written' : '';
+};
 $run = function () {
     return shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php mail_queue.php --no-mx-validation 2>&1');
 };
 try {
     // On, with a test inbox
-    scenarioCheck('switched on in config.php', mitConfigSet('config_mit_dev_mode', 1) . mitConfigSet('config_mit_dev_mail_to', 'test-inbox@example.invalid'), '');
+    scenarioCheck('switched on in config.php, with our old names only (the bridge)', $set('config_mit_dev_mode', 1) . $set('config_mit_dev_mail_to', 'test-inbox@example.invalid'), '');
     $queue("$tag one");
     $out = $run();
     $mine = array_values(array_filter($sent(), function ($m) use ($tag) { return strpos($m, "$tag one") !== false; }));
@@ -42,13 +51,14 @@ try {
     scenarioCheck('queue row marked sent', intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT email_status FROM email_queue WHERE email_subject = '$tag one'"))[0] ?? -1), 3);
 
     // On, no test inbox: nothing goes out
-    mitConfigSet('config_mit_dev_mail_to', '');
+    $set('config_mit_dev_mail_to', '');
     $queue("$tag two");
     $run();
     scenarioCheck('no test inbox: nothing sent', count(array_filter($sent(), function ($m) use ($tag) { return strpos($m, "$tag two") !== false; })), 0);
 
     // Integrations: writes refused, reads and sign-in tokens allowed
     $GLOBALS['config_mit_dev_mode'] = 1;
+    $GLOBALS['config_dev_mode'] = 1; // as the bridge sets it at load (functions/mit_dev_mode.php) - switched on here mid-run
     scenarioCheck('POST to an API refused', mitDevAllows('POST', 'https://api.example.com/v2/devices'), false);
     scenarioCheck('PATCH refused', mitDevAllows('PATCH', 'https://graph.microsoft.com/v1.0/me/events/1'), false);
     scenarioCheck('GET allowed', mitDevAllows('GET', 'https://graph.microsoft.com/v1.0/me/calendarView'), true);
@@ -69,7 +79,7 @@ try {
     // Log forwarding: never from a copy of production (logForwardOn / logForwardSend)
     $forward = ['enabled' => true, 'host' => 'logs.example.invalid', 'port' => 514, 'protocol' => 'udp', 'tls_verify' => false, 'audit' => true, 'app_level' => '',
         'format' => 'rfc5424', 'facility' => 16];
-    scenarioCheck('log forwarding is off', logForwardOn($forward), false);
+    // ITFlow 26.12 stops it in the sending (devModeOn), not in logForwardOn - the line below is what counts
     $why = '';
     scenarioCheck('a log line is not sent', logForwardSend($forward, ['zz dev line'], $why), false);
     scenarioCheck('... and says why', strpos($why, 'Development mode') !== false, true);
@@ -92,7 +102,7 @@ try {
 
     // The mail parser and AI triage jobs stop at once: a client's email stays unread, a new emailed ticket is not triaged
     $mock_mail = '/srv/mockms/state.json';
-    if (is_writable($mock_mail) && function_exists('mitM365GraphMailboxReady') && mitM365GraphMailboxReady()) {
+    if (is_writable($mock_mail) && function_exists('mailGraphToken') && mailGraphToken('Mail.ReadWrite') !== null) {
         $edit = function (callable $change) use ($mock_mail) {
             $lock = fopen("$mock_mail.lock", 'c');
             flock($lock, LOCK_EX);
@@ -142,7 +152,7 @@ try {
         $out = (string) shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php ai_triage.php 2>&1');
         scenarioCheck("AI triage leaves a new ticket alone ($out)", scenarioValue("SELECT COUNT(*) FROM ai_ticket_triage WHERE ai_triage_ticket_id = $ticket_id"), '0');
         // Control: with development mode off the same job does take it (triaged, or failed against the stand-in - either way a row)
-        mitConfigSet('config_mit_dev_mode', 0);
+        $set('config_mit_dev_mode', 0);
         shell_exec('cd ' . escapeshellarg(getcwd() . '/cron') . ' && sudo -u www-data php ai_triage.php 2>&1');
         scenarioCheck('control: off, the job takes it', scenarioValue("SELECT COUNT(*) FROM ai_ticket_triage WHERE ai_triage_ticket_id = $ticket_id"), '1');
     } finally {
@@ -154,7 +164,7 @@ try {
     }
 
     // Off again: mail goes to the real recipient
-    mitConfigSet('config_mit_dev_mode', 0);
+    $set('config_mit_dev_mode', 0);
     $queue("$tag three");
     $run();
     $mine = array_values(array_filter($sent(), function ($m) use ($tag) { return strpos($m, "$tag three") !== false; }));

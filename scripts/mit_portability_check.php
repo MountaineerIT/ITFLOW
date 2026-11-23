@@ -198,23 +198,15 @@ $count = function ($sql) use ($mysqli) {
 if ($n = $count("SELECT COUNT(*) FROM mit_outlook_links")) {
     $after[] = "Outlook calendars: $n connected - sync stops; ITFlow's events already in Outlook stay until deleted (they have the ITFlow category).";
 }
-if ($n = $count("SELECT COUNT(*) FROM tickets WHERE ticket_schedule_end IS NOT NULL")) {
-    $after[] = "Schedule lengths: $n scheduled tickets have an end time - stock ITFlow shows its default length instead.";
-}
-$n = $count("SELECT COUNT(*) FROM recurring_tickets WHERE recurring_ticket_by_day IS NOT NULL") + $count("SELECT COUNT(*) FROM calendar_events WHERE event_repeat_by_day IS NOT NULL");
-if ($n) {
-    $after[] = "Repeats by weekday: $n recurring tickets / events repeat on e.g. the third Wednesday - stock ITFlow repeats them on the same date each month instead.";
-}
-$n = $count("SELECT COUNT(*) FROM mit_purchase_orders");
-if ($n || $count("SELECT COUNT(*) FROM modules WHERE module_name = 'module_procurement'")) {
-    $after[] = "Procurement: $n purchase order" . ($n === 1 ? '' : 's') . " and the items to order are not shown by stock ITFlow (they stay in the mit_ tables; PO PDFs in uploads/mit_po). Admin > Roles keeps an unused \"Procurement\" permission - delete its row from the modules table if it bothers you. Assets, stock and vendor-bill expenses made when receiving are ordinary ITFlow records and stay.";
+if ($n = $count("SELECT COUNT(*) FROM mit_order_item_links") + $count("SELECT COUNT(*) FROM mit_po_item_projects")) {
+    $after[] = "Purchasing: purchase orders, items to order and receiving are ITFlow's own (26.12) and stay. Lost: $n links of ours - which ticket, project or invoice an item was ordered for, PO lines' projects (mit_order_item_links / mit_po_item_projects), and what our receiving did for them (ticket notes, asset links, stock given back to an invoice line).";
 }
 $n = $count("SELECT COUNT(*) FROM mit_timesheets");
 if ($n || $count("SELECT COUNT(*) FROM modules WHERE module_name = 'module_timesheets'")) {
     $after[] = "Timesheets: $n timesheet" . ($n === 1 ? '' : 's') . " and the hours on charge codes are not shown by stock ITFlow (they stay in mit_timesheets / mit_time_entries / mit_charge_codes / mit_timesheet_people), and nor are PTO / sick balances (mit_leave_*) - export the Timesheets & Payroll report first. Ticket time itself is ITFlow's and stays. Admin > Roles keeps an unused \"Timesheets\" permission.";
 }
 if ($count("SELECT COUNT(*) FROM modules WHERE module_name = 'module_dispatch'")) {
-    $after[] = "Dispatch: the board goes away (its bookings and assignments are ordinary ITFlow ticket fields and stay). Admin > Roles keeps an unused \"Dispatch\" permission - delete its row from the modules table if it bothers you.";
+    $after[] = "Dispatch: ITFlow's own (26.12) and stays - without our extras (service boards on it, editing the ticket and choosing who is emailed in the Schedule window, Outlook busy times, the separate Dispatch permission). Admin > Roles keeps an unused \"Dispatch\" permission - delete its row from the modules table if it bothers you.";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_reimbursements")) {
     $after[] = "Reimbursements: $n mileage / purchase entries on tickets are not shown by stock ITFlow (they stay in mit_reimbursements, receipts in uploads/mit_receipts) - export the payroll report first. The trips and expenses they made are ordinary ITFlow records and stay.";
@@ -234,23 +226,11 @@ if (($n = $count("SELECT COUNT(*) FROM mit_ai_conversations")) > 0) {
 if ($n = $count("SELECT COUNT(*) FROM mit_align_clients") + $count("SELECT COUNT(*) FROM mit_align_devices") + $count("SELECT COUNT(*) FROM mit_align_licenses")) {
     $after[] = "MSP Align: $n clients / assets / licenses carry MSP Align's scores and status - stock ITFlow shows none of it and has no links to MSP Align (MSP Align itself keeps working - it reads ITFlow's own API). The copies stay unused in mit_align_*.";
 }
-if ($n = $count("SELECT COUNT(*) FROM tickets WHERE ticket_project_id > 0 AND ticket_resolved_at IS NULL AND ticket_closed_at IS NULL")) {
-    $after[] = "Project tickets: $n open ticket" . ($n === 1 ? '' : 's') . " in projects show on the Tickets board again in stock ITFlow, and keep no SLA (we took it off) - give one an SLA by hand on the ticket if it needs it. Calendar bookings go back to the tech's color.";
-}
-if ($n = $count("SELECT COUNT(DISTINCT ticket_id) FROM mit_ticket_mail_choices")) {
-    $after[] = "Email reply recipients: $n ticket" . ($n === 1 ? ' has' : 's have') . " a saved choice of who gets email replies - stock ITFlow emails the contact and every watcher.";
-}
 if ($n = $count("SELECT COUNT(*) FROM mit_ticket_parts")) {
     $after[] = "Ticket parts: $n part" . ($n === 1 ? '' : 's') . " on tickets are not shown by stock ITFlow (billed ones are ordinary invoice lines and stay). A product's vendor and cost are ITFlow's own fields (26.11) and stay.";
 }
-if ($n = $count("SELECT COUNT(*) FROM mit_ticket_techs tt JOIN tickets t ON t.ticket_id = tt.ticket_id WHERE t.ticket_resolved_at IS NULL AND t.ticket_closed_at IS NULL")) {
-    $after[] = "Additional agents: $n on open tickets - stock ITFlow keeps only the assigned agent; the others and their own scheduled times are not shown.";
-}
 if ($n = $count("SELECT COUNT(*) FROM mit_ticket_boards b JOIN tickets t ON t.ticket_id = b.ticket_id WHERE t.ticket_resolved_at IS NULL AND t.ticket_closed_at IS NULL")) {
     $after[] = "Service boards: $n open ticket" . ($n === 1 ? ' is' : 's are') . " on a board - stock ITFlow has no boards, so they are all in one Tickets list again (filter by category instead); routing rules and board notifications stop. Categories are ITFlow's and stay.";
-}
-if ($n = $count("SELECT COUNT(*) FROM mit_reply_times")) {
-    $after[] = "Times on ticket notes: $n note" . ($n === 1 ? ' has' : 's have') . " its date and start / end times - stock ITFlow keeps each note's length only, and timesheets are gone anyway.";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_timesheet_people WHERE pay_type = 'contractor'")) {
     $after[] = "Contractors: $n person / people set as Contractor on timesheets - only meaningful to our timesheets.";
@@ -269,13 +249,6 @@ if ($n = $count("SELECT COUNT(*) FROM mit_usage_links")) {
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_usage_lines")) {
     $after[] = "Usage billing: $n recurring invoice line" . ($n === 1 ? ' is' : 's are') . " billed by a count - stock ITFlow bills the fixed quantity on the recurring invoice again (set it by hand each month), and the counts, the API endpoint and Usage Review stop. Invoices already made keep their quantities.";
-}
-$n = $count("SELECT COUNT(*) FROM quote_items WHERE item_cost IS NOT NULL OR item_image IS NOT NULL") + $count("SELECT COUNT(*) FROM products WHERE product_image IS NOT NULL");
-if ($n) {
-    $after[] = "Quote pricing and images: $n quote lines / products have our cost or an image - stock ITFlow shows the customer prices only, without the images (the files stay in uploads/mit_images).";
-}
-if ($n = $count("SELECT COUNT(*) FROM mit_offices WHERE office_archived_at IS NULL")) {
-    $after[] = "Offices: $n other office" . ($n === 1 ? '' : 's') . " - stock ITFlow has the one company address: trips start from the agent's last start or the company again, ticket emails show the company's address and phone (the offices and who works where stay in mit_offices / mit_user_offices).";
 }
 if ($n = $count("SELECT COUNT(*) FROM mit_user_preferences")) {
     $after[] = "Per-person settings - look, calendar view, agent colors, ticket page layout, descriptions ticked Read, timesheet choices ($n saved) - are not used by stock ITFlow.";

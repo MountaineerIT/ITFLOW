@@ -8,7 +8,7 @@
  */
 require __DIR__ . '/bootstrap.php';
 $mock = '/srv/mockms/state.json';
-if (!is_writable($mock) || !mitBoardsReady() || !function_exists('mitM365GraphMailboxReady') || !mitM365GraphMailboxReady()) {
+if (!is_writable($mock) || !mitBoardsReady() || !function_exists('mailGraphToken') || mailGraphToken('Mail.ReadWrite') === null) {
     echo "  skip - no Graph stand-in / boards / Graph mailbox here\n";
     exit(0);
 }
