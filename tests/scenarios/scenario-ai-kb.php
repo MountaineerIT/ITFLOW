@@ -1,6 +1,6 @@
 <?php
 /*
- * The AI helper reads ITFlow's Knowledge Base (26.12.2, M070 - the user's choice: published articles only): a published article goes into
+ * The AI helper reads ITFlow's Knowledge Base (26.12.1, M070 - the user's choice: published articles only): a published article goes into
  * the library through ITFlow's own kbArticleSave and is found by a search as kind 'kb' with its agent link, everyone's (client 0); a draft
  * stays out; an article taken back to a draft or archived (a bulk action, which may leave the updated time alone) leaves on the next run;
  * a password written in an article never reaches the library. Then the Write up draft for the Knowledge Base (mitAiDocumentDraft, kb):

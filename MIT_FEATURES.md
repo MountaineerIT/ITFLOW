@@ -1152,7 +1152,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow's AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).
 - callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.
 - Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.
-- Knowledge Base (26.12.2, M070): kb_articles - published = kb_article_published_at set, archived = kb_article_archived_at; kbOn() / kbClosedText(2); the add_kb_article handler and modals/kb/kb_article_form.php with its Published switch (checkbox name="published"); kb_article.php?kb_article_id= is the article page.
+- Knowledge Base (26.12.1, M070): kb_articles - published = kb_article_published_at set, archived = kb_article_archived_at; kbOn() / kbClosedText(2); the add_kb_article handler and modals/kb/kb_article_form.php with its Published switch (checkbox name="published"); kb_article.php?kb_article_id= is the article page.
 
 **Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/smoke/69-ai-pictures.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-kb.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-pictures.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
 

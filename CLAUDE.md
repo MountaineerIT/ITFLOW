@@ -1770,7 +1770,7 @@ model: see DEPLOYMENT.md.
     po_receive (`mitProcLock('receive')`, `mitProcReceiveReview`), agent/purchase_order.php (`mitPoProjectMenuItem`, `mitPoItemFor` under
     each line), agent/receiving.php (`mitProcReceivingExtras`). Now ITFlow's rules: receiving always shelves own stock and makes assets
     where a type is picked; undoing a receipt needs Full Procurement; draft POs are cancelled, not deleted.
-- AI helper and ITFlow's Knowledge Base (Nov 22, 26.12.2 - the user's request: Ask Bob reads the new Knowledge Base; Write up can save to it,
+- AI helper and ITFlow's Knowledge Base (Nov 22, 26.12.1 - the user's request: Ask Bob reads the new Knowledge Base; Write up can save to it,
   published or draft). Library: M070 `mit_ai_sources.kb_article_id` (UNIQUE, FK kb_articles CASCADE); `mitAiKbColumn` / `mitAiKbReady` (kbOn() + the
   column), `mitAiKbSource` - published (`kb_article_published_at` set), unarchived articles only (the user's choice), client 0 (any agent with Support view
   reads every article in ITFlow), head "Knowledge Base article ..."; `mitAiSourceKind` / `mitAiReadSource` read any kind (ticket | document | kb) for the
