@@ -20,6 +20,8 @@ model: see DEPLOYMENT.md.
   "## <version> - <date>" entry with "- " lines at the top of `MIT_CHANGELOG.md` (ours - ITFlow's own is `CHANGELOG.md`,
   never edit that). After merging an ITFlow release (APP_VERSION changes), start again at <new>.1. Tell the user the new
   version when asking to push. Shown in the admin footer and on Admin > Update with the release notes.
+  The user's choice (Nov 22, 26.12.1): after an ITFlow release merge, everything stays under <new>.1 until it is promoted to production -
+  no bump per push; add its lines to the <new>.1 entry of MIT_CHANGELOG.md. Number again (<new>.2 ...) only after that promotion.
 - Explain the plan before big changes or anything touching the schema.
 - **Our database changes go in `admin/database_updates/mountaineerit/` as M001.php, M002.php …**
   (agreed scheme). Never add files to ITFlow's numbered `admin/database_updates/*.php` and
