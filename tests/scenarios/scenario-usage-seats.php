@@ -115,6 +115,21 @@ try {
     scenarioCheck('tagging one more takes it off at the next refresh', floatval($q1("SELECT item_quantity FROM recurring_invoice_items WHERE item_id = $l_not")), floatval($all));
     scenarioCheck('devices: not_tag kept too', recurringSeatFilter('assets', ['tag' => -$ph, 'types' => ['Laptop']]), ['types' => ['Laptop'], 'not_tag' => $ph]);
     scenarioCheck('devices described', recurringSeatDescribe('assets', ['types' => ['Laptop'], 'not_tag' => $ph]), "Laptop not tagged ZZ scen placeholder $stamp in use");
+    // ... and counted: two devices of a type of their own, one tagged as a placeholder (mitSeatNotTagSql in recurringSeatCount's devices query)
+    $zz_type = "ZZType$stamp";
+    $dev_ids = [];
+    foreach (['tagged', 'plain'] as $which) {
+        mysqli_query($mysqli, "INSERT INTO assets SET asset_name = 'ZZ scen device $which', asset_type = '$zz_type', asset_make = '', asset_client_id = $client_id");
+        $dev_ids[$which] = mysqli_insert_id($mysqli);
+    }
+    mysqli_query($mysqli, "INSERT INTO asset_tags SET asset_tag_asset_id = {$dev_ids['tagged']}, asset_tag_tag_id = $ph");
+    try {
+        scenarioCheck('devices: "Not tagged" leaves the tagged one out', recurringSeatCount($client_id, 'assets', ['types' => [$zz_type], 'not_tag' => $ph]), 1);
+        scenarioCheck('... control - both without the filter', recurringSeatCount($client_id, 'assets', ['types' => [$zz_type]]), 2);
+    } finally {
+        mysqli_query($mysqli, "DELETE FROM asset_tags WHERE asset_tag_asset_id IN (" . implode(',', $dev_ids) . ")");
+        mysqli_query($mysqli, "DELETE FROM assets WHERE asset_id IN (" . implode(',', $dev_ids) . ")");
+    }
     // "Not tagged at all" (26.11.3.8): any tag leaves a contact out
     $untagged_before = intval($q1("SELECT COUNT(*) FROM contacts c WHERE contact_client_id = $client_id AND contact_archived_at IS NULL
         AND contact_id NOT IN (SELECT ct.contact_id FROM contact_tags ct JOIN tags t ON t.tag_id = ct.tag_id WHERE t.tag_archived_at IS NULL)"));
