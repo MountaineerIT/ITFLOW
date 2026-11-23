@@ -120,7 +120,7 @@ return [
     'outlook_m365' => [
         'name' => 'Microsoft 365 app, Graph mail, Outlook calendar per tech',
         'files' => ['tests/mocks/ms/*', 'functions/mit_m365.php', 'functions/mit_outlook.php', 'admin/includes/mit_m365_card.php', 'admin/post/mit_m365.php', 'agent/user/mit_outlook*.php', 'agent/user/post/mit_outlook.php', 'cron/mit_outlook_sync.php'],
-        'tests' => ['tests/scenarios/scenario-sched-outlook.php', 'tests/scenarios/scenario-dev-mode-mail.php', 'tests/scenarios/scenario-m365-hooks.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/smoke/82-m365-mail-settings.spec.js', 'tests/smoke/79-platform-pages.spec.js'],
+        'tests' => ['tests/scenarios/scenario-sched-outlook.php', 'tests/scenarios/scenario-dev-mode-mail.php', 'tests/scenarios/scenario-m365-hooks.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/smoke/82-m365-mail-settings.spec.js', 'tests/smoke/79-platform-pages.spec.js', 'tests/scenarios/scenario-sched-booking.php'],
         'assumes' => [
             'Mail OAuth settings (config_mail_oauth_*) and the token flow in functions/request.php httpFormPost / admin/post/settings_mail.php.',
             'cron/mail_queue.php sends one PHPMailer message per email; cron/ticket_email_parser.php reads mail through ImapEngine\'s Mailbox.',

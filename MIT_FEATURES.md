@@ -15,7 +15,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 6 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
-| [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 6 | 13 | 9 | 43 | 14 |
+| [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 7 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
 | [Dispatch board, Workload, This week](#dispatch) | 4 | 6 | 30 | 12 | 47 | 10 |
 | [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 27 |
@@ -382,7 +382,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - cron/mail_queue.php sends one PHPMailer message per email; cron/ticket_email_parser.php reads mail through ImapEngine's Mailbox.
 - Ticket invites are iCal with UID ticket-<id>@ (createiCalStr).
 
-**Tests** `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-dev-mode-mail.php`, `tests/scenarios/scenario-m365-hooks.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/smoke/82-m365-mail-settings.spec.js`, `tests/smoke/79-platform-pages.spec.js`
+**Tests** `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-dev-mode-mail.php`, `tests/scenarios/scenario-m365-hooks.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/smoke/82-m365-mail-settings.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-sched-booking.php`
 
 **Hooks in ITFlow's files**
 

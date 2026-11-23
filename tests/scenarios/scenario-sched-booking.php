@@ -163,6 +163,13 @@ try {
         ticketCancelSchedule(ticketRow($t4));
         $tm = array_values(array_filter($mails($t4, $since), function ($x) use ($admin_email) { return $x['email_recipient'] === $admin_email; }));
         scenarioCheck('... and its cancellation without one', [count($tm), (string) ($tm[0]['email_cal_str'] ?? 'x')], [1, '']);
+        // Booked work handed to someone else: the synced agent who had it is told without the .ics too (ticketMailScheduleAgentCancelled)
+        ticketSetSchedule(ticketRow($t4), "$day 15:00:00", 0, "$day 16:00:00");
+        $since = $last_mail();
+        ticketMailScheduleAgentCancelled(ticketRow($t4));
+        $tm = array_values(array_filter($mails($t4, $since), function ($x) use ($admin_email) { return $x['email_recipient'] === $admin_email; }));
+        scenarioCheck('... and when the booking goes to someone else, told without one', [count($tm), (string) ($tm[0]['email_cal_str'] ?? 'x')], [1, '']);
+        ticketCancelSchedule(ticketRow($t4));
         scenarioCheck('control - a lead who is not synced gets the .ics', mitOutlookSyncsEmail($tech_email), false);
     } else {
         scenarioCheck('the admin\'s Outlook is linked on the test install (mit_outlook_links)', false, true);
