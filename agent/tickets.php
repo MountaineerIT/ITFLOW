@@ -89,12 +89,9 @@ $filter_url = function ($changes) {
 $sla_in_use = mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(sla_id) FROM slas WHERE sla_archived_at IS NULL"))[0] > 0;
 $show_billing = $config_module_enable_accounting && lookupUserPermission("module_sales") >= 2;
 
-/*
- * The filters. $active_filters are the ones tucked away under the Filters
- * button, shown as chips so a filter is never invisible.
- */
-$active_filters = [];
+// The filters - the ones tucked away under More filters open with the page when one is set
 $filter_sql = [];
+$hidden_filter_count = 0; // how many of those are set - on the More filters button
 
 // Client (all clients)
 $client_filter = 0;
@@ -109,7 +106,8 @@ if ($assigned_filter === 'unassigned') {
     $filter_sql[] = 'AND ticket_assigned_to = 0';
 } elseif (intval($assigned_filter)) {
     $assigned_filter = intval($assigned_filter);
-    $filter_sql[] = "AND " . mitAssignedSql($assigned_filter); // Mountaineer IT: the lead or helping
+    // The lead, or helping (functions/ticket_helpers.php)
+    $filter_sql[] = "AND " . ticketAssignedSql($assigned_filter);
 } else {
     $assigned_filter = '';
 }
@@ -122,33 +120,28 @@ if (isset($_GET['status']) && is_array($_GET['status'])) {
 if ($status_filter) {
     $status_ids = implode(',', $status_filter);
     $filter_sql[] = "AND ticket_status IN ($status_ids)";
-    $status_names = [];
-    $sql_status_names = mysqli_query($mysqli, "SELECT ticket_status_name FROM ticket_statuses WHERE ticket_status_id IN ($status_ids) ORDER BY ticket_status_order");
-    while ($row = mysqli_fetch_assoc($sql_status_names)) {
-        $status_names[] = escapeHtml($row['ticket_status_name']);
-    }
-    $active_filters[] = ['label' => 'Status', 'value' => implode(', ', $status_names), 'drop' => ['status' => null]];
+    $hidden_filter_count++;
 }
 
 // Priority
 $priority_filter = in_array($_GET['priority'] ?? '', TICKET_PRIORITIES, true) ? $_GET['priority'] : '';
 if ($priority_filter) {
     $filter_sql[] = "AND ticket_priority = '$priority_filter'";
-    $active_filters[] = ['label' => 'Priority', 'value' => $priority_filter, 'drop' => ['priority' => null]];
+    $hidden_filter_count++;
 }
 
 // Category
 $category_filter = intval($_GET['category'] ?? 0);
 if ($category_filter) {
     $filter_sql[] = "AND ticket_category = $category_filter";
-    $active_filters[] = ['label' => 'Category', 'value' => escapeHtml(getFieldById('categories', $category_filter, 'category_name')), 'drop' => ['category' => null]];
+    $hidden_filter_count++;
 }
 
 // Project
 $project_filter = intval($_GET['project'] ?? 0);
 if ($project_filter) {
     $filter_sql[] = "AND ticket_project_id = $project_filter";
-    $active_filters[] = ['label' => 'Project', 'value' => escapeHtml(getFieldById('projects', $project_filter, 'project_name')), 'drop' => ['project' => null]];
+    $hidden_filter_count++;
 }
 if (function_exists('mitBoardTicketsFilter')) { mitBoardTicketsFilter($filter_sql); } // Mountaineer IT: service boards
 
@@ -156,12 +149,7 @@ if (function_exists('mitBoardTicketsFilter')) { mitBoardTicketsFilter($filter_sq
 $tag_filter_ids = tagFilterIds();
 if ($tag_filter_ids) {
     $filter_sql[] = tagFilterSql('ticket', $tag_filter_ids, 'tickets.ticket_id');
-    $tag_filter_names = [];
-    $sql_tag_names = mysqli_query($mysqli, "SELECT tag_name FROM tags WHERE tag_type = 12 AND tag_id IN (" . implode(',', $tag_filter_ids) . ") ORDER BY tag_name");
-    while ($row = mysqli_fetch_row($sql_tag_names)) {
-        $tag_filter_names[] = escapeHtml($row[0]);
-    }
-    $active_filters[] = ['label' => 'Tags', 'value' => implode(', ', $tag_filter_names), 'drop' => ['tags' => null]];
+    $hidden_filter_count++;
 }
 
 // SLA state - the dashboard's "SLA breached" links here
@@ -175,7 +163,7 @@ $sla_filters = [
 $sla_filter = isset($sla_filters[$_GET['sla'] ?? '']) ? $_GET['sla'] : '';
 if ($sla_filter) {
     $filter_sql[] = "AND ({$sla_filters[$sla_filter][1]})";
-    $active_filters[] = ['label' => 'SLA', 'value' => $sla_filters[$sla_filter][0], 'drop' => ['sla' => null]];
+    $hidden_filter_count++;
 }
 
 // Billing
@@ -187,7 +175,7 @@ $billing_filters = [
 $billing_filter = isset($billing_filters[$_GET['billing'] ?? '']) ? $_GET['billing'] : '';
 if ($billing_filter) {
     $filter_sql[] = "AND ({$billing_filters[$billing_filter][1]})";
-    $active_filters[] = ['label' => 'Billing', 'value' => $billing_filters[$billing_filter][0], 'drop' => ['billing' => null]];
+    $hidden_filter_count++;
 }
 
 // Created - filter_header.php resolves the canned ranges into $dtf / $dtt
@@ -195,7 +183,7 @@ $date_filter_active = (isset($_GET['canned_date']) && !in_array($_GET['canned_da
     || (!empty($_GET['dtf']) && $_GET['dtf'] !== '1970-01-01');
 if ($date_filter_active) {
     $filter_sql[] = "AND DATE(ticket_created_at) BETWEEN '$dtf' AND '$dtt'";
-    $active_filters[] = ['label' => 'Created', 'value' => escapeHtml("$dtf to $dtt"), 'drop' => ['canned_date' => null, 'dtf' => null, 'dtt' => null]];
+    $hidden_filter_count++;
 }
 
 // Search
@@ -217,7 +205,7 @@ $base_sql = $view === 'kanban' ? 'tickets.ticket_closed_at IS NULL' : $open_sql;
 $shows = [
     'open' => ['label' => $view === 'kanban' ? 'Active' : 'Open', 'where' => $base_sql,
         'title' => $view === 'kanban' ? 'Everything not closed yet' : 'Neither resolved nor closed'],
-    'mine' => ['label' => 'Mine', 'icon' => 'fa-user-check', 'where' => "$base_sql AND " . mitAssignedSql($session_user_id)], // Mountaineer IT: or helping
+    'mine' => ['label' => 'Mine', 'icon' => 'fa-user-check', 'where' => "$base_sql AND " . ticketAssignedSql($session_user_id)],
     'unassigned' => ['label' => 'Unassigned', 'icon' => 'fa-user-slash', 'where' => "$base_sql AND ticket_assigned_to = 0", 'alarm' => 'warning'],
     'reply' => ['label' => 'Needs reply', 'icon' => 'fa-reply', 'where' => ticketNeedsReplySql(), 'alarm' => 'warning',
         'title' => 'The client spoke last, or nobody has replied yet'],
@@ -240,7 +228,8 @@ if ($view === 'list') {
     $shows['all'] = ['label' => 'All', 'where' => '1 = 1'];
 }
 
-function_exists('mitProjectTicketsShows') && mitProjectTicketsShows($shows, $base_sql, $project_filter); // Mountaineer IT: project tickets on their own
+// Project tickets kept apart - off the usual views, with a Projects view of their own (functions/project_tickets.php)
+$shows = projectTicketsShows($shows, $base_sql, $project_filter);
 
 // A status or billing filter asked for on its own looks at every ticket - unbilled work is nearly all done already
 $show = $_GET['show'] ?? '';
@@ -262,6 +251,11 @@ $ticket_select_columns =
     client_name, contact_id, contact_name, contact_email, contact_photo,
     user_name, user_avatar, asset_name, category_name, category_color, category_icon, project_prefix, project_number, project_name,
     " . ticketLastSpokeSql() . " AS ticket_last_spoke";
+
+// The client has written since this agent last opened it - bold on the list (functions/ticket_read.php)
+if ($view === 'list' && ticketReadsReady()) {
+    $ticket_select_columns .= ", " . ticketUnreadSql($session_user_id, ticketReadsSince($session_user_id)) . " AS ticket_unread";
+}
 
 $ticket_joins =
     "LEFT JOIN clients ON ticket_client_id = client_id
@@ -286,8 +280,6 @@ foreach (array_keys($shows) as $i => $key) {
     $counts[$key] = intval($row[$i]);
 }
 
-// How many of the tucked-away filters are set - on the Filters button
-$hidden_filter_count = count($active_filters);
 
 // What the export starts from - the pill, in the export's own terms
 $export_extra = [
@@ -302,7 +294,7 @@ $export_extra = [
 <?= $client_url && function_exists('mitClientTiles') ? mitClientTiles('tickets', $client_id) : '' // Mountaineer IT: count tiles ?>
 <div class="card">
     <div class="card-header bg-dark py-2">
-        <h3 class="card-title mt-2"><i class="fa fa-fw fa-life-ring me-2"></i>Tickets</h3>
+        <h3 class="card-title mt-2"><i class="fas fa-fw fa-life-ring me-2"></i>Tickets</h3>
         <?= function_exists('mitBoardSwitcher') ? mitBoardSwitcher($filter_url) : '' // Mountaineer IT: service boards ?>
         <div class="card-tools">
             <div class="btn-group">
@@ -311,14 +303,14 @@ $export_extra = [
                         <i class="fas fa-plus me-2"></i>New Ticket
                     </button>
                 <?php } ?>
-                <button type="button" class="btn btn-primary dropdown-toggle <?= $can_edit ? 'dropdown-toggle-split' : '' ?>" data-bs-toggle="dropdown"><?= $can_edit ? '' : '<i class="fas fa-ellipsis-h"></i>' ?></button>
+                <button type="button" class="btn btn-primary dropdown-toggle <?= $can_edit ? 'dropdown-toggle-split' : '' ?>" data-bs-toggle="dropdown" aria-label="More actions"><?= $can_edit ? '' : '<i class="fas fa-ellipsis-v"></i>' ?></button>
                 <div class="dropdown-menu dropdown-menu-end">
                     <a class="dropdown-item" href="recurring_tickets.php<?= $client_url ? '?' . rtrim($client_url, '&') : '' ?>">
-                        <i class="fa fa-fw fa-redo-alt me-2"></i>Recurring tickets
+                        <i class="fas fa-fw fa-redo-alt me-2"></i>Recurring Tickets
                     </a>
-                    <a class="dropdown-item text-dark ajax-modal" href="#"
+                    <a class="dropdown-item ajax-modal" href="#"
                         data-modal-url="<?= buildExportModalUrl('modals/ticket/ticket_export.php', ['client_id', 'client', 'status', 'billing', 'category', 'priority', 'assigned', 'sla', 'project', 'tags', 'q'], $export_extra) ?>">
-                        <i class="fa fa-fw fa-download me-2"></i>Export
+                        <i class="fas fa-fw fa-download me-2"></i>Export
                     </a>
                 </div>
             </div>
@@ -344,10 +336,10 @@ $export_extra = [
                 <div class="<?= $client_url ? 'col-lg-5' : 'col-lg-4' ?> col-md-6">
                     <div class="input-group">
                         <input type="search" class="form-control" name="q" value="<?php if (isset($q)) { echo stripslashes(escapeHtml($q)); } ?>" placeholder="Search tickets..." title="Number, subject, client, contact, asset, vendor reference...">
-                        <button class="btn <?= $hidden_filter_count ? 'btn-warning' : 'btn-outline-secondary' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilter" title="More filters" aria-expanded="<?= $hidden_filter_count ? 'true' : 'false' ?>">
+                        <button class="btn btn-outline-secondary<?= $hidden_filter_count ? ' itflow-filter-on' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilter" title="More filters" aria-expanded="<?= $hidden_filter_count ? 'true' : 'false' ?>">
                             <i class="fas fa-sliders-h"></i><?php if ($hidden_filter_count) { ?><span class="ms-1"><?= $hidden_filter_count ?></span><?php } ?>
                         </button>
-                        <button class="btn btn-dark" title="Search"><i class="fa fa-search"></i></button>
+                        <button class="btn btn-dark" title="Search"><i class="fas fa-search"></i></button>
                     </div>
                 </div>
                 <div class="<?= $client_url ? 'col-lg-3' : 'col-lg-2' ?> col-md-6">
@@ -355,7 +347,7 @@ $export_extra = [
                         <option value="">- Anyone -</option>
                         <option value="unassigned" <?= $assigned_filter === 'unassigned' ? 'selected' : '' ?> data-icon="fas fa-user-slash">Unassigned</option>
                         <?php
-                        $sql_agents_filter = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . (function_exists('mitServiceUserSql') ? mitServiceUserSql('users.user_id') : '') . " AND user_archived_at IS NULL ORDER BY user_id = " . intval($session_user_id) . " DESC, user_name ASC");
+                        $sql_agents_filter = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . serviceAccountsOutSql() . " AND user_archived_at IS NULL ORDER BY user_id = " . intval($session_user_id) . " DESC, user_name ASC");
                         while ($row = mysqli_fetch_assoc($sql_agents_filter)) {
                             $filter_user_id = intval($row['user_id']); ?>
                             <option value="<?= $filter_user_id ?>" <?= $assigned_filter === $filter_user_id ? 'selected' : '' ?><?= selectOptionUser($row['user_id'], $row['user_name'], $row['user_avatar'] ?? '') ?>><?= escapeHtml($row['user_name']) ?><?= $filter_user_id === intval($session_user_id) ? ' (me)' : '' ?></option>
@@ -365,7 +357,7 @@ $export_extra = [
                 <?php if (!$client_url) { ?>
                     <div class="col-lg-3 col-md-6">
                         <select class="form-select select2" name="client" onchange="this.form.submit()">
-                            <option value="">- All Clients -</option>
+                            <option value="">- Any client -</option>
                             <?php
                             $sql_clients_filter = mysqli_query($mysqli, "SELECT client_id, client_name, client_abbreviation FROM clients
                                 WHERE client_archived_at IS NULL " . clientScopeSql('clients.client_id') . "
@@ -390,30 +382,40 @@ $export_extra = [
                                         <i class="fas fa-fw fa-user-check me-2"></i>Assign
                                     </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_edit_priority.php" data-bulk="true">
-                                        <i class="fas fa-fw fa-thermometer-half me-2"></i>Set priority
+                                        <i class="fas fa-fw fa-thermometer-half me-2"></i>Set Priority
                                     </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_edit_category.php" data-bulk="true">
-                                        <i class="fas fa-fw fa-tag me-2"></i>Set category
+                                        <i class="fas fa-fw fa-tag me-2"></i>Set Category
                                     </a>
                                     <a class="dropdown-item" href="#" data-tag-picker data-tag-entity="ticket" data-tag-bulk data-csrf="<?= $_SESSION['csrf_token'] ?>">
                                         <i class="fas fa-fw fa-tags me-2"></i>Tags
                                     </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_add_project.php" data-bulk="true">
-                                        <i class="fas fa-fw fa-project-diagram me-2"></i>Add to a project
+                                        <i class="fas fa-fw fa-project-diagram me-2"></i>Add to a Project
                                     </a>
+                                    <?php if (ticketLinksReady()) { ?>
+                                        <button class="dropdown-item" type="submit" form="bulkActions" name="bulk_link_tickets">
+                                            <i class="fas fa-fw fa-link me-2"></i>Link Together
+                                        </button>
+                                    <?php } ?>
+                                    <?php if ($view === 'list' && ticketReadsReady()) { ?>
+                                        <button class="dropdown-item" type="submit" form="bulkActions" name="bulk_mark_tickets_read">
+                                            <i class="fas fa-fw fa-envelope-open me-2"></i>Mark as Read
+                                        </button>
+                                    <?php } ?>
                                     <div class="dropdown-divider"></div>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_reply.php" data-modal-size="lg" data-bulk="true">
-                                        <i class="fas fa-fw fa-paper-plane me-2"></i>Reply or add a note
+                                        <i class="fas fa-fw fa-paper-plane me-2"></i>Reply or Add a Note
                                     </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_merge.php" data-bulk="true">
-                                        <i class="fas fa-fw fa-clone me-2"></i>Merge into a ticket
+                                        <i class="fas fa-fw fa-clone me-2"></i>Merge into a Ticket
                                     </a>
                                     <a class="dropdown-item ajax-modal" href="#" data-modal-url="modals/ticket/ticket_bulk_resolve.php" data-modal-size="lg" data-bulk="true">
                                         <i class="fas fa-fw fa-check me-2"></i>Resolve
                                     </a>
                                     <?php if ($can_delete) { ?>
                                         <div class="dropdown-divider"></div>
-                                        <button class="dropdown-item text-danger text-bold confirm-link" type="submit" form="bulkActions" name="bulk_delete_tickets"
+                                        <button class="dropdown-item text-danger fw-bold confirm-link" type="submit" form="bulkActions" name="bulk_delete_tickets"
                                             data-confirm-text="The tickets go for good, with their replies, tasks and attachments. Closed tickets are kept.">
                                             <i class="fas fa-fw fa-trash me-2"></i>Delete
                                         </button>
@@ -438,7 +440,7 @@ $export_extra = [
                 <div class="row g-2 mt-1">
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-body-secondary mb-1">Status</label>
-                        <select onchange="this.form.submit()" class="form-select select2" name="status[]" data-placeholder="Any status" multiple>
+                        <select onchange="this.form.submit()" class="form-select select2" name="status[]" data-placeholder="- Any status -" multiple>
                             <?php
                             // The ones in use - and a switched-off one when it is asked for (from Admin > Ticket Statuses), so it stays picked
                             foreach (ticketStatusOptions($status_filter) as $filter_status_id => $row) { ?>
@@ -449,7 +451,7 @@ $export_extra = [
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-body-secondary mb-1">Priority</label>
                         <select onchange="this.form.submit()" class="form-select select2" name="priority">
-                            <option value="">Any priority</option>
+                            <option value="">- Any priority -</option>
                             <?php foreach (array_reverse(TICKET_PRIORITIES) as $priority_option) { ?>
                                 <option value="<?= $priority_option ?>" <?= $priority_filter === $priority_option ? 'selected' : '' ?>><?= $priority_option ?></option>
                             <?php } ?>
@@ -458,14 +460,14 @@ $export_extra = [
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-body-secondary mb-1">Category</label>
                         <select onchange="this.form.submit()" class="form-select select2" name="category">
-                            <option value="">Any category</option>
+                            <option value="">- Any category -</option>
                             <?= categoryFilterOptionsHtml('Ticket', $category_filter, "SELECT DISTINCT ticket_category FROM tickets WHERE ticket_category <> ''") ?>
                         </select>
                     </div>
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-body-secondary mb-1">Project</label>
                         <select onchange="this.form.submit()" class="form-select select2" name="project">
-                            <option value="">Any project</option>
+                            <option value="">- Any project -</option>
                             <?php
                             $sql_projects = mysqli_query($mysqli, "SELECT project_id, project_prefix, project_number, project_name FROM projects
                                 WHERE ((project_completed_at IS NULL AND project_archived_at IS NULL) OR project_id = $project_filter)
@@ -479,7 +481,7 @@ $export_extra = [
                     </div>
                     <div class="col-lg-3 col-md-6">
                         <label class="form-label small text-body-secondary mb-1">Tags</label>
-                        <select onchange="this.form.submit()" class="form-select select2" name="tags[]" data-placeholder="Any tag" multiple>
+                        <select onchange="this.form.submit()" class="form-select select2" name="tags[]" data-placeholder="- Any tag -" multiple>
                             <?= tagFilterOptionsHtml('ticket', $tag_filter_ids, '1 ' . clientScopeSql('ticket_client_id') . ($client_url ? " AND ticket_client_id = $client_id" : '')) ?>
                         </select>
                     </div>
@@ -487,7 +489,7 @@ $export_extra = [
                         <div class="col-lg-3 col-md-6">
                             <label class="form-label small text-body-secondary mb-1">SLA</label>
                             <select class="form-select select2" name="sla" onchange="this.form.submit()">
-                                <option value="">Any SLA state</option>
+                                <option value="">- Any SLA state -</option>
                                 <?php foreach ($sla_filters as $sla_option => [$sla_option_label]) { ?>
                                     <option value="<?= $sla_option ?>" <?= $sla_filter === $sla_option ? 'selected' : '' ?>><?= $sla_option_label ?></option>
                                 <?php } ?>
@@ -498,7 +500,7 @@ $export_extra = [
                         <div class="col-lg-3 col-md-6">
                             <label class="form-label small text-body-secondary mb-1">Billing</label>
                             <select class="form-select select2" name="billing" onchange="this.form.submit()">
-                                <option value="">Any</option>
+                                <option value="">- Any -</option>
                                 <?php foreach ($billing_filters as $billing_option => [$billing_option_label]) { ?>
                                     <option value="<?= $billing_option ?>" <?= $billing_filter === $billing_option ? 'selected' : '' ?>><?= $billing_option_label ?></option>
                                 <?php } ?>
@@ -527,19 +529,6 @@ $export_extra = [
                 </a>
             <?php } ?>
         </nav>
-
-        <?php if ($active_filters) { ?>
-            <!-- What the tucked-away filters are set to - each with its own x -->
-            <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
-                <?php foreach ($active_filters as $filter) { ?>
-                    <span class="badge rounded-pill bg-body-secondary text-body fw-normal border py-2 px-2">
-                        <span class="text-body-secondary"><?= $filter['label'] ?>:</span> <?= $filter['value'] ?>
-                        <a href="<?= escapeHtml($filter_url($filter['drop'])) ?>" class="text-danger ms-1" title="Remove this filter"><i class="fas fa-times"></i></a>
-                    </span>
-                <?php } ?>
-                <a href="<?= escapeHtml($filter_url(['status' => null, 'priority' => null, 'category' => null, 'project' => null, 'tags' => null, 'sla' => null, 'billing' => null, 'canned_date' => null, 'dtf' => null, 'dtt' => null])) ?>" class="small text-danger ms-1">Clear</a>
-            </div>
-        <?php } ?>
     </div>
 
     <?php
@@ -569,6 +558,10 @@ $export_extra = [
 <?php } ?>
 
 <script src="<?= staticFileUrl('/js/bulk_actions.js') ?>"></script>
+<?php if ($view === 'list') { ?>
+    <script src="<?= staticFileUrl('/agent/js/tickets_live.js') ?>"></script>
+    <script src="<?= staticFileUrl('/agent/js/ticket_reply_peek.js') ?>"></script>
+<?php } ?>
 
 <?php
 require_once "../includes/footer.php";

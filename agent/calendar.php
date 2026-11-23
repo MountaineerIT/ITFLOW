@@ -7,11 +7,14 @@
  * agent can reach, or one client (opened inside it).
  *
  * Each calendar and each source can be shown or hidden, and the whole thing
- * narrowed to one agent's work. Picking a day or a time range adds an event;
- * scheduled tickets and events that do not repeat can be dragged to a new
- * time, and the agent's open unscheduled tickets dragged onto the calendar to
- * book them. Items are fetched for the range on screen (ajax.php
- * ?calendar_items) - agent/js/calendar.js. ?date=Y-m-d opens on that day.
+ * narrowed to one agent's work - what is shown is kept to the agent's account
+ * (calendarUserState()), so every device opens the same way. Picking a day or
+ * a time range adds an event; scheduled tickets and events that do not repeat
+ * can be dragged to a new time, and open unscheduled tickets - and those left
+ * behind, booked on a day gone by - dragged onto the calendar to book them.
+ * Booked work and events are drawn in their agent's colour. Items are fetched
+ * for the range on screen (ajax.php ?calendar_items) - agent/js/calendar.js.
+ * ?date=Y-m-d opens on that day.
  */
 
 if (isset($_GET['client_id'])) {
@@ -20,6 +23,11 @@ if (isset($_GET['client_id'])) {
 } else {
     require_once "includes/inc_all.php";
     $page_client_id = 0;
+}
+
+if (!moduleOn('calendar')) {
+    flashAlert(moduleOffText('calendar'), 'error');
+    redirect('/agent/dashboard.php');
 }
 
 $calendars = calendarList();
@@ -34,12 +42,15 @@ $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT user_config_calendar_fir
 $first_day = intval($row['user_config_calendar_first_day'] ?? 0);
 
 $agents = [];
-$sql = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . (function_exists('mitServiceUserSql') ? mitServiceUserSql('users.user_id') : '') . " AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name");
+$sql = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . serviceAccountsOutSql() . " AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name");
 while ($row = mysqli_fetch_assoc($sql)) {
     $agents[] = $row;
 }
 
 $my_feed = calendarUserFeed($session_user_id);
+
+// What the page showed last, on any device
+$saved_state = calendarUserState($session_user_id, $page_client_id ? 'client' : 'all');
 
 // What the page script needs to know
 $page_sources = [];
@@ -56,28 +67,9 @@ foreach ($sources as $key => $source) {
         opacity: .85;
         cursor: default;
     }
-    /* Mountaineer IT: a tech helping on a ticket (functions/mit_ticket_techs.php) - dashed, in their colour */
-    #itflowCalendar [data-kind="helper"] {
-        outline: 2px dashed rgba(255, 255, 255, .75);
-        outline-offset: -3px;
-    }
-    /* Mountaineer IT: the tech's dot where a booking is a line (month view's timed items, the list) */
-    /* Mountaineer IT: service and project bookings (functions/mit_calendar.php) - a bar down the left in the tech's color */
+    /* Mountaineer IT: service bookings in one colour, the agent's colour as a bar down the left (functions/mit_calendar.php) */
     #itflowCalendar [data-mit-agent] { box-shadow: inset 6px 0 0 var(--mit-agent), inset 7px 0 0 rgba(255, 255, 255, .7); }
     #itflowCalendar [data-mit-agent] .itflow-cal-event { padding-left: 6px; }
-    /* Mountaineer IT: the assigned agent's first name beside the time - under it when the column is too narrow */
-    #itflowCalendar .mit-cal-when { display: inline-flex; flex-wrap: wrap; max-width: 100%; min-width: 0; white-space: nowrap; vertical-align: top; }
-    #itflowCalendar .is-timegrid .mit-cal-when { display: flex; }
-    #itflowCalendar .mit-cal-when .itflow-cal-time { display: inline-block; flex-shrink: 0; }
-    #itflowCalendar .mit-cal-agent { font-weight: 600; margin: 0 .25rem 0 .1rem; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-    /* Mountaineer IT: a short booking keeps its text inside the block - FullCalendar centres it, so it ran out above and below (26.10.181) */
-    #itflowCalendar :has(> .itflow-cal-event.is-timegrid) { align-items: flex-start; overflow: hidden; }
-    /* Mountaineer IT: an onsite booking (a ticket or a helper's, fa-car) - an orange strip with a car across the top (26.11.8.5) */
-    #itflowCalendar [data-mit-onsite] { overflow: hidden; }
-    #itflowCalendar [data-mit-onsite]::before { content: "\f1b9"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: 0; left: 0; right: 0; height: 15px;
-        background: #ff9f1a; color: #2b1700; font-size: 10px; line-height: 15px; padding-left: 9px; z-index: 1; pointer-events: none; }
-    #itflowCalendar [data-mit-onsite] .itflow-cal-event { padding-top: 15px; }
-    .mit-tech-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .3rem; vertical-align: middle; flex-shrink: 0; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
 </style>
 
 <div class="row g-3 itflow-calendar-page" id="itflowCalendar"
@@ -90,7 +82,8 @@ foreach ($sources as $key => $source) {
     data-mobile="<?= !empty($session_mobile) ? 1 : 0 ?>"
     data-initial-date="<?= calendarIsDate($_GET['date'] ?? '') ? escapeHtml($_GET['date']) : '' ?>"
     data-sources="<?= escapeHtml(json_encode($page_sources)) ?>"
-    data-saved-state="<?= escapeHtml(json_encode((object) mitCalendarState($session_user_id, $page_client_id ? 'client' : 'all'))) ?>"<?= function_exists('mitViewShifted') && mitViewShifted() ? ' data-mit-zone="' . escapeHtml(mitViewZone()) . '"' : '' // Mountaineer IT: the viewer's own time zone (functions/mit_zones.php) ?>>
+    data-saved-state="<?= escapeHtml(json_encode($saved_state ?: new stdClass())) ?>"
+    data-zone="<?= timezoneShifted() ? escapeHtml(timezoneView()) : '' ?>">
 
     <div class="col-lg-auto itflow-cal-side order-2 order-lg-1 d-print-none">
 
@@ -98,14 +91,14 @@ foreach ($sources as $key => $source) {
             <div class="card-body">
 
                 <?php if ($can_add_event) { ?>
-                    <button type="button" class="btn btn-primary w-100 mb-3" id="calendarNewEvent"><i class="fas fa-plus me-2"></i>New event</button>
+                    <button type="button" class="btn btn-primary w-100 mb-3" id="calendarNewEvent"><i class="fas fa-plus me-2"></i>New Event</button>
                 <?php } ?>
 
                 <label class="form-label small text-body-secondary text-uppercase fw-semibold mb-1" for="calendarAgent">Whose</label>
                 <select class="form-select select2 mb-3" id="calendarAgent">
-                    <option value="0" data-icon="fas fa-users">Everyone</option>
+                    <option value="0" data-icon="fas fa-users">- Everyone -</option>
                     <?php foreach ($agents as $agent) { ?>
-                        <option value="<?= intval($agent['user_id']) ?>"<?= selectOptionColor(mitAgentColor($agent['user_id'])) // Mountaineer IT: their calendar colour ?>><?= escapeHtml($agent['user_name']) ?><?= intval($agent['user_id']) === intval($session_user_id) ? ' (me)' : '' ?></option>
+                        <option value="<?= intval($agent['user_id']) ?>"<?= selectOptionUser($agent['user_id'], $agent['user_name'], $agent['user_avatar']) ?>><?= escapeHtml($agent['user_name']) ?><?= intval($agent['user_id']) === intval($session_user_id) ? ' (me)' : '' ?></option>
                     <?php } ?>
                 </select>
 
@@ -136,7 +129,7 @@ foreach ($sources as $key => $source) {
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item text-danger confirm-link" href="post.php?delete_calendar=<?= $calendar_id ?>&csrf_token=<?= $csrf ?>"
                                             data-confirm-title="Delete <?= escapeHtml($calendar['calendar_name']) ?>?" data-confirm-button="Delete"
-                                            data-confirm-text="Its events are deleted with it, and anyone sent an invitation to one is emailed the cancellation."><i class="fas fa-fw fa-trash-alt me-2"></i>Delete</a>
+                                            data-confirm-text="Its events are deleted with it, and anyone sent an invitation to one is emailed the cancellation."><i class="fas fa-fw fa-trash me-2"></i>Delete</a>
                                     </div>
                                 </div>
                             <?php } ?>
@@ -194,11 +187,27 @@ foreach ($sources as $key => $source) {
     <div class="col-lg order-1 order-lg-2 min-w-0">
         <div class="card">
             <div class="card-body p-2 p-md-3">
-                <?= function_exists('mitZoneNote') ? mitZoneNote() : '' // Mountaineer IT: "Times in Tokyo (JST)" when the viewer is away from the company's zone ?>
+                <?php if (timezoneShifted()) { ?>
+                    <!-- Away from the company's time zone: the times are on your own clock (functions/user_timezone.php) -->
+                    <div class="mb-2"><?= timezoneNote() ?></div>
+                <?php } ?>
                 <div id="calendar"></div>
             </div>
         </div>
-        <?= function_exists('mitLeftBehindCard') ? mitLeftBehindCard() : '' // Mountaineer IT: tickets whose booked day has gone - under the calendar ?>
+
+        <?php if ($can_schedule) { ?>
+            <!-- Open tickets booked on a day gone by - drag one back onto the calendar -->
+            <div class="card mt-3 is-empty d-print-none" id="calendarLeftBehindCard">
+                <div class="card-header py-2 d-flex align-items-center gap-3">
+                    <span class="fw-semibold text-nowrap"><i class="fas fa-fw fa-history text-danger me-1"></i>Left behind</span>
+                    <span class="small text-body-secondary text-truncate d-none d-md-inline min-w-0" id="calendarLeftBehindHint">Open tickets booked on a day that has gone - drag one onto the calendar to book it again.</span>
+                    <span class="badge rounded-pill bg-body-secondary text-body-secondary ms-auto" id="calendarLeftBehindCount"></span>
+                </div>
+                <div class="card-body p-2">
+                    <div id="calendarLeftBehind"></div>
+                </div>
+            </div>
+        <?php } ?>
     </div>
 
 </div>
@@ -212,3 +221,18 @@ foreach ($sources as $key => $source) {
 <script src="<?= staticFileUrl('/libs/fullcalendar/fullcalendar.global.js') ?>"></script>
 <script src="<?= staticFileUrl('/libs/fullcalendar/themes/classic/global.js') ?>"></script>
 <script src="<?= staticFileUrl('/agent/js/calendar.js') ?>"></script>
+<?php if (intval($_GET['event'] ?? 0)) { ?>
+    <script>
+        // From a reminder - straight to the event, on its day
+        document.addEventListener('DOMContentLoaded', function () {
+            var open = document.createElement('a');
+            open.className = 'ajax-modal d-none';
+            open.href = '#';
+            open.dataset.modalUrl = 'modals/calendar/calendar_event.php?id=<?= intval($_GET['event']) ?>';
+            open.dataset.modalSize = 'lg';
+            document.body.appendChild(open);
+            open.click();
+            open.remove();
+        });
+    </script>
+<?php } ?>

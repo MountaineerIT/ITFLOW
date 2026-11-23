@@ -39,7 +39,7 @@ function getSlaSettings($refresh = false)
 
     // ISO weekday numbers (1 = Monday .. 7 = Sunday)
     $business_days = [];
-    foreach (explode(',', strval($row['config_business_days'])) as $day) {
+    foreach (explode(',', (string) $row['config_business_days']) as $day) {
         $day = intval($day);
         if ($day >= 1 && $day <= 7) {
             $business_days[] = $day;
@@ -353,12 +353,12 @@ function slaPercentDisplay($percent)
         return "<span class='text-secondary'>-</span>";
     }
     if ($percent >= 95) {
-        return "<span class='text-success text-bold'>$percent%</span>";
+        return "<span class='text-success fw-bold'>$percent%</span>";
     }
     if ($percent >= 80) {
-        return "<span class='text-warning text-bold'>$percent%</span>";
+        return "<span class='text-warning fw-bold'>$percent%</span>";
     }
-    return "<span class='text-danger text-bold'>$percent%</span>";
+    return "<span class='text-danger fw-bold'>$percent%</span>";
 }
 
 // Reconcile a ticket's resolution clock with its current status. Safe to call
@@ -372,7 +372,6 @@ function syncTicketSlaClock($ticket_id)
     global $mysqli;
 
     $ticket_id = intval($ticket_id);
-    if (function_exists('mitStatusResponseCheck')) mitStatusResponseCheck($ticket_id); // Mountaineer IT: a status that meets the response target
 
     $sql = mysqli_query($mysqli, "SELECT ticket_sla_id, ticket_created_at, ticket_resolved_at, ticket_closed_at, ticket_archived_at, ticket_resolution_sla_alert_stage, sla_resolution_minutes, ticket_status_pauses_sla
         FROM tickets
@@ -489,20 +488,17 @@ function applyTicketSla($ticket_id, $forced_sla_id = null)
 
     $ticket_id = intval($ticket_id);
 
-    $sql = mysqli_query($mysqli, "SELECT ticket_client_id, ticket_priority, ticket_created_at, ticket_first_response_at, ticket_resolved_at,
-        ticket_response_due_at, ticket_resolution_due_at, ticket_response_sla_alert_stage, ticket_resolution_sla_alert_stage FROM tickets WHERE ticket_id = $ticket_id LIMIT 1");
+    $sql = mysqli_query($mysqli, "SELECT ticket_client_id, ticket_priority, ticket_created_at, ticket_first_response_at, ticket_resolved_at, ticket_closed_at,
+        ticket_response_due_at, ticket_resolution_due_at, ticket_response_sla_alert_stage, ticket_resolution_sla_alert_stage, ticket_project_id, ticket_sla_id"
+        . (projectTicketsReady() ? ', ticket_sla_from' : ', NULL AS ticket_sla_from') . " FROM tickets WHERE ticket_id = $ticket_id LIMIT 1");
     if (!$sql || !mysqli_num_rows($sql)) {
         return;
     }
     $row = mysqli_fetch_assoc($sql);
 
-    // Mountaineer IT: a project ticket has no SLA - the project's due dates count (functions/mit_projects.php)
-    if (function_exists('mitProjectSlaOff') && mitProjectSlaOff($ticket_id)) {
-        $forced_sla_id = 0;
-    }
-
     if (is_null($forced_sla_id)) {
-        $sla_id = getTicketSlaId($row['ticket_client_id'], $row['ticket_priority']);
+        // A project's ticket has no SLA while project tickets are kept apart - its project's dates count (functions/project_tickets.php)
+        $sla_id = projectTicketsSlaOff($row) ? 0 : getTicketSlaId($row['ticket_client_id'], $row['ticket_priority']);
     } else {
         $sla_id = intval($forced_sla_id);
     }
@@ -520,7 +516,8 @@ function applyTicketSla($ticket_id, $forced_sla_id = null)
     }
     $sla = mysqli_fetch_assoc($sla_sql);
 
-    $created_at = function_exists('mitProjectSlaStart') ? mitProjectSlaStart($ticket_id, $row['ticket_created_at']) : $row['ticket_created_at']; // Mountaineer IT: from when it left a project
+    // Counted from when it was made - or from when it left a project (functions/project_tickets.php)
+    $created_at = !empty($row['ticket_sla_from']) && $row['ticket_sla_from'] > $row['ticket_created_at'] ? $row['ticket_sla_from'] : $row['ticket_created_at'];
 
     $response_due_at = addBusinessMinutes($created_at, $sla['sla_response_minutes']);
 
@@ -555,19 +552,20 @@ function applyTicketSla($ticket_id, $forced_sla_id = null)
         $resolution_met_set = strtotime($row['ticket_resolved_at']) <= strtotime($resolution_due_at) ? 1 : 0;
     }
 
-    // A milestone already alerted on keeps its stage when re-stamping leaves it where it was: a breach still past due
-    // stays breached (and missed), a warning keeps its stage while the deadline is unchanged. Resetting them to 0 made
-    // the SLA cron email every open, already-breached ticket again each time an SLA, the SLA settings or a closure day
-    // was saved (restampOpenSlaTickets) or a ticket's priority changed.
+    // A milestone already alerted on keeps its stage when the new target doesn't undo the alert: a breach
+    // still past due stays breached (and missed), and a warning stays sent unless the deadline moved later
+    // (a minute's leeway for one worked out again from now, on a ticket that has been paused). Resetting
+    // them to 0 made the SLA cron email every open breach again each time an SLA, the SLA settings or a
+    // closure day was saved (restampOpenSlaTickets), or a ticket's priority changed.
     $keep_stage = function ($old_stage, $old_due, $new_due, $done) {
         $old_stage = intval($old_stage);
-        if ($done || $new_due === null || $old_stage < 1) {
+        if ($done || $new_due === null || $old_due === null || $old_stage < 1) {
             return 0;
         }
-        if ($old_stage === 2 && strtotime($new_due) <= time()) {
-            return 2;
+        if ($old_stage === 2) {
+            return strtotime($new_due) <= time() ? 2 : 0;
         }
-        return (string) $old_due === (string) $new_due ? $old_stage : 0;
+        return strtotime($new_due) <= strtotime($old_due) + 60 ? 1 : 0;
     };
     $response_stage = $keep_stage($row['ticket_response_sla_alert_stage'], $row['ticket_response_due_at'], $response_due_at, !empty($row['ticket_first_response_at']));
     $resolution_stage = $keep_stage($row['ticket_resolution_sla_alert_stage'], $row['ticket_resolution_due_at'], $resolution_due_at, !empty($row['ticket_resolved_at']));

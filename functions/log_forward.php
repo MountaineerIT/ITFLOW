@@ -122,7 +122,6 @@ function logForwardTidy(array $src) {
 /** Is anything being sent? */
 function logForwardOn(?array $settings = null) {
     $settings = $settings ?? logForwardSettings();
-    if (function_exists('mitDevMode') && mitDevMode()) { return false; } // Mountaineer IT: a restored copy must not feed production's log server
     return $settings['enabled'] && $settings['host'] !== '' && ($settings['audit'] || $settings['app_level'] !== '');
 }
 
@@ -165,7 +164,8 @@ function logForwardPending($add = null) {
 function logForwardQueue($log, $id, $level = '', $category = '') {
     static $registered = false;
     $id = intval($id);
-    if ($id <= 0 || (function_exists('emailCapturing') && emailCapturing())) {
+    // Development mode: a copy doesn't feed production's log server (functions/dev_mode.php)
+    if ($id <= 0 || (function_exists('emailCapturing') && emailCapturing()) || (function_exists('devModeOn') && devModeOn())) {
         return;
     }
     $settings = logForwardSettings();
@@ -251,7 +251,10 @@ function logForwardSend(array $settings, array $lines, &$error = '', $keep = tru
     static $socket = null;
     static $socket_target = '';
     $error = '';
-    if (function_exists('mitDevMode') && mitDevMode()) { $error = 'Development mode - logs are not forwarded from this server.'; return false; } // Mountaineer IT
+    if (function_exists('devModeOn') && devModeOn()) {
+        $error = 'Development mode - logs aren\'t sent from this server.';
+        return false;
+    }
     $target = logForwardTarget($settings) . ($settings['protocol'] === 'tls' ? ($settings['tls_verify'] ? ' verified' : ' unverified') : '');
     if ($socket && ($socket_target !== $target || !$keep)) {
         @fclose($socket);

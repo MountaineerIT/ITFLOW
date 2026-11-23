@@ -35,9 +35,9 @@ if (!file_exists("../config.php")) {
 
 require_once "../config.php";
 
-// A restore is often run against a database that only has config.php so far (the setup
-// wizard's database step, no settings row yet). Only take the timezone from settings when
-// it is there - inc_set_timezone.php assumes it is and would stop the restore.
+// A restore often goes into a database that has only got as far as config.php - the setup
+// wizard's database step, with no settings yet. The timezone comes from the settings when
+// they are there; inc_set_timezone.php takes them for granted and would stop the restore.
 try {
     $restore_timezone_row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT config_timezone FROM settings WHERE company_id = 1"));
 } catch (Throwable $e) {
@@ -46,7 +46,6 @@ try {
 if (!empty($restore_timezone_row['config_timezone'])) {
     require_once "../includes/inc_set_timezone.php";
 }
-
 require_once "../functions.php";
 
 $options = getopt("", ["file:", "key:", "inspect", "yes", "help"]);
@@ -102,7 +101,7 @@ if (isset($options['inspect'])) {
     exit(0);
 }
 
-if ($meta['database_version'] !== 'Unknown' && version_compare($meta['database_version'], $current_db_version, '>')) {
+if ($meta['database_version'] !== 'Unknown' && $current_db_version !== 'Unknown' && version_compare($meta['database_version'], $current_db_version, '>')) {
     echo "\nWARNING: this backup is from a NEWER database version than the code in this directory.\n";
     echo "Update ITFlow to a matching version before restoring, or the app will error after the restore.\n";
 }

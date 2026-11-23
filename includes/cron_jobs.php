@@ -93,6 +93,24 @@ function cronJobRegistry(): array
             'interval_minutes' => 1,
         ],
         [
+            'name' => 'rmm_sync',
+            'label' => 'RMM Sync',
+            'icon' => 'fa-laptop-medical',
+            'script' => 'rmm_sync.php',
+            'description' => 'Brings in the devices of the RMM clients linked in Admin > RMM Providers as assets, and keeps up whether each is online - once an RMM is set up there.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 15,
+        ],
+        [
+            'name' => 'rmm_alerts',
+            'label' => 'RMM Alerts',
+            'icon' => 'fa-bell',
+            'script' => 'rmm_alerts.php',
+            'description' => 'Opens a ticket for each new alert from an RMM provider whose alerts open tickets in Admin > RMM Providers, and resolves it when the alert clears.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
             'name' => 'ticket_email_parser',
             'label' => 'Ticket Email Parser',
             'icon' => 'fa-inbox',
@@ -107,6 +125,15 @@ function cronJobRegistry(): array
             'icon' => 'fa-stopwatch',
             'script' => 'ticket_sla.php',
             'description' => 'Moves tickets through their SLA warning and breach stages and sends the alerts.',
+            'schedule' => 'Interval',
+            'interval_minutes' => 1,
+        ],
+        [
+            'name' => 'calendar_reminders',
+            'label' => 'Reminders',
+            'icon' => 'fa-bell',
+            'script' => 'calendar_reminders.php',
+            'description' => 'Reminds agents of events on the calendar and of work booked on their tickets, at the times they set - by notification, and by email for those who asked.',
             'schedule' => 'Interval',
             'interval_minutes' => 1,
         ],
@@ -267,15 +294,6 @@ function cronJobRegistry(): array
             'interval_minutes' => 60,
         ],
         [
-            // Mountaineer IT (functions/mit_projects.php)
-            'name' => 'mit_project_tickets',
-            'label' => 'Project Ticket SLAs',
-            'script' => 'mit_project_tickets.php',
-            'description' => 'Takes the SLA off tickets that joined a project and gives it back to ones that left, for the ways in and out that do not do it at once (the API, deleting a project).',
-            'schedule' => 'Interval',
-            'interval_minutes' => 1,
-        ],
-        [
             // Mountaineer IT (functions/mit_boards.php)
             'name' => 'mit_boards',
             'label' => 'Service Boards',
@@ -294,11 +312,11 @@ function cronJobRegistry(): array
             'daily_at' => '05:20',
         ],
         [
-            // Mountaineer IT (functions/mit_cron_health.php)
-            'name' => 'mit_cron_watch',
+            'name' => 'cron_watch',
             'label' => 'Cron Watch',
-            'script' => 'mit_cron_watch.php',
-            'description' => 'Emails the admins when a job here fails, gets stuck or falls behind, and when it is fixed.',
+            'icon' => 'fa-heartbeat',
+            'script' => 'cron_watch.php',
+            'description' => 'Emails the admins when a job here fails, gets stuck or falls behind, once a day while it lasts, and when it\'s fixed - set on the Alerts card.',
             'schedule' => 'Interval',
             'interval_minutes' => 5,
         ],

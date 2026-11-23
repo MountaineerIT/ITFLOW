@@ -13,7 +13,7 @@ if (file_exists("config.php")) {
     // Start the session
     require_once "includes/session_init.php";
 
-    // If user is a client (the portal sign-in also sets 'logged', so this is asked first - an agent page would sign them out)
+    // If user is a client - asked first, as a portal sign-in sets 'logged' too, and an agent page signs them out
     if (!empty($_SESSION['client_logged_in'])) {
         header("Location: /client/");
         exit();
