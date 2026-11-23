@@ -97,9 +97,6 @@
             return '<option value="' + esc(o.id) + '"' + (String(o.id) === String(current) ? ' selected' : '') + '>' + esc(o.name) + '</option>';
         }).join('');
     }
-    function head(icon, text) {
-        return '<div class="col-12 fw-semibold border-top pt-2 mt-1"><i class="fas fa-fw ' + icon + ' me-1 text-body-secondary"></i>' + text + '</div>';
-    }
     function select(id, label, html, col, extra) {
         return '<div class="' + (col || 'col-sm-6') + '"><label class="form-label small mb-0" for="' + id + '">' + label + '</label>'
             + '<select class="form-select form-select-sm" id="' + id + '"' + (extra || '') + '>' + html + '</select></div>';
@@ -112,7 +109,7 @@
             return '';
         }
         const set = data.notify[onsite() ? '1' : '0'];
-        return head('fa-envelope', 'Email about this booking') + '<div class="col-12" data-mit-notify><div class="d-flex flex-wrap gap-3">'
+        return '<div class="col-12 fw-semibold small"><i class="fas fa-fw fa-envelope me-1 text-body-secondary"></i>Email about this booking</div><div class="col-12" data-mit-notify><div class="d-flex flex-wrap gap-3">'
             + Object.keys(notifyWho).map(function (who) {
                 return '<div class="form-check"><input class="form-check-input" type="checkbox" id="mitN_' + who + '" data-who="' + who + '"' + (set[who] ? ' checked' : '')
                     + '><label class="form-check-label small" for="mitN_' + who + '">' + notifyWho[who] + '</label></div>';
@@ -134,13 +131,12 @@
         const clients = (t.client_id ? [] : [{id: 0, name: 'No client (internal)'}]).concat(d.clients);
         fields.innerHTML = '<div class="row g-2">'
             + '<div class="col-12"><label class="form-label small mb-0" for="mitDTitle">Title</label><input type="text" class="form-control form-control-sm" id="mitDTitle" maxlength="500" value="' + esc(t.subject) + '"></div>'
-            + head('fa-ticket-alt', 'Ticket details')
             + select('mitDClient', 'Client', options(clients, t.client_id))
             + select('mitDContact', 'Contact', options([{id: 0, name: 'No contact'}].concat(d.contacts), t.contact_id))
             + '<div class="col-sm-6" data-mit-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label small mb-0" for="mitDAsset">Asset</label>'
             + '<select class="form-select form-select-sm" id="mitDAsset">' + assetOptions(d.assets, d.asset_id) + '</select></div>'
             + '<div class="col-sm-6" data-mit-assets' + (t.client_id ? '' : ' hidden') + '><label class="form-label small mb-0" for="mitDOtherAssets">Other assets</label>'
-            + '<select class="form-select form-select-sm" id="mitDOtherAssets" multiple size="3">' + otherAssetOptions(d.assets, d.other_asset_ids, d.asset_id) + '</select></div>'
+            + '<select class="form-select form-select-sm select2" id="mitDOtherAssets" multiple data-placeholder="None">' + otherAssetOptions(d.assets, d.other_asset_ids, d.asset_id) + '</select></div>'
             + select('mitDPriority', 'Priority', options(d.priorities.map(function (p) { return {id: p, name: p}; }), t.priority), 'col-sm-4')
             + select('mitDStatus', 'Status', options(d.statuses, t.status_id), 'col-sm-4')
             + select('mitDCategory', 'Category', options([{id: 0, name: 'No category'}].concat(d.categories), t.category_id), 'col-sm-4')
@@ -148,8 +144,8 @@
             + select('mitDSla', 'SLA', '<option value="auto">Automatic - from the client\'s contract and priority</option>' + options([{id: 0, name: 'None'}].concat(d.slas), t.sla_id),
                 d.boards && d.boards.length ? 'col-sm-6' : 'col-12')
             + '<div class="col-12"><div class="form-text mt-0" data-mit-client-note hidden>Moving it to another client makes its public replies internal, takes its assets off, and its SLA is worked out again unless you pick one.</div></div>'
-            + notifyHtml()
             + '</div>';
+        notifyBox.innerHTML = notifyHtml() ? '<div class="row g-2">' + notifyHtml() + '</div>' : '';
         bind(d);
     }
     function loadAssets(keep) {
@@ -197,12 +193,98 @@
                 loadAssets(client.value === original);
             });
         });
-        const notify = fields.querySelector('[data-mit-notify]');
+        const notify = modal.querySelector('[data-mit-notify]');
         if (notify) {
             notify.addEventListener('input', function () {
                 notifyTouched = true;
             });
         }
+    }
+
+    /*
+     * The window laid out to fit a screen (the user's choice, Nov 22 - a hybrid of ITFlow's window and ours from before 26.12): wide, two
+     * columns - Booking (ITFlow's agent, date and time, how long, visit, then who is emailed) and Ticket (our title and details) -, the
+     * ticket's line in the title bar, the contact's other open tickets as a slim strip (a count that opens the list when there are
+     * several), and Schedule It always in view (the middle scrolls on a short screen). ITFlow's own elements are moved, not copied, so
+     * its script keeps working on them.
+     */
+    let notifyBox = null;
+    function layout() {
+        modal.setAttribute('data-mit-ds', '');
+        const dialog = modal.querySelector('.modal-dialog');
+        dialog.classList.add('modal-xl', 'modal-dialog-scrollable');
+        const header = modal.querySelector('.modal-header');
+        const title = header.querySelector('.modal-title');
+        const ticketEl = modal.querySelector('[data-dispatch-schedule-ticket]');
+        const top = document.createElement('div');
+        top.className = 'me-auto min-w-0';
+        header.insertBefore(top, title);
+        top.appendChild(title);
+        if (ticketEl) {
+            ticketEl.className = 'mit-ds-ticket small text-truncate';
+            top.appendChild(ticketEl);
+        }
+        const body = modal.querySelector('.modal-body');
+        const others = body.querySelector('[data-dispatch-schedule-others]');
+        const error = body.querySelector('[data-dispatch-schedule-error]');
+        const row = document.createElement('div');
+        row.className = 'row g-4';
+        const left = document.createElement('div');
+        left.className = 'col-lg-5';
+        left.innerHTML = '<div class="mit-ds-head"><i class="fas fa-fw fa-calendar-check me-1"></i>Booking</div>';
+        const right = document.createElement('div');
+        right.className = 'col-lg-7 mit-ds-right';
+        right.innerHTML = '<div class="mit-ds-head"><i class="fas fa-fw fa-ticket-alt me-1"></i>Ticket</div>';
+        Array.prototype.slice.call(body.children).forEach(function (el) {
+            if (el === others || el === error || el === ticketEl) {
+                return;
+            }
+            (el === fields ? right : left).appendChild(el);
+        });
+        notifyBox = document.createElement('div');
+        notifyBox.className = 'mt-3';
+        notifyBox.setAttribute('data-mit-dispatch-notify', '');
+        const hint = left.querySelector('.form-text:last-child');
+        left.insertBefore(notifyBox, hint && hint.parentNode === left ? hint : null);
+        row.appendChild(left);
+        row.appendChild(right);
+        body.insertBefore(row, error || null);
+        // The other open tickets: one line for one, a count that opens the list for several
+        if (others) {
+            const shape = function () {
+                const many = others.querySelectorAll('[data-other]').length > 1;
+                others.classList.toggle('mit-many', many);
+                if (!many) {
+                    others.classList.remove('mit-open');
+                }
+            };
+            new MutationObserver(shape).observe(others, {childList: true});
+            others.addEventListener('click', function (e) {
+                if (others.classList.contains('mit-many') && e.target.closest('.fw-semibold') && !e.target.closest('[data-other]')) {
+                    others.classList.toggle('mit-open');
+                }
+            });
+        }
+        const style = document.createElement('style');
+        style.textContent = ''
+            + '[data-mit-ds] .modal-header { align-items: flex-start; }'
+            + '[data-mit-ds] .mit-ds-ticket { color: rgba(255,255,255,.7); max-width: 60rem; }'
+            + '[data-mit-ds] .mit-ds-ticket a { color: #fff; }'
+            + '[data-mit-ds] .mit-ds-ticket > div { display: inline; margin-left: .5rem; color: rgba(255,255,255,.7) !important; }'
+            + '[data-mit-ds] .mit-ds-head { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color);'
+            + ' border-bottom: 1px solid var(--bs-border-color); padding-bottom: .25rem; margin-bottom: .75rem; }'
+            + '[data-mit-ds] .col-lg-5 .mb-3 { margin-bottom: .75rem !important; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others] { max-height: none !important; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem;'
+            + ' background: var(--bs-warning-bg-subtle); border-color: var(--bs-warning-border-subtle) !important; padding: .35rem .6rem !important; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others][hidden] { display: none; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others] > .text-body-secondary { display: none; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others] > [data-other] { border-top: 0 !important; padding: 0 !important; flex: 1 1 24rem; min-width: 0; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others].mit-many > [data-other] { flex-basis: 100%; border-top: 1px solid var(--bs-warning-border-subtle) !important; padding-top: .25rem !important; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others].mit-many:not(.mit-open) > [data-other] { display: none; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others].mit-many > .fw-semibold { cursor: pointer; }'
+            + '[data-mit-ds] [data-dispatch-schedule-others].mit-many > .fw-semibold::after { content: "Show"; margin-left: .5rem; font-weight: 400; text-decoration: underline; color: var(--bs-link-color); }'
+            + '[data-mit-ds] [data-dispatch-schedule-others].mit-many.mit-open > .fw-semibold::after { content: "Hide"; }';
+        document.head.appendChild(style);
     }
 
     function bindModal() {
@@ -212,6 +294,7 @@
         if (!modal || !fields || !form) {
             return;
         }
+        layout();
         // Our ticks say who is emailed - ITFlow's "Email the contact" tick goes
         const tell = form.elements.tell_client;
         if (tell && tell.closest('.form-check')) {
@@ -222,9 +305,11 @@
             details = null;
             notifyTouched = false;
             fields.innerHTML = '<div class="small text-body-secondary"><i class="fas fa-spinner fa-spin me-1"></i>Loading the ticket\'s details...</div>';
+            notifyBox.innerHTML = '';
             request({details: ticket.id}).then(function (d) {
                 if (!d || d.error || !d.ticket) {
-                    fields.innerHTML = data.notify ? '<div class="row g-2">' + notifyHtml() + '</div>' : '';
+                    fields.innerHTML = '';
+                    notifyBox.innerHTML = data.notify ? '<div class="row g-2">' + notifyHtml() + '</div>' : '';
                     return;
                 }
                 details = d;
@@ -237,7 +322,7 @@
         // Remote / Onsite switches the ticks to that kind of visit's defaults, until they are touched
         if (form.elements.onsite) {
             const follow = function () {
-                const notify = fields.querySelector('[data-mit-notify]');
+                const notify = modal.querySelector('[data-mit-notify]');
                 if (!notify || notifyTouched || !data.notify) {
                     return;
                 }
@@ -266,7 +351,7 @@
             params.board = board;
         }
         if (params.dispatch_book !== undefined && fields) {
-            const notify = fields.querySelector('[data-mit-notify]');
+            const notify = modal.querySelector('[data-mit-notify]');
             if (notify) {
                 params.tell_client = 1; // ours decide
                 params.mit_schedule_notify_present = 1;

@@ -21,6 +21,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - The API keeps what things cost you out of every answer (now also quote lines, which ITFlow's new API returns), and takes the key as "Authorization: Bearer" again.
 - Ask Bob (the AI helper) now reads the Knowledge Base: published articles are in its library and are favoured in answers alongside your documents, with a link to the article. Drafts and archived articles are left out, and article text goes through the same password filter as everything else.
 - Write up can now save to the Knowledge Base: a new book button in the Ask panel opens ITFlow's New Article form, written as a general article (no client, people or system names), and you choose Save as draft or Publish.
+- Dispatch's Schedule window fits the screen again: wide, with the booking (agent, time, visit, who is emailed) on the left and the ticket's details on the right, the ticket's line in the title bar, the contact's other open tickets as a slim strip (a count that opens the list when there are several), Other assets as a chip picker, and Schedule It always in view.
 
 ## 26.11.8.12 - 2026-11-20
 - The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).

@@ -1726,6 +1726,11 @@ model: see DEPLOYMENT.md.
     Schedule window), agent/ajax.php dispatch_book (`mitDispatchBeforeBook`: check, then `mitDispatchSaveDetails`, then the email
     ticks), dispatch.js (request() -> window.itflowDispatchExtra, shownAgents() -> window.itflowDispatchAgents, queue card ->
     window.itflowDispatchCardExtra, schedule() fires "dispatch:schedule"), side_nav Dispatch entry (our permission + `mitDispatchNavCount`).
+    The Schedule window laid out to fit (Nov 22, the user's choice - a hybrid of ITFlow's window and ours): `layout()` in agent/js/mit_dispatch.js moves
+    ITFlow's own elements (no hook) - modal-xl + modal-dialog-scrollable, `[data-mit-ds]`; Booking column (`.col-lg-5`: ITFlow's agent / date / how long /
+    visit, our email ticks `[data-mit-dispatch-notify]`) and Ticket column (`.mit-ds-right`: our fields); ITFlow's `[data-dispatch-schedule-ticket]` line in
+    the title bar (`.mit-ds-ticket`); `[data-dispatch-schedule-others]` a slim strip (explanation hidden; several = `.mit-many`, Show / Hide); Other assets is
+    ITFlow's chip picker (class select2). Smoke 92 checks columns, fit at 1366 x 768 and the strip.
   - Quick ticket (functions/quick_ticket.php): the board it lands on - `mitQuickTicketBoardInput` / `Field` / `Save` (functions/mit_boards.php;
     hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php) - used even when the maker's role can't see that board
     (the user's choice, Nov 22: `mitBoardAfterCreate` accepts exactly the quick_ticket_board when `quick_ticket` is posted). Boards by role, also

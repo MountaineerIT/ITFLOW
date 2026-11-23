@@ -149,7 +149,8 @@ return [
             'Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).',
             'ticketSlaState for SLA counts; Admin > SLA working hours.',
         ],
-        'watch' => ['ticketMergeInto', 'ticketSlaState', 'change_client_ticket'],
+        'watch' => ['ticketMergeInto', 'ticketSlaState', 'change_client_ticket', 'dispatchScheduleModal', 'data-dispatch-schedule-ticket', 'data-dispatch-schedule-others',
+            'data-dispatch-schedule-error', 'data-other'],
         'overlap' => ['dispatch', 'workload'],
     ],
     'boards' => [
