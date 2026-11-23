@@ -16,9 +16,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 2 | 8 | 7 | 18 | 6 |
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 6 | 13 | 9 | 43 | 14 |
-| [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 9 |
+| [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
 | [Dispatch board, Workload, This week](#dispatch) | 4 | 5 | 30 | 12 | 46 | 10 |
-| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 11 | 51 | 27 |
+| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 27 |
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
@@ -435,6 +435,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `agent/calendar.php`: mit_outlook
+- `agent/modals/ticket/ticket_helper.php`: mitAgentCanWorkTicket
 - `agent/post/ticket.php`: mitTicketClientMoved
 - `agent/user/includes/user_side_nav.php`: mit_outlook
 - `cron/ticket_email_parser.php`: mitAgentCanWorkTicket, mit_ticket_techs
@@ -533,6 +534,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ajax.php`: mitBoardVisibleSql, mitTicketPickOptions, mitTicketPickSet, mit_dispatch, mit_options, mit_set
 - `agent/dashboard.php`: mitBoardDashCard, mitBoardDashLinks, mitBoardDashPicker
 - `agent/dispatch.php`: mit_dispatch
+- `agent/includes/get_side_nav_counts.php`: mitBoardVisibleSql
+- `agent/includes/inc_all_client.php`: mitBoardVisibleSql
 - `agent/js/dispatch.js`: mit_dispatch
 - `agent/modals/ticket/ticket_add.php`: mitBoardNewTicketField
 - `agent/modals/ticket/ticket_quick.php`: mitQuickTicketBoardInput
@@ -541,15 +544,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ticket_kanban.php`: mitBoardListTag
 - `agent/ticket_list.php`: mitBoardListTag
 - `agent/tickets.php`: mitBoardHiddenInput, mitBoardSwitcher, mitBoardTicketsFilter
-- `cron/ticket_email_parser.php`: mitBoardMessageAddresses, mitBoardRoute, mit_ticket_techs, mit_board_addresses
+- `cron/ticket_email_parser.php`: mitBoardMessageAddresses, mitBoardRoute, mit_board_addresses
 - `functions.php`: mit_boards, mit_dispatch, mit_projects
 - `functions/client_overview.php`: mitBoardVisibleSql
 - `functions/dashboard.php`: mitBoardDashAnd
 - `functions/dispatch.php`: mit_dispatch
 - `functions/reports.php`: mitBoardReportEntry, mit_boards
 - `functions/search.php`: mitBoardVisibleSql
-- `functions/ticket_helpers.php`: mit_ticket_techs
-- `functions/ticket_reply_recipients.php`: mit_ticket_techs
 - `includes/cron_jobs.php`: mit_boards
 - `js/quick_pick.js`: mit_ticket_picks
 
@@ -571,7 +572,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/ticket.php`: ticketCategoryId, ticketForModal, ticketForRequest, ticketIsOpen, ticketReference, ticketUrl
 - `functions/ticket_fields.php`: ticketChangeAssignee
 
-**ITFlow tables** categories, clients, notifications, projects, records, settings, slas, ticket_replies, tickets, user_roles, users
+**ITFlow tables** categories, clients, notifications, projects, records, settings, slas, ticket_helpers, ticket_replies, tickets, user_roles, users
 
 **ITFlow columns** category_archived_at, category_color, category_icon, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_id, config_enable_cron, config_smtp_host, config_smtp_provider, notification_action, notification_client_id, notification_entity_id, notification_type, notification_user_id, role_archived_at, role_id, role_is_admin, role_name, sla_archived_at, sla_id, sla_name, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_first_response_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolution_sla_met, ticket_resolved_at, ticket_sla_id, ticket_subject, user_archived_at, user_avatar, user_email, user_id, user_name, user_status, user_type
 

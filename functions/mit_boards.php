@@ -759,7 +759,10 @@ function mitBoardNewTicketField() {
 /** After New Ticket saved: the board picked, else the routing rules. */
 function mitBoardAfterCreate($ticket_id, $picked) {
     $picked = intval($picked);
-    if ($picked && isset(mitBoardsVisible()[$picked])) {
+    // Quick ticket: the board an admin chose for it (Admin > Settings > Tickets) is used even when this person's role doesn't see that
+    // board (the user's choice, Nov 22) - only that one board, and only from the quick ticket form
+    $quick_board = !empty($_POST['quick_ticket']) && $picked && $picked === intval(mitSetting('quick_ticket_board', '0')) && isset(mitBoards()[$picked]);
+    if ($picked && ($quick_board || isset(mitBoardsVisible()[$picked]))) {
         mitBoardMove($ticket_id, $picked, '', false, 'created');
         return;
     }

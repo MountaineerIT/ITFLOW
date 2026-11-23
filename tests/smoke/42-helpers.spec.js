@@ -50,6 +50,9 @@ test('helpers: an agent whose role can\'t work tickets, or who can\'t see the cl
     // ITFlow's own window offers them and adds them
     await visit(page, ticketPage());
     const modal = await openModal(page, `modals/ticket/ticket_helper.php?ticket_id=${made.ticketId}`);
+    // Only agents who can work the ticket are offered (the user's choice, Nov 22) - not the accountant, whose role can only view tickets
+    await expect(modal.locator('select[name=user_id] option[value="6"]'), 'a view-only agent is not offered').toHaveCount(0);
+    await expect(modal.locator('select[name=user_id] option[value="2"]'), 'the technician is').toHaveCount(1);
     await fillForm(modal, { user_id: '2', helper_mode: 'none' });
     await submit(modal, 'save_ticket_helper');
     expect(helpers(), `the technician added (${await flash(page)})`).toEqual(['2']);

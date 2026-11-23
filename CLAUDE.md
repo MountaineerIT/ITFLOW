@@ -1725,7 +1725,12 @@ model: see DEPLOYMENT.md.
     ticks), dispatch.js (request() -> window.itflowDispatchExtra, shownAgents() -> window.itflowDispatchAgents, queue card ->
     window.itflowDispatchCardExtra, schedule() fires "dispatch:schedule"), side_nav Dispatch entry (our permission + `mitDispatchNavCount`).
   - Quick ticket (functions/quick_ticket.php): the board it lands on - `mitQuickTicketBoardInput` / `Field` / `Save` (functions/mit_boards.php;
-    hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php).
+    hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php) - used even when the maker's role can't see that board
+    (the user's choice, Nov 22: `mitBoardAfterCreate` accepts exactly the quick_ticket_board when `quick_ticket` is posted). Boards by role, also
+    Nov 22: ITFlow's side-menu Tickets count (`agent/includes/get_side_nav_counts.php`) and the client pages' count (`agent/includes/inc_all_client.php`)
+    append `mitBoardVisibleSql('tickets')` (one guarded line each); `mitBoardVisibleSql` reads ITFlow's `ticket_helpers` (was our old table).
+    Helper picker (`agent/modals/ticket/ticket_helper.php`): only `mitAgentCanWorkTicket` agents offered (one condition). Smoke: 13 (count, quick
+    board), 42 (picker).
   - Project tickets apart (functions/project_tickets.php): ours `functions/mit_projects.php` - the calendar split only, `mitServiceTicketsAnd`.
   - Reply To line, Resolve - no response, status first response / reply status, timers, New Ticket status / schedule, recurring made
     ahead, offices, invoice bulk, service accounts, labor costs: ITFlow's. Ours left: invoice bulk's QuickBooks rules (invoiceBulkCan

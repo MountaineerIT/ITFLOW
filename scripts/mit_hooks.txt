@@ -93,9 +93,11 @@ hook	agent/files.php	mitDiagramFileMenu	2
 hook	agent/files.php	mitDiagramNewMenuItem	2
 hook	agent/includes/client_side_nav.php	mitToBillPartsCount	2
 hook	agent/includes/client_side_nav.php	mit_client_parts	3
+hook	agent/includes/get_side_nav_counts.php	mitBoardVisibleSql	2
 hook	agent/includes/get_side_nav_counts.php	mitNavCachedCount	2
 hook	agent/includes/get_side_nav_counts.php	mitToBillPartsCount	2
 hook	agent/includes/get_side_nav_counts.php	mit_to_bill	1
+hook	agent/includes/inc_all_client.php	mitBoardVisibleSql	2
 hook	agent/includes/inc_client_top_head.php	mitAlignClientButton	2
 hook	agent/includes/inc_client_top_head.php	mitClientHeadMeta	2
 hook	agent/includes/side_nav.php	mitBrandLogoAttrs	2
@@ -136,6 +138,7 @@ hook	agent/modals/purchasing/po_decide.php	mitPoSeenTotalField	2
 hook	agent/modals/quote/quote_to_invoice.php	mitProcQuoteConvertFields	1
 hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
+hook	agent/modals/ticket/ticket_helper.php	mitAgentCanWorkTicket	2
 hook	agent/modals/ticket/ticket_quick.php	mitQuickTicketBoardInput	2
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyViewZoneHint	2
 hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyWorkToView	2

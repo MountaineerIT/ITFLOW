@@ -33,7 +33,8 @@ $lead_when = $row['ticket_schedule'] ? ticketScheduleWhenText($row['ticket_sched
 $agents = [];
 if (!$helper) {
     foreach (ticketMentionAgents($row['ticket_client_id']) as $user_id => $agent) {
-        if ($user_id !== $lead_id && !isset($helpers[$user_id])) {
+        if ($user_id !== $lead_id && !isset($helpers[$user_id])
+            && (!function_exists('mitAgentCanWorkTicket') || mitAgentCanWorkTicket($user_id, $row['ticket_client_id']))) { // Mountaineer IT: only agents who can work it (Support edit) - the rest would be refused on save
             $agents[$user_id] = $agent;
         }
     }

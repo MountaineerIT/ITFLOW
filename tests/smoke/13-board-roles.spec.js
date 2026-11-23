@@ -162,6 +162,51 @@ test('board roles: the technician sees only their boards and their own tickets',
     expect(await adminPage.locator(`a[href*="ticket_id=${ids.plain}"]`).count(), 'the admin still sees the hidden board').toBeGreaterThan(0);
 });
 
+// The user's choices (Nov 22): the side menu's Tickets count follows the boards a role sees (as the list does), and a quick ticket lands on
+// the board an admin chose for it even when the person's role can't see that board.
+test('board roles: the menu count leaves hidden boards out; a quick ticket lands on the admin\'s board', async ({ page: adminPage, browser }) => {
+    test.skip(!made.hidden, 'not set up');
+    const page = await techPage(browser);
+    const badge = async (p) => {
+        await p.goto('agent/dashboard.php');
+        const b = p.locator('.app-sidebar a[href="/agent/tickets.php"] .badge');
+        return (await b.count()) ? Number((await b.textContent()).replace(/[^0-9]/g, '')) : 0;
+    };
+    const techBefore = await badge(page);
+    const adminBefore = await badge(adminPage);
+    await visit(adminPage, `agent/client_overview.php?client_id=${made.clientId}`);
+    made.tickets.countHidden = await addTicket(adminPage, 'ticket hidden count', { mit_board: String(made.hidden) });
+    expect(await badge(page), "the technician's count: a ticket on a board they don't see is not counted").toBe(techBefore);
+    expect(await badge(adminPage), "the admin's count has it").toBe(adminBefore + 1);
+
+    const saved = db.val("SELECT setting_value FROM mit_settings WHERE setting_name = 'quick_ticket_board'");
+    db.exec(`INSERT INTO mit_settings SET setting_name = 'quick_ticket_board', setting_value = '${made.hidden}' ON DUPLICATE KEY UPDATE setting_value = '${made.hidden}'`);
+    try {
+        await visit(page, `agent/client_overview.php?client_id=${made.clientId}`);
+        const subject = smokeName('quick ticket hidden board');
+        await db.pagePost(page, 'post.php', { csrf_token: await csrf(page), add_ticket: '1', quick_ticket: '1', mit_board: String(made.hidden),
+            client_id: String(made.clientId), subject, details: 'Raised by the smoke tests', priority: 'Low' });
+        const id = Number(db.val(`SELECT ticket_id FROM tickets WHERE ticket_subject = ${db.q(subject)} ORDER BY ticket_id DESC LIMIT 1`));
+        expect(id, 'the quick ticket was made').toBeGreaterThan(0);
+        made.tickets.quickHidden = id;
+        expect(Number(db.val(`SELECT board_id FROM mit_ticket_boards WHERE ticket_id = ${id}`)), "on the admin's board, though the technician doesn't see it").toBe(Number(made.hidden));
+        // The quick ticket's board only - a New Ticket post can't reach a hidden board this way
+        const other = smokeName('new ticket hidden board');
+        await db.pagePost(page, 'post.php', { csrf_token: await csrf(page), add_ticket: '1', mit_board: String(made.hidden),
+            client_id: String(made.clientId), subject: other, details: 'Raised by the smoke tests', priority: 'Low' });
+        const otherId = Number(db.val(`SELECT ticket_id FROM tickets WHERE ticket_subject = ${db.q(other)} ORDER BY ticket_id DESC LIMIT 1`));
+        if (otherId) {
+            made.tickets.newHidden = otherId;
+            expect(Number(db.val(`SELECT COALESCE((SELECT board_id FROM mit_ticket_boards WHERE ticket_id = ${otherId}), 0)`)), 'New Ticket still refuses it').not.toBe(Number(made.hidden));
+        }
+    } finally {
+        saved === null || saved === undefined || saved === ''
+            ? db.exec("DELETE FROM mit_settings WHERE setting_name = 'quick_ticket_board'")
+            : db.exec(`UPDATE mit_settings SET setting_value = ${db.q(saved)} WHERE setting_name = 'quick_ticket_board'`);
+        await page.context().close();
+    }
+});
+
 test('board roles: a new role is saved with the boards ticked on Admin > Roles > New', async ({ page }) => {
     test.skip(!made.shown || !m034(), 'not set up');
     const errors = watch(page);

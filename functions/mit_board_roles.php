@@ -73,7 +73,7 @@ function mitBoardVisibleSql($alias = 'tickets') {
     $user_id = intval($session_user_id);
     $in = $ids ? implode(',', array_map('intval', $ids)) : '-1';
     $helpers = function_exists('mitTicketTechsReady') && mitTicketTechsReady()
-        ? " OR EXISTS (SELECT 1 FROM mit_ticket_techs mbr_tt WHERE mbr_tt.ticket_id = $alias.ticket_id AND mbr_tt.user_id = $user_id)" : '';
+        ? " OR EXISTS (SELECT 1 FROM ticket_helpers mbr_tt WHERE mbr_tt.ticket_id = $alias.ticket_id AND mbr_tt.user_id = $user_id)" : ''; // ITFlow's helpers since 26.12
     $escalated = mitBoardsPart2Ready()
         ? " OR EXISTS (SELECT 1 FROM mit_board_moves mbr_mv WHERE mbr_mv.ticket_id = $alias.ticket_id AND mbr_mv.move_how = 'escalated' AND mbr_mv.moved_by = $user_id)" : '';
     return " AND (" . mitBoardSql($alias) . " IN ($in) OR $alias.ticket_assigned_to = $user_id$helpers$escalated)";

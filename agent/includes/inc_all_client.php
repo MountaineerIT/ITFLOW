@@ -182,7 +182,7 @@ if (isset($_GET['client_id'])) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT
             COALESCE(SUM(ticket_closed_at IS NULL AND ticket_status != 4), 0) AS num_active_tickets,
             COALESCE(SUM(ticket_closed_at IS NOT NULL), 0) AS num_closed_tickets
-            FROM tickets WHERE ticket_archived_at IS NULL AND ticket_client_id = $client_id"));
+            FROM tickets WHERE ticket_archived_at IS NULL AND ticket_client_id = $client_id" . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : ''))); // Mountaineer IT: only the boards this role sees
 
         $num_active_tickets = intval($row['num_active_tickets']);
         $num_closed_tickets = intval($row['num_closed_tickets']);
