@@ -5,7 +5,7 @@
 // back on the company's clock clears it. The admin's zone is put back.
 const { test, expect } = require('@playwright/test');
 const { watch, visit, fillForm, submit, expectClean } = require('./helpers');
-const { sql, one, php } = require('./t2db');
+const { sql, one, php, makeTicket, deleteTickets } = require('./t2db');
 
 const ZONE = 'Asia/Tokyo';
 
@@ -37,6 +37,50 @@ test('"My time zone" in Preferences: the timesheet follows it', async ({ page })
         if (before) {
             await save(before).catch(() => {});
         } else {
+            sql('UPDATE user_settings SET user_config_timezone = NULL WHERE user_id = 1');
+            sql('UPDATE mit_timesheet_people SET time_zone = NULL WHERE user_id = 1');
+        }
+    }
+});
+
+// The reply box's "When it was worked" on the agent's own clock (ours on top of ITFlow 26.12, functions/mit_reply_times.php - the user's
+// choice): typed in Tokyo, kept on the company's clock, shown back as typed in the note header, with a hint by the box.
+test("note times: typed on the agent's own clock, stored on the company's", async ({ page }) => {
+    const errors = watch(page);
+    const company = php("echo date_default_timezone_get();").trim();
+    test.skip(company === ZONE, 'the company is in Tokyo already');
+    const before = one('SELECT user_config_timezone FROM user_settings WHERE user_id = 1');
+    const client = Number(one('SELECT client_id FROM clients WHERE client_archived_at IS NULL ORDER BY client_id LIMIT 1'));
+    const ticket = makeTicket({ subject: 'Smoke 95 own clock', client, assigned: 1 });
+    const day = php("echo date('Y-m-d', strtotime('-1 day'));").trim();
+    const save = async (zone) => {
+        await visit(page, 'agent/user/user_preferences.php', errors);
+        const form = page.locator('form:has([name="edit_your_user_preferences"])');
+        await fillForm(form, { timezone: zone });
+        await submit(form, 'edit_your_user_preferences');
+    };
+    try {
+        await save(ZONE);
+        await visit(page, `agent/ticket.php?client_id=${client}&ticket_id=${ticket}`, errors);
+        await expect(page.locator('form:has(#workTimes) [data-mit-reply-zone]'), 'the box says whose clock').toContainText(ZONE);
+        await page.click('label[for=public_reply_type_opt1]');
+        await page.locator('#replyComposer.show').waitFor();
+        await page.evaluate(() => window.tinymce.get(document.querySelector('#replyComposer textarea').id).setContent('Smoke 95 own clock note'));
+        await page.fill('#work_date', day);
+        await page.fill('#work_start', '09:00');
+        await page.fill('#work_end', '10:00');
+        await Promise.all([page.waitForNavigation(), page.click('#ticket_add_reply')]);
+        const row = JSON.parse(one(`SELECT JSON_OBJECT('s', ticket_reply_work_start, 'e', ticket_reply_work_end) FROM ticket_replies WHERE ticket_reply_ticket_id = ${ticket} ORDER BY ticket_reply_id DESC LIMIT 1`));
+        const want = (t) => php(`echo (new DateTime('${day} ${t}', new DateTimeZone('${ZONE}')))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s');`).trim();
+        expect([row.s, row.e], 'kept on the company clock').toEqual([want('09:00:00'), want('10:00:00')]);
+        await expect(page.locator('[title="When the work was done"]').first(), 'shown back on their clock').toContainText('9:00');
+        await expectClean(page, errors);
+    } finally {
+        deleteTickets([ticket]);
+        if (before) {
+            await save(before).catch(() => {});
+        } else {
+            await save('').catch(() => {});
             sql('UPDATE user_settings SET user_config_timezone = NULL WHERE user_id = 1');
             sql('UPDATE mit_timesheet_people SET time_zone = NULL WHERE user_id = 1');
         }

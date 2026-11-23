@@ -1121,6 +1121,7 @@ if (isset($_POST['add_ticket_reply'])) {
     $work_sql = '';
     if (ticketWorkTimesReady() && ticketTimeSeconds($ticket_reply_time_worked) > 0
         && ($work = ticketWorkRange($_POST['work_date'] ?? '', $_POST['work_start'] ?? '', $_POST['work_end'] ?? ''))) {
+        if (function_exists('mitReplyWorkFromView')) { $work = mitReplyWorkFromView($work); } // Mountaineer IT: typed on the agent's own clock
         $ticket_reply_time_worked = ticketWorkTimeWorked($work, $ticket_reply_time_worked);
         $work_sql = ", ticket_reply_work_start = '{$work[0]}', ticket_reply_work_end = '{$work[1]}'";
     }
@@ -1374,6 +1375,7 @@ if (isset($_POST['edit_ticket_reply'])) {
         $was = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT ticket_reply_created_at, ticket_reply_time_worked, ticket_reply_work_start, ticket_reply_work_end FROM ticket_replies WHERE ticket_reply_id = $ticket_reply_id"));
         $seconds = ticketTimeSeconds($ticket_reply_time_worked);
         $work = $seconds > 0 ? ticketWorkRange($_POST['work_date'], $_POST['work_start'] ?? '', $_POST['work_end'] ?? '') : null;
+        if (function_exists('mitReplyWorkFromView')) { $work = mitReplyWorkFromView($work); } // Mountaineer IT: typed on the agent's own clock
         $minute = function (array $range) {
             return substr($range[0], 0, 16) . substr($range[1], 0, 16);
         };

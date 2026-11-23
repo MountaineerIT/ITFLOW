@@ -95,7 +95,8 @@ ob_start();
                 </div>
                 <?php if (ticketWorkTimesReady() && $ticket_reply_time_worked_formatted !== '00:00:00') {
                     // When it was worked - for a note without times, ending when it was posted (functions/ticket.php)
-                    [$work_start, $work_end] = !empty($row['ticket_reply_work_start']) ? [$row['ticket_reply_work_start'], $row['ticket_reply_work_end']] : ticketWorkTimesShown($row); ?>
+                    [$work_start, $work_end] = !empty($row['ticket_reply_work_start']) ? [$row['ticket_reply_work_start'], $row['ticket_reply_work_end']] : ticketWorkTimesShown($row);
+                    if (function_exists('mitReplyWorkToView')) { [$work_start, $work_end] = mitReplyWorkToView($work_start, $work_end); } // Mountaineer IT: on the agent's own clock ?>
                     <div class="col-sm-8">
                         <div class="mb-3">
                             <label class="form-label">When it was worked</label>
@@ -106,6 +107,7 @@ ob_start();
                                 <span class="input-group-text px-2">-</span>
                                 <input type="time" class="form-control" name="work_end" step="60" style="min-width: 7.5rem" value="<?= escapeHtml(substr($work_end, 11, 5)) ?>" aria-label="End">
                             </div>
+                            <?= function_exists('mitReplyViewZoneHint') ? mitReplyViewZoneHint() : '' ?><?php /* Mountaineer IT */ ?>
                             <div class="form-text">Change the times and the time worked follows them. Change only the time worked and the start moves.</div>
                         </div>
                     </div>

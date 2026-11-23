@@ -1001,7 +1001,7 @@ if (isset($_GET['ticket_id'])) {
                                                 </div>
                                             </div>
                                             <?php if (ticketWorkTimesReady()) { ?>
-                                                <div class="col-md-7 col-xl-8" id="workTimes" data-now="<?= date('Y-m-d\TH:i:s') ?>">
+                                                <div class="col-md-7 col-xl-8" id="workTimes" data-now="<?= function_exists('mitReplyViewNow') ? mitReplyViewNow() : date('Y-m-d\TH:i:s') ?>"><?php /* Mountaineer IT: the agent's own clock */ ?>
                                                     <label class="form-label small text-secondary mb-1" for="work_date">When it was worked</label>
                                                     <div class="input-group">
                                                         <span class="input-group-text"><i class="fas fa-fw fa-calendar-day"></i></span>
@@ -1014,6 +1014,7 @@ if (isset($_GET['ticket_id'])) {
                                                 <div class="col-12 small">
                                                     <span class="text-body-secondary" data-work-times-mode></span>
                                                     <span class="text-danger ms-2" data-work-times-problem hidden></span>
+                                                    <?= function_exists('mitReplyViewZoneHint') ? mitReplyViewZoneHint() : '' ?><?php /* Mountaineer IT: the agent's own clock */ ?>
                                                 </div>
                                             <?php } ?>
                                         </div>
@@ -1176,7 +1177,7 @@ if (isset($_GET['ticket_id'])) {
                                             <?php if ($ticket_reply_type !== "Client" && $ticket_reply_time_worked && $ticket_reply_time_worked !== "00:00:00") { ?>
                                                 <span class="mx-1">&middot;</span><i class="far fa-fw fa-clock"></i> <?= formatDuration($ticket_reply_time_worked) ?>
                                                 <?php if (!empty($reply_row['ticket_reply_work_start']) && !empty($reply_row['ticket_reply_work_end'])) { ?>
-                                                    <span class="text-nowrap" title="When the work was done">(<?= escapeHtml(ticketWorkTimesWords($reply_row['ticket_reply_work_start'], $reply_row['ticket_reply_work_end'])) ?>)</span>
+                                                    <span class="text-nowrap" title="When the work was done">(<?= escapeHtml(ticketWorkTimesWords(...(function_exists('mitReplyWorkToView') ? mitReplyWorkToView($reply_row['ticket_reply_work_start'], $reply_row['ticket_reply_work_end']) : [$reply_row['ticket_reply_work_start'], $reply_row['ticket_reply_work_end']]))) ?>)<?php /* Mountaineer IT: on the viewer's clock */ ?></span>
                                                 <?php } ?>
                                             <?php } ?>
                                             <?php if ($reply_emailed) { ?>

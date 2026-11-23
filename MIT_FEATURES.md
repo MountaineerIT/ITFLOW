@@ -22,7 +22,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
-| [Times on ticket notes (start / end)](#reply_times) | 1 | 3 | 9 | 4 | 20 | 5 |
+| [Times on ticket notes (start / end)](#reply_times) | 1 | 3 | 13 | 4 | 20 | 7 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
 | [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 37 | 22 | 131 | 23 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
@@ -682,7 +682,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `agent/post/ticket.php`: mitReplyTimesFlash, mitReplyWorkGuardAdd, mitReplyWorkGuardEdit, mitTsKeepPublicNotes, mit_reply_times
+- `agent/modals/ticket/ticket_reply_edit.php`: mitReplyViewZoneHint, mitReplyWorkToView
+- `agent/post/ticket.php`: mitReplyTimesFlash, mitReplyWorkFromView, mitReplyWorkGuardAdd, mitReplyWorkGuardEdit, mitTsKeepPublicNotes, mit_reply_times
+- `agent/ticket.php`: mitReplyViewNow, mitReplyViewZoneHint, mitReplyWorkToView
 - `functions.php`: mit_timesheets
 - `functions/reports.php`: mit_timesheets
 - `functions/user_timezone.php`: mit_timesheets
@@ -695,6 +697,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/ticket.php`: ticketReference, ticketWorkTimesReady
+- `functions/user_timezone.php`: timezoneFromView, timezoneShifted, timezoneToView, timezoneView
 
 **ITFlow tables** clients, notifications, ticket_replies, tickets
 

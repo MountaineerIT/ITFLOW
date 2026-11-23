@@ -137,6 +137,8 @@ hook	agent/modals/quote/quote_to_invoice.php	mitProcQuoteConvertFields	1
 hook	agent/modals/ticket/ticket_add.php	mitBoardNewTicketField	2
 hook	agent/modals/ticket/ticket_edit_schedule.php	mitScheduleNotifyField	2
 hook	agent/modals/ticket/ticket_quick.php	mitQuickTicketBoardInput	2
+hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyViewZoneHint	2
+hook	agent/modals/ticket/ticket_reply_edit.php	mitReplyWorkToView	2
 hook	agent/modals/trip/trip_form.php	mitReimbTripRateNote	2
 hook	agent/post/billing.php	mitMinimumSave	2
 hook	agent/post/billing.php	mitPartLineQtyProblem	2
@@ -175,6 +177,7 @@ hook	agent/post/ticket.php	mitBoardAfterCreate	2
 hook	agent/post/ticket.php	mitBoardRoute	2
 hook	agent/post/ticket.php	mitQboGuardInvoice	2
 hook	agent/post/ticket.php	mitReplyTimesFlash	2
+hook	agent/post/ticket.php	mitReplyWorkFromView	4
 hook	agent/post/ticket.php	mitReplyWorkGuardAdd	2
 hook	agent/post/ticket.php	mitReplyWorkGuardEdit	2
 hook	agent/post/ticket.php	mitScheduleNotifyFromPost	2
@@ -201,6 +204,9 @@ hook	agent/ticket.php	mitBoardEscalateMenuItem	2
 hook	agent/ticket.php	mitBoardTicketProp	2
 hook	agent/ticket.php	mitReimbMenuItem	2
 hook	agent/ticket.php	mitReimbTicketCard	1
+hook	agent/ticket.php	mitReplyViewNow	2
+hook	agent/ticket.php	mitReplyViewZoneHint	2
+hook	agent/ticket.php	mitReplyWorkToView	2
 hook	agent/ticket.php	mitTicketLayoutHtml	1
 hook	agent/ticket.php	mitTicketPartsCard	1
 hook	agent/ticket.php	mitTicketPickButton	4

@@ -47,6 +47,41 @@ function mitReplyCompanyClock($user_id, $datetime, $anchor = null) {
     return (new DateTime((string) $datetime, new DateTimeZone($zone)))->setTimezone(new DateTimeZone(date_default_timezone_get()))->format('Y-m-d H:i:s');
 }
 
+/*
+ * ITFlow's "When it was worked" on the agent's own clock (the user's choice, Nov 22 - as ours was before 26.12): ITFlow keeps and takes
+ * the times on the company's clock (functions/ticket.php ticketWorkRange); these move them at the edges with ITFlow's own viewer zone
+ * (functions/user_timezone.php - the Preferences zone, kept in step with the timesheet one by mitTsSaveZone). Stored times are unchanged.
+ * Hooks, one line each: agent/ticket.php (the box's data-now, the note header, the hint), agent/post/ticket.php add / edit_ticket_reply,
+ * agent/modals/ticket/ticket_reply_edit.php. Nothing happens for an agent on the company's clock.
+ */
+
+/** "Now" for the reply box (#workTimes data-now) on the agent's clock. */
+function mitReplyViewNow() {
+    $now = date('Y-m-d\TH:i:s');
+    return function_exists('timezoneToView') ? timezoneToView($now) : $now;
+}
+
+/** Typed times (ticketWorkRange - read as the agent's clock) as the company's clock keeps them; null stays null. */
+function mitReplyWorkFromView($work) {
+    if (!is_array($work) || !function_exists('timezoneFromView')) {
+        return $work;
+    }
+    return [timezoneFromView($work[0]), timezoneFromView($work[1])];
+}
+
+/** Stored (company) start and end on the viewing agent's clock: [start, end]. */
+function mitReplyWorkToView($start, $end) {
+    return function_exists('timezoneToView') ? [timezoneToView((string) $start), timezoneToView((string) $end)] : [$start, $end];
+}
+
+/** A short hint under the times for an agent away from the company's zone, else ''. */
+function mitReplyViewZoneHint() {
+    if (!function_exists('timezoneShifted') || !timezoneShifted()) {
+        return '';
+    }
+    return '<div class="form-text" data-mit-reply-zone>Your time (' . escapeHtml(timezoneView()) . ').</div>';
+}
+
 /** A note's work times on its author's own clock: ['work_start', 'work_end'] or null when it has none. */
 function mitReplyTimesOf($ticket_reply_id) {
     global $mysqli;
