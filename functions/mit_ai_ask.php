@@ -178,9 +178,9 @@ function mitAiAnswerHtml($text, array $sources = []) {
 function mitAiSystemPrompt() {
     $name = mitAiName();
     return ($name !== 'AI' ? "Your name is $name. " : '') . "You are the technicians' helper inside ITFlow, the IT service company's ticketing system. Answer the technician's question with "
-        . "practical steps they can follow, using the passages from past tickets and documents you are given, and the current ticket when there is one.\n"
+        . "practical steps they can follow, using the passages from past tickets, documents and Knowledge Base articles you are given, and the current ticket when there is one.\n"
         . "- After each sentence that uses a passage, cite it as [1], [2] (its number). Never cite a number you were not given.\n"
-        . "- Passages starting with Document are the company's written documentation; prefer them to past tickets when they cover the question.\n"
+        . "- Passages starting with Knowledge Base article or Document are the company's written documentation; prefer them to past tickets when they cover the question.\n"
         . "- If the passages don't cover the question, say so plainly, then give general troubleshooting advice clearly marked as general.\n"
         . "- Passages can come from different clients; say which client a fix came from when it matters, and don't assume one client's setup applies to another.\n"
         . "- Never ask for, guess, repeat or make up a password, PIN, key, token or code. When one is needed, say it is kept in ITFlow's password vault "
@@ -309,7 +309,7 @@ function mitAiAsk($conversation_id, $question, $ticket_id = 0, array $images = [
     }));
     $sources = [];
     if ($hits) {
-        $context .= "Passages from past tickets and documents:\n";
+        $context .= "Passages from past tickets, documents and Knowledge Base articles:\n";
         foreach ($hits as $i => $hit) {
             $n = $i + 1;
             $context .= "[$n] " . $hit['text'] . "\n\n";
@@ -317,7 +317,7 @@ function mitAiAsk($conversation_id, $question, $ticket_id = 0, array $images = [
                 'client_name' => $hit['client_name'], 'source_id' => $hit['source_id'], 'chunk_id' => $hit['chunk_id']];
         }
     } else {
-        $context .= "No passages from past tickets or documents matched this question.\n";
+        $context .= "No passages from past tickets, documents or Knowledge Base articles matched this question.\n";
     }
 
     $messages = [['role' => 'system', 'content' => mitAiSystemPrompt()]];
@@ -426,6 +426,9 @@ function mitAiPanelNav() {
         . '<button type="button" class="btn btn-sm mit-ai-head-btn me-1" data-mit-ai-new title="New conversation"><i class="fas fa-plus"></i></button>'
         . (lookupUserPermission('module_support') >= 2 ? '<button type="button" class="btn btn-sm mit-ai-head-btn me-1" data-mit-ai-writeup title="Write this conversation up as a document" hidden>'
             . '<i class="fas fa-file-medical"></i></button>' : '')
+        // ... or as a Knowledge Base article (agent/modals/mit_ai/kb_article.php) - when the Knowledge Base is on and this agent may write in it
+        . (function_exists('kbClosedText') && kbClosedText(2) === '' ? '<button type="button" class="btn btn-sm mit-ai-head-btn me-1" data-mit-ai-writeup-kb title="Write this conversation up for the Knowledge Base" hidden>'
+            . '<i class="fas fa-book-medical"></i></button>' : '')
         . '<button type="button" class="btn btn-sm mit-ai-head-btn me-2" data-mit-ai-history title="Earlier conversations"><i class="fas fa-history"></i></button>'
         . '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button></div>'
         . '<div class="offcanvas-body d-flex flex-column p-0">'

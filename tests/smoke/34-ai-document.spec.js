@@ -48,6 +48,7 @@ test.afterAll(() => {
         return;
     }
     db.exec(`DELETE FROM documents WHERE document_client_id = ${made.clientId}`);
+    db.exec("DELETE FROM kb_articles WHERE kb_article_title = 'Mock article' AND kb_article_created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)");
     db.exec("DELETE FROM mit_ai_conversations WHERE title LIKE 'Blank labels%' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)");
     for (const id of made.tickets) {
         db.exec(`DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${id}; DELETE FROM ticket_replies WHERE ticket_reply_ticket_id = ${id}; DELETE FROM tickets WHERE ticket_id = ${id}`);
@@ -91,3 +92,39 @@ test('Write up: a conversation becomes a document for the ticket\'s client', asy
     expect(kept.content).not.toContain('MockDocLeak9');
     await expectClean(page, errors);
 });
+
+// Write up for the Knowledge Base (agent/modals/mit_ai/kb_article.php - the user's choice, Nov 22): ITFlow's New Article form filled in by AI
+// as a general article, saved through ITFlow's add_kb_article - Publish publishes it, Save as draft keeps a draft.
+for (const how of ['publish', 'draft']) {
+    test(`Write up for the Knowledge Base: ${how === 'publish' ? 'Publish' : 'Save as draft'}`, async ({ page }) => {
+        test.skip(!made.saved, 'no AI stand-in on this test install');
+        test.skip(db.val("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'kb_articles'") !== '1', 'no Knowledge Base');
+        test.setTimeout(90000);
+        const errors = watch(page);
+        await visit(page, `agent/ticket.php?client_id=${made.clientId}&ticket_id=${made.open}`, errors);
+        await page.locator('[data-mit-ai-open]').click();
+        const panel = page.locator('#mitAiPanel');
+        await expect(panel.locator('[data-mit-ai-writeup-kb]')).toBeHidden();
+        await panel.locator('[data-mit-ai-question]').fill('Blank labels - how was it fixed before?');
+        await panel.locator('[data-mit-ai-question]').press('Enter');
+        await expect(panel.locator('[data-mit-ai-message=assistant]')).toHaveCount(1, { timeout: 30000 });
+        await panel.locator('[data-mit-ai-writeup-kb]').click();
+
+        const form = page.locator('[data-mit-ai-kb-form]');
+        await expect(form.locator('[data-mit-ai-kb-status][data-mit-ai-kb-ready]')).toBeVisible({ timeout: 30000 });
+        await expect(form.locator('[name=title]')).toHaveValue('Mock article');
+        await expect(form.locator('[name=summary]')).toHaveValue('Mock summary of the fix.');
+        const before = Number(db.val('SELECT COALESCE(MAX(kb_article_id), 0) FROM kb_articles'));
+        await form.locator(`[data-mit-ai-kb-save=${how}]`).click();
+        await page.waitForLoadState('load');
+        const kept = db.one(`SELECT kb_article_id, kb_article_published_at, REPLACE(kb_article_content, CHAR(10), ' ') AS content FROM kb_articles
+            WHERE kb_article_id > ${before} AND kb_article_title = 'Mock article' ORDER BY kb_article_id DESC LIMIT 1`);
+        expect(kept, 'the article was kept').toBeTruthy();
+        expect(kept.kb_article_published_at === null || kept.kb_article_published_at === 'NULL' ? 'draft' : 'publish', 'published or a draft, as pressed').toBe(how);
+        expect(kept.content).toContain('Do the first step from the material.');
+        expect(kept.content).not.toContain('MockDocLeak9');
+        expect(kept.content).not.toContain('<script');
+        expect(page.url(), "ITFlow's article page").toContain(`kb_article_id=${kept.kb_article_id}`);
+        await expectClean(page, errors);
+    });
+}

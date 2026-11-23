@@ -23,6 +23,7 @@
     const send = panel.querySelector('[data-mit-ai-send]');
     const about = panel.querySelector('[data-mit-ai-about]');
     const writeup = panel.querySelector('[data-mit-ai-writeup]');
+    const writeupKb = panel.querySelector('[data-mit-ai-writeup-kb]');
     const empty = thread.innerHTML;
     let conversationId = 0;
     let busy = false;
@@ -99,6 +100,9 @@
     // "Write up" only once there is a conversation to write up
     function current(id) {
         conversationId = id;
+        if (writeupKb) {
+            writeupKb.hidden = !conversationId;
+        }
         if (writeup) {
             writeup.hidden = !conversationId;
         }
@@ -158,7 +162,7 @@
         if (message.role === 'assistant') {
             if (message.sources && message.sources.length) {
                 const link = (s) => `<a href="${escape(s.url)}" target="_blank" rel="noopener" title="${escape(s.title)}">`
-                    + `[${s.n}] <i class="fas fa-fw ${s.kind === 'ticket' ? 'fa-life-ring' : 'fa-file-alt'} text-muted"></i> ${escape(s.title)}${s.client ? ' <span class="text-muted">- ' + escape(s.client) + '</span>' : ''}</a>`;
+                    + `[${s.n}] <i class="fas fa-fw ${s.kind === 'ticket' ? 'fa-life-ring' : (s.kind === 'kb' ? 'fa-book' : 'fa-file-alt')} text-muted"></i> ${escape(s.title)}${s.client ? ' <span class="text-muted">- ' + escape(s.client) + '</span>' : ''}</a>`;
                 const cited = message.sources.filter((s) => s.cited);
                 const rest = message.sources.filter((s) => !s.cited);
                 const sources = document.createElement('div');
@@ -229,7 +233,7 @@
         const waiting = document.createElement('div');
         waiting.className = 'mit-ai-msg mit-ai-answer text-muted';
         waiting.dataset.mitAiWaiting = '';
-        waiting.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>' + escape(name) + ' is looking through past tickets and documents...';
+        waiting.innerHTML = '<i class="fas fa-circle-notch fa-spin me-2"></i>' + escape(name) + ' is looking through past tickets, documents and the Knowledge Base...';
         thread.append(mine, waiting);
         thread.scrollTop = thread.scrollHeight;
         question.value = '';
@@ -300,20 +304,23 @@
 
     panel.querySelector('[data-mit-ai-new]').addEventListener('click', reset);
 
-    // Write up: ITFlow's New Document form, filled in by AI (agent/modals/mit_ai/document.php) - the panel steps aside for it
-    writeup?.addEventListener('click', () => {
+    // Write up: ITFlow's New Document form (agent/modals/mit_ai/document.php) or New Article form (kb_article.php), filled in by AI - the
+    // panel steps aside for it
+    const openWriteup = (page) => {
         if (!conversationId) {
             return;
         }
         window.bootstrap?.Offcanvas.getOrCreateInstance(panel).hide();
         const link = document.createElement('a');
         link.className = 'ajax-modal d-none';
-        link.dataset.modalUrl = '/agent/modals/mit_ai/document.php?conversation_id=' + encodeURIComponent(conversationId);
+        link.dataset.modalUrl = '/agent/modals/mit_ai/' + page + '?conversation_id=' + encodeURIComponent(conversationId);
         link.dataset.modalSize = 'xl';
         document.body.appendChild(link);
         link.click();
         link.remove();
-    });
+    };
+    writeup?.addEventListener('click', () => openWriteup('document.php'));
+    writeupKb?.addEventListener('click', () => openWriteup('kb_article.php'));
 
     panel.querySelector('[data-mit-ai-history]').addEventListener('click', () => {
         if (!list.hidden) {

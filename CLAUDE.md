@@ -1770,6 +1770,19 @@ model: see DEPLOYMENT.md.
     po_receive (`mitProcLock('receive')`, `mitProcReceiveReview`), agent/purchase_order.php (`mitPoProjectMenuItem`, `mitPoItemFor` under
     each line), agent/receiving.php (`mitProcReceivingExtras`). Now ITFlow's rules: receiving always shelves own stock and makes assets
     where a type is picked; undoing a receipt needs Full Procurement; draft POs are cancelled, not deleted.
+- AI helper and ITFlow's Knowledge Base (Nov 22, 26.12.2 - the user's request: Ask Bob reads the new Knowledge Base; Write up can save to it,
+  published or draft). Library: M070 `mit_ai_sources.kb_article_id` (UNIQUE, FK kb_articles CASCADE); `mitAiKbColumn` / `mitAiKbReady` (kbOn() + the
+  column), `mitAiKbSource` - published (`kb_article_published_at` set), unarchived articles only (the user's choice), client 0 (any agent with Support view
+  reads every article in ITFlow), head "Knowledge Base article ..."; `mitAiSourceKind` / `mitAiReadSource` read any kind (ticket | document | kb) for the
+  index, explain, the write-up's cited sources; the index pass has a third cursor (`ai_helper_cursor_kb`), and every run drops sources of articles archived or
+  back to drafts (bulk actions can keep the updated time) or all of them with the Knowledge Base off; search treats articles like documents (kept places,
+  weight), kind 'kb', link `/agent/kb_article.php?kb_article_id=`; `mitAiIndexVersion` carries 'k'; admin page "Knowledge Base N of M published";
+  consistency check covers them; `kb_articles` is on the wall check's table list (MIT_AI_READS). Write up: a second panel button `[data-mit-ai-writeup-kb]`
+  (only when `kbClosedText(2) === ''`) opens `agent/modals/mit_ai/kb_article.php` - ITFlow's `modals/kb/kb_article_form.php` posting ITFlow's
+  `add_kb_article` (`from_ticket_id` for the ticket's history), filled by `mitAiDocumentDraft($conversation_id, 0, true)` (general: no client, people or
+  system names; ajax `draft` with `kb=1`); footer Save as draft / Publish (`[data-mit-ai-kb-save]`) set ITFlow's Published switch; who reads it stays ITFlow's
+  field (agents only to start). The AI stand-in answers a write-up for "You write knowledge base articles". Scenario `scenario-ai-kb.php`, smoke: last two
+  tests of `34-ai-document.spec.js`.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`

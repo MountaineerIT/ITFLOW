@@ -332,8 +332,11 @@ return [
             'ITFlow\'s AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).',
             'callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.',
             'Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.',
+            'Knowledge Base (26.12.2, M070): kb_articles - published = kb_article_published_at set, archived = kb_article_archived_at; kbOn() / kbClosedText(2);'
+                . ' the add_kb_article handler and modals/kb/kb_article_form.php with its Published switch (checkbox name="published"); kb_article.php?kb_article_id= is the article page.',
         ],
-        'watch' => ['callAiApi', 'aiRedact', 'getAiModel', 'aiCleanHtml', 'aiDocumentSplit', 'document_form.php'],
+        'watch' => ['callAiApi', 'aiRedact', 'getAiModel', 'aiCleanHtml', 'aiDocumentSplit', 'document_form.php', 'kbClosedText', 'kb_article_form.php', 'add_kb_article',
+            'kb_article_published_at'],
         'overlap' => ['embedding', 'knowledge', 'assistant', 'copilot', 'ai_search', 'ai_chat', 'ai_ask', 'ai_answer'],
     ],
     'feedback' => [

@@ -31,7 +31,7 @@ const MIT_AI_WALL_FORBIDDEN = [
     '/\bconfig_smtp_password|\bconfig_imap_password|\bconfig_mail_oauth|\bconfig_stripe|\bm365_cert|\bqbo_refresh|\bninja_secret|\bcontact_password\b/i' => 'a stored integration secret',
 ];
 
-const MIT_AI_WALL_TABLES = ['settings', 'tickets', 'ticket_replies', 'documents', 'clients', 'users', 'ai_providers', 'mit_ai_sources', 'mit_ai_chunks',
+const MIT_AI_WALL_TABLES = ['settings', 'tickets', 'ticket_replies', 'documents', 'kb_articles', 'clients', 'users', 'ai_providers', 'mit_ai_sources', 'mit_ai_chunks',
     'mit_ai_conversations', 'mit_ai_messages', 'ai_usage'];
 
 $root = dirname(__DIR__);

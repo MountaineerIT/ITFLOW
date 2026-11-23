@@ -22,6 +22,7 @@ const MIT_AI_READS = [
     'tickets' => ['ticket_subject', 'ticket_details'],
     'ticket_replies' => ['ticket_reply'],
     'documents' => ['document_name', 'document_description', 'document_content'],
+    'kb_articles' => ['kb_article_title', 'kb_article_summary', 'kb_article_content'], // ITFlow's Knowledge Base, published articles only (M070)
 ];
 
 // Words that mark a sentence as being about a secret (mitAiSecretSentence)
@@ -375,12 +376,84 @@ function mitAiDocumentSource($document_id) {
     ];
 }
 
-/** Put one ticket or document into the library (or take it out). Returns 'indexed' | 'unchanged' | 'removed' | 'skipped'. */
+/** Is our column for articles there (M070)? Cached per request. */
+function mitAiKbColumn() {
+    global $mysqli;
+    static $there = null;
+    if ($there === null) {
+        $result = mitAiHelperReady() ? mysqli_query($mysqli, "SHOW COLUMNS FROM mit_ai_sources LIKE 'kb_article_id'") : false;
+        $there = $result && mysqli_num_rows($result) > 0;
+    }
+    return $there;
+}
+
+/** The article column in a SELECT of mit_ai_sources ($alias '' = none), or NULL before M070. */
+function mitAiKbSelect($alias) {
+    return mitAiKbColumn() ? ($alias !== '' ? "$alias." : '') . 'kb_article_id' : 'NULL AS kb_article_id';
+}
+
+/** Can the library hold Knowledge Base articles? ITFlow's Knowledge Base switched on, and our column for them (M070). Cached per request. */
+function mitAiKbReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        $ready = false;
+        $ready = function_exists('kbOn') && kbOn() && mitAiKbColumn();
+    }
+    return $ready;
+}
+
+/**
+ * A Knowledge Base article as the library keeps it - or null (a draft, archived, or the Knowledge Base off). Published articles only (the
+ * user's choice, Nov 22); an article is everyone's (client 0) - ITFlow lets any agent with Support view read every article.
+ */
+function mitAiKbSource($kb_article_id) {
+    global $mysqli;
+    if (!mitAiKbReady()) {
+        return null;
+    }
+    $article = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT kb_article_id, kb_article_title, kb_article_summary, kb_article_content, kb_article_published_at,
+            kb_article_created_at, kb_article_updated_at
+        FROM kb_articles WHERE kb_article_id = " . intval($kb_article_id) . " AND kb_article_archived_at IS NULL AND kb_article_published_at IS NOT NULL"));
+    if (!$article) {
+        return null;
+    }
+    $summary = trim((string) $article['kb_article_summary']);
+    return [
+        'title' => mb_substr((string) $article['kb_article_title'], 0, 255),
+        'client_id' => 0,
+        'signature' => hash('sha256', implode('|', [$article['kb_article_updated_at'] ?: $article['kb_article_created_at'], $article['kb_article_published_at'],
+            md5((string) $article['kb_article_content'])])),
+        'head' => 'Knowledge Base article "' . $article['kb_article_title'] . '"',
+        'text' => ($summary !== '' ? mitAiText($summary) . "\n\n" : '') . mitAiText($article['kb_article_content']),
+    ];
+}
+
+/** A source row's reader: [kind, id] for a mit_ai_sources row. */
+function mitAiSourceKind(array $row) {
+    if (!empty($row['ticket_id'])) {
+        return ['ticket', intval($row['ticket_id'])];
+    }
+    if (!empty($row['kb_article_id'])) {
+        return ['kb', intval($row['kb_article_id'])];
+    }
+    return ['document', intval($row['document_id'] ?? 0)];
+}
+
+/** Read a source of any kind: ticket, document or kb. */
+function mitAiReadSource($kind, $id) {
+    return $kind === 'ticket' ? mitAiTicketSource($id) : ($kind === 'kb' ? mitAiKbSource($id) : mitAiDocumentSource($id));
+}
+
+/** Put one ticket, document or Knowledge Base article into the library (or take it out). Returns 'indexed' | 'unchanged' | 'removed' | 'skipped'. */
 function mitAiIndexSource($kind, $id) {
     global $mysqli;
     $id = intval($id);
-    $column = $kind === 'ticket' ? 'ticket_id' : 'document_id';
-    $source = $kind === 'ticket' ? mitAiTicketSource($id) : mitAiDocumentSource($id);
+    $column = ['ticket' => 'ticket_id', 'document' => 'document_id', 'kb' => 'kb_article_id'][$kind] ?? 'document_id';
+    if ($kind === 'kb' && !mitAiKbReady()) {
+        return 'skipped';
+    }
+    $source = mitAiReadSource($kind, $id);
     $existing = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT source_id, signature FROM mit_ai_sources WHERE $column = $id"));
     if (!$source) {
         if ($existing) {
@@ -439,7 +512,7 @@ function mitAiIndexSource($kind, $id) {
  */
 function mitAiIndexVersion() {
     $settings = mitAiHelperSettings();
-    return 'v2|' . ($settings['internal'] ? 'i' : '') . ($settings['documents'] ? 'd' : '');
+    return 'v2|' . ($settings['internal'] ? 'i' : '') . ($settings['documents'] ? 'd' : '') . (mitAiKbReady() ? 'k' : '');
 }
 
 /** Start the library again from nothing at the next run (Admin > Settings > AI helper "Rebuild", or a settings change). */
@@ -449,7 +522,7 @@ function mitAiIndexReset() {
         return;
     }
     mysqli_query($mysqli, "DELETE FROM mit_ai_sources");
-    foreach (['ai_helper_since', 'ai_helper_pass_started', 'ai_helper_cursor_ticket', 'ai_helper_cursor_document'] as $name) {
+    foreach (['ai_helper_since', 'ai_helper_pass_started', 'ai_helper_cursor_ticket', 'ai_helper_cursor_document', 'ai_helper_cursor_kb'] as $name) {
         mitSetSetting($name, '');
     }
 }
@@ -472,7 +545,7 @@ function mitAiIndexRun($budget_seconds = 50) {
     try {
         if (mitSetting('ai_helper_index_version', '') !== mitAiIndexVersion()) {
             // Read everything again (each source's signature carries the version); passages that come out the same keep their embeddings
-            foreach (['ai_helper_since', 'ai_helper_pass_started', 'ai_helper_cursor_ticket', 'ai_helper_cursor_document'] as $name) {
+            foreach (['ai_helper_since', 'ai_helper_pass_started', 'ai_helper_cursor_ticket', 'ai_helper_cursor_document', 'ai_helper_cursor_kb'] as $name) {
                 mitSetSetting($name, '');
             }
             mitSetSetting('ai_helper_index_version', mitAiIndexVersion());
@@ -486,13 +559,14 @@ function mitAiIndexRun($budget_seconds = 50) {
             mitSetSetting('ai_helper_pass_started', $pass);
             mitSetSetting('ai_helper_cursor_ticket', '0');
             mitSetSetting('ai_helper_cursor_document', '0');
+            mitSetSetting('ai_helper_cursor_kb', '0');
         }
         $since_sql = mysqli_real_escape_string($mysqli, $since);
         $counts = ['indexed' => 0, 'unchanged' => 0, 'removed' => 0, 'skipped' => 0];
         $left = MIT_AI_INDEX_BATCH;
         $done = true;
 
-        foreach (['ticket', 'document'] as $kind) {
+        foreach (mitAiKbReady() ? ['ticket', 'document', 'kb'] : ['ticket', 'document'] as $kind) {
             $cursor = intval(mitSetting("ai_helper_cursor_$kind", '0'));
             if ($cursor < 0) {
                 continue; // this kind is done for the pass
@@ -501,6 +575,9 @@ function mitAiIndexRun($budget_seconds = 50) {
                 $sql = "SELECT ticket_id FROM tickets WHERE ticket_id > $cursor AND (COALESCE(ticket_updated_at, ticket_created_at) >= '$since_sql'
                         OR ticket_id IN (SELECT ticket_reply_ticket_id FROM ticket_replies WHERE COALESCE(ticket_reply_updated_at, ticket_reply_created_at) >= '$since_sql'))
                     ORDER BY ticket_id LIMIT " . intval($left + 1);
+            } elseif ($kind === 'kb') {
+                $sql = "SELECT kb_article_id FROM kb_articles WHERE kb_article_id > $cursor AND COALESCE(kb_article_updated_at, kb_article_created_at) >= '$since_sql'
+                    ORDER BY kb_article_id LIMIT " . intval($left + 1);
             } else {
                 $sql = "SELECT document_id FROM documents WHERE document_id > $cursor AND COALESCE(document_updated_at, document_created_at) >= '$since_sql'
                     ORDER BY document_id LIMIT " . intval($left + 1);
@@ -530,6 +607,13 @@ function mitAiIndexRun($budget_seconds = 50) {
         // Archived since they were read (ITFlow archives without touching the updated time, so the pass above doesn't see it)
         mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN documents d ON d.document_id = s.document_id WHERE d.document_archived_at IS NOT NULL");
         mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN tickets t ON t.ticket_id = s.ticket_id WHERE t.ticket_archived_at IS NOT NULL");
+        // Knowledge Base articles archived or taken back to a draft (bulk actions may leave the updated time alone), or the Knowledge Base off
+        if (mitAiKbReady()) {
+            mysqli_query($mysqli, "DELETE s FROM mit_ai_sources s JOIN kb_articles a ON a.kb_article_id = s.kb_article_id
+                WHERE a.kb_article_archived_at IS NOT NULL OR a.kb_article_published_at IS NULL");
+        } elseif (mitAiKbColumn()) {
+            mysqli_query($mysqli, "DELETE FROM mit_ai_sources WHERE kb_article_id IS NOT NULL");
+        }
         if ($done) {
             mitSetSetting('ai_helper_since', $pass);
             mitSetSetting('ai_helper_pass_started', '');
@@ -585,6 +669,8 @@ function mitAiIndexStats() {
     $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT
         (SELECT COUNT(*) FROM mit_ai_sources WHERE ticket_id IS NOT NULL) AS tickets,
         (SELECT COUNT(*) FROM mit_ai_sources WHERE document_id IS NOT NULL) AS documents,
+        " . (mitAiKbColumn() ? "(SELECT COUNT(*) FROM mit_ai_sources WHERE kb_article_id IS NOT NULL)" : "0") . " AS kb_articles,
+        " . (mitAiKbReady() ? "(SELECT COUNT(*) FROM kb_articles WHERE kb_article_archived_at IS NULL AND kb_article_published_at IS NOT NULL)" : "0") . " AS kb_articles_in_itflow,
         (SELECT COUNT(*) FROM mit_ai_chunks) AS chunks,
         (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL) AS embedded,
         (SELECT COUNT(*) FROM mit_ai_chunks WHERE embedding IS NOT NULL AND embed_model = '" . mysqli_real_escape_string($mysqli, mitAiEmbedTag(mitAiHelperSettings()['embed_model'])) . "') AS embedded_current,
@@ -600,7 +686,7 @@ function mitAiIndexStats() {
 function mitAiScrubbedSources($limit = 50) {
     global $mysqli;
     $rows = [];
-    $result = mysqli_query($mysqli, "SELECT s.source_id, s.ticket_id, s.document_id, s.client_id, s.title, s.scrubbed, s.indexed_at, c.client_name FROM mit_ai_sources s LEFT JOIN clients c ON c.client_id = s.client_id
+    $result = mysqli_query($mysqli, "SELECT s.source_id, s.ticket_id, s.document_id, " . mitAiKbSelect('s') . ", s.client_id, s.title, s.scrubbed, s.indexed_at, c.client_name FROM mit_ai_sources s LEFT JOIN clients c ON c.client_id = s.client_id
         WHERE s.scrubbed > 0" . clientScopeSql('s.client_id') . " ORDER BY s.indexed_at DESC, s.source_id DESC LIMIT " . intval($limit));
     while ($row = mysqli_fetch_assoc($result)) {
         $rows[] = $row + ['url' => mitAiSourceUrl($row)];
@@ -614,12 +700,12 @@ function mitAiScrubbedSources($limit = 50) {
  */
 function mitAiExplainSource($source_id) {
     global $mysqli;
-    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT source_id, ticket_id, document_id, client_id, title FROM mit_ai_sources WHERE source_id = " . intval($source_id)
+    $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT source_id, ticket_id, document_id, " . mitAiKbSelect('') . ", client_id, title FROM mit_ai_sources WHERE source_id = " . intval($source_id)
         . clientScopeSql('client_id')));
     if (!$row) {
         return null;
     }
-    $source = $row['ticket_id'] ? mitAiTicketSource($row['ticket_id']) : mitAiDocumentSource($row['document_id']);
+    $source = mitAiReadSource(...mitAiSourceKind($row));
     if (!$source) {
         return null;
     }
@@ -634,6 +720,9 @@ function mitAiExplainSource($source_id) {
 function mitAiSourceUrl(array $source) {
     if (!empty($source['ticket_id'])) {
         return '/agent/' . ticketUrl($source['ticket_id'], $source['client_id'] ?? 0);
+    }
+    if (!empty($source['kb_article_id'])) {
+        return '/agent/kb_article.php?kb_article_id=' . intval($source['kb_article_id']);
     }
     return '/agent/document.php?' . (intval($source['client_id'] ?? 0) ? 'client_id=' . intval($source['client_id']) . '&' : '') . 'document_id=' . intval($source['document_id']);
 }
@@ -849,7 +938,7 @@ function mitAiSearch($query, array $opts = []) {
     // ... and the documents' own best, which thousands of ticket passages would otherwise push out of the pool
     $documents = []; // chunk_id => true: a document passage that matched
     $result = mysqli_query($mysqli, "SELECT k.chunk_id, MATCH(k.chunk_text) AGAINST('$words') AS relevance FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id
-        WHERE s.document_id IS NOT NULL AND MATCH(k.chunk_text) AGAINST('$words')$scope ORDER BY relevance DESC LIMIT " . MIT_AI_SEARCH_POOL);
+        WHERE (s.document_id IS NOT NULL" . (mitAiKbColumn() ? ' OR s.kb_article_id IS NOT NULL' : '') . ") AND MATCH(k.chunk_text) AGAINST('$words')$scope ORDER BY relevance DESC LIMIT " . MIT_AI_SEARCH_POOL);
     $rank = 0;
     while ($row = mysqli_fetch_assoc($result)) {
         $documents[intval($row['chunk_id'])] = true;
@@ -865,7 +954,7 @@ function mitAiSearch($query, array $opts = []) {
             $model = mysqli_real_escape_string($mysqli, mitAiEmbedTag($config['model']));
             $scores = [];
             $is_document = [];
-            $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.embedding, s.document_id IS NOT NULL FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id
+            $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.embedding, (s.document_id IS NOT NULL" . (mitAiKbColumn() ? ' OR s.kb_article_id IS NOT NULL' : '') . ") FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id
                 WHERE k.embed_model = '$model'$scope");
             while ($row = mysqli_fetch_row($result)) {
                 if ($row[2]) {
@@ -918,7 +1007,7 @@ function mitAiSearch($query, array $opts = []) {
     $pool = array_unique(array_merge($pool, array_slice(array_keys(array_intersect_key($ranks, $documents)), 0, MIT_AI_SEARCH_POOL)));
     $ids = implode(',', array_map('intval', $pool));
     $rows = [];
-    $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.chunk_text, k.client_id, s.source_id, s.ticket_id, s.document_id, s.title, c.client_name
+    $result = mysqli_query($mysqli, "SELECT k.chunk_id, k.chunk_text, k.client_id, s.source_id, s.ticket_id, s.document_id, " . mitAiKbSelect('s') . ", s.title, c.client_name
         FROM mit_ai_chunks k JOIN mit_ai_sources s ON s.source_id = k.source_id LEFT JOIN clients c ON c.client_id = k.client_id
         WHERE k.chunk_id IN ($ids)$scope");
     while ($row = mysqli_fetch_assoc($result)) {
@@ -950,7 +1039,7 @@ function mitAiSearch($query, array $opts = []) {
         $out[] = [
             'chunk_id' => $chunk_id,
             'source_id' => intval($row['source_id']),
-            'kind' => $row['ticket_id'] ? 'ticket' : 'document',
+            'kind' => mitAiSourceKind($row)[0],
             'title' => (string) $row['title'],
             'client_id' => intval($row['client_id']),
             'client_name' => (string) $row['client_name'],
