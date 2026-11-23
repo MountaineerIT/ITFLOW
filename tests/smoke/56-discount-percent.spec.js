@@ -87,3 +87,29 @@ test('discounts: a percentage of the lines, never-discounted products left out',
     expect(db.val(`SELECT recurring_invoice_discount_amount FROM recurring_invoices WHERE recurring_invoice_id = ${made.recurringId}`), 'the typed amount').toBe('50.00');
     await expectClean(page, errors);
 });
+
+// Copy Invoice keeps the percentage (mitDiscountCopy - one line in agent/post/invoice.php add_invoice_copy). Written after the hook proof
+// (Nov 23) found the copy path untested.
+test('discounts: Copy Invoice keeps the percentage', async ({ page }) => {
+    const { csrf } = require('./helpers');
+    const number = Number(db.val('SELECT COALESCE(MAX(invoice_number), 0) + 1 FROM invoices'));
+    const invoice = db.insert(`INSERT INTO invoices SET invoice_prefix = 'INV-', invoice_number = ${number}, invoice_scope = ${db.q(made.tag + ' copy')}, invoice_date = CURDATE(),
+        invoice_due = CURDATE(), invoice_amount = 800, invoice_discount_amount = 200, invoice_currency_code = 'USD', invoice_status = 'Draft', invoice_url_key = 'smoke${Date.now()}',
+        invoice_client_id = ${CLIENT}, invoice_category_id = 0`);
+    db.exec(`INSERT INTO invoice_items SET item_name = ${db.q(made.tag + ' copy line')}, item_description = '', item_quantity = 1, item_price = 1000, item_subtotal = 1000, item_tax = 0,
+        item_total = 1000, item_order = 1, item_tax_id = 0, item_product_id = 0, item_invoice_id = ${invoice};
+        INSERT INTO mit_billing_discounts SET doc_type = 'invoice', doc_id = ${invoice}, percent = 20, product_id = 0`);
+    let copy = 0;
+    try {
+        await visit(page, `agent/invoice.php?invoice_id=${invoice}`);
+        await db.pagePost(page, '/agent/post.php', { csrf_token: await csrf(page), add_invoice_copy: '1', invoice_id: String(invoice), date: new Date().toISOString().slice(0, 10) });
+        copy = Number(db.val(`SELECT MAX(invoice_id) FROM invoices WHERE invoice_client_id = ${CLIENT} AND invoice_scope = ${db.q(made.tag + ' copy')} AND invoice_id <> ${invoice}`) || 0);
+        expect(copy, 'the copy was made').toBeGreaterThan(0);
+        expect(db.val(`SELECT ROUND(percent) FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${copy}`), 'the copy keeps 20%').toBe('20');
+    } finally {
+        for (const id of [invoice, copy].filter(Boolean)) {
+            db.exec(`DELETE FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${id}; DELETE FROM invoice_items WHERE item_invoice_id = ${id};
+                DELETE FROM history WHERE history_invoice_id = ${id}; DELETE FROM invoices WHERE invoice_id = ${id}`);
+        }
+    }
+});
