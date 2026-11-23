@@ -1750,8 +1750,21 @@ model: see DEPLOYMENT.md.
     API read), `mitProductApiColumns`. API keys: `Authorization: Bearer` again (one line in apiKeyFromRequest).
   - Module switches: Purchasing and Dispatch are ITFlow's (moduleOn); ours keeps Timesheets. AI wall: password_history, the Graph token
     and RMM keys are forbidden names.
-  - Purchasing (functions/purchase_orders.php): see the procurement hooks added with this merge (CLAUDE.md "Procurement" is superseded
-    where it names our pages).
+  - Purchasing (functions/purchase_orders.php, agent/to_order.php / purchase_orders.php / purchase_order.php / receiving.php, settings
+    config_po_*, switch moduleOn('purchasing'); "Procurement" above is superseded where it names our pages - those are gone). Ours:
+    `functions/mit_procurement.php` (helpers, `mitProcAddItem` = order_items + `mit_order_item_links`, approval and notice hooks),
+    `mit_procurement_parts.php` (ticket Parts box, billing parts / To Bill, quote and invoice ordering, `MIT_PART_PROC_STATUS_SQL` - an
+    order item ITFlow deleted counts as cancelled, tidy), `mit_procurement_extras.php` (client move, receiving / undo extras, invoice and
+    project status, PO line projects - `COALESCE(mit_po_item_projects, the item's own)`), `agent/modals/mit_procurement/po_project.php`
+    (Link to a project; handler `mit_po_set_project` in agent/post/mit_procurement_parts.php). Hooks, one guarded line each:
+    poMayApprove (`mitPoMayApproveOwn` - whoever shaped it, from ITFlow's audit log), poTell (`mitPoTellSwitches` - po_app / po_email),
+    poDecide approve (`mitPoSeenTotalProblem`) + agent/modals/purchasing/po_decide.php (`mitPoSeenTotalField`), poReceive
+    (`!mitProcReceiveNoShelf($line)` on the stock condition - ticket parts never go on the shelf; `mitProcAfterReceive` after the
+    po_receipts INSERT, inside its transaction: ticket note, ticket_assets, invoice line stock given back, recorded in
+    mit_po_receipt_extras), poUndoReceipt (`mitProcUndoReceiptExtras` at the start - throws to refuse), agent/post/purchase_order.php
+    po_receive (`mitProcLock('receive')`, `mitProcReceiveReview`), agent/purchase_order.php (`mitPoProjectMenuItem`, `mitPoItemFor` under
+    each line), agent/receiving.php (`mitProcReceivingExtras`). Now ITFlow's rules: receiving always shelves own stock and makes assets
+    where a type is picked; undoing a receipt needs Full Procurement; draft POs are cancelled, not deleted.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
