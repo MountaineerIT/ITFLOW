@@ -113,3 +113,23 @@ test('discounts: Copy Invoice keeps the percentage', async ({ page }) => {
         }
     }
 });
+
+// New Invoice saves a percentage typed in it (mitDiscountSave - one line in agent/post/invoice.php add_invoice). Written after the hook
+// proof (Nov 23) found the add path untested (the tests set a percentage only on an existing recurring invoice).
+test('discounts: New Invoice keeps a percentage typed in it', async ({ page }) => {
+    const { csrf } = require('./helpers');
+    const scope = made.tag + ' new';
+    const category = db.val("SELECT category_id FROM categories WHERE category_type = 'Income' AND category_archived_at IS NULL ORDER BY category_id LIMIT 1") || '0';
+    await visit(page, 'agent/invoices.php');
+    await db.pagePost(page, '/agent/post.php', { csrf_token: await csrf(page), add_invoice: '1', client_id: String(CLIENT), date: new Date().toISOString().slice(0, 10),
+        category, scope, invoice_discount: '', mit_discount_present: '1', mit_discount_mode: 'percent', mit_discount_percent: '15', mit_discount_product: '0' });
+    const invoice = Number(db.val(`SELECT MAX(invoice_id) FROM invoices WHERE invoice_client_id = ${CLIENT} AND invoice_scope = ${db.q(scope)}`) || 0);
+    try {
+        expect(invoice, 'the invoice was made').toBeGreaterThan(0);
+        expect(db.val(`SELECT ROUND(percent) FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${invoice}`), 'its 15% kept').toBe('15');
+    } finally {
+        if (invoice) {
+            db.exec(`DELETE FROM mit_billing_discounts WHERE doc_type = 'invoice' AND doc_id = ${invoice}; DELETE FROM history WHERE history_invoice_id = ${invoice}; DELETE FROM invoices WHERE invoice_id = ${invoice}`);
+        }
+    }
+});
