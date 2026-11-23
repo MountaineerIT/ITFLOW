@@ -63,6 +63,10 @@ test("note times: typed on the agent's own clock, stored on the company's", asyn
         await save(ZONE);
         await visit(page, `agent/ticket.php?client_id=${client}&ticket_id=${ticket}`, errors);
         await expect(page.locator('form:has(#workTimes) [data-mit-reply-zone]'), 'the box says whose clock').toContainText(ZONE);
+        // The box's "now" (what an untyped date / end fills in from) is on their clock, not the company's
+        const boxNow = Date.parse((await page.locator('#workTimes').getAttribute('data-now')) + 'Z');
+        const theirNow = Date.parse(php(`echo (new DateTime('now', new DateTimeZone('${ZONE}')))->format('Y-m-d\\TH:i:s');`).trim() + 'Z');
+        expect(Math.abs(boxNow - theirNow), "the reply box's now on their clock").toBeLessThan(5 * 60000);
         await page.click('label[for=public_reply_type_opt1]');
         await page.locator('#replyComposer.show').waitFor();
         await page.evaluate(() => window.tinymce.get(document.querySelector('#replyComposer textarea').id).setContent('Smoke 95 own clock note'));
