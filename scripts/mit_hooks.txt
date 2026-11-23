@@ -49,6 +49,7 @@ hook	admin/update.php	mitVersion	3
 hook	admin/update.php	mit_changelog_card	1
 hook	agent/ajax.php	mitBoardVisibleSql	2
 hook	agent/ajax.php	mitDispatchBeforeBook	2
+hook	agent/ajax.php	mitDispatchEditNeeds	2
 hook	agent/ajax.php	mitPartLineQtyProblem	2
 hook	agent/ajax.php	mitQboInvoiceLock	6
 hook	agent/ajax.php	mitTicketLayoutAjax	1
@@ -82,6 +83,7 @@ hook	agent/dashboard.php	mitBoardDashLinks	2
 hook	agent/dashboard.php	mitBoardDashPicker	2
 hook	agent/dashboard.php	mitCtDashCard	2
 hook	agent/dashboard.php	mit_align_dash	3
+hook	agent/dispatch.php	mitDispatchEditNeeds	2
 hook	agent/dispatch.php	mitDispatchLevel	1
 hook	agent/dispatch.php	mitDispatchScheduleFields	2
 hook	agent/dispatch.php	mitDispatchViewerHours	2

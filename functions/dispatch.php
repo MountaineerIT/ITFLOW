@@ -244,7 +244,7 @@ function dispatchItems($from, $to, array $agent_ids) {
         unset($item);
     }
     // Mountaineer IT: each agent's Outlook busy times (functions/mit_dispatch.php)
-    $items = function_exists('mitDispatchOutlookItems') ? array_merge($items, mitDispatchOutlookItems($from, $to, $agent_ids)) : $items;
+    $items = function_exists('mitDispatchOutlookItems') ? array_merge($items, mitDispatchOutlookItems($q_from, $q_to, $agent_ids)) : $items;
     return timezoneItems($items);
 }
 

@@ -53,7 +53,7 @@ $tell_client = intval($config_ticket_client_general_notifications) === 1;
             <h3 class="card-title me-auto my-1">
                 <i class="fas fa-fw fa-people-arrows me-2"></i>Dispatch
                 <?php if (!$can_edit) { ?>
-                    <span class="badge rounded-pill text-bg-secondary ms-2 align-middle" title="Booking and moving tickets takes Support at Modify in your role">View only</span>
+                    <span class="badge rounded-pill text-bg-secondary ms-2 align-middle" title="<?= function_exists('mitDispatchEditNeeds') ? escapeHtml(mitDispatchEditNeeds()) : 'Booking and moving tickets takes Support at Modify in your role' ?>">View only</span><?php /* Mountaineer IT: our Dispatch permission */ ?>
                 <?php } ?>
                 <span class="fw-normal text-body-secondary ms-2 small" data-dispatch-title></span>
             </h3>

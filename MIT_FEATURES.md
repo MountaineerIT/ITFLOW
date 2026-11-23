@@ -473,8 +473,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `agent/ajax.php`: mitDispatchBeforeBook, mit_dispatch, mit_dispatch_details_message, mit_why
-- `agent/dispatch.php`: mitDispatchLevel, mitDispatchScheduleFields, mitDispatchViewerHours, mit_dispatch, mit_dispatch_extras
+- `agent/ajax.php`: mitDispatchBeforeBook, mitDispatchEditNeeds, mit_dispatch, mit_dispatch_details_message, mit_why
+- `agent/dispatch.php`: mitDispatchEditNeeds, mitDispatchLevel, mitDispatchScheduleFields, mitDispatchViewerHours, mit_dispatch, mit_dispatch_extras
 - `agent/includes/side_nav.php`: mitDispatchLevel, mitDispatchNavCount, mit_dispatch_count
 - `agent/js/dispatch.js`: mit_dispatch
 - `agent/post/ticket.php`: mit_board

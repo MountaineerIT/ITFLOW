@@ -54,7 +54,17 @@ try {
     scenarioCheck('without the split (Dispatch, dashboard) the tickets source has both', [in_array($tickets['service'], $all, true), in_array($tickets['project'], $all, true)], [true, true]);
     $d = $ids(dispatchItems($day, $day, [$tech]));
     scenarioCheck('Dispatch still shows both', [in_array($tickets['service'], $d, true), in_array($tickets['project'], $d, true)], [true, true]);
+    // Outlook busy times on Dispatch: a one-day range (the day view) and a week ending that day both carry the busy block (ITFlow's
+    // dispatchItems passes our hook its company-clock range - with bare dates the last day was cut off)
+    mysqli_query($mysqli, "INSERT INTO mit_outlook_busy SET user_id = $tech, starts_at = '$day 14:00:00', ends_at = '$day 15:00:00', is_all_day = 0, subject = '$tag busy', is_private = 0, show_as = 'busy'");
+    $busy_id = mysqli_insert_id($mysqli);
+    $busy = function ($items) {
+        return count(array_filter($items, function ($i) { return ($i['extendedProps']['kind'] ?? '') === 'outlook_busy' && preg_match('/[ T]14:00/', (string) ($i['start'] ?? '')); }));
+    };
+    scenarioCheck("Dispatch's day view: the agent's Outlook busy time", $busy(dispatchItems($day, $day, [$tech])), 1);
+    scenarioCheck('... and a week that ends on that day', $busy(dispatchItems(date('Y-m-d', strtotime("$day -6 days")), $day, [$tech])), 1);
 } finally {
+    mysqli_query($mysqli, "DELETE FROM mit_outlook_busy WHERE subject LIKE '$tag%'");
     foreach ($tickets as $id) {
         ticketDeleteForGood($id);
     }

@@ -3294,7 +3294,7 @@ if (isset($_GET['dispatch_queue']) || isset($_GET['dispatch_items']) || isset($_
         exit;
     }
     if (!dispatchCanEdit()) {
-        $fail('Booking and moving tickets takes Support at Modify in your role - you can look, not change.', 403);
+        $fail((function_exists('mitDispatchEditNeeds') ? mitDispatchEditNeeds() : 'Booking and moving tickets takes Support at Modify in your role') . ' - you can look, not change.', 403); // Mountaineer IT: our Dispatch permission
     }
     // Picked on the viewer's own clock - as the company's clock reads it
     $_POST = timezoneMovePost($_POST);

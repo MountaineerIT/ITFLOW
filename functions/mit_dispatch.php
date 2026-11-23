@@ -431,6 +431,12 @@ function mitDispatchBeforeBook(array $post) {
     return '';
 }
 
+
+/** What booking on Dispatch takes, for ITFlow's View only badge and refusal (agent/dispatch.php, agent/ajax.php - one line each). */
+function mitDispatchEditNeeds() {
+    return 'Booking and moving tickets takes Dispatch at Edit and Support at Modify in your role (Admin > Roles)';
+}
+
 /** ITFlow's dispatchItems (one line): each shown agent's Outlook busy times too. */
 function mitDispatchOutlookItems($from, $to, array $agent_ids) {
     if (!function_exists('mitOutlookBusyItems') || !isset(calendarSources()['outlook_busy'])) {

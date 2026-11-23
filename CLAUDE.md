@@ -1719,7 +1719,7 @@ model: see DEPLOYMENT.md.
   - Dispatch (functions/dispatch.php, agent/dispatch.php, agent/js/dispatch.js): ours in `functions/mit_dispatch.php`,
     `agent/includes/mit_dispatch_extras.php` (board picker; one require in the toolbar), `agent/js/mit_dispatch.js`,
     `agent/mit_dispatch_ajax.php` (details / contacts / assets / board_state). Hooks: dispatchCan / CanEdit (`mitDispatchLevel`, M035
-    permission), dispatchQueue (board WHERE + `mitDispatchQueueBoards`), dispatchItems (`mitDispatchOutlookItems`), dispatchWorkload /
+    permission), dispatchQueue (board WHERE + `mitDispatchQueueBoards`), dispatchItems (`mitDispatchOutlookItems` - given ITFlow's company-clock `$q_from` / `$q_to`, not the bare dates, which lost the last day; scenario-sched-sources), View only badge + refusal text (`mitDispatchEditNeeds`), dispatchWorkload /
     dispatchWeekStats (board), agent/dispatch.php (data-business-hours via `mitDispatchViewerHours`, `mitDispatchScheduleFields` in the
     Schedule window), agent/ajax.php dispatch_book (`mitDispatchBeforeBook`: check, then `mitDispatchSaveDetails`, then the email
     ticks), dispatch.js (request() -> window.itflowDispatchExtra, shownAgents() -> window.itflowDispatchAgents, queue card ->

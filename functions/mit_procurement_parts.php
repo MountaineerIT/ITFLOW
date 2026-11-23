@@ -500,7 +500,7 @@ function mitTicketPartStockTaken($reference, $product_id) {
     global $mysqli;
     $notes = array_map(function ($note) {
         return "'" . escapeSql($note) . "'";
-    }, ["Used on ticket $reference", "Returned from ticket $reference", "Returned from ticket $reference (part changed)"]);
+    }, ["Used on ticket $reference", "Returned from ticket $reference", "Returned from ticket $reference (part changed)", "Returned from ticket $reference (ticket deleted)"]);
     $net = 0 - (float) mysqli_fetch_row(mysqli_query($mysqli, "SELECT COALESCE(SUM(stock_qty), 0) FROM product_stock
         WHERE stock_product_id = " . intval($product_id) . " AND stock_note IN (" . implode(',', $notes) . ")"))[0];
     return max(0, round($net, 2));

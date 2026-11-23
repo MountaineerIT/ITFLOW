@@ -61,13 +61,16 @@ test('dispatch role: View sees the board but cannot change it', async ({ page, b
         const queue = await fetch('/agent/ajax.php?dispatch_queue=unassigned&board=all');
         const body = new URLSearchParams({ dispatch_assign: '1', csrf_token: csrf, ticket_id: '1', agent_id: '1' });
         const assign = await fetch('/agent/ajax.php', { method: 'POST', body });
+        const why = (await assign.clone().json().catch(() => ({}))).error || '';
         const ours = await fetch('/agent/mit_dispatch_ajax.php?contacts=1');
-        return { queue: queue.status, assign: assign.status, ours: ours.status, canEdit: document.getElementById('itflowDispatch').dataset.canEdit };
+        return { queue: queue.status, assign: assign.status, ours: ours.status, canEdit: document.getElementById('itflowDispatch').dataset.canEdit, why };
     });
     expect(answers.ours, 'our Schedule window\'s requests load').toBe(200);
     expect(answers.queue, 'the queue loads').toBe(200);
     expect(answers.canEdit, 'the board is drawn read-only').toBe('0');
     expect(answers.assign, 'assigning is refused').toBe(403);
+    expect(answers.why, 'the refusal names our Dispatch permission').toContain('Dispatch at Edit');
+    await expect(tech.locator('#itflowDispatch .badge', { hasText: 'View only' }), 'the badge says the same').toHaveAttribute('title', /Dispatch at Edit/);
     await expectClean(tech, errors);
     await tech.context().close();
 });
