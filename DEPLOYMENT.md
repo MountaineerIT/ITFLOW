@@ -238,6 +238,25 @@ break stock ITFlow, and lists what stops working after a move.
 
 **What stops working on stock ITFlow** (and comes back if you move back to this build):
 
+- **Now ITFlow's own (26.12)** – these features of ours are in stock ITFlow 26.12 and later (built from ours), so they keep working
+  after a move, with their data (moved into ITFlow's tables by our updates M067 / M068): Dispatch, additional agents on tickets,
+  booking ends and clashes, agent colours, Left behind, the 7 days view, own time zones, repeats on a weekday, events assigned to
+  agents, Holidays on the calendar, Quick ticket, New Ticket's Status and Schedule, project tickets kept apart, the email reply To
+  line, times on ticket notes, Resolve - no response, statuses that meet the response target, where a client's reply moves a ticket,
+  the top-bar timers, purchasing (to order, purchase orders, receiving), quote cost and pictures, offices, invoice bulk actions,
+  labor costs and Client Profitability, API / service accounts, Cron Watch and the health address (`/health.php` - our
+  `/mit_health.php` goes, so point the monitor at `/health.php`), development mode (`$config_dev_mode` - our M067 wrote it), restore
+  from Admin > Backup and recurring tickets / invoices made ahead. What goes is only our extras on them: service boards and our
+  Dispatch permission on Dispatch, the Schedule window's ticket details and per-recipient email ticks (ITFlow has one "email the
+  client" switch), Outlook busy times, the booking-email defaults per kind of visit, the Support-edit rule for helpers, our
+  procurement links (which ticket / project / invoice an item was ordered for, PO lines' projects, the ticket notes and stock
+  returns our receiving made - `mit_order_item_links`, `mit_po_item_projects`, `mit_po_receipt_extras`), timesheet locks on note
+  times, the service-ticket colour, Profitability opening on Invoiced and counting ticket parts' cost, and our quote add row.
+  An agent's time zone stays (ITFlow's own setting).
+- **Invites** – the Employment (pay type) picked for an agent invited but not yet joined is kept in `mit_invite_extras`; on stock
+  ITFlow the invite still works (with its office - ITFlow's) but the agent joins with no pay type set.
+- **Outlook busy times, the description's Read tick** – not in stock ITFlow; their data sits unused in `mit_outlook_busy` /
+  `mit_user_preferences`.
 - **Microsoft 365 email** – ours signs in with a certificate and sends/receives through Microsoft
   Graph. On stock ITFlow add a client secret to the app in Entra, paste it under Settings > Mail >
   OAuth, and switch SMTP AUTH / IMAP back on for the mailbox.
@@ -263,17 +282,12 @@ break stock ITFlow, and lists what stops working after a move.
   quantities. Systems reporting counts through the API get "resource not mapped" errors - switch them off. The usage
   connectors (NinjaOne, Bitwarden, Ingram Micro) stop too; their Bitwarden keys and Ingram login stay encrypted in
   `mit_usage_links` / `mit_settings` - delete those rows if you leave for good.
-- **Email reply recipients** – an email reply goes to the contact and every watcher again, as stock ITFlow does; the
-  per-ticket choices stay unused in `mit_ticket_mail_choices`.
 - **Modern look** – pages (and the sign-in screen) go back to ITFlow's own look, without the client count tiles and header contact line; the Look
   choice stays unused in `mit_user_preferences`.
 - **Version number** – the footer and Admin > Update show ITFlow's own release (26.10) again; `MIT_CHANGELOG.md` is ours.
 - **Logo on its own** (Company Details > "The logo shows the company name") – the side menu shows the company name beside the
   logo again; the setting stays in `mit_settings`. "No light tile behind the logo" goes too, and the logo for ITFlow's screens is
   no longer used - the company logo shows everywhere (its file stays in `uploads/settings/`).
-- **Project tickets** – they show on the Tickets board, the client's Tickets tab and the Dispatch queue again, and
-  calendar bookings go back to the tech's color. They keep no SLA (ours took it off) - set one by hand on a ticket that
-  needs it.
 - **Cron alerts** – the top-bar warning, the alert emails and `/mit_health.php` go; Maintenance > Cron still shows
   ITFlow's own status. Point your uptime monitor elsewhere (it will report the address as gone).
 - **Remembered Tickets filters** – stock ITFlow opens Tickets with its defaults every time (the saved
@@ -302,39 +316,10 @@ break stock ITFlow, and lists what stops working after a move.
   (Draft, Summary, Triage, document drafts) keep working, and the top bar's Ask AI button, its conversations and Write up go (documents already written stay - they are ITFlow's). The library and
   conversations stay unused in `mit_ai_*` (passages and questions already cleaned of passwords - nothing from the password vault). The "This server (Ollama)"
   provider of local embeddings stays in AI Providers (an ordinary ITFlow provider), and Ollama keeps running until removed.
-- **Invites** – Employment / Office picked for an agent invited but not yet joined are kept in `mit_invite_extras`; on stock ITFlow
-  the invite still works but the agent joins in the main office with no pay type set.
-- **API / service accounts** – stock ITFlow has no such mark: those logins show in every agent list again (calendar, Dispatch is gone
-  anyway, assign pickers, reports, @mentions) and can sign in to the web pages with their password; their API keys keep working.
-  `mit_service_users` stays unused.
-- **Recurring tickets / invoices made ahead** – stock ITFlow raises a recurring ticket on its run day with no booking, and makes a recurring
-  invoice on its Next invoice date with the client's net terms from that day. The time / days-ahead / due settings in `mit_recurring_ticket_plan` /
-  `mit_recurring_invoice_plan` stay unused; tickets and invoices already made keep their bookings and due dates.
-- **Client profitability costs** – stock ITFlow's Reports > Client Profitability goes back to income (paid) less expenses per hour: the
-  Labor cost / Parts cost / Profit / Margin columns and the Invoiced / Paid switch go, and agents' costs per hour stay unused in
-  `mit_agent_cost_rates` (Admin > Settings > Labor costs is ours).
-- **Offices** – stock ITFlow has one company address: the other offices and who works where stay unused in `mit_offices` /
-  `mit_user_offices`, trips start from the agent's last start (or the company) again, ticket emails show the company's address
-  and phone, and purchase orders go with Procurement.
-- **Statuses that meet the response target** – the "SLA response target" choice goes from Admin > Ticket Statuses and moving a ticket
-  into such a status no longer emails the client or records the first response; first responses already recorded stay
-  (`mit_ticket_status_response` / `mit_ticket_status_seen` are left behind).
-- **Resolve - no response** – the No response button goes; tickets resolved with it stay resolved / closed with their message as a
-  public note and "no response from the client" in their history (`mit_ticket_no_response` keeps which they were). The "Ticket resolved"
-  email goes back to ITFlow's own wording.
-- **Quick ticket** – the top bar's + button and its Admin > Settings > Tickets section go (New Ticket stays); tickets made with it are
-  ordinary tickets. Its defaults stay unused in `mit_settings` (`quick_ticket_*`).
 - **Bugs & ideas** – the top bar's button goes; the reports stay in `mit_feedback` (screenshots in `uploads/mit_feedback/`) - copy
   out any still open first.
 - **Notification switches** – the extra rows on Admin > Settings > Notifications go; scheduling and assignment emails / notices are
   always sent again (ITFlow's own client-notifications switch still applies).
-- **Restore from Admin > Backup** – stock ITFlow restores only on a fresh install (setup wizard) or from the command line
-  (`scripts/restore_cli.php`); nothing of ours is stored for it.
-- **Development mode** – stock ITFlow ignores `$config_mit_dev_mode` / `$config_mit_dev_mail_to` in `config.php`: a test copy
-  moved to stock code sends real mail and runs everything again. Delete the two lines.
-- **Dispatch** – the page and its Workload view go away; it keeps nothing of its own (schedules and
-  assignments it made are ordinary ITFlow ticket fields and stay). Use Calendar and each ticket's Schedule instead.
-  Admin > Roles keeps an unused "Dispatch" permission (`module_dispatch` row, M035) – harmless; delete the row if wanted.
 - **Module switches** for Procurement, Timesheets and Dispatch (Settings > Modules) – stored in
   `mit_settings` (`module_*`), unused by stock ITFlow.
 - **Mileage and purchases** (logged on tickets, paid with payroll) – the ticket's purchase lines, the timesheet's
@@ -346,11 +331,6 @@ break stock ITFlow, and lists what stops working after a move.
   in ITFlow instead, and our guards go (ITFlow can then change or undo a payroll-paid trip, expense or reimbursement).
 - **Ticket parts** – the Parts box is ours (`mit_ticket_parts`); parts already billed are ordinary
   invoice lines and stay. A product's vendor and cost are ITFlow's own fields (26.11) and stay.
-- **Additional agents on tickets** – stock ITFlow keeps only the assigned agent. The others, their
-  own scheduled times and their calendar / Outlook entries are not shown (the rows sit unused
-  in `mit_ticket_techs`); reassign or note them on the tickets that need it.
-- **Times on ticket notes** – stock ITFlow keeps each note's length (time worked) but not when the work was done; the
-  dates and start / end times sit unused in `mit_reply_times`. Ticket time stays on the ticket.
 - **Service boards** – stock ITFlow has no boards: every ticket is in the one Tickets list again
   (filter by category instead), the Board line, Escalate, routing rules and board notifications stop
   (the rows sit unused in `mit_boards` / `mit_ticket_boards` / `mit_board_rules` / `mit_board_members`).
@@ -359,12 +339,6 @@ break stock ITFlow, and lists what stops working after a move.
   dashboard's board filter go; assignments it made are ordinary ITFlow assignments and stay. Boards by role go too
   (`mit_role_board_access` / `mit_role_boards`): every role sees every ticket again (ITFlow's own role permissions and
   client access stay as they are).
-- **Quote pricing and item images** – stock ITFlow keeps every quote's customer prices, but our
-  cost, the markup / margin and the line and product images are not shown (they sit unused in
-  the `item_cost` / `item_price_*` / `item_image` and `product_price_*` / `product_image` columns,
-  the files in `uploads/mit_images/`). A product's cost is ITFlow's own field (26.11) and stays. Our API
-  leaves product cost and markup out of `api/v1/products/read.php`; stock ITFlow's API returns every
-  column, so after a move an API key with Sales access can read them – clear them first if that matters.
 - **Percentage discounts** – each document keeps the dollars its percentage last came to (ITFlow's own Discount), so totals stay
   right, but stock ITFlow no longer works them out again when lines change, and new invoices from a recurring invoice copy its last
   dollar amount; "Never discounted" on products and the "Discount (20%)" label go (data unused in `mit_billing_discounts` /
@@ -382,10 +356,6 @@ break stock ITFlow, and lists what stops working after a move.
   contract until the box is under 1,000 (put 744 for a month of round-the-clock cover).
 - **Ticket page layout** (column widths, three columns, box order, half-width and collapsed boxes, reply box open on Public note) – stock ITFlow shows its own layout;
   the saved layouts sit unused in `mit_settings` / `mit_user_preferences`.
-- **Schedule lengths, agent colors, per-person calendar settings, Outlook busy times, the ticket
-  timers dropdown, the description's Read tick** – not in stock ITFlow; their data sits unused in `mit_` tables and the
-  `tickets.ticket_schedule_end` column.
-
 ## Updating
 
 **Always take a backup first** (Admin > Backup, and keep a copy off the server). If a

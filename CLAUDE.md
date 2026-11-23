@@ -1696,6 +1696,62 @@ model: see DEPLOYMENT.md.
   (js/mit_quote_pricing.js fills a quote's cost through window.mitProductPricing). `js/mit_billing_add.js` posts to ITFlow's ajax.php billing_item_add
   (our hook there passes `$_FILES` to mitQuoteItemSave) and redraws through `window.mitBillingRefresh` - one line in `js/billing_items.js` exposing its
   refresh() - no reload. Pictures stay in the Edit Line window. Smoke: first and last tests of 60, the quote step of 06.
+- ITFlow 26.12 (Nov 22, 26.12.1 - tag `v26.12`, 163 commits; database 3.6.6 -> 4.1.1): ITFlow took in about 35 features of ours as
+  its own code (credited "From Mountaineer IT's build"). The user chose ITFlow's versions (Nov 22) - our extras stay as hooks on
+  theirs, our duplicate code is retired. THIS SUPERSEDES the per-feature notes above wherever they differ. Data moved by M067 (helpers,
+  To-line choices, note work times - converted from the person's clock to the company's -, no-response, status rules, service
+  accounts, offices, labor costs, recurring plans, project SLA starts, calendar colour / state / zone, settings incl. the cron
+  health key and config_api_key_in_address = 1 for MSP Align, retired cron rows, the dev-mode config) and M068 (procurement, same
+  ids; our links in `mit_order_item_links` / `mit_po_item_projects` / `mit_po_receipt_extras`); M069 indexes
+  ticket_replies(by, work_start). Our old tables stay one release, unread. The user's choices: service bookings keep one colour with
+  the agent's bar; helpers need Support edit; config_ticket_reply_assigns stays on (ITFlow's default); Profitability opens on Invoiced.
+  What is ITFlow's now and what of ours sits on it:
+  - Calendar (functions/calendar.php, ticket.php ticketSchedule*, by_day.php, user_timezone.php): ours in `functions/mit_calendar.php`
+    - `mitCalendarTicketItems` (one line at the end of ITFlow's tickets source: boards by role, the project split, service colour +
+    `tech_color` -> `data-mit-agent` bar in agent/js/calendar.js eventDidMount, CSS in agent/calendar.php), Outlook busy source (+= in
+    calendarSources, early return in calendarSourceItems) and clashes (one line in ticketScheduleConflicts), `mitUserPreference`.
+    Gone: mit_zones, mit_left_behind, mit_event_agents, mit_recurring, our colour / zone fields.
+  - Helpers (functions/ticket_helpers.php): ours in `functions/mit_ticket_techs.php` - Support-edit guard (ticketHelperSave),
+    `mitTicketHelperUid` (ticketHelperUid keeps "-tech-" UIDs of helpers migrated from mit_ticket_techs), no .ics for Outlook-synced
+    agents (ticketHelperMail), helpers in the reply To line (ticketReplyRecipients -> `mitReplyRecipientsHelpers`), `mitTicketClientMoved`
+    (change_client_ticket: helpers who can't see the client off, procurement follows), `mitAgentCanSeeClient` / `SupportLevel` /
+    `CanWorkTicket`, Outlook helper bookings.
+  - Dispatch (functions/dispatch.php, agent/dispatch.php, agent/js/dispatch.js): ours in `functions/mit_dispatch.php`,
+    `agent/includes/mit_dispatch_extras.php` (board picker; one require in the toolbar), `agent/js/mit_dispatch.js`,
+    `agent/mit_dispatch_ajax.php` (details / contacts / assets / board_state). Hooks: dispatchCan / CanEdit (`mitDispatchLevel`, M035
+    permission), dispatchQueue (board WHERE + `mitDispatchQueueBoards`), dispatchItems (`mitDispatchOutlookItems`), dispatchWorkload /
+    dispatchWeekStats (board), agent/dispatch.php (data-business-hours via `mitDispatchViewerHours`, `mitDispatchScheduleFields` in the
+    Schedule window), agent/ajax.php dispatch_book (`mitDispatchBeforeBook`: check, then `mitDispatchSaveDetails`, then the email
+    ticks), dispatch.js (request() -> window.itflowDispatchExtra, shownAgents() -> window.itflowDispatchAgents, queue card ->
+    window.itflowDispatchCardExtra, schedule() fires "dispatch:schedule"), side_nav Dispatch entry (our permission + `mitDispatchNavCount`).
+  - Quick ticket (functions/quick_ticket.php): the board it lands on - `mitQuickTicketBoardInput` / `Field` / `Save` (functions/mit_boards.php;
+    hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php).
+  - Project tickets apart (functions/project_tickets.php): ours `functions/mit_projects.php` - the calendar split only, `mitServiceTicketsAnd`.
+  - Reply To line, Resolve - no response, status first response / reply status, timers, New Ticket status / schedule, recurring made
+    ahead, offices, invoice bulk, service accounts, labor costs: ITFlow's. Ours left: invoice bulk's QuickBooks rules (invoiceBulkCan
+    'email', invoiceBulkWhyNot), Customer Thermometer skips `ticket_no_response_at`, `mitServiceUserSql` shim (functions/mit_service_users.php)
+    for our lists, `mitProfitDefaultBasis` / `mitProfitPartsAdd` (functions/mit_profit.php - laborProfitBasis, laborProfitAdd).
+  - Note work times (ticket_replies.ticket_reply_work_*): `functions/mit_reply_times.php` - timesheets read them on the person's own
+    clock (`mitReplyPersonClock`), `mitReplyWorkGuardAdd` / `Edit` (one line each in add / edit_ticket_reply), quick fix from the day panel.
+  - Time zone: ITFlow's Preferences field; timezoneSave calls `mitTsSaveZone` (history in mit_ts_zone_changes) and mitTsSaveZone writes
+    ITFlow's user_config_timezone - kept in step both ways.
+  - Microsoft 365 mail: ITFlow's Graph send / mailbox (functions/mail_graph.php); mailGraphToken's token request is signed with our
+    certificate (`mitMicrosoftTokenFields`, one line); `mitM365MailGraphScopes` reads config_mail_graph_scopes. Our app, certificate,
+    calendar app and Outlook stay. Test stand-in: MAIL_MICROSOFT_LOGIN_URL / MAIL_GRAPH_URL in tests/mocks/ms/constants.php.
+  - Cron health (functions/cron_health.php, Cron Watch, /health.php): `mitCronExtraProblems` (the Microsoft 365 certificate - one line at
+    the end of cronHealthProblems), `mitCronNavHtml` (top-bar warning), `/mit_health.php` = require of health.php. mitUpgradeSecrets
+    runs daily from cron/mit_consistency.php.
+  - Dev mode (functions/dev_mode.php): `functions/mit_dev_mode.php` bridges `$config_mit_dev_mode` -> `$config_dev_mode` at load (M067
+    writes ITFlow's names), keeps `mitDevAllows` for our integrations and the custom-action hook.
+  - Restore (functions/backup_restore.php, queued, cron): `mitRestoreUseTempDir` at the start of backupRestoreRunQueued; setup /
+    restore_cli keep `mitRestoreItflowUpdates`.
+  - Quotes (functions/quote_pricing.php, quote_images.php): ours `mitPaperAddRow` (posts pricing / cost / price_method / price_percent to
+    billing_item_add), `mitQuoteProfitBox`, `mitPaperLineExtras`, `mitApiHideCost` (one line in api/v1/read_output.php - no cost in any
+    API read), `mitProductApiColumns`. API keys: `Authorization: Bearer` again (one line in apiKeyFromRequest).
+  - Module switches: Purchasing and Dispatch are ITFlow's (moduleOn); ours keeps Timesheets. AI wall: password_history, the Graph token
+    and RMM keys are forbidden names.
+  - Purchasing (functions/purchase_orders.php): see the procurement hooks added with this merge (CLAUDE.md "Procurement" is superseded
+    where it names our pages).
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
