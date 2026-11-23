@@ -198,3 +198,22 @@ test('discounts: quotes and recurring invoices keep the percentage - new, edit, 
         }
     }
 });
+
+// "Never discounted" ticked in New Product (mitDiscountProductSave - one line in agent/post/product.php add_product; the first test ticks it in Edit
+// Product). Written after the hook proof (Nov 23) found the add path untested.
+test('discounts: New Product keeps "Never discounted"', async ({ page }) => {
+    const name = `${made.tag} new never`;
+    await visit(page, 'agent/products.php');
+    const modal = await openModal(page, 'modals/product/product_add.php', 'lg');
+    await modal.locator('input[name=name]').fill(name);
+    await modal.locator('input[name=price]').fill('10');
+    await modal.locator('select[name=category]').selectOption({ index: 1 }, { force: true });
+    await modal.locator('[data-mit-no-discount] input[type=checkbox]').check();
+    await submit(modal, 'add_product');
+    const id = Number(db.val(`SELECT product_id FROM products WHERE product_name = ${db.q(name)} ORDER BY product_id DESC LIMIT 1`) || 0);
+    if (id) {
+        made.products.push(id);
+    }
+    expect(id, 'the product was made').toBeGreaterThan(0);
+    expect(db.val(`SELECT COUNT(*) FROM mit_product_no_discount WHERE product_id = ${id}`), 'never discounted, from New Product').toBe('1');
+});
