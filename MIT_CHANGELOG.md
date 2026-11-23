@@ -22,6 +22,9 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Ask Bob (the AI helper) now reads the Knowledge Base: published articles are in its library and are favoured in answers alongside your documents, with a link to the article. Drafts and archived articles are left out, and article text goes through the same password filter as everything else.
 - Write up can now save to the Knowledge Base: a new book button in the Ask panel opens ITFlow's New Article form, written as a general article (no client, people or system names), and you choose Save as draft or Publish.
 - Dispatch's Schedule window fits the screen again: wide, with the booking (agent, time, visit, who is emailed) on the left and the ticket's details on the right, the ticket's line in the title bar, the contact's other open tickets as a slim strip (a count that opens the list when there are several), Other assets as a chip picker, and Schedule It always in view.
+- Editing a ticket no longer drops an SLA you picked by hand (ITFlow worked it out again on every edit); it is only worked out again when the priority or project changes.
+- Quote to invoice: a stock-tracked product is ticked "Send to procurement" only when the shelf doesn't have enough, the window shows how many are on the shelf, and it says plainly that a ticked one is ordered instead of taken from stock.
+- Trip drivers and expense "Paid by" no longer offer disabled agents.
 
 ## 26.11.8.12 - 2026-11-20
 - The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).

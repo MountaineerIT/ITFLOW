@@ -24,7 +24,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Times on ticket notes (start / end)](#reply_times) | 1 | 3 | 13 | 4 | 20 | 7 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 37 | 22 | 131 | 23 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 23 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 25 | 57 | 21 | 92 | 20 |
@@ -800,6 +800,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/billing.php`: billingInvoiceCreate, billingItems, billingLineTax, billingMoney, billingRecalc
 - `functions/contract_billing.php`: contractClientRate, contractNetTerms
 - `functions/logging.php`: logAudit, logTicketHistory
+- `functions/products.php`: productOnHand
 - `functions/purchase_orders.php`: poAccessible, poApprovers, poForRequest, poLevel, poNumber, poReady, poRequireLevel, poRow, poScopeSql, poStatusBadge, poTrackingFor, poTrackingHtml
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql

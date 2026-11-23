@@ -316,7 +316,14 @@ if (isset($_POST['edit_ticket'])) {
     mysqli_query($mysqli, "UPDATE tickets SET $set WHERE ticket_id = $ticket_id");
     // Out of a project, its SLA counts from now (functions/project_tickets.php)
     projectTicketLeft($ticket_id, $row['ticket_project_id']);
-    applyTicketSla($ticket_id);
+    // The SLA is worked out again only when what it hangs on changed - the priority or the project. An SLA picked by hand (not the
+    // one the client / priority would give) is kept, its dates worked out again; an edit of anything else leaves it as it was.
+    $project_changed = isset($_POST['project_id']) && intval(getFieldById('tickets', $ticket_id, 'ticket_project_id')) !== intval($row['ticket_project_id']);
+    if ($priority !== $row['ticket_priority'] || $project_changed) {
+        $old_sla = intval($row['ticket_sla_id'] ?? 0);
+        $hand_set = $old_sla && $old_sla !== intval(getTicketSlaId($row['ticket_client_id'], $row['ticket_priority']));
+        applyTicketSla($ticket_id, $hand_set && !$project_changed ? $old_sla : null);
+    }
     if ($ticket_status !== intval($row['ticket_status'])) {
         syncTicketSlaClock($ticket_id);
     }

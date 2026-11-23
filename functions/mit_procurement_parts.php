@@ -128,19 +128,24 @@ function mitProcQuoteConvertFields($quote_id, $client_id) {
     $products = mitProductsInfo(array_column($lines, 'item_product_id'));
     $html = '<div class="mb-3">' . mitProcProjectField('mit_proc_project_id', $client_id, 0, 'Project <span class="text-muted small">(for the items to order - optional)</span>') . '</div>'
         . '<div class="border rounded overflow-hidden"><div class="px-3 py-2 bg-body-tertiary border-bottom"><strong><i class="fas fa-cart-plus me-2"></i>Send to procurement</strong>'
-        . '<div class="small text-muted">Ticked lines wait under Purchasing > To Order until they are on a PO. The invoice itself is unchanged.</div></div>'
-        . '<table class="table table-sm table-borderless mb-0 align-middle"><thead class="small text-muted"><tr><th style="width: 36px"></th><th>Item</th><th class="text-center">Qty</th><th class="text-end">Our cost</th><th style="width: 190px">Order from</th></tr></thead><tbody>';
+        . '<div class="small text-muted">Ticked lines wait under Purchasing > To Order until they are on a PO. A ticked product that keeps a stock count is ordered for this job instead of'
+        . ' taken from the shelf (its invoice line keeps the price, without the link to the product). Ticked to start: what the shelf doesn\'t have enough of.</div></div>'
+        . '<table class="table table-sm table-borderless mb-0 align-middle"><thead class="small text-muted"><tr><th style="width: 36px"></th><th>Item</th><th class="text-center">Qty</th><th class="text-center">On the shelf</th><th class="text-end">Our cost</th><th style="width: 190px">Order from</th></tr></thead><tbody>';
     foreach ($lines as $line) {
         $item_id = intval($line['item_id']);
         $product = $products[intval($line['item_product_id'])] ?? null;
         $extra = function_exists('mitQuoteItemExtra') ? mitQuoteItemExtra($quote_id, $item_id) : null;
         $cost = $extra['item_cost'] ?? null;
         $is_service = $product && $product['product_type'] === 'service';
-        // Hardware is ticked; services, and typed lines without our cost, are not
-        $ticked = $product ? !$is_service : $cost !== null;
+        // Hardware is ticked; services, and typed lines without our cost, are not - nor a stock-tracked product the shelf has enough of
+        // (ticking one orders it instead of taking it from stock - mitProcQuoteConvertGroups)
+        $tracked = $product && function_exists('mitProductTracksStock') && mitProductTracksStock(intval($line['item_product_id']));
+        $on_hand = $tracked && function_exists('productOnHand') ? productOnHand(intval($line['item_product_id'])) : null;
+        $ticked = $product ? !$is_service && ($on_hand === null || $on_hand < floatval($line['item_quantity'])) : $cost !== null;
         $html .= '<tr class="border-top"><td class="ps-3"><input class="form-check-input" type="checkbox" name="mit_proc_lines[' . $item_id . '][send]" value="1"' . ($ticked ? ' checked' : '') . ' aria-label="Send ' . escapeHtml($line['item_name']) . '"></td>'
             . '<td>' . escapeHtml($line['item_name']) . ($is_service ? ' <span class="badge text-bg-light border">Service</span>' : '') . '</td>'
             . '<td class="text-center">' . mitQty($line['item_quantity']) . '</td>'
+            . '<td class="text-center" data-mit-proc-on-hand>' . ($on_hand === null ? '<span class="text-muted">-</span>' : mitQty($on_hand)) . '</td>'
             . '<td class="text-end">' . ($cost === null ? '<span class="text-muted">-</span>' : mitMoney($cost)) . '</td>'
             . '<td class="pe-3"><select class="form-select form-select-sm" name="mit_proc_lines[' . $item_id . '][vendor_id]" aria-label="Order from">' . mitProcVendorOptions($product['vendor_id'] ?? 0) . '</select></td></tr>';
     }

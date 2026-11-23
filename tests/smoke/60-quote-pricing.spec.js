@@ -172,10 +172,18 @@ test('quote -> invoice: "Send to procurement" orders a tracked product with none
     expect(Number(laptop.item_product_id), 'quote line keeps its product').toBe(made.productId);
     expect(Number(laptop.item_cost), 'quote line takes the product cost').toBe(950);
 
+    // With enough on the shelf it starts unticked - taken from stock as ITFlow does - and the window says how many are there
+    const stock = db.insert(`INSERT INTO product_stock SET stock_product_id = ${made.productId}, stock_qty = 50, stock_type = 'adjustment', stock_note = 'Smoke 60 shelf'`);
     await visit(page, quotePage(), errors);
-    const modal = await openModal(page, `modals/quote/quote_to_invoice.php?quote_id=${made.quoteId}`, 'lg');
+    let modal = await openModal(page, `modals/quote/quote_to_invoice.php?quote_id=${made.quoteId}`, 'lg');
+    await expect(modal.locator(`input[name="mit_proc_lines[${laptop.item_id}][send]"]`), 'enough on the shelf: not ticked to order').not.toBeChecked();
+    await expect(modal.locator(`tr:has(input[name="mit_proc_lines[${laptop.item_id}][send]"]) [data-mit-proc-on-hand]`), 'how many are on the shelf').toContainText('50');
+    db.exec(`DELETE FROM product_stock WHERE stock_id = ${stock}`);
+
+    await visit(page, quotePage(), errors);
+    modal = await openModal(page, `modals/quote/quote_to_invoice.php?quote_id=${made.quoteId}`, 'lg');
     const tick = modal.locator(`input[name="mit_proc_lines[${laptop.item_id}][send]"]`);
-    await expect(tick, 'hardware line ticked to order').toBeChecked();
+    await expect(tick, 'none on the shelf: hardware line ticked to order').toBeChecked();
     await Promise.all([page.waitForNavigation(), modal.locator('button[name=add_quote_to_invoice]').click()]);
     await expectClean(page, errors);
     const invoiceId = Number(new URL(page.url()).searchParams.get('invoice_id'));

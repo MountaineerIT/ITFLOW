@@ -229,6 +229,10 @@ model: see DEPLOYMENT.md.
   - the normal end of paging: MSP Align's hourly ticket read always ends on one (production had 3,500+ such Errors). An empty first page or a missing
   id is still logged; the answer is unchanged. In ITFlow's master too. `scenario-api-paging-end.php`.
   M046 (26.10.174): installs made from ITFlow's November 2025 db.sql (production among them) have a leftover `contract_templates.company_id` int NOT NULL with no default (in that db.sql a few days, never in ITFlow's updates) - ITFlow's own Add contract template failed. M046 gives it DEFAULT 0 when it is there without one (column and values kept; other installs untouched). Smoke `83-contracts.spec.js` uses ITFlow's contracts end to end (template, contract, recurring invoice, prepaid hours).
+  26.12.1 (full test, Nov 22): `agent/post/ticket.php` edit_ticket works the SLA out again only when the priority or the project changed, and keeps an
+  SLA picked by hand (not the one getTicketSlaId gives) - ITFlow 26.12 re-applied it on every edit, so any edit dropped a hand-picked SLA (our
+  26.10.95 fix, lost when ITFlow's file was taken); smoke: the edit step of 15. `functions/trips.php` tripDrivers and `functions/expenses.php` expensePayers
+  leave disabled agents out (user_status 1; the record's own driver / payer kept). Both also in ITFlow's master.
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -469,7 +473,7 @@ model: see DEPLOYMENT.md.
   `functions/ticket.php` ticketDeleteForGood and in `agent/post/client.php` client delete) before the
   `mit_ticket_parts` FK cascade removes them.
   Part 2: `functions/mit_procurement_parts.php` (ours, required from mit_procurement.php), M010
-  (`mit_ticket_parts`, `products.product_vendor_id`). Quote -> invoice ticks: `mitProcQuoteConvertFields`
+  (`mit_ticket_parts`, `products.product_vendor_id`). Quote -> invoice ticks: `mitProcQuoteConvertFields` (26.12.1: a stock-tracked product starts ticked only when productOnHand is short, `[data-mit-proc-on-hand]` column; smoke 60)
   in `agent/modals/quote/quote_to_invoice.php` (+ data-modal-size="lg" on the Invoice button in
   `agent/quote.php`), `mitProcFromQuoteLine` in `agent/post/quote.php` add_quote_to_invoice loop.
   Invoice: `mitProcInvoiceMenuItem` in the `agent/invoice.php` ⋮ menu -> modal

@@ -60,6 +60,12 @@ test('ticket picks: category, SLA and board change in place', async ({ page }) =
         await expect(prop('SLA'), 'the SLA plan shown').toContainText(sla);
         await visit(page, ticketPage(), errors);
         await expect(prop('SLA'), 'the SLA plan saved').toContainText(sla);
+        // An SLA picked by hand stays when the ticket is edited for something else (ITFlow's edit_ticket worked it out again every time)
+        const edit = await openModal(page, `modals/ticket/ticket_edit.php?id=${made.ticketId}`, 'lg');
+        await fillForm(edit, { subject: smokeName('ticket edited') });
+        await submit(edit, 'edit_ticket');
+        await visit(page, ticketPage(), errors);
+        await expect(prop('SLA'), 'the hand-picked SLA kept after an edit of the subject').toContainText(sla);
     }
 
     // Board - only with boards set up
