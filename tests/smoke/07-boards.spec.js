@@ -170,12 +170,14 @@ test('boards: dashboard board filter, and the Board Performance report', async (
     for (const href of attention) {
         expect(href, 'Needs attention opens Tickets on the same board').toContain(`board=${made.boards[1]}`);
     }
-    } finally {
-        db.exec(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${unassigned}; DELETE FROM mit_board_moves WHERE ticket_id = ${unassigned}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${unassigned}; DELETE FROM tickets WHERE ticket_id = ${unassigned}`);
-    }
     await visit(page, 'agent/dashboard.php', errors);
     await expect(page.locator('#mitDashBoard'), 'remembered').toHaveValue(String(made.boards[1]));
     await visit(page, 'agent/dashboard.php?board=all', errors);
+    } finally {
+        db.exec(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${unassigned}; DELETE FROM mit_board_moves WHERE ticket_id = ${unassigned}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${unassigned}; DELETE FROM tickets WHERE ticket_id = ${unassigned}`);
+        // The dashboard remembers the board picked - never leave it on this one, even when a check above failed (scenario-board-scope reads the admin's dashboard)
+        db.exec("DELETE FROM mit_user_preferences WHERE user_id = 1 AND preference = 'dashboard.board'");
+    }
 
     await visit(page, `agent/reports/mit_boards.php?period=last_30&client_id=${made.clientId}`, errors);
     test.skip(await page.locator('text=need the database update').count() > 0, 'report needs M027');
