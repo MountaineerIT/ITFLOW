@@ -89,8 +89,8 @@ echo settingsPageStart('ticket');
                             'help' => 'The window has an "Assign it to ..." switch, to change it for one ticket.']) ?>
                         <?= settingsSelect('config_quick_ticket_status', $quick['status'], quickTicketStatusChoices(), ['icon' => 'fa-info-circle']) ?>
                         <?= settingsSelect('config_quick_ticket_priority', $quick['priority'], ['Low' => 'Low', 'Medium' => 'Medium', 'High' => 'High', 'Urgent' => 'Urgent'], ['icon' => 'fa-thermometer-half',
-                        <?= function_exists('mitQuickTicketBoardField') ? mitQuickTicketBoardField() : '' // Mountaineer IT: service boards ?>
                             'help' => 'The window can change it for one ticket. Its SLA follows the priority, as any ticket\'s does.']) ?>
+                        <?= function_exists('mitQuickTicketBoardField') ? mitQuickTicketBoardField() : '' // Mountaineer IT: service boards ?>
                         <?= settingsSelect('config_quick_ticket_category', $quick['category'], [], ['icon' => 'fa-layer-group', 'search' => true,
                             'options_html' => '<option value="0"' . ($quick['category'] ? '' : ' selected') . '>- Not categorized -</option>' . categoryOptionsHtml('Ticket', $quick['category'] ?: null)]) ?>
                         <?php if ($config_module_enable_accounting) { ?>

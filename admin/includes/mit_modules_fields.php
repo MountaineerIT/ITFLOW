@@ -6,9 +6,7 @@
  */
 
 $mit_modules = [
-    'procurement' => ['Show Procurement', 'To order, purchase orders and receiving, and parts on tickets', 'Needs Invoicing / Accounting on'],
     'timesheets' => ['Show Timesheets', 'Timesheets, leave balances and the payroll report', ''],
-    'dispatch' => ['Show Dispatch', 'The dispatch board in Support', 'Needs Ticketing on'],
 ];
 foreach ($mit_modules as $mit_key => [$mit_label, $mit_what, $mit_needs]) { ?>
     <div class="mb-3">
