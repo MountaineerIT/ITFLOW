@@ -120,6 +120,42 @@ test('note time locks: submitted / approved days and days to come', async ({ pag
     await expectClean(page, errors);
 });
 
+// Deleting a client whose ticket time is on a submitted timesheet is refused before anything is deleted (mitTsDeleteGuard in delete_client).
+// Each ticket's delete checks too, but only when it gets to that ticket - by then the client's earlier tickets were gone. Written after
+// the hook proof (Nov 23) found nothing noticed the client-level check gone.
+test('note time locks: a client with time on a submitted timesheet is not deleted - nothing of it', async ({ page }) => {
+    test.skip(!made.lockedDay, 'no locked sheet');
+    const name = smokeName('t1 locks delete client');
+    db.run(`INSERT INTO clients SET client_name = ${db.q(name)}, client_currency_code = 'USD'`);
+    const client = Number(db.value(`SELECT client_id FROM clients WHERE client_name = ${db.q(name)}`));
+    const ticket = (subject) => {
+        const number = Number(db.value('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
+        db.run('UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1');
+        db.run(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${number}, ticket_source = 'Agent', ticket_subject = ${db.q(smokeName(subject))}, ticket_details = 'x',
+            ticket_priority = 'Low', ticket_status = 2, ticket_created_by = 1, ticket_assigned_to = 1, ticket_url_key = 'k${Date.now()}${number}', ticket_client_id = ${client}`);
+        return Number(db.value(`SELECT MAX(ticket_id) FROM tickets WHERE ticket_client_id = ${client}`));
+    };
+    const plain = ticket('locks delete plain');      // first, so a delete going ticket by ticket reaches it before the locked one
+    const timed = ticket('locks delete timed');
+    db.run(`INSERT INTO ticket_replies SET ticket_reply = 'Smoke lock delete', ticket_reply_type = 'Public', ticket_reply_time_worked = '00:30:00',
+        ticket_reply_work_start = '${made.lockedDay} 11:00:00', ticket_reply_work_end = '${made.lockedDay} 11:30:00', ticket_reply_by = 1,
+        ticket_reply_created_at = '${made.lockedDay} 11:30:00', ticket_reply_ticket_id = ${timed}`);
+    try {
+        await visit(page, `agent/client_overview.php?client_id=${client}`);
+        const token = await csrf(page);
+        await page.goto(`/agent/post.php?delete_client=${client}&csrf_token=${encodeURIComponent(token)}`, { referer: page.url() });
+        await page.waitForLoadState('load');
+        expect(Number(db.value(`SELECT COUNT(*) FROM tickets WHERE ticket_id IN (${plain}, ${timed})`)), 'both tickets still there').toBe(2);
+        expect(Number(db.value(`SELECT COUNT(*) FROM clients WHERE client_id = ${client}`)), 'the client still there').toBe(1);
+    } finally {
+        db.run(`DELETE FROM ticket_replies WHERE ticket_reply_ticket_id IN (${plain}, ${timed})`);
+        db.run(`DELETE FROM ticket_history WHERE ticket_history_ticket_id IN (${plain}, ${timed})`);
+        db.run(`DELETE FROM mit_ticket_boards WHERE ticket_id IN (${plain}, ${timed})`);
+        db.run(`DELETE FROM tickets WHERE ticket_client_id = ${client}`);
+        db.run(`DELETE FROM clients WHERE client_id = ${client}`);
+    }
+});
+
 test.afterAll(async () => {
     if (made.current) {
         db.run(`UPDATE mit_timesheets SET status = ${db.q(made.current.status)} WHERE sheet_id = ${made.current.sheet_id}`);
