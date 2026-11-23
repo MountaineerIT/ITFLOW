@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean, fetchText } = require('./helpers');
+const { featureOn, smokeName, watch, visit, openModal, fillForm, submit, flash, action, expectClean, fetchText } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -55,7 +55,8 @@ test('purchasing: ITFlow\'s To Order, Purchase Orders and Receiving pages open (
 test('ticket part shows in the Parts box and on To Bill', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     await visit(page, ticketUrl());
-    test.skip(await box(page, 'fa-microchip').count() === 0, 'Parts box not shown (Procurement off?)');
+    test.skip(!featureOn('mitProcOn'), 'Purchasing is off');
+    await expect(box(page, 'fa-microchip'), 'the Parts box (mitTicketPartsCard)').toHaveCount(1);
     const name = smokeName('part');
     const modal = await openModal(page, `modals/mit_procurement/part.php?ticket_id=${made.ticketId}`);
     await fillForm(modal, { name, source: 'stock', quantity: '3', unit_price: '45' });
@@ -75,7 +76,8 @@ test('mileage and a purchase on the ticket: one Trips & purchases box, paid with
     test.skip(!made.ticketId, 'no ticket');
     await visit(page, ticketUrl());
     const menuItem = page.locator('[data-mit-reimb-menu]');
-    test.skip(await menuItem.count() === 0, 'Reimbursements off (Timesheets off?)');
+    test.skip(!featureOn('mitReimbOn'), 'Reimbursements are off');
+    await expect(menuItem, 'Add a purchase in the ticket menu (mitReimbMenuItem)').toHaveCount(1);
     // Nothing logged yet: no Reimbursements box of its own - purchases are added from the ⋮ menu, beside ITFlow's Log a trip
     await expect(box(page, 'fa-receipt'), 'no empty Reimbursements box').toHaveCount(0);
     await expect(menuItem).toHaveAttribute('data-modal-url', new RegExp(`ticket_id=${made.ticketId}&kind=purchase`));
@@ -256,13 +258,13 @@ test('quote line priced from our cost and markup; the customer view hides the co
 
     // Our full add row (mitPaperAddRow) with our cost and markup in it, then ITFlow's Edit Line window
     const add = page.locator('form[data-mit-add-row]');
-    test.skip(await add.locator('input[name=item_cost]').count() === 0, 'quote pricing columns missing (database update?)');
+    await expect(add.locator('input[name=cost]'), 'our cost in the quote add row (mitPaperAddRow)').toHaveCount(1);
     await add.locator('input[name=name]').fill(smokeName('quote line'));
     await add.locator('input[name=name]').press('Escape');
     await add.locator('input[name=qty]').fill('2');
-    await add.locator('select[name=item_price_method]').selectOption('markup');
-    await add.locator('input[name=item_price_percent]').fill('20');
-    await add.locator('input[name=item_cost]').fill('87.31');
+    await add.locator('select[name=price_method]').selectOption('markup');
+    await add.locator('input[name=price_percent]').fill('20');
+    await add.locator('input[name=cost]').fill('87.31');
     // 87.31 + 20% = 104.772
     await expect(add.locator('input[name=price]'), 'add row: price worked out from cost and markup').toHaveValue('104.77');
     await add.locator('button[type=submit]').click();   // added without a reload
@@ -271,9 +273,9 @@ test('quote line priced from our cost and markup; the customer view hides the co
     await expect(lineRow.locator('[data-mit-line-cost]'), 'cost saved from the add row').toContainText('$87.31');
     const itemId = await lineRow.getAttribute('data-item-id');
     const edit = await openModal(page, `modals/billing/billing_item.php?type=quote&doc_id=${made.quoteId}&item_id=${itemId}`);
-    await expect(edit.locator('input[name=item_cost]')).toHaveValue('87.31');
-    await expect(edit.locator('select[name=item_price_method]')).toHaveValue('markup');
-    await edit.locator('input[name=item_price_percent]').fill('25');
+    await expect(edit.locator('input[name=cost]')).toHaveValue('87.31');
+    await expect(edit.locator('select[name=price_method]')).toHaveValue('markup');
+    await edit.locator('input[name=price_percent]').fill('25');
     // 87.31 + 25% = 109.1375
     await expect(edit.locator('input[name=price]'), 'price worked out from cost and markup').toHaveValue('109.14');
     await Promise.all([page.waitForNavigation(), edit.locator('button[type=submit]').click()]);

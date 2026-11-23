@@ -54,7 +54,8 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
     test.skip(today.getDate() > 28, 'the snapshot day can only be 1-28 - run again tomorrow');
     const errors = watch(page);
     await visit(page, 'admin/settings_invoice.php', errors);
-    test.skip(await page.locator('[data-mit-usage-settings]').count() === 0, 'needs database update M032');
+    // The card is on every install of this build (M032 is long run) - its absence is a lost hook, not a reason to skip
+    await expect(page.locator('[data-mit-usage-settings]'), 'the Usage billing card on Admin > Settings > Invoices').toHaveCount(1);
     made.snapshotDay = await page.locator('input[name=mit_usage_snapshot_day]').inputValue();
     await page.fill('input[name=mit_usage_snapshot_day]', String(today.getDate()));
     await submit(page.locator('form:has(button[name=mit_edit_usage_settings])'), 'mit_edit_usage_settings');

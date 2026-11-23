@@ -8,7 +8,7 @@
 // rules (those need the person's signature first).
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action } = require('./helpers');
+const { featureOn, smokeName, watch, visit, openModal, fillForm, submit, flash, action } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -20,7 +20,8 @@ test('one mileage rate: Admin > Timesheets sets ITFlow\'s too, and the labels us
     const errors = watch(page);
     await visit(page, 'admin/mit_timesheets.php', errors);
     const rate = page.locator('[data-mit-mileage-rate]');
-    test.skip(await rate.count() === 0, 'Reimbursements not here (Timesheets off?)');
+    test.skip(!featureOn('mitReimbOn'), 'Reimbursements are off');
+    await expect(rate, 'the mileage rate on Admin > Timesheets').toHaveCount(1);
     const value = (await rate.inputValue()) || '0.7';
     await rate.fill(value);
     const account = page.locator('select[name="reimb_account"]');

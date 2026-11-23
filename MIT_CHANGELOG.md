@@ -33,6 +33,7 @@ CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to
 - Deleting a client (Clients > Delete and the API) now removes everything that was only theirs - ticket attachments, watchers, tasks and history, invoice and quote history, document versions, DNS records, links between records and more were left behind before. Expenses, purchasing lines and other company records that only named the client stay, with no client.
 - A payment receipt's line in an invoice's history now says Paid or Partial (it said Sent).
 - Test fix: the leave check on timesheets without approval makes its own leave bank.
+- Tests no longer skip when one of this build's own screens is missing while its feature is on (that hid lost hooks) - and the quote pricing step of the flows test, which had quietly skipped since 26.12, runs again.
 ## 26.11.8.12 - 2026-11-20
 - The README lists everything new: unlimited support hours on contracts, percentage discounts, minimum commits, and diagrams (in Files and documents, maps from a client's assets, Draw with AI).
 - Credits for the third-party software included in this build: the draw.io editor (Apache License 2.0, © JGraph Holdings Ltd / draw.io AG - included unchanged, not affiliated with draw.io) and the Inter typeface (SIL Open Font License). The diagram editor's bar now names the editor and links to its license.

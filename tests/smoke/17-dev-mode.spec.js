@@ -58,7 +58,7 @@ test('development mode: QuickBooks Online only with a sandbox company connected 
     const stand_in = await page.request.get('http://127.0.0.1/qbo-mock/index.php/_reset').then((r) => r.ok()).catch(() => false);
     test.skip(!stand_in, 'the QuickBooks stand-in is not installed on this test install');
     await visit(page, 'admin/mit_qbo.php', errors);
-    test.skip(await page.locator('input[name=qbo_client_id]').count() === 0, 'needs database update M031');
+    await expect(page.locator('input[name=qbo_client_id]'), 'the QuickBooks settings form').toHaveCount(1);
 
     await qboDisconnect(page);
     expect(await setDevMode(page, true), 'switched on').toContain('Development mode is on');

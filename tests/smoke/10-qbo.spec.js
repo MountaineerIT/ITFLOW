@@ -56,7 +56,7 @@ test('connect to QuickBooks Online (stand-in)', async ({ page }) => {
     const errors = watch(page);
     test.skip(!(await mock(page, '/_reset')), 'the QuickBooks stand-in is not installed on this test install');
     await visit(page, 'admin/mit_qbo.php', errors);
-    test.skip(await page.locator('input[name=qbo_client_id]').count() === 0, 'needs database update M031');
+    await expect(page.locator('input[name=qbo_client_id]'), 'the QuickBooks settings form').toHaveCount(1);
     await expect(page.locator('a.nav-link[href="/admin/mit_qbo.php"]'), 'Admin > Integrations menu entry').toHaveCount(1);
     if (await page.locator('button[name=mit_qbo_disconnect]').count()) {
         // Left connected by an earlier run that stopped part way

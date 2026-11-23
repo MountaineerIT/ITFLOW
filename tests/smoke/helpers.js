@@ -164,4 +164,15 @@ async function clearTime(locator) {
     });
 }
 
-module.exports = { PHP_ERROR, clearTime, smokeName, watch, expectClean, visit, csrf, openModal, fillForm, submit, flash, action, fetchText, getJson };
+/*
+ * Is one of our features switched on, by the install's own function (mitProcOn, mitTsOn ...)? A test skips only when it
+ * is off - an element of ours missing while it is on is a lost hook, and must fail (Nov 23: skips hid lost hooks).
+ */
+function featureOn(fn) {
+    if (!/^mit[A-Za-z]+$/.test(fn)) {
+        throw new Error('featureOn takes one of our function names');
+    }
+    return require('./mitdb').php(`echo function_exists('${fn}') && ${fn}() ? 1 : 0;`).trim().endsWith('1');
+}
+
+module.exports = { featureOn, PHP_ERROR, clearTime, smokeName, watch, expectClean, visit, csrf, openModal, fillForm, submit, flash, action, fetchText, getJson };

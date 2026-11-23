@@ -38,7 +38,7 @@ test('NinjaOne device counts', async ({ page }) => {
     // test against the real Bitwarden (Nov 17, a rebuilt test install)
     test.skip(!mock || mock.status() !== 404 || /text\/html/i.test(mock.headers()['content-type'] || ''), 'the usage stand-ins are not installed on this test install');
     await visit(page, 'admin/mit_usage_connectors.php', errors);
-    test.skip(await page.locator('input[name=usage_ninjaone_on]').count() === 0, 'needs database update M033');
+    await expect(page.locator('input[name=usage_ninjaone_on]'), 'the usage connectors form').toHaveCount(1);
     await expect(page.locator('a.nav-link[href="/admin/mit_usage_connectors.php"]'), 'Admin > Integrations menu entry').toHaveCount(1);
     made.ninjaWasOn = await page.locator('input[name=usage_ninjaone_on]').isChecked();
     await page.locator('input[name=usage_ninjaone_on]').check();
