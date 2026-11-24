@@ -140,12 +140,28 @@ function mitDiagramAssetData($client_id, array $opts) {
             $racks[intval($row['rack_id'])] = $row;
         }
         if ($racks) {
-            $result = mysqli_query($mysqli, "SELECT u.unit_rack_id, u.unit_start_number, u.unit_end_number, u.unit_device, u.unit_face, u.unit_type, a.asset_name
+            // ITFlow 4.1.3: a holder (a chassis) has devices in it - rows pointing at it by unit_parent_id. They are named inside the
+            // holder's box, not drawn as boxes of their own over it.
+            $held = function_exists('mitColumnReady') ? mitColumnReady('rack_units', 'unit_parent_id') : mysqli_num_rows(mysqli_query($mysqli, "SHOW COLUMNS FROM rack_units LIKE 'unit_parent_id'")) > 0;
+            $result = mysqli_query($mysqli, "SELECT u.unit_id, u.unit_rack_id, u.unit_start_number, u.unit_end_number, u.unit_device, u.unit_face, u.unit_type, a.asset_name"
+                . ($held ? ', u.unit_parent_id, u.unit_position' : ', NULL AS unit_parent_id, 0 AS unit_position') . "
                 FROM rack_units u LEFT JOIN assets a ON a.asset_id = u.unit_asset_id
-                WHERE u.unit_archived_at IS NULL AND u.unit_rack_id IN (" . implode(',', array_keys($racks)) . ") ORDER BY u.unit_start_number");
+                WHERE u.unit_archived_at IS NULL AND u.unit_rack_id IN (" . implode(',', array_keys($racks)) . ") ORDER BY u.unit_start_number, " . ($held ? 'u.unit_position, ' : '') . "u.unit_id");
+            $inside = [];
             while ($row = mysqli_fetch_assoc($result)) {
+                if (!empty($row['unit_parent_id'])) {
+                    $inside[intval($row['unit_parent_id'])][] = trim((string) ($row['unit_device'] ?: $row['asset_name'] ?: $row['unit_type'] ?: 'Device'));
+                    continue;
+                }
                 $racks[intval($row['unit_rack_id'])]['units'][] = $row;
             }
+            foreach ($racks as &$rack_row) {
+                foreach ($rack_row['units'] as &$unit_row) {
+                    $unit_row['inside'] = $inside[intval($unit_row['unit_id'])] ?? [];
+                }
+                unset($unit_row);
+            }
+            unset($rack_row);
         }
     }
     return ['locations' => $locations, 'networks' => $networks, 'assets' => $assets, 'links' => $links, 'racks' => $racks];
@@ -286,6 +302,9 @@ function mitDiagramRackPage(array $rack) {
             $end = min($units, max($start, intval($unit['unit_end_number'])));
             $top = $down ? $start - 1 : $units - $end;
             $label = trim((string) ($unit['unit_device'] ?: $unit['asset_name'] ?: $unit['unit_type'] ?: 'Device'));
+            if (!empty($unit['inside'])) {
+                $label .= ' (' . implode(', ', $unit['inside']) . ')';   // what is in the holder
+            }
             $cells .= mitDiagramCell("{$frame}_d$i", $label, 'rounded=1;arcSize=6;html=0;whiteSpace=wrap;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;',
                 '1', $x + 28, 60 + $top * MIT_DIAGRAM_RACK_U + 1, 222, ($end - $start + 1) * MIT_DIAGRAM_RACK_U - 2);
         }

@@ -86,8 +86,9 @@ function scenarioCleanup() {
     global $mysqli;
     $tickets = implode(',', array_map('intval', $GLOBALS['scenario_tickets'] ?? [])) ?: '0';
     foreach (['ticket_replies' => 'ticket_reply_ticket_id', 'ticket_history' => 'ticket_history_ticket_id', 'ticket_watchers' => 'watcher_ticket_id',
-        'mit_ticket_boards' => 'ticket_id', 'mit_board_moves' => 'ticket_id', 'mit_ticket_techs' => 'ticket_id', 'mit_ticket_mail_choices' => 'ticket_id',
-        'mit_project_ticket_sla' => 'ticket_id', 'mit_ticket_no_response' => 'ticket_id', 'mit_ct_surveys' => 'ticket_id', 'notifications' => 'notification_entity_id'] as $table => $col) {
+        'ticket_helpers' => 'ticket_id', 'ticket_mail_choices' => 'mail_choice_ticket_id', 'mit_ticket_boards' => 'ticket_id', 'mit_board_moves' => 'ticket_id',
+        'mit_ticket_techs' => 'ticket_id' /* our pre-26.12 helpers - scenario-helpers.php plants one */, 'mit_ticket_schedule_notify' => 'ticket_id',
+        'mit_ct_surveys' => 'ticket_id', 'notifications' => 'notification_entity_id'] as $table => $col) {
         try {
             mysqli_query($mysqli, "DELETE FROM $table WHERE $col IN ($tickets)");
         } catch (Throwable $e) {

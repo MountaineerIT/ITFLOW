@@ -21,7 +21,7 @@ if ($sql && mysqli_num_rows($sql) > 0) {
     while ($row = mysqli_fetch_assoc($sql)) {
         $rows[] = $row + billingApiTaxFields('invoice', $row);
     }
-    echo json_encode(['success' => 'True', 'count' => count($rows), 'data' => $rows]);
+    echo json_encode(['success' => 'True', 'count' => count($rows), 'data' => function_exists('mitApiExtras') ? mitApiExtras($rows, 'invoices') : $rows]); // Mountaineer IT: our fields (functions/mit_api.php)
     exit();
 }
 

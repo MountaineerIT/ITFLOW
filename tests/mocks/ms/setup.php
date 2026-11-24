@@ -99,12 +99,13 @@ try {
         $access_sql = mysqli_real_escape_string($mysqli, $response['json']['access_token']);
         mysqli_query($mysqli, "UPDATE settings SET config_mail_oauth_refresh_token = '$refresh_sql', config_mail_oauth_access_token = '$access_sql',
             config_mail_oauth_access_token_expires_at = '" . date('Y-m-d H:i:s', time() + 3600) . "' WHERE company_id = 1");
-        mitDeleteSettings('m365_mail_graph_');
+        if (function_exists('mailGraphForget')) { mailGraphForget(); }
         echo "  ms setup: mailbox " . MS_MAILBOX . " connected\n";
     }
     mysqli_query($mysqli, "UPDATE settings SET config_smtp_provider = 'microsoft_oauth', config_imap_provider = 'microsoft_oauth', config_smtp_username = '" . MS_MAILBOX . "',
         config_imap_username = '" . MS_MAILBOX . "', config_ticket_email_parse = 1 WHERE company_id = 1");
-    if (!mitM365GraphSendReady() || !mitM365GraphMailboxReady()) {
+    if (function_exists('mailGraphForget')) { mailGraphForget(); }
+    if (mailGraphToken('Mail.Send', true) === null || mailGraphToken('Mail.ReadWrite') === null) {
         throw new RuntimeException('the mailbox token has no Mail.Send / Mail.ReadWrite');
     }
 

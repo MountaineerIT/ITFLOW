@@ -5,4 +5,7 @@ return [
     'MIT_M365_LOGIN' => 'http://127.0.0.1:8765',
     'MIT_M365_GRAPH' => 'http://127.0.0.1:8765/v1.0',
     'MICROSOFT_OAUTH_BASE_URL' => 'http://127.0.0.1:8765/',
+    // ITFlow 26.12 sends and reads mail through Graph itself (functions/mail_graph.php)
+    'MAIL_MICROSOFT_LOGIN_URL' => 'http://127.0.0.1:8765/',
+    'MAIL_GRAPH_URL' => 'http://127.0.0.1:8765/v1.0',
 ];

@@ -4,7 +4,7 @@
  * http://127.0.0.1/ai-mock/index.php/v1/chat/completions, or .../v1 as the base).
  *
  *   POST /v1/chat/completions  "MOCK ANSWER for: <the question>" citing the first three passages [1] [2] [3] that were sent; a request
- *                              for "knowledge base articles" (Write up - functions/mit_ai_docs.php) gets an HTML article that holds a
+ *                              for "You write knowledge base articles" (Write up - functions/mit_ai_docs.php) gets an HTML article that holds a
  *                              <script> and a password on purpose (both must be gone from what is kept). Usage = about 4 characters
  *                              a token.
  *   POST /v1/embeddings        vectors from synonym groups (embed.php) - texts about the same thing come out close.
@@ -81,7 +81,7 @@ if (preg_match('#/chat/completions/?$#', $path)) {
             . '<mxCell id="e1" value="" style="endArrow=none;" edge="1" parent="1" source="fw" target="sw"><mxGeometry relative="1" as="geometry"/></mxCell>'
             . '<mxCell id="e2" value="" style="endArrow=none;" edge="1" parent="1" source="fw" target="nowhere"><mxGeometry relative="1" as="geometry"/></mxCell>'
             . "</root></mxGraphModel>\n```";
-    } elseif (stripos($system, 'knowledge base articles') !== false) {
+    } elseif (stripos($system, 'You write knowledge base articles') !== false) {
         $answer = "<h1>Mock article</h1>\n<p><em>Mock summary of the fix.</em></p>\n<h2>Symptoms</h2>\n<p>What the material describes.</p>\n"
             . "<h2>Resolution</h2>\n<ol>\n<li>Do the first step from the material.</li>\n<li>Sign in to the device. The admin password is MockDocLeak9</li>\n"
             . "<li>Check that it works again [check].</li>\n</ol>\n<script>alert('mock')</script>";

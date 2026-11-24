@@ -14,6 +14,10 @@ if ($sql && mysqli_num_rows($sql) > 0) {
     while ($row = mysqli_fetch_assoc($sql)) {
         $return_arr['data'][] = $row;
     }
+    // Mountaineer IT: what things cost us never goes out through the API (functions/mit_quotes.php)
+    $return_arr['data'] = function_exists('mitApiHideCost') ? mitApiHideCost($return_arr['data']) : $return_arr['data'];
+    // Mountaineer IT: our fields on ITFlow's reads - a ticket's service board, billing extras, contracts' unlimited hours (functions/mit_api.php)
+    $return_arr['data'] = function_exists('mitApiExtras') ? mitApiExtras($return_arr['data'], $resource ?? '') : $return_arr['data'];
 
     // Each record's tags, when the endpoint names the kind it reads ($api_tag_entity, as in tagEntity())
     if (!empty($api_tag_entity)) {
@@ -23,6 +27,11 @@ if ($sql && mysqli_num_rows($sql) > 0) {
     // Each asset's details, as asset_specs ($api_asset_specs, set by api/v1/assets/read.php)
     if (!empty($api_asset_specs)) {
         $return_arr['data'] = assetSpecsApiAttach($return_arr['data']);
+    }
+
+    // Each asset's devices in an RMM, as asset_rmm ($api_asset_rmm, set by api/v1/assets/read.php)
+    if (!empty($api_asset_rmm)) {
+        $return_arr['data'] = rmmApiAttach($return_arr['data']);
     }
 
     echo json_encode($return_arr);

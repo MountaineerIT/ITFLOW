@@ -56,7 +56,7 @@ test('connect to QuickBooks Online (stand-in)', async ({ page }) => {
     const errors = watch(page);
     test.skip(!(await mock(page, '/_reset')), 'the QuickBooks stand-in is not installed on this test install');
     await visit(page, 'admin/mit_qbo.php', errors);
-    test.skip(await page.locator('input[name=qbo_client_id]').count() === 0, 'needs database update M031');
+    await expect(page.locator('input[name=qbo_client_id]'), 'the QuickBooks settings form').toHaveCount(1);
     await expect(page.locator('a.nav-link[href="/admin/mit_qbo.php"]'), 'Admin > Integrations menu entry').toHaveCount(1);
     if (await page.locator('button[name=mit_qbo_disconnect]').count()) {
         // Left connected by an earlier run that stopped part way
@@ -142,6 +142,10 @@ test('approve, batch and send an invoice - locked while in QuickBooks', async ({
             account: '1', payment_method: 'Cash', reference: 'Smoke test refused', currency_code: 'USD', balance: '110', email_receipt: '0' });
         await visit(page, invoicePage(), errors);
         await expect(page.locator('body'), 'no payment while batched').not.toContainText('Smoke test refused');
+        // ITFlow 26.11.8's in-place add (agent/ajax.php billing_item_add) is refused too - the invoice is still a Draft, so only our lock stops it
+        await post(page, '/agent/ajax.php', { billing_item_add: '1', type: 'invoice', doc_id: String(made.invoiceId), name: 'Smoke test refused add', description: '',
+            qty: '1', price: '1', tax_id: '0', product_id: '0' });
+        expect(db.value(`SELECT COUNT(*) FROM invoice_items WHERE item_invoice_id = ${made.invoiceId} AND item_name = 'Smoke test refused add'`), 'no line added while batched').toBe('0');
     });
     const state = await mock(page, '/_state');
     const qbo = state.invoices.find((i) => i.PrivateNote && i.PrivateNote.includes('From ITFlow invoice'));

@@ -31,7 +31,7 @@ $stocks = mitProductStocks(array_column(array_filter($products, function ($produ
 $taxes = mysqli_fetch_all(mysqli_query($mysqli, "SELECT tax_id, tax_name, tax_percent FROM taxes WHERE tax_archived_at IS NULL ORDER BY tax_name"), MYSQLI_ASSOC);
 $assets = $client_id ? mysqli_fetch_all(mysqli_query($mysqli, "SELECT asset_id, asset_name, asset_type FROM assets WHERE asset_client_id = $client_id AND asset_archived_at IS NULL ORDER BY asset_name"), MYSQLI_ASSOC) : [];
 $source = $part['source'] ?? 'stock';
-$vendor_id = $part && intval($part['proc_item_id']) ? intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT vendor_id FROM mit_procurement_items WHERE item_id = " . intval($part['proc_item_id'])))[0] ?? 0) : 0;
+$vendor_id = $part && intval($part['proc_item_id']) ? intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT order_item_vendor_id FROM order_items WHERE order_item_id = " . intval($part['proc_item_id'])))[0] ?? 0) : 0;
 
 ob_start();
 
@@ -78,7 +78,7 @@ ob_start();
                     <label class="btn btn-outline-secondary" for="mitPartSource<?= $key ?>"><?= $label ?></label>
                 <?php } ?>
             </div>
-            <div class="form-text">From stock takes it off the product's stock. To order puts it on Procurement > To order and shows its PO here.</div>
+            <div class="form-text">From stock takes it off the product's stock. To order puts it on Purchasing > To Order and shows its PO here.</div>
         </div>
 
         <div class="row g-2 mb-3">

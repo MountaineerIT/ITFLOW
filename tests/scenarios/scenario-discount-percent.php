@@ -29,9 +29,9 @@ try {
     $licence = $product("$tag M365 licence", 20);
     $nonprofit = $product("$tag Nonprofit discount", 0);
     // "Never discounted" through our product save (the product window posts these)
-    mitProductSave($licence, ['mit_no_discount_present' => '1', 'mit_no_discount' => '1'], []);
+    mitDiscountProductSave($licence, ['mit_no_discount_present' => '1', 'mit_no_discount' => '1']);
     scenarioCheck('"Never discounted" saved', mitDiscountProductExcluded($licence), true);
-    mitProductSave($managed, ['mit_no_discount_present' => '1'], []);
+    mitDiscountProductSave($managed, ['mit_no_discount_present' => '1']);
     scenarioCheck('... and not on a product left unticked', mitDiscountProductExcluded($managed), false);
 
     // A recurring invoice: managed services 1 x 1,000, licences 10 x 20

@@ -34,6 +34,8 @@ require_once '../validate_api_key.php';
 
 require_once '../require_post_method.php';
 
+require_once '../form_input.php';
+
 // Ticket/mail settings for public reply notifications
 require_once "../../../includes/load_global_settings.php";
 
@@ -62,18 +64,16 @@ if (!empty($ticket_id) && !empty($reply)) {
         $ticket_row = null;
     }
 
-    // A closed ticket takes no replies (as on the ticket page), and the status must be one a reply may set: an active
-    // working status or Resolved - not New or Closed, which the system sets, and not an id that does not exist
-    $api_refuse = function ($message) {
-        header("HTTP/1.1 400 Bad Request");
-        echo json_encode(['success' => 'False', 'message' => $message]);
-        exit();
-    };
-    if ($ticket_row && ($ticket_row['ticket_closed_at'] !== null || intval($ticket_row['ticket_status']) === 5)) {
-        $api_refuse('That ticket is closed - it takes no replies.');
+    // As on the ticket page: a closed ticket takes no replies, a reply sets only a status a reply may (not New or
+    // Closed, which ITFlow sets, nor one that doesn't exist), and resolves only once its tasks are done
+    if ($ticket_row && ($ticket_row['ticket_closed_at'] !== null || intval($ticket_row['ticket_status']) === TICKET_STATUS_CLOSED)) {
+        apiFormRefuse('That ticket is closed - it takes no replies');
     }
-    if ($ticket_row && $reply_ticket_status && !in_array($reply_ticket_status, ticketReplyStatuses($ticket_row['ticket_status']), true)) {
-        $api_refuse('ticket_status must be the id of an active status a reply may set (not New or Closed).');
+    if ($ticket_row && !empty($reply_ticket_status) && !in_array($reply_ticket_status, ticketReplyStatuses($ticket_row['ticket_status']), true)) {
+        apiFormRefuse('ticket_status must be the id of an active status a reply may set - not New or Closed');
+    }
+    if ($ticket_row && $reply_ticket_status === TICKET_STATUS_RESOLVED && intval($ticket_row['ticket_status']) !== TICKET_STATUS_RESOLVED && ticketOpenTaskCount($ticket_id)) {
+        apiFormRefuse("The ticket's tasks aren't all done - it can't be resolved yet");
     }
 
     if ($ticket_row) {
@@ -100,11 +100,11 @@ if (!empty($ticket_id) && !empty($reply)) {
 
             // Optional status change alongside the reply
             if (!empty($reply_ticket_status)) {
-                // Out of Resolved into a working status is a reopen - otherwise the ticket keeps its resolved time and drops
-                // off every open list without the nightly close ever closing it
-                $reopen_sql = ($original_ticket_status === 4 && $reply_ticket_status !== 4) ? ', ticket_resolved_at = NULL' : '';
-                mysqli_query($mysqli, "UPDATE tickets SET ticket_status = $reply_ticket_status $reopen_sql WHERE ticket_id = $ticket_id LIMIT 1");
-                if ($reopen_sql !== '') {
+                // Out of Resolved into a working status is a reopen - the resolved time goes and the resolution clock runs again
+                $reopen = $original_ticket_status === TICKET_STATUS_RESOLVED && $reply_ticket_status !== TICKET_STATUS_RESOLVED;
+                mysqli_query($mysqli, "UPDATE tickets SET ticket_status = $reply_ticket_status" . ($reopen ? ", ticket_resolved_at = NULL" : "") . " WHERE ticket_id = $ticket_id LIMIT 1");
+                syncTicketSlaClock($ticket_id);
+                if ($reopen) {
                     resetTicketResolutionSla($ticket_id);
                 }
 
@@ -113,6 +113,8 @@ if (!empty($ticket_id) && !empty($reply)) {
                 if ($reply_ticket_status !== $original_ticket_status && $reply_ticket_status != 4) {
                     $new_status_name = escapeSql(getTicketStatusName($reply_ticket_status));
                     logTicketHistory($ticket_id, "Status set to $new_status_name via the API ($api_key_name)");
+                    // A status that counts as the first response (functions/ticket_status.php)
+                    ticketStatusMovedByAgent($ticket_id, $original_ticket_status, $reply_ticket_status);
                 }
 
                 // Resolve the ticket, if it is actually moving into Resolved

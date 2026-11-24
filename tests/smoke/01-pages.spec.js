@@ -76,6 +76,16 @@ test('agent menu pages', async ({ page }) => {
     expect(await crawl(page, urls)).toEqual([]);
 });
 
+// Our billing menu entries (agent/includes/mit_billing_nav.php, one require in ITFlow's side_nav.php): Invoice Approvals and QuickBooks Batches
+// once QuickBooks Online is set up. Written after the hook proof (Nov 23) found nothing noticed the require gone.
+test('our billing menu entries', async ({ page }) => {
+    const { featureOn } = require('./helpers');
+    test.skip(!featureOn('mitQboReady') || require('./mitdb').php("echo mitQboSettings()['client_id'] !== '' || mitQboConnected() ? 1 : 0;").trim() !== '1', 'QuickBooks Online is not set up here');
+    await page.goto('agent/dashboard.php');
+    await expect(page.locator('.app-sidebar a[href*="mit_invoice_approvals.php"]'), 'Invoice Approvals in the side menu').toHaveCount(1);
+    await expect(page.locator('.app-sidebar a[href*="mit_qbo_batches.php"]'), 'QuickBooks Batches in the side menu').toHaveCount(1);
+});
+
 test('client menu pages', async ({ page }) => {
     const client = await firstRecord(page, 'agent/clients.php', /client_overview\.php\?client_id=\d+|client_id=\d+/);
     test.skip(!client, 'no clients on this install');
@@ -105,7 +115,7 @@ test('one of each record page', async ({ page }) => {
         ['agent/projects.php', /project\.php\?.*project_id=\d+/],
         ['agent/recurring_invoices.php', /recurring_invoice\.php\?.*recurring_invoice_id=\d+/],
         ['agent/vendors.php', /vendor\.php\?.*vendor_id=\d+/],
-        ['agent/mit_purchase_orders.php', /mit_purchase_order\.php\?.*po_id=\d+/],
+        ['agent/purchase_orders.php', /purchase_order\.php\?.*po_id=\d+/],
         ['agent/mit_timesheets.php', /mit_timesheet\.php\?.+/],
     ];
     const urls = [];
@@ -117,4 +127,16 @@ test('one of each record page', async ({ page }) => {
     }
     expect(urls.length, 'record pages found').toBeGreaterThan(0);
     expect(await crawl(page, urls)).toEqual([]);
+});
+
+// A client page opened without a client in its address (typed or cut short) - ITFlow's "Nothing to see here", not a page of warnings
+// and a fatal (found by the role crawl, Nov 22: agent/includes/inc_all_client.php had no answer for a missing client_id)
+test('client pages without a client', async ({ page }) => {
+    for (const path of ['agent/client_overview.php', 'agent/files.php', 'agent/document.php?document_id=1', 'agent/rack.php?rack_id=1']) {
+        const res = await page.goto(path);
+        const body = await page.locator('body').innerText();
+        expect(body, `${path}: no PHP error`).not.toMatch(PHP_ERROR);
+        expect(body, `${path}: says there is nothing to see`).toContain('Nothing to see here');
+        expect(res.status(), path).toBeLessThan(500);
+    }
 });

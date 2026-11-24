@@ -34,4 +34,3 @@ if (!mitDbReady()) {
 
 echo mitBoardSweep() . " ticket(s) placed on a board\n";
 echo mitBoardAssignSweep() . " ticket(s) handed out by auto-assign\n";
-echo mitStatusResponseSweep() . " ticket(s) met the response target by their status\n"; // functions/mit_status_response.php

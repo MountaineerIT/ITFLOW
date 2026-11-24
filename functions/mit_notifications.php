@@ -12,11 +12,8 @@
 /** The switches: key => [section, label, help, column app|tech|client]. */
 function mitNotificationSwitches() {
     return [
-        'assign_app' => ['Assigning', 'Ticket or recurring ticket assigned to a tech', 'The bell notice to the tech, when someone else assigns it.', 'app'],
-        'assign_email' => ['Assigning', 'Ticket or recurring ticket assigned to a tech', 'The email to the tech, when someone else assigns it.', 'tech'],
         'board_app' => ['Assigning', 'Ticket landed on or was moved to a service board', 'The bell notice to the board\'s members who have notices on (Admin > Settings > Boards).', 'app'],
         'board_email' => ['Assigning', 'Ticket landed on or was moved to a service board', 'The email to those members.', 'tech'],
-        'helper_copy' => ['Ticket replies', 'Copy of the client\'s replies to additional techs', 'The lead tech gets ITFlow\'s own email; this is the copy to the other techs on the ticket.', 'tech'],
         'po_app' => ['Procurement', 'Purchase order waiting for approval', 'The bell notice to the approvers.', 'app'],
         'po_email' => ['Procurement', 'Purchase order waiting for approval', 'The email to the approvers.', 'tech'],
         'timesheet_app' => ['Timesheets', 'Timesheet notices (sent back, approved, changed by someone else, reminders)', 'The bell notice to the person. When reminders go out is set under Admin > Timesheets.', 'app'],

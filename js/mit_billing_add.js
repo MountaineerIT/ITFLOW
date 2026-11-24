@@ -116,12 +116,12 @@
             if (form.elements.seat_source) {
                 form.elements.seat_source.value = item.seat_source === 'contacts' || item.seat_source === 'assets' ? item.seat_source : '';
             }
-            if (form.elements.item_cost) {
+            if (form.elements.cost) {
                 // js/mit_quote_pricing.js fills the product's cost, pricing and picture just after this
-                form.elements.item_cost.value = '';
+                form.elements.cost.value = '';
                 clearImage();
-                if (form.elements.item_price_method) {
-                    form.elements.item_price_method.value = 'price';
+                if (form.elements.price_method) {
+                    form.elements.price_method.value = 'price';
                 }
             }
             setTimeout(function () {
@@ -209,7 +209,7 @@
             }
             var data = new FormData(form);
             data.append('billing_item_add', '1');
-            ['price', 'qty', 'item_cost', 'item_price_percent'].forEach(function (key) {
+            ['price', 'qty', 'cost', 'price_percent'].forEach(function (key) {
                 if (data.has(key) && String(data.get(key)).trim() === '') {
                     data.delete(key);
                 }

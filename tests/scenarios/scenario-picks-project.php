@@ -24,7 +24,7 @@ try {
     $now = intval(scenarioValue("SELECT ticket_sla_id FROM tickets WHERE ticket_id = $t"));
     $history = (string) scenarioValue("SELECT ticket_history_description FROM ticket_history WHERE ticket_history_ticket_id = $t ORDER BY ticket_history_id DESC LIMIT 1");
     echo "  (code $code, message: " . ($out['message'] ?? $out['error'] ?? '') . ", ticket_sla_id now $now, history: $history)\n";
-    scenarioCheck('SLA picked on a project ticket: what it says matches what it did', $now === $sla || ($code !== 200) || strpos($history, 'changed SLA') === false, true);
+    scenarioCheck('SLA picked on a project ticket: refused, nothing set', [$code !== 200, $now, strpos($history, 'changed SLA') === false], [true, 0, true]);
 
     // Dispatch's Schedule dialog (mitDispatchSaveDetails) pinning an SLA: refused the same way, nothing written
     $history_count = intval(scenarioValue("SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = $t"));

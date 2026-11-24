@@ -3,7 +3,7 @@
 // not get the field (04-permissions.spec.js).
 
 const { test, expect } = require('@playwright/test');
-const { watch, visit, submit, flash, expectClean } = require('./helpers');
+const { featureOn, watch, visit, submit, flash, expectClean } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -21,7 +21,8 @@ test('an admin changes their own employment in Account > Preferences', async ({ 
     const errors = watch(page);
     await visit(page, 'agent/user/user_preferences.php', errors);
     const field = page.locator('select[name=mit_pay_type]');
-    test.skip(await page.locator('input[name=mit_ts_prefs]').count() === 0, 'timesheets are switched off');
+    test.skip(!featureOn('mitTsOn'), 'timesheets are switched off');
+    await expect(page.locator('input[name=mit_ts_prefs]'), 'our Timesheet section in Preferences (mitTsPreferenceFields)').toHaveCount(1);
     await expect(field, 'the Employment field for an admin').toHaveCount(1);
     original = await field.inputValue();
     const other = original === 'contractor' ? 'salary' : 'contractor';

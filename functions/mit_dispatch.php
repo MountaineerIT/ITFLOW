@@ -1,48 +1,23 @@
 <?php
 
 /*
- * Mountaineer IT - Dispatch (agent/mit_dispatch.php, agent/js/mit_dispatch.js, agent/mit_dispatch_ajax.php).
- *
- * A board of each tech's booked work - a day with a column per tech, or a week with a row per tech -
- * beside the queue of open tickets still to dispatch: those with no tech, and those with a tech but
- * no time booked. Dropping a ticket on the board (or moving a booking to another tech or time) opens
- * a quick confirm with the tech, start, length, onsite/remote, whether to email the contact, and the ticket's details
- * (client, contact, priority, category, SLA - changes saved first, by mitDispatchSaveDetails), then
- * assigns it (ticketChangeAssignee) and books it (ticketSetSchedule) exactly as the ticket page does.
- * A booking dragged back onto the queue is taken off the schedule (ticketCancelSchedule).
- * Needs Support edit (calendarCanScheduleTickets), ticketing on, and the Dispatch switch on (Admin > Settings > Modules). Which techs show, the view and weekends are saved
- * per person in mit_user_preferences (dispatch.state). The Workload view is in functions/mit_dispatch_workload.php.
- * No tables of its own.
+ * Mountaineer IT - our additions on ITFlow's Dispatch (26.12: functions/dispatch.php, agent/dispatch.php, agent/js/dispatch.js - built from
+ * ours; M067 moved the switch and each agent's view). What stays ours, as hooks on ITFlow's:
+ *  - the Dispatch permission (M035, module_dispatch in Admin > Roles): View sees the board, Edit works it - one guarded condition each in
+ *    dispatchCan / dispatchCanEdit (mitDispatchLevel). ITFlow ties both to Support.
+ *  - service boards: a picker (All / My boards - the default for an agent on one - / each board) filtering the queue, Workload and This week
+ *    (mitDispatchBoardWhere - one line each in dispatchQueue, dispatchWorkload, dispatchWeekStats, reading ?board=), "Only the board's
+ *    members" for the agent columns, a board tag on queue cards, the menu count of unassigned tickets on the agent's boards;
+ *  - the Schedule window puts the ticket right as it is booked - title, client, contact, assets, priority, status, category, SLA and board
+ *    (mitDispatchDetails / mitDispatchSaveDetails, through agent/mit_dispatch_ajax.php) - and who is emailed (the booking-email ticks of
+ *    functions/mit_notifications.php, replacing ITFlow's one "tell the client" tick). One guarded line before ITFlow's dispatchBook in
+ *    agent/ajax.php runs mitDispatchBeforeBook: the booking is checked first (a refused one changes nothing), then the details are saved;
+ *  - Outlook busy times on each agent's day (one line in dispatchItems);
+ *  - an agent away from the company's time zone sees the working hours moved onto their clock (one line in dispatchBusinessHours).
+ * The page's extras: one require in agent/dispatch.php (agent/includes/mit_dispatch_extras.php - the board picker, our fields in the Schedule
+ * window and agent/js/mit_dispatch.js); dispatch.js has two lines - every request passes through window.itflowDispatchExtra, the agent
+ * columns through window.itflowDispatchAgents - and tells us when the Schedule window opens (event "dispatch:schedule").
  */
-
-require_once __DIR__ . '/mit_dispatch_workload.php';
-
-/** The lengths offered when booking (minutes); a ticket's own length is added when it is not one of them. */
-const MIT_DISPATCH_LENGTHS = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480];
-
-/** The board's working hours, from Admin > SLA's business days and hours: FullCalendar businessHours. */
-function mitDispatchBusinessHours() {
-    $sla = getSlaSettings();
-    // No business days (or no usable hours) = ITFlow's SLA clocks run around the clock (functions/sla.php addBusinessMinutes) - every hour is working time
-    if (mitDispatchAroundTheClock()) {
-        return ['daysOfWeek' => [0, 1, 2, 3, 4, 5, 6], 'startTime' => '00:00', 'endTime' => '24:00'];
-    }
-    $time = function ($value, $fallback) {
-        return preg_match('/^\d{1,2}:\d{2}/', (string) $value) ? substr((string) $value, 0, 5) : $fallback;
-    };
-    // ISO weekdays (Mon 1 .. Sun 7) to FullCalendar's (Sun 0 .. Sat 6)
-    $days = array_map(function ($day) {
-        return $day % 7;
-    }, $sla['business_days']);
-    return ['daysOfWeek' => array_values($days), 'startTime' => $time($sla['business_hours_start'], '08:00'), 'endTime' => $time($sla['business_hours_end'], '17:00')];
-}
-
-/** True when Admin > SLAs has no business days / hours set, so ITFlow's SLA clocks run around the clock (the same test as its addBusinessMinutes). */
-function mitDispatchAroundTheClock() {
-    $sla = getSlaSettings();
-    return empty($sla['business_days']) || empty($sla['business_hours_start']) || empty($sla['business_hours_end'])
-        || $sla['business_hours_start'] >= $sla['business_hours_end'];
-}
 
 /**
  * The signed-in agent's Dispatch level - the role's Dispatch permission (M035; Admin > Roles): 1 sees the board, 2 works it.
@@ -51,7 +26,7 @@ function mitDispatchAroundTheClock() {
 function mitDispatchLevel() {
     global $mysqli;
     static $has_row = null;
-    if (!mitModuleOn('dispatch')) {
+    if (function_exists('moduleOn') && !moduleOn('dispatch')) {
         return 0;
     }
     if ($has_row === null) {
@@ -61,48 +36,6 @@ function mitDispatchLevel() {
         return calendarCanScheduleTickets() ? 2 : 0;
     }
     return intval(lookupUserPermission('module_dispatch'));
-}
-
-/** May the signed-in agent see the Dispatch board? Dispatch View. */
-function mitDispatchCan() {
-    return mitDispatchLevel() >= 1;
-}
-
-/** May they book, move, assign and merge there? Dispatch Edit, and Support edit (ITFlow's own rule for changing tickets). */
-function mitDispatchCanEdit() {
-    return mitDispatchLevel() >= 2 && calendarCanScheduleTickets();
-}
-
-/** Agents who can be dispatched to: user_id => [user_id, name, color, initials]. */
-function mitDispatchTechs() {
-    global $mysqli;
-    $techs = [];
-    $result = mysqli_query($mysqli, "SELECT user_id, user_name FROM users WHERE user_type = 1" . mitServiceUserSql('users.user_id') . " AND user_status = 1 AND user_archived_at IS NULL ORDER BY user_name");
-    while ($row = mysqli_fetch_assoc($result)) {
-        if (mitAgentSupportLevel($row['user_id']) < 2) {
-            continue; // their role cannot work tickets (Support edit)
-        }
-        $techs[intval($row['user_id'])] = ['id' => intval($row['user_id']), 'name' => $row['user_name'], 'color' => mitAgentColor($row['user_id'])];
-    }
-    return $techs;
-}
-
-/**
- * The saved board settings for the signed-in agent: view (day | week | workload), hidden (tech ids), weekends, and the
- * service board(s) it shows (functions/mit_boards.php): board = all | mine | a board id - "mine" to start with for an agent on
- * a board - and board_techs = only those boards' members as agent columns.
- */
-function mitDispatchState() {
-    global $session_user_id;
-    $state = json_decode((string) mitUserPreference($session_user_id, 'dispatch.state', ''), true);
-    $state = is_array($state) ? $state : [];
-    return [
-        'view' => in_array($state['view'] ?? '', ['week', 'workload'], true) ? $state['view'] : 'day',
-        'hidden' => array_values(array_filter(array_map('intval', (array) ($state['hidden'] ?? [])))),
-        'weekends' => !empty($state['weekends']),
-        'board' => mitDispatchBoardChoice($state['board'] ?? null),
-        'board_techs' => !empty($state['board_techs']),
-    ];
 }
 
 /** A Dispatch board choice made safe: all, mine (only for an agent on a board), or a board's id; null = the default. */
@@ -147,130 +80,6 @@ function mitDispatchBoards() {
 }
 
 /**
- * The queue: open tickets with no tech ($tab 'unassigned') or with a tech and nothing booked ('unbooked'),
- * most urgent and oldest first - or every agent's left behind ('left_behind': booked on a day that has gone and still open,
- * functions/mit_left_behind.php), longest left first. $filters: client_id, priority, q. Also the count for each tab.
- */
-function mitDispatchQueue($tab, array $filters = []) {
-    global $mysqli;
-    $where = "ticket_resolved_at IS NULL AND ticket_closed_at IS NULL AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . mitServiceTicketsAnd(); // project tickets are booked from their project
-    $client_id = intval($filters['client_id'] ?? 0);
-    if ($client_id && hasClientAccess($client_id)) {
-        $where .= " AND ticket_client_id = $client_id";
-    }
-    $priority = (string) ($filters['priority'] ?? '');
-    if (in_array($priority, ['Urgent', 'High', 'Medium', 'Low'], true)) {
-        $where .= " AND ticket_priority = '$priority'";
-    }
-    $where .= mitDispatchBoardWhere($filters['board'] ?? '');
-    $q = trim((string) ($filters['q'] ?? ''));
-    if ($q !== '') {
-        $like = escapeSql(mb_substr($q, 0, 100));
-        $where .= " AND (ticket_subject LIKE '%$like%' OR client_name LIKE '%$like%' OR CONCAT(ticket_prefix, ticket_number) LIKE '%$like%' OR ticket_number = '" . intval($q) . "')";
-    }
-    $tabs = [
-        'unassigned' => "ticket_assigned_to = 0",
-        'unbooked' => "ticket_assigned_to > 0 AND ticket_schedule IS NULL",
-        'left_behind' => mitLeftBehindSql(),
-    ];
-    $tab = isset($tabs[$tab]) ? $tab : 'unassigned';
-    $counts = [];
-    foreach ($tabs as $key => $condition) {
-        $counts[$key] = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM tickets LEFT JOIN clients ON client_id = ticket_client_id WHERE $where AND $condition"))[0]);
-    }
-    $result = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_priority, ticket_onsite, ticket_client_id, ticket_created_at,
-            ticket_schedule, ticket_schedule_end, ticket_assigned_to, client_name, user_name, ticket_status_name,
-            " . (function_exists('mitBoardSql') ? mitBoardSql() : '0') . " AS mit_board_id
-        FROM tickets
-        LEFT JOIN clients ON client_id = ticket_client_id
-        LEFT JOIN users ON user_id = ticket_assigned_to
-        LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
-        WHERE $where AND {$tabs[$tab]}
-        ORDER BY " . ($tab === 'left_behind' ? 'ticket_schedule ASC, ' : '') . "FIELD(ticket_priority, 'Urgent', 'High', 'Medium', 'Low'), ticket_created_at ASC
-        LIMIT 200");
-    $tickets = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $tickets[] = [
-            'id' => intval($row['ticket_id']),
-            'reference' => ticketReference($row),
-            'subject' => $row['ticket_subject'],
-            'client' => $row['client_name'] ?: 'Internal',
-            'priority' => (string) $row['ticket_priority'],
-            'status' => (string) $row['ticket_status_name'],
-            'onsite' => intval($row['ticket_onsite']),
-            'tech' => intval($row['ticket_assigned_to']),
-            'tech_name' => (string) $row['user_name'],
-            'age' => timeAgo($row['ticket_created_at']),
-            'minutes' => mitTicketScheduleMinutes($row['ticket_schedule'], $row['ticket_schedule_end']),
-            'board' => intval($row['mit_board_id']),
-            'booked' => $row['ticket_schedule'] ? date('D M j', strtotime($row['ticket_schedule'])) : '',
-        ];
-    }
-    return ['tab' => $tab, 'counts' => $counts, 'tickets' => $tickets];
-}
-
-/**
- * The board's bookings from $from to $to (Y-m-d) for these techs: each tech's tickets (lead and helper), the calendar
- * events they organise or are invited to, their Outlook busy times and closure days (holidays), as FullCalendar items
- * with 'tech' set. Only tickets can be moved here; the rest is there to book around.
- */
-function mitDispatchItems($from, $to, array $tech_ids, $view_zone = false) {
-    $techs = mitDispatchTechs();
-    $sources = calendarSources();
-    $items = [];
-    $ticket_ids = [];
-    $calendar_ids = array_keys(calendarList());
-    $holidays = isset($sources['holidays']) ? calendarSourceItems('holidays', "$from 00:00:00", "$to 23:59:59") : [];
-    // The board's days on the viewer's own clock (functions/mit_zones.php) - $view_zone from the board's own request only
-    $zone = $view_zone && function_exists('mitViewShifted') && mitViewShifted() ? mitViewZone() : null;
-    [$q_from, $q_to] = $zone ? mitZoneRange("$from 00:00:00", "$to 23:59:59", $zone) : ["$from 00:00:00", "$to 23:59:59"];
-    foreach (array_unique(array_map('intval', $tech_ids)) as $tech_id) {
-        if (!isset($techs[$tech_id])) {
-            continue;
-        }
-        $opts = ['client_id' => 0, 'user_id' => $tech_id];
-        $found = calendarSourceItems('tickets', $q_from, $q_to, $opts);
-        if (isset($sources['outlook_busy'])) {
-            $found = array_merge($found, calendarSourceItems('outlook_busy', $q_from, $q_to, $opts));
-        }
-        // Their meetings and other events, and the days the office is closed
-        $found = array_merge($found, calendarEventItems($calendar_ids, $q_from, $q_to, $opts), $holidays);
-        foreach ($found as $item) {
-            $kind = $item['extendedProps']['kind'] ?? '';
-            $ticket_ids[] = intval($item['extendedProps']['ticket_id'] ?? 0);
-            // A helper's booking shows on their own column only
-            if ($kind === 'helper' && intval($item['extendedProps']['user_id'] ?? 0) !== $tech_id) {
-                continue;
-            }
-            $item['id'] = ($item['id'] ?? '') . ($kind === 'ticket' || $kind === 'helper' ? '' : "-t$tech_id"); // the same event on two agents' columns
-            $item['extendedProps']['tech'] = $tech_id;
-            // Dispatch View: nothing moves; a one-off calendar entry moves and goes to another agent (mitDispatchEventMove)
-            $item['editable'] = in_array($kind, ['ticket', 'event'], true) && !empty($item['editable']) && mitDispatchCanEdit();
-            $item['durationEditable'] = $item['editable'];
-            $items[] = $item;
-        }
-    }
-    // Each booking's ticket reference (the confirm's title), in one query
-    $ticket_ids = array_filter(array_unique($ticket_ids));
-    if ($ticket_ids) {
-        $references = [];
-        $result = mysqli_query($GLOBALS['mysqli'], "SELECT ticket_id, ticket_prefix, ticket_number FROM tickets WHERE ticket_id IN (" . implode(',', $ticket_ids) . ")");
-        while ($row = mysqli_fetch_assoc($result)) {
-            $references[intval($row['ticket_id'])] = ticketReference($row);
-        }
-        foreach ($items as &$item) {
-            $item['extendedProps']['reference'] = $references[intval($item['extendedProps']['ticket_id'] ?? 0)] ?? '';
-        }
-        unset($item);
-    }
-    return $zone ? mitZoneItems($items, $zone) : $items;
-}
-
-/**
- * Assign (when it is someone new) and book a ticket. $minutes 15 - 1440; $tell_contact false keeps the contact
- * and watchers out of it (the tech is always told). Returns [ok, message, conflicts].
- */
-/**
  * Would this booking be refused? Checked before the Schedule dialog's details are saved (agent/mit_dispatch_ajax.php book), so a
  * refused booking leaves the ticket as it was - client included ($client_id: the client the dialog moves it to, 0 = its own).
  * Returns '' or the reason.
@@ -287,147 +96,14 @@ function mitDispatchBookProblem($ticket_id, $tech_id, $start, $client_id = 0) {
         return 'Pick the date and time.';
     }
     $tech_id = intval($tech_id);
-    if (!isset(mitDispatchTechs()[$tech_id])) {
+    if (!isset(dispatchAgents()[$tech_id])) {
         return 'Pick an agent.';
     }
     $client_id = intval($client_id) ?: intval($row['ticket_client_id']);
     if ($client_id && !mitAgentCanSeeClient($tech_id, $client_id)) {
-        return mitDispatchTechs()[$tech_id]['name'] . ' does not have access to this client.';
+        return dispatchAgents()[$tech_id]['name'] . ' does not have access to this client.';
     }
     return '';
-}
-
-/**
- * The Schedule dialog's "Schedule it" (agent/mit_dispatch_ajax.php book): checks the booking first (a refused one changes nothing - client,
- * contact and replies included), then saves the dialog's details (so the booking emails go to the right contact), the booking's email
- * ticks, and books. Returns [ok, message, conflicts].
- */
-function mitDispatchBookFromDialog(array $post) {
-    $ticket_id = intval($post['ticket_id'] ?? 0);
-    $why = mitDispatchBookProblem($ticket_id, $post['tech_id'] ?? 0, (string) ($post['start'] ?? ''), intval($post['detail_client_id'] ?? 0));
-    if ($why !== '') {
-        return [false, $why, []];
-    }
-    [$ok, $details_message] = mitDispatchSaveDetails($ticket_id, $post);
-    if (!$ok) {
-        return [false, $details_message, []];
-    }
-    mitScheduleNotifyFromPost($post); // who is emailed for this booking
-    [$ok, $message, $conflicts] = mitDispatchBook($ticket_id, $post['tech_id'] ?? 0, (string) ($post['start'] ?? ''),
-        $post['minutes'] ?? CALENDAR_TICKET_MINUTES, !empty($post['onsite']), !empty($post['contact']));
-    return [$ok, $message . ($ok && $details_message !== '' ? ". $details_message" : ''), $conflicts];
-}
-
-function mitDispatchBook($ticket_id, $tech_id, $start, $minutes, $onsite, $tell_contact = true) {
-    global $mit_schedule_skip_contact;
-    $row = ticketRow($ticket_id);
-    if (!$row || !empty($row['ticket_archived_at'])) {
-        return [false, 'That ticket no longer exists.', []];
-    }
-    if (intval($row['ticket_client_id']) && !hasClientAccess($row['ticket_client_id'])) {
-        return [false, 'You do not have access to that client.', []];
-    }
-    if (!ticketIsOpen($row)) {
-        return [false, 'Ticket ' . ticketReference($row) . ' is resolved or closed - reopen it to schedule work.', []];
-    }
-    $start = ticketScheduleValue($start);
-    if ($start === '') {
-        return [false, 'Pick the date and time.', []];
-    }
-    $tech_id = intval($tech_id);
-    if (!isset(mitDispatchTechs()[$tech_id])) {
-        return [false, 'Pick an agent.', []];
-    }
-    if (intval($row['ticket_client_id']) && !mitAgentCanSeeClient($tech_id, $row['ticket_client_id'])) {
-        return [false, mitDispatchTechs()[$tech_id]['name'] . ' does not have access to this client.', []];
-    }
-    if ($tech_id !== intval($row['ticket_assigned_to'])) {
-        [$assigned_ok, $assigned_message] = ticketChangeAssignee($row['ticket_id'], $tech_id);
-        if (!$assigned_ok) {
-            return [false, strip_tags($assigned_message), []];
-        }
-        mitScheduleLeadChanging($row, $tech_id); // the old lead's invite is cancelled, once the new one has it
-        $row = ticketRow($ticket_id);
-    }
-    $minutes = max(15, min(1440, intval($minutes)));
-    $end = date('Y-m-d H:i:s', strtotime($start) + $minutes * 60);
-    $mit_schedule_skip_contact = !$tell_contact;
-    $result = ticketSetSchedule($row, $start, $onsite ? 1 : 0, $end);
-    $mit_schedule_skip_contact = false;
-    $tech = mitDispatchTechs()[$tech_id]['name'];
-    $when = function_exists('mitViewShifted') && mitViewShifted() ? mitZoneWhen($start) : $result['when_text']; // on the viewer's own clock
-    return [true, ticketReference($row) . " scheduled with $tech for " . $when, $result['conflicts']];
-}
-
-/*
- * ---------- the ticket's details in the Schedule dialog ----------
- */
-
-/**
- * The contact's other open tickets, for the Schedule dialog - so a duplicate can be seen and merged before a visit is
- * scheduled: [{id, reference, subject, status, agent, scheduled, url}], newest first. [] for no contact or one out of reach.
- */
-function mitDispatchContactTickets($contact_id, $except_ticket_id) {
-    global $mysqli;
-    $contact_id = intval($contact_id);
-    $client_id = intval(getFieldById('contacts', $contact_id, 'contact_client_id'));
-    if (!$contact_id || !$client_id || !hasClientAccess($client_id)) {
-        return [];
-    }
-    $result = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_client_id, ticket_schedule, ticket_schedule_end,
-            ticket_status_name, user_name
-        FROM tickets
-        LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
-        LEFT JOIN users ON user_id = ticket_assigned_to
-        WHERE ticket_contact_id = $contact_id AND ticket_client_id = $client_id AND tickets.ticket_id <> " . intval($except_ticket_id) . "
-        AND ticket_resolved_at IS NULL AND ticket_closed_at IS NULL AND ticket_archived_at IS NULL" . mitBoardVisibleSql('tickets') . "
-        ORDER BY ticket_created_at DESC LIMIT 15");
-    $tickets = [];
-    while ($row = mysqli_fetch_assoc($result)) {
-        $tickets[] = ['id' => intval($row['ticket_id']), 'reference' => ticketReference($row), 'subject' => $row['ticket_subject'],
-            'status' => (string) $row['ticket_status_name'], 'agent' => (string) ($row['user_name'] ?? ''),
-            'scheduled' => $row['ticket_schedule'] ? mitScheduleShortText($row['ticket_schedule'], $row['ticket_schedule_end']) : '',
-            'url' => ticketUrl($row['ticket_id'], $row['ticket_client_id'])];
-    }
-    return $tickets;
-}
-
-/**
- * Merge one ticket into another from the Schedule dialog, with ITFlow's own ticketMergeInto() (agent/post/ticket.php -
- * notes on both, the merged one closed, its replies moved when asked): the same checks as ITFlow's Merge form (both
- * open and reachable, the same client). A merged ticket that was scheduled has that cancelled first, so its invites are
- * withdrawn. Returns [ok, message].
- */
-function mitDispatchMerge($child_id, $parent_id, $comment, $move_replies) {
-    global $mysqli;
-    $child = ticketRow($child_id);
-    $parent = ticketRow($parent_id);
-    foreach ([$child, $parent] as $row) {
-        if (!$row || !empty($row['ticket_closed_at']) || (intval($row['ticket_client_id']) && !hasClientAccess($row['ticket_client_id']))) {
-            return [false, 'Both tickets have to be open and yours to reach.'];
-        }
-    }
-    if (intval($child['ticket_id']) === intval($parent['ticket_id'])) {
-        return [false, "A ticket can't be merged into itself."];
-    }
-    if (intval($child['ticket_client_id']) !== intval($parent['ticket_client_id'])) {
-        return [false, 'A ticket merges into one of the same client\'s.'];
-    }
-    $comment = trim((string) $comment);
-    if ($comment === '') {
-        return [false, 'Give a reason - it is noted on both tickets.'];
-    }
-    if (!function_exists('ticketMergeInto')) {
-        // ITFlow keeps it in its ticket request handler; none of its handlers answer this request's fields
-        defined('FROM_POST_HANDLER') || define('FROM_POST_HANDLER', true);
-        require_once dirname(__DIR__) . '/agent/post/ticket.php';
-    }
-    if (!empty($child['ticket_schedule'])) {
-        ticketCancelSchedule($child);
-        $child = ticketRow($child['ticket_id']);
-    }
-    ticketMergeInto($child, $parent, escapeSql(mb_substr($comment, 0, 500)), (bool) $move_replies);
-    return [true, ticketReference($child) . ' merged into ' . ticketReference($parent) . ' and closed'];
 }
 
 /** A client's contacts for the dialog's Contact list: [{id, name}], primary first. [] for no client or one out of reach. */
@@ -444,6 +120,21 @@ function mitDispatchContacts($client_id) {
         $contacts[] = ['id' => intval($row['contact_id']), 'name' => $row['contact_name'] . ($row['contact_title'] ? ' - ' . $row['contact_title'] : '')];
     }
     return $contacts;
+}
+
+
+/** The email ticks kept for a booked ticket ({tech, contact, ..., extra: []}), or null - not booked, or nothing kept (functions/mit_notifications.php). */
+function mitDispatchKeptNotify(array $row) {
+    global $mysqli;
+    if (empty($row['ticket_schedule']) || !function_exists('mitScheduleKeptReady') || !mitScheduleKeptReady()) {
+        return null;
+    }
+    $kept = json_decode((string) (mysqli_fetch_row(mysqli_query($mysqli, "SELECT choice FROM mit_ticket_schedule_notify WHERE ticket_id = " . intval($row['ticket_id'])))[0] ?? ''), true);
+    if (!is_array($kept)) {
+        return null;
+    }
+    $kept['extra'] = array_values(array_filter((array) ($kept['extra'] ?? []), 'is_string'));
+    return $kept;
 }
 
 /**
@@ -489,6 +180,8 @@ function mitDispatchDetails($ticket_id) {
         'asset_id' => intval($row['ticket_asset_id']),
         'other_asset_ids' => $other_assets = mitDispatchTicketOtherAssets($row['ticket_id']),
         'assets' => mitDispatchAssets($row['ticket_client_id'], $row['ticket_contact_id'], array_merge([intval($row['ticket_asset_id'])], $other_assets)),
+        // A booked ticket's email ticks as they were chosen (mit_ticket_schedule_notify) - a move starts from them, not the visit's defaults
+        'notify_kept' => mitDispatchKeptNotify($row),
     ];
 }
 
@@ -610,8 +303,7 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
         logTicketHistory($ticket_id, "$session_name moved the ticket from " . escapeSql($old_name) . " to " . escapeSql($client_name));
         logAudit("Ticket", "Change", "$session_name moved ticket $reference from " . escapeSql($old_name) . " to " . escapeSql($client_name), $client_id, $ticket_id);
         $changed[] = "client $client_name";
-        $row['ticket_contact_id'] = 0;
-        $row['contact_name'] = '';
+        $row['ticket_contact_id'] = 0; // contact_name kept, so the contact's history line names who it was
     } else {
         $client_id = $old_client_id;
     }
@@ -709,15 +401,146 @@ function mitDispatchSaveDetails($ticket_id, array $post) {
     return [true, $changed ? 'Updated ' . implode(', ', $changed) : ''];
 }
 
-/** Take a ticket's booking off (dragged back to the queue). Returns [ok, message]. */
-function mitDispatchUnbook($ticket_id) {
-    $row = ticketRow($ticket_id);
-    if (!$row || (intval($row['ticket_client_id']) && !hasClientAccess($row['ticket_client_id']))) {
-        return [false, 'That ticket no longer exists.'];
+/** The ?board= of a Dispatch request (all | mine | a board id), made safe. */
+function mitDispatchBoardRequest() {
+    return mitDispatchBoardChoice(isset($_GET['board']) || isset($_POST['board']) ? (string) ($_GET['board'] ?? $_POST['board']) : null);
+}
+
+/** " AND <the ticket is on the board(s) asked for>" - one line each in ITFlow's dispatchQueue, dispatchWorkload and dispatchWeekStats. */
+function mitDispatchBoardSql($alias = 'tickets') {
+    return mitDispatchBoardWhere(mitDispatchBoardRequest(), $alias);
+}
+
+/** What this agent last picked in the board picker (mit_user_preferences dispatch.board): board, board_techs. */
+function mitDispatchBoardState() {
+    global $session_user_id;
+    $state = json_decode((string) mitUserPreference($session_user_id, 'dispatch.board', ''), true);
+    $state = is_array($state) ? $state : [];
+    return ['board' => mitDispatchBoardChoice($state['board'] ?? null), 'board_techs' => !empty($state['board_techs'])];
+}
+
+/** Keep the board picker's choice. */
+function mitDispatchBoardStateSave(array $post) {
+    global $session_user_id;
+    mitSetUserPreference($session_user_id, 'dispatch.board', json_encode(['board' => mitDispatchBoardChoice((string) ($post['board'] ?? '')),
+        'board_techs' => !empty($post['board_techs'])]));
+}
+
+/**
+ * agent/ajax.php dispatch_book, before ITFlow's dispatchBook (one line): the booking checked first, then the Schedule window's ticket details
+ * saved and its email ticks taken. Returns '' to go on, else why not (nothing was changed).
+ */
+function mitDispatchBeforeBook(array $post) {
+    $ticket_id = intval($post['ticket_id'] ?? 0);
+    $why = mitDispatchBookProblem($ticket_id, $post['agent_id'] ?? 0, str_replace('T', ' ', (string) ($post['start'] ?? '')), intval($post['detail_client_id'] ?? 0));
+    if ($why !== '') {
+        return $why;
     }
-    if (empty($row['ticket_schedule'])) {
-        return [false, ticketReference($row) . ' has no scheduled time.'];
+    [$ok, $message] = mitDispatchSaveDetails($ticket_id, $post);
+    if (!$ok) {
+        return $message;
     }
-    ticketCancelSchedule($row);
-    return [true, ticketReference($row) . ' taken off the schedule - it is back in the queue'];
+    $GLOBALS['mit_dispatch_details_message'] = $message;
+    if (function_exists('mitScheduleNotifyFromPost')) {
+        mitScheduleNotifyFromPost($post); // who is emailed for this booking
+    }
+    return '';
+}
+
+
+/** What booking on Dispatch takes, for ITFlow's View only badge and refusal (agent/dispatch.php, agent/ajax.php - one line each). */
+function mitDispatchEditNeeds() {
+    return 'Booking and moving tickets takes Dispatch at Edit and Support at Modify in your role (Admin > Roles)';
+}
+
+/** ITFlow's dispatchItems (one line): each shown agent's Outlook busy times too. */
+function mitDispatchOutlookItems($from, $to, array $agent_ids) {
+    if (!function_exists('mitOutlookBusyItems') || !isset(calendarSources()['outlook_busy'])) {
+        return [];
+    }
+    $items = [];
+    foreach ($agent_ids as $agent_id) {
+        foreach (mitOutlookBusyItems($from, $to, ['user_id' => intval($agent_id), 'client_id' => 0]) as $item) {
+            $item['resourceId'] = (string) intval($agent_id);
+            $item['extendedProps']['agent'] = intval($agent_id);
+            $item['editable'] = false;
+            $items[] = $item;
+        }
+    }
+    return $items;
+}
+
+/**
+ * ITFlow's dispatchBusinessHours (one line): an agent away from the company's time zone (ITFlow's timezoneShifted) sees the working hours
+ * moved onto their own clock - as two pieces when they run past midnight there.
+ */
+function mitDispatchViewerHours($hours) {
+    if (!function_exists('timezoneShifted') || !timezoneShifted() || !is_array($hours) || !isset($hours['startTime'], $hours['endTime'], $hours['daysOfWeek'])) {
+        return $hours;
+    }
+    $company = new DateTimeZone(date_default_timezone_get());
+    $viewer = new DateTimeZone(timezoneView());
+    $now = new DateTime('now');
+    $offset = intdiv($viewer->getOffset($now) - $company->getOffset($now), 60);
+    if (!$offset) {
+        return $hours;
+    }
+    $minutes = function ($time) {
+        return intval(substr($time, 0, 2)) * 60 + intval(substr($time, 3, 2));
+    };
+    $start = $minutes($hours['startTime']) + $offset;
+    $end = $minutes($hours['endTime']) + $offset;
+    $day_shift = intdiv($start - ((($start % 1440) + 1440) % 1440), 1440);
+    $start -= $day_shift * 1440;
+    $end -= $day_shift * 1440;
+    $days = array_values(array_map(function ($day) use ($day_shift) {
+        return ((intval($day) + $day_shift) % 7 + 7) % 7;
+    }, (array) $hours['daysOfWeek']));
+    $clock = function ($m) {
+        return sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
+    };
+    if ($end <= 1440) {
+        return [['daysOfWeek' => $days, 'startTime' => $clock($start), 'endTime' => $clock($end)]];
+    }
+    return [
+        ['daysOfWeek' => $days, 'startTime' => $clock($start), 'endTime' => '24:00'],
+        ['daysOfWeek' => array_map(function ($day) {
+            return ($day + 1) % 7;
+        }, $days), 'startTime' => '00:00', 'endTime' => $clock($end - 1440)],
+    ];
+}
+
+/** Queue rows (ITFlow's dispatchQueue, one line): each ticket's board, for the tag on its card. */
+function mitDispatchQueueBoards(array $tickets) {
+    if (!function_exists('mitBoardsOfTickets') || !$tickets) {
+        return $tickets;
+    }
+    $boards = mitBoardsOfTickets(array_column($tickets, 'id'));
+    foreach ($tickets as &$ticket) {
+        $board = $boards[intval($ticket['id'])] ?? null;
+        if ($board) {
+            $ticket['mit_board'] = ['name' => $board['board_name'], 'color' => $board['board_color']];
+        }
+    }
+    unset($ticket);
+    return $tickets;
+}
+
+/** The side menu's count beside Dispatch: unassigned open service tickets on the agent's own boards (or all, when on none). Cached a minute. */
+function mitDispatchNavCount() {
+    global $mysqli, $session_user_id;
+    if (!function_exists('mitNavCachedCount') || !dispatchCan()) {
+        return 0;
+    }
+    return mitNavCachedCount('dispatch', function () use ($mysqli, $session_user_id) {
+        $board = function_exists('mitBoardWhere') ? mitBoardWhere(mitDispatchBoardChoice(null), $session_user_id, 'tickets') : '';
+        $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM tickets WHERE ticket_assigned_to = 0 AND " . TICKET_OPEN_SQL . "
+            AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . (function_exists('projectTicketsServiceSql') ? projectTicketsServiceSql('tickets.ticket_project_id') : '') . $board));
+        return intval($row[0] ?? 0);
+    }, basename($_SERVER['PHP_SELF'] ?? '') === 'dispatch.php');
+}
+
+/** In ITFlow's Schedule window (agent/dispatch.php, one line): where our script puts the ticket's details and the booking-email ticks. */
+function mitDispatchScheduleFields() {
+    return '<div class="mb-3" data-mit-dispatch-fields></div>';
 }

@@ -2,13 +2,13 @@
 /*
  * The email parser end to end through the test install's Microsoft Graph stand-in (127.0.0.1:8765, /srv/mockms/state.json): a client's
  * email Cc'd to a routing mailbox (in another case) lands on that mailbox's board (cron/ticket_email_parser.php -> mitBoardRoute with
- * mitBoardMessageAddresses), the board's members are told; the client's reply is copied to the helping agent (mitTicketTechsCopyReply);
- * an agent's own email reply is filed as their internal note without reopening anything or mailing "ticket updated" (our parser
- * branch). Needs root (runs the parser as www-data); the stand-in is shared, so its messages are taken out again at the end.
+ * mitBoardMessageAddresses), the board's members are told; an agent's own email reply is ITFlow's internal note by them (the control),
+ * but an agent whose role can't work the client's tickets (mitAgentCanWorkTicket - our line in the parser) mails in as a stranger.
+ * (Copies of client replies to helpers are ITFlow's own since 26.12 - config_notify_helper_replies.) Needs root (runs the parser as www-data); the stand-in is shared, so its messages are taken out again at the end.
  */
 require __DIR__ . '/bootstrap.php';
 $mock = '/srv/mockms/state.json';
-if (!is_writable($mock) || !mitBoardsReady() || !function_exists('mitM365GraphMailboxReady') || !mitM365GraphMailboxReady()) {
+if (!is_writable($mock) || !mitBoardsReady() || !function_exists('mailGraphToken') || mailGraphToken('Mail.ReadWrite') === null) {
     echo "  skip - no Graph stand-in / boards / Graph mailbox here\n";
     exit(0);
 }
@@ -62,15 +62,9 @@ try {
     }
     $number = scenarioValue("SELECT ticket_number FROM tickets WHERE ticket_id = $ticket_id");
 
-    // Lead the admin, the technician helping; the client replies, then the technician answers by email
+    // Lead the admin; the technician (who can work the client's tickets) answers by email - ITFlow files it as their internal note
+    // (the control for the next step)
     mysqli_query($mysqli, "UPDATE tickets SET ticket_assigned_to = 1, ticket_status = 2 WHERE ticket_id = $ticket_id");
-    mysqli_query($mysqli, "INSERT INTO mit_ticket_techs SET ticket_id = $ticket_id, user_id = 2, follows_lead = 1, added_by = 1");
-    $inject([
-        "M-ZZ-$stamp-2" => $mime("Zed Contact <$contact>", 'service@mountaineerit.test', '', "RE: [TCK-$number] $subject", 'Still broken'),
-    ]);
-    $parse();
-    $copy = intval(scenarioValue("SELECT COUNT(*) FROM email_queue WHERE email_recipient = '$tech' AND email_subject LIKE '%Ticket updated - [TCK-$number]%'"));
-    scenarioCheck('the client\'s reply is copied to the helper', $copy, 1);
     $inject([
         "M-ZZ-$stamp-3" => $mime("Restricted Tech <$tech>", 'service@mountaineerit.test', '', "RE: Internal note for you - [TCK-$number] - $subject", 'On it this afternoon'),
     ]);

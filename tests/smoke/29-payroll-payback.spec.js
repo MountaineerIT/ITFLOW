@@ -8,7 +8,7 @@
 // rules (those need the person's signature first).
 
 const { test, expect } = require('@playwright/test');
-const { smokeName, watch, visit, openModal, fillForm, submit, flash, action } = require('./helpers');
+const { featureOn, smokeName, watch, visit, openModal, fillForm, submit, flash, action } = require('./helpers');
 
 test.describe.configure({ mode: 'serial' });
 
@@ -20,7 +20,8 @@ test('one mileage rate: Admin > Timesheets sets ITFlow\'s too, and the labels us
     const errors = watch(page);
     await visit(page, 'admin/mit_timesheets.php', errors);
     const rate = page.locator('[data-mit-mileage-rate]');
-    test.skip(await rate.count() === 0, 'Reimbursements not here (Timesheets off?)');
+    test.skip(!featureOn('mitReimbOn'), 'Reimbursements are off');
+    await expect(rate, 'the mileage rate on Admin > Timesheets').toHaveCount(1);
     const value = (await rate.inputValue()) || '0.7';
     await rate.fill(value);
     const account = page.locator('select[name="reimb_account"]');
@@ -41,6 +42,22 @@ test('one mileage rate: Admin > Timesheets sets ITFlow\'s too, and the labels us
     const itflow = page.locator('[name="config_mileage_rate"]');
     if (await itflow.count()) {
         expect(Number(await itflow.inputValue()), 'ITFlow\'s Paid back a mile').toBeCloseTo(Number(value), 4);
+    }
+});
+
+// No mileage rate: ITFlow's Log a trip hides "In their own vehicle", and our note in its window says why (mitReimbTripRateNote - one line in
+// agent/modals/trip/trip_form.php). Written after the hook proof (Nov 23) found nothing opened the window with the rate missing.
+test('no mileage rate: the trip window says why there is no own-vehicle switch', async ({ page }) => {
+    test.skip(!featureOn('mitReimbOn'), 'Reimbursements are off');
+    const db = require('./mitdb');
+    const rate = db.val('SELECT config_mileage_rate FROM settings WHERE company_id = 1');
+    db.exec('UPDATE settings SET config_mileage_rate = 0 WHERE company_id = 1');
+    try {
+        await visit(page, 'agent/trips.php');
+        const modal = await openModal(page, 'modals/trip/trip_add.php', 'lg');
+        await expect(modal.locator('[data-mit-trip-rate-missing]'), 'the note in Log a trip').toHaveCount(1);
+    } finally {
+        db.exec(`UPDATE settings SET config_mileage_rate = ${rate === null ? 0 : Number(rate)} WHERE company_id = 1`);
     }
 });
 

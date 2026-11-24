@@ -20,6 +20,7 @@ require_once "includes/cron_lock.php";
 require_once "../config.php";
 require_once "../includes/inc_set_timezone.php";
 require_once "../functions.php";
+require_once "../includes/load_global_settings.php"; // ITFlow's settings - kbOn() (Knowledge Base articles in the library) reads them
 
 $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT config_enable_cron FROM settings WHERE company_id = 1"));
 if (intval($row['config_enable_cron']) === 0) {

@@ -63,6 +63,18 @@ test('contracts: unlimited support hours', async ({ page }) => {
     await expect(card).toContainText('none goes to Unbilled Time');
     await expect(card, 'no running-low warning or "Of 99999 h"').not.toContainText(/99,?999|Running low|All used/);
 
+    // The client portal says the same (mitContractUnlimitedPortalFigures - client/contract.php): through ITFlow's "View portal as" the client's contact
+    const contact = db.val(`SELECT contact_id FROM contacts WHERE contact_client_id = (SELECT contract_client_id FROM contracts WHERE contract_id = ${made.contractId})
+        AND contact_archived_at IS NULL ORDER BY contact_primary DESC, contact_id LIMIT 1`);
+    if (contact) {
+        const token = await page.evaluate(() => (document.querySelector('[name=csrf_token]') || {}).value || '');
+        await page.goto(`/agent/post.php?portal_view_as=${contact}&csrf_token=${encodeURIComponent(token)}`);
+        await page.goto(`/client/contract.php?id=${made.contractId}`);
+        await expect(page.locator('[data-mit-contract-unlimited]'), 'the portal reads Unlimited too').toContainText('Unlimited');
+        await expect(page.locator('body'), 'no "99,999 h left" in the portal').not.toContainText(/99,?999/);
+        await page.goto('/agent/dashboard.php');
+    }
+
     // Edit opens with it on; off with a number saves the number
     modal = await openModal(page, `modals/contract/contract_edit.php?id=${made.contractId}`, 'lg');
     await cover(modal);

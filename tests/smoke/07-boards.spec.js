@@ -104,10 +104,10 @@ test('boards: a new ticket is routed, escalated, and shows on its board', async 
     await expect(page.locator(`a[href*="ticket_id=${made.ticketId}"]`), 'not on the board it left').toHaveCount(0);
 
     // Dispatch's queue follows the board picked (escalating unassigned it, so it waits under No agent)
-    const queue = await page.goto('agent/mit_dispatch.php');
+    const queue = await page.goto('agent/dispatch.php');
     if (queue.status() < 400 && !page.url().includes('dashboard')) {
-        const on = await getJson(page, `/agent/mit_dispatch_ajax.php?queue=unassigned&board=${made.boards[1]}`);
-        const off = await getJson(page, `/agent/mit_dispatch_ajax.php?queue=unassigned&board=${made.boards[0]}`);
+        const on = await getJson(page, `/agent/ajax.php?dispatch_queue=unassigned&board=${made.boards[1]}`);
+        const off = await getJson(page, `/agent/ajax.php?dispatch_queue=unassigned&board=${made.boards[0]}`);
         const ids = (json) => (json.tickets || json).map((t) => Number(t.id));
         expect(ids(on), 'in the Dispatch queue of its board').toContain(made.ticketId);
         expect(ids(off), 'not in the queue of the board it left').not.toContain(made.ticketId);
@@ -155,15 +155,29 @@ test('boards: round-robin hands a ticket moved in unassigned to a member', async
 test('boards: dashboard board filter, and the Board Performance report', async ({ page }) => {
     test.skip(!made.ticketId, 'no ticket');
     const errors = watch(page);
+    // An unassigned ticket on the board, so Needs attention has a ticket link for the picker to follow
+    const number = Number(db.val('SELECT config_ticket_next_number FROM settings WHERE company_id = 1'));
+    db.exec('UPDATE settings SET config_ticket_next_number = config_ticket_next_number + 1 WHERE company_id = 1');
+    const unassigned = db.insert(`INSERT INTO tickets SET ticket_prefix = 'TCK-', ticket_number = ${number}, ticket_source = 'Agent', ticket_subject = ${db.q(smokeName('board unassigned'))},
+        ticket_details = 'x', ticket_priority = 'Low', ticket_status = 1, ticket_created_by = 1, ticket_assigned_to = 0, ticket_url_key = 'k${Date.now()}', ticket_client_id = ${made.clientId}`);
+    db.exec(`INSERT INTO mit_ticket_boards SET ticket_id = ${unassigned}, board_id = ${made.boards[1]}`);
+    try {
     await visit(page, `agent/dashboard.php?board=${made.boards[1]}`, errors);
     await expect(page.locator('#mitDashBoard'), 'the dashboard board picker').toHaveValue(String(made.boards[1]));
     // (Your boards links each go to their own board - only ITFlow's Needs attention ones follow the picker)
-    for (const href of await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]:not([data-mit-dash-boards] a)').evaluateAll((links) => links.map((a) => a.getAttribute('href')))) {
+    const attention = await page.locator('.itflow-dash-rail a[href^="/agent/tickets.php"]:not([data-mit-dash-boards] a)').evaluateAll((links) => links.map((a) => a.getAttribute('href')));
+    expect(attention.length, 'Needs attention has ticket links to check (the board has an unassigned ticket)').toBeGreaterThan(0);
+    for (const href of attention) {
         expect(href, 'Needs attention opens Tickets on the same board').toContain(`board=${made.boards[1]}`);
     }
     await visit(page, 'agent/dashboard.php', errors);
     await expect(page.locator('#mitDashBoard'), 'remembered').toHaveValue(String(made.boards[1]));
     await visit(page, 'agent/dashboard.php?board=all', errors);
+    } finally {
+        db.exec(`DELETE FROM mit_ticket_boards WHERE ticket_id = ${unassigned}; DELETE FROM mit_board_moves WHERE ticket_id = ${unassigned}; DELETE FROM ticket_history WHERE ticket_history_ticket_id = ${unassigned}; DELETE FROM tickets WHERE ticket_id = ${unassigned}`);
+        // The dashboard remembers the board picked - never leave it on this one, even when a check above failed (scenario-board-scope reads the admin's dashboard)
+        db.exec("DELETE FROM mit_user_preferences WHERE user_id = 1 AND preference = 'dashboard.board'");
+    }
 
     await visit(page, `agent/reports/mit_boards.php?period=last_30&client_id=${made.clientId}`, errors);
     test.skip(await page.locator('text=need the database update').count() > 0, 'report needs M027');

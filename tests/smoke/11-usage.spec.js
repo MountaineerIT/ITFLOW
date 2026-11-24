@@ -54,7 +54,8 @@ test('set up: client, tagged contacts, API key, recurring invoice with usage lin
     test.skip(today.getDate() > 28, 'the snapshot day can only be 1-28 - run again tomorrow');
     const errors = watch(page);
     await visit(page, 'admin/settings_invoice.php', errors);
-    test.skip(await page.locator('[data-mit-usage-settings]').count() === 0, 'needs database update M032');
+    // The card is on every install of this build (M032 is long run) - its absence is a lost hook, not a reason to skip
+    await expect(page.locator('[data-mit-usage-settings]'), 'the Usage billing card on Admin > Settings > Invoices').toHaveCount(1);
     made.snapshotDay = await page.locator('input[name=mit_usage_snapshot_day]').inputValue();
     await page.fill('input[name=mit_usage_snapshot_day]', String(today.getDate()));
     await submit(page.locator('form:has(button[name=mit_edit_usage_settings])'), 'mit_edit_usage_settings');
@@ -129,6 +130,7 @@ test('the API reports a count, a line is counted by it in ITFlow\'s Quantity fro
     await expect(modal.locator('select[name=seat_source] option[value=usage]'), 'Counted by an integration').toBeEnabled();
     await expect(modal.locator(`[data-seat-for=contacts] option[value="-${made.tagId}"]`), 'Users: "Not tagged" - the one contact without the tag').toContainText(`Not tagged ${made.tagName} (1)`);
     await expect(modal.locator('[data-seat-for=contacts] option[value=untagged]'), 'Users: "Not tagged at all"').toContainText('Not tagged at all (1)');
+    await expect(modal.locator('[data-seat-for=assets] option[value=untagged]'), 'Devices: "Not tagged at all" too').toContainText('Not tagged at all');
     await modal.locator('select[name=seat_source]').selectOption('usage');
     await expect(modal.locator('[data-mit-usage-seat] select[name=seat_metric] option', { hasText: made.metric }), 'the count, with its number').toContainText('7 now');
     await modal.locator('[data-mit-usage-seat] select[name=seat_metric]').selectOption(made.metric);

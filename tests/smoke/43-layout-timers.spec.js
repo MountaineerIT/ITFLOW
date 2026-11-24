@@ -1,10 +1,8 @@
-// The ticket page layout (functions/mit_ticket_layout.php + agent/js/mit_ticket_layout.js) and the ticket timers in the top bar
-// (includes/mit_timers_nav.php + js/mit_timers.js), checked as a person uses them and in what is stored:
+// The ticket page layout (functions/mit_ticket_layout.php + agent/js/mit_ticket_layout.js), checked as a person uses it and in what is
+// stored (the top bar's ticket timers are ITFlow's own since 26.12 - #itflowTimers):
 //  - Customize layout from the ticket's ⋮ menu: three columns, a box half width and one starting collapsed, "Save for me" -> the
 //    tech's mit_user_preferences ticket.layout, put back on the next visit; "Use company default" forgets it; an admin's company
 //    default applies to the technician too; the technician can't save one.
-//  - Timers: ITFlow's own localStorage keys from two tickets (one running, one paused) and one the agent can't see are listed with
-//    the tickets' references, paused / resumed / discarded through those same keys.
 // A client and two tickets of its own; layouts and settings put back at the end.
 
 const { test, expect } = require('@playwright/test');
@@ -127,54 +125,6 @@ test('layout: a company default reaches the technician, who cannot set one', asy
     } finally {
         await context.close();
     }
-});
-
-test('timers: the top bar lists this browser\'s ticket timers and works their keys', async ({ page }) => {
-    const errors = watch(page);
-    await visit(page, 'agent/dashboard.php', errors);
-    const [a, b] = made.tickets.map(String);
-    await page.evaluate(([a, b]) => {
-        for (const k of Object.keys(localStorage)) {
-            if (/^\d+-(startTime|pausedTime)$|^ticket-timer-running-/.test(k)) {
-                localStorage.removeItem(k);
-            }
-        }
-        localStorage.setItem(`${a}-startTime`, String(Date.now() - 95 * 1000)); // running 1:35
-        localStorage.setItem(`${b}-pausedTime`, '300'); // paused at 5:00
-        localStorage.setItem('99999999-pausedTime', '60'); // a ticket that is gone
-    }, [a, b]);
-    await visit(page, 'agent/dashboard.php', errors);
-    const nav = page.locator('#mitTimers');
-    await expect(nav, 'shown once there are timers').toBeVisible();
-    await expect(nav.locator('[data-timers-badge]')).toHaveText('3');
-    await expect(nav, 'running look').toHaveClass(/is-running/);
-    await nav.locator('.nav-link').click();
-    const row = (id) => nav.locator(`[data-timer="${id}"]`);
-    await expect(row(a).locator('a'), 'named from the ticket').toContainText(made.refs[0]);
-    await expect(row(a).locator('a')).toHaveAttribute('href', `/agent/ticket.php?client_id=${made.clientId}&ticket_id=${a}`);
-    await expect(row(b).locator('[data-timer-time]')).toHaveText('0:05:00');
-    await expect(row('99999999')).toContainText('Deleted, or not one you can see');
-    expect(await nav.locator('[data-timer]').evaluateAll((r) => r.map((x) => x.dataset.timer)), 'running first, then most time').toEqual([a, b, '99999999']);
-
-    await row(a).locator('button[title=Pause]').click();
-    const keys = () => page.evaluate(([a, b]) => ({ aStart: localStorage.getItem(`${a}-startTime`), aPaused: localStorage.getItem(`${a}-pausedTime`), bStart: localStorage.getItem(`${b}-startTime`), bPaused: localStorage.getItem(`${b}-pausedTime`), gone: localStorage.getItem('99999999-pausedTime') }), [a, b]);
-    let k = await keys();
-    expect(k.aStart, 'paused: not counting').toBeNull();
-    expect(Number(k.aPaused), 'paused with its time').toBeGreaterThanOrEqual(95);
-    await row(b).locator('button[title=Resume]').click();
-    k = await keys();
-    expect(Number(k.bStart), 'resumed: counting from now').toBeGreaterThan(Date.now() - 10000);
-    expect(k.bPaused, 'with its 5 minutes kept').toBe('300');
-    page.once('dialog', (d) => d.accept());
-    await row('99999999').locator('button[title="Discard this timer"]').click();
-    expect((await keys()).gone, 'discarded').toBeNull();
-
-    // On the ticket page ITFlow's own timer shows the time the list kept
-    await visit(page, ticketPage(1), errors);
-    const shown = Number(await page.locator('#minutes').inputValue());
-    expect(shown, 'the ticket page carries on from 5 minutes').toBeGreaterThanOrEqual(5);
-    await page.evaluate(([a, b]) => [a, b].forEach((id) => ['startTime', 'pausedTime'].forEach((s) => localStorage.removeItem(`${id}-${s}`))), [a, b]);
-    await expectClean(page, errors);
 });
 
 test.afterAll(async () => {

@@ -66,10 +66,6 @@ function mitProductIsTangible($product_id) {
 /** Admin > Roles: what each level of our modules lets a role do (ITFlow's roleModuleInfo, one guarded line). */
 function mitRoleModuleInfo() {
     return [
-        'module_procurement' => [
-            'label' => 'Procurement', 'icon' => 'fa-truck-loading', 'about' => 'Items to order, purchase orders and receiving',
-            'levels' => [1 => 'See them', 2 => 'Add items, make, send and receive purchase orders', 3 => 'Approve and cancel purchase orders'],
-        ],
         'module_timesheets' => [
             'label' => 'Timesheets', 'icon' => 'fa-user-clock', 'about' => 'Everyone keeps their own - this is for other people\'s',
             'levels' => [1 => 'See everyone\'s and the payroll report', 2 => 'Correct them', 3 => 'Approve them'],
@@ -143,12 +139,9 @@ function mitStockMove($product_id, $qty, $type, $note, array $opts = []) {
  * Procurement also needs ITFlow's invoicing module, and dispatch its ticketing module.
  */
 function mitModuleOn($name) {
-    global $config_module_enable_accounting, $config_module_enable_ticketing;
-    if ($name === 'procurement' && intval($config_module_enable_accounting ?? 1) !== 1) {
-        return false;
-    }
-    if ($name === 'dispatch' && intval($config_module_enable_ticketing ?? 1) !== 1) {
-        return false;
+    // Purchasing and Dispatch are ITFlow's modules since 26.12 (Admin > Settings > Modules, moduleOn())
+    if ($name === 'procurement' || $name === 'dispatch') {
+        return function_exists('moduleOn') ? moduleOn($name === 'procurement' ? 'purchasing' : 'dispatch') : false;
     }
     return mitSetting("module_$name", '1') !== '0';
 }
@@ -198,7 +191,7 @@ function mitModuleGuard($name, array $prefixes) {
 /** Save our module switches from Admin > Settings > Modules (hook in admin/post/settings_module.php). */
 function mitModulesSave(array $post) {
     $lines = []; // what changed, in words - for ITFlow's settingsSave (its "Nothing changed" otherwise)
-    foreach (['procurement', 'timesheets', 'dispatch'] as $name) {
+    foreach (['timesheets'] as $name) { // Purchasing and Dispatch have ITFlow's own switches since 26.12
         if (isset($post["mit_module_$name"])) {
             $on = $post["mit_module_$name"] === '1' ? '1' : '0';
             if ((string) mitSetting("module_$name", "1") !== $on) {
@@ -461,6 +454,5 @@ require_once __DIR__ . '/mit_backup_restore.php'; // Admin > Backup: restore on 
 require_once __DIR__ . '/mit_dev_mode.php'; // development mode (config.php) - nothing reaches the outside world
 require_once __DIR__ . '/mit_feedback.php'; // bug reports and feature requests (the top bar's Bugs & ideas)
 require_once __DIR__ . '/mit_settings_index.php'; // our settings pages and fields on ITFlow's Admin > Settings
-require_once __DIR__ . '/mit_zones.php'; // the calendar and Dispatch in each person's own time zone
-require_once __DIR__ . '/mit_invoice_bulk.php'; // more bulk actions on the invoices list (mark sent / paid, email, cancel, delete)
 require_once __DIR__ . '/mit_service_users.php'; // API / service accounts - left out of every agent list
+require_once __DIR__ . '/mit_api.php'; // our features through ITFlow's REST API (api/v1/mit_*)

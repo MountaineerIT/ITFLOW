@@ -80,10 +80,10 @@ test('a remote person\'s own time zone sets their timesheet\'s today', async ({ 
     };
     const save = async (zone) => {
         const form = await prefs();
-        await fillForm(form, { mit_ts_time_zone: zone });
+        await fillForm(form, { timezone: zone });
         await submit(form, 'edit_your_user_preferences');
     };
-    const before = await (await prefs()).locator('select[name="mit_ts_time_zone"]').inputValue();
+    const before = await (await prefs()).locator('select[name="timezone"]').inputValue();
     // The office's today, then a zone whose date is different right now (UTC+14 and UTC-11 are never on the same date)
     await save('');
     await visit(page, 'agent/mit_timesheet.php');

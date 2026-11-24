@@ -243,9 +243,11 @@ function mitConsistencyAiHelper(callable $add) {
     $rows = mitConsistencyRows("SELECT s.title FROM mit_ai_sources s LEFT JOIN tickets t ON t.ticket_id = s.ticket_id LEFT JOIN documents d ON d.document_id = s.document_id
         WHERE s.indexed_at < DATE_SUB(NOW(), INTERVAL 1 HOUR) AND (
             (s.ticket_id IS NOT NULL AND (t.ticket_archived_at IS NOT NULL OR (t.ticket_resolved_at IS NULL AND t.ticket_closed_at IS NULL) OR t.ticket_client_id <> s.client_id))
-            OR (s.document_id IS NOT NULL AND (d.document_archived_at IS NOT NULL OR d.document_client_id <> s.client_id)))");
+            OR (s.document_id IS NOT NULL AND (d.document_archived_at IS NOT NULL OR d.document_client_id <> s.client_id)))"
+        . (function_exists('mitAiKbColumn') && mitAiKbColumn() ? " UNION ALL SELECT s.title FROM mit_ai_sources s JOIN kb_articles a ON a.kb_article_id = s.kb_article_id
+            WHERE s.indexed_at < DATE_SUB(NOW(), INTERVAL 1 HOUR) AND (a.kb_article_archived_at IS NOT NULL OR a.kb_article_published_at IS NULL)" : ''));
     if ($rows) {
-        $add('AI helper', 'fail', 'Library passages for tickets reopened, archived or moved to another client (or documents archived or moved) over an hour ago - the AI Helper Library cron job is not keeping up.',
+        $add('AI helper', 'fail', 'Library passages for tickets reopened, archived or moved to another client (or documents archived or moved, Knowledge Base articles archived or back to drafts) over an hour ago - the AI Helper Library cron job is not keeping up.',
             array_column($rows, 'title'));
     }
 }

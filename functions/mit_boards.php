@@ -759,7 +759,10 @@ function mitBoardNewTicketField() {
 /** After New Ticket saved: the board picked, else the routing rules. */
 function mitBoardAfterCreate($ticket_id, $picked) {
     $picked = intval($picked);
-    if ($picked && isset(mitBoardsVisible()[$picked])) {
+    // Quick ticket: the board an admin chose for it (Admin > Settings > Tickets) is used even when this person's role doesn't see that
+    // board (the user's choice, Nov 22) - only that one board, and only from the quick ticket form
+    $quick_board = !empty($_POST['quick_ticket']) && $picked && $picked === intval(mitSetting('quick_ticket_board', '0')) && isset(mitBoards()[$picked]);
+    if ($picked && ($quick_board || isset(mitBoardsVisible()[$picked]))) {
         mitBoardMove($ticket_id, $picked, '', false, 'created');
         return;
     }
@@ -921,4 +924,67 @@ function mitBoardReportEntry() {
         'title' => 'Board Performance', 'icon' => 'fa-columns', 'module' => 'module_support', 'feature' => mitBoardsPart2Ready() ? ['ticketing'] : ['mit_boards'],
         'description' => 'Each service board: tickets in, escalated on and resolved, the typical first reply and time to resolve, SLAs met and what is open now - and where escalations go.',
     ];
+}
+
+/*
+ * ITFlow's Quick ticket (26.12 - functions/quick_ticket.php, built from ours): the board a quick ticket lands on. Kept in
+ * mit_settings quick_ticket_board (0 = as any new ticket - the board rules, else the default board). One line each in
+ * agent/modals/ticket/ticket_quick.php (mitQuickTicketBoardInput - the hidden mit_board that add_ticket's mitBoardAfterCreate
+ * reads), admin/settings_ticket.php's Quick tickets section (mitQuickTicketBoardField) and admin/post/settings_ticket.php
+ * (mitQuickTicketBoardSave - its line counted in ITFlow's "saved" message).
+ */
+function mitQuickTicketBoardInput() {
+    $board = intval(mitSetting('quick_ticket_board', '0'));
+    return $board ? '<input type="hidden" name="mit_board" value="' . $board . '" data-mit-quick-board>' : '';
+}
+
+function mitQuickTicketBoardField() {
+    if (!mitBoardsReady()) {
+        return '';
+    }
+    $boards = ['0' => 'As any new ticket (the board rules, else the default board)'];
+    foreach (mitBoards() as $id => $board) {
+        $boards[(string) $id] = $board['board_name'];
+    }
+    return settingsSelect('mit_quick_ticket_board', (string) intval(mitSetting('quick_ticket_board', '0')), $boards,
+        ['icon' => 'fa-columns', 'label' => 'Board it lands on', 'help' => 'With Assigned to Nobody, the board\'s round-robin may pick someone.']);
+}
+
+/** Returns the change line for settingsSave's $also_changed, or []. */
+function mitQuickTicketBoardSave(array $post) {
+    if (!array_key_exists('mit_quick_ticket_board', $post) || !mitBoardsReady()) {
+        return [];
+    }
+    $board = intval($post['mit_quick_ticket_board']);
+    if ($board && !isset(mitBoards()[$board])) {
+        $board = 0;
+    }
+    if ($board === intval(mitSetting('quick_ticket_board', '0'))) {
+        return [];
+    }
+    mitSetSetting('quick_ticket_board', (string) $board);
+    return ['Quick ticket board: ' . ($board ? mitBoards()[$board]['board_name'] : 'as any new ticket')];
+}
+
+/** Each ticket's board: ticket_id => board row (no row = the default board). For lists that tag their tickets (Dispatch's queue). */
+function mitBoardsOfTickets(array $ticket_ids) {
+    global $mysqli;
+    $ticket_ids = array_values(array_filter(array_map('intval', $ticket_ids)));
+    $boards = mitBoardsReady() ? mitBoards() : [];
+    if (count($boards) < 2 || !$ticket_ids) {
+        return [];
+    }
+    $default = mitBoardDefaultId();
+    $of = array_fill_keys($ticket_ids, $default);
+    $sql = mysqli_query($mysqli, "SELECT ticket_id, board_id FROM mit_ticket_boards WHERE ticket_id IN (" . implode(',', $ticket_ids) . ")");
+    while ($row = mysqli_fetch_row($sql)) {
+        $of[intval($row[0])] = isset($boards[intval($row[1])]) ? intval($row[1]) : $default;
+    }
+    $out = [];
+    foreach ($of as $ticket_id => $board_id) {
+        if (isset($boards[$board_id])) {
+            $out[$ticket_id] = $boards[$board_id];
+        }
+    }
+    return $out;
 }

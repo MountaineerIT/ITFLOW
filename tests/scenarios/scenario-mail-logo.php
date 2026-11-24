@@ -1,9 +1,10 @@
 <?php
 /*
- * The company logo in emails and our PDFs: ITFlow's email look links the logo (https://<base url>/uploads/settings/<file>), which
+ * The company logo in emails and purchase order PDFs: ITFlow's email look links the logo (https://<base url>/uploads/settings/<file>), which
  * shows broken wherever the reader's mail app can't reach this server - mitMailInlineImages (cron/mail_queue.php) puts it inside the
  * message instead (cid:). Only real images of uploads/settings; a calendar invite sent as its own part keeps the link (PHPMailer
- * leaves that part out of a message with inline images). The purchase order PDF finds the logo by its file path (made from cron too).
+ * leaves that part out of a message with inline images). ITFlow's PO PDF (poPdf) finds the logo by its file path, so it is there
+ * when made from cron too.
  */
 require __DIR__ . '/bootstrap.php';
 require_once 'libs/PHPMailer/src/Exception.php';
@@ -17,9 +18,9 @@ $logo = 'zz-scenario-logo-' . date('His') . '.png';
 $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
 file_put_contents("$folder/$logo", $png);
 file_put_contents("$folder/zz-not-an-image.png", 'not an image');
+$made_po = 0;
 $saved_logo = scenarioValue("SELECT company_logo FROM companies WHERE company_id = 1");
 mysqli_query($mysqli, "UPDATE companies SET company_logo = '" . escapeSql($logo) . "' WHERE company_id = 1");
-$made_po = 0;
 try {
     $mail = function ($body, $ical = '') {
         $m = new PHPMailer\PHPMailer\PHPMailer(true);
@@ -56,7 +57,7 @@ try {
 
     // Through the mail queue job for real, when the Microsoft 365 stand-in is sending here (it keeps each message as sent)
     $state_file = '/srv/mockms/state.json';
-    if (is_readable($state_file) && function_exists('mitM365GraphSendReady') && mitM365GraphSendReady()) {
+    if (is_readable($state_file) && function_exists('mailGraphToken') && mailGraphToken('Mail.Send') !== null) {
         echo "through the mail queue\n";
         $tag = 'ZZ logo ' . bin2hex(random_bytes(4));
         mysqli_query($mysqli, "UPDATE email_queue SET email_status = 9 WHERE email_status = 0");
@@ -77,27 +78,27 @@ try {
             || strpos(quoted_printable_decode($raw), 'cid:mit-img-0@itflow') !== false], [true, true]);
     }
 
-    echo "purchase order PDF\n";
-    if (function_exists('mitPoPdf') && mitProcReady()) {
-        mysqli_query($mysqli, "INSERT INTO mit_purchase_orders SET po_prefix = 'ZZ-LOGO-', po_number = " . (900000 + intval(date('His'))) . ", vendor_id = 0, status = 'draft', created_by = 1");
+
+    echo "purchase order PDF (ITFlow's Purchasing)\n";
+    if (function_exists('poPdf') && function_exists('poRow')) {
+        mysqli_query($mysqli, "INSERT INTO purchase_orders SET po_prefix = 'ZZ-LOGO-', po_number = " . (900000 + intval(date('His'))) . ", po_vendor_id = 0, po_currency_code = 'USD', po_status = 'draft', po_created_by = 1");
         $made_po = intval(mysqli_insert_id($mysqli));
-        $po = mitPoRow($made_po);
-        $file = sys_get_temp_dir() . "/zz-po-$made_po.pdf";
         $saved_root = $_SERVER['DOCUMENT_ROOT'] ?? null;
         unset($_SERVER['DOCUMENT_ROOT']); // as from cron (emailing a PO): no web root to put in front of a web path
-        mitPoPdf($po, $file);
+        $pdf = poPdf(poRow($made_po));
         if ($saved_root !== null) {
             $_SERVER['DOCUMENT_ROOT'] = $saved_root;
         }
-        scenarioCheck('the PDF has the logo in it, made without a web root', strpos((string) @file_get_contents($file), '/Subtype /Image') !== false, true);
-        @unlink($file);
+        scenarioCheck('the PO PDF has the logo in it, made without a web root', strpos((string) ($pdf['data'] ?? ''), '/Subtype /Image') !== false, true);
+    } else {
+        scenarioCheck("ITFlow's Purchasing (poPdf) is here", false, true);
     }
 } finally {
     mysqli_query($mysqli, "UPDATE companies SET company_logo = " . ($saved_logo === null ? 'NULL' : "'" . escapeSql($saved_logo) . "'") . " WHERE company_id = 1");
     @unlink("$folder/$logo");
     @unlink("$folder/zz-not-an-image.png");
     if ($made_po) {
-        mysqli_query($mysqli, "DELETE FROM mit_purchase_orders WHERE po_id = $made_po");
+        mysqli_query($mysqli, "DELETE FROM purchase_orders WHERE po_id = $made_po");
     }
 }
 exit($GLOBALS['mit_scenario_failed'] ? 1 : 0);

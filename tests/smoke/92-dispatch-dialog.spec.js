@@ -1,152 +1,111 @@
-// Dispatch's Schedule dialog: its order (booking, ticket details with the assets, email, then the contact's other open tickets),
-// assets picked as it is scheduled (ITFlow's ticket_asset_id + ticket_assets, functions/mit_dispatch.php mitDispatchSaveDetails), and merging the contact's other open ticket (agent/js/mit_dispatch.js loadOtherTickets / bindMerge,
-// functions/mit_dispatch.php mitDispatchMerge). The buttons say which ticket is kept; the form opens under the row picked and
-// shows its problems there (a missing reason used to show at the foot of the tall dialog, out of sight); Enter in the reason
-// merges. Both ways round: keep this one (the other closed, the list redrawn) and keep the other (this one closed, the window shut).
+// Dispatch's Schedule window is ITFlow's own since 26.12 (agent/dispatch.php #dispatchScheduleModal - its merge of the contact's other
+// open tickets too). Ours on top (agent/js/mit_dispatch.js, functions/mit_dispatch.php mitDispatchSaveDetails): the ticket's details in
+// the window - title, client, contact, the asset and other assets, priority, status, category, board, SLA - saved as it is booked
+// (ITFlow's ticket_asset_id + ticket_assets, a history line). Laid out to fit the screen (the user's choice, Nov 22): wide, Booking on the
+// left (agent, time, visit, who is emailed), Ticket on the right, the other open tickets as a slim strip, nothing to scroll on a laptop.
 const { test, expect } = require('@playwright/test');
-const { watch, visit } = require('./helpers');
-const { sql, one, deleteTickets, makeTicket } = require('./t2db');
+const { watch } = require('./helpers');
+const { one, sql, deleteTickets, makeTicket } = require('./t2db');
+const { dispatchState, dragToAgent, userId } = require('./dispatch');
 
 const tag = `ZZmrg${Date.now() % 1000000}`;
 
-async function openDialog(page, ticketId) {
-    await visit(page, 'agent/mit_dispatch.php');
-    await page.locator('[data-md-filter="q"]').fill(tag);
-    await page.locator('[data-md-filter="q"]').dispatchEvent('input');
-    await page.locator('[data-md-tab="unassigned"]').click();
-    const card = page.locator(`.mit-dq-item[data-ticket="${ticketId}"]`);
-    await expect(card).toHaveCount(1, { timeout: 8000 });
-    // The queue redraws as the filter and tab reload it - let it settle so the card isn't replaced mid-drag
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
-    await expect(card).toHaveCount(1);
-    const techId = Number(one(`SELECT user_id FROM users WHERE user_email = 'tech@test.test'`));
-    await card.scrollIntoViewIfNeeded();
-    const from = await card.boundingBox();
-    await page.mouse.move(from.x + 20, from.y + 10);
-    await page.mouse.down();
-    await page.mouse.move(from.x + 40, from.y + 30, { steps: 5 });
-    const slot = await page.evaluate((tech) => {
-        const col = document.querySelector(`.mit-dispatch-col[data-tech="${tech}"]`);
-        col.scrollIntoView();
-        const r = [...col.querySelectorAll('[data-time="10:00:00"]')].map((el) => el.getBoundingClientRect()).sort((a, b) => b.width - a.width)[0];
-        return { x: r.x + r.width / 2, y: r.y + Math.min(4, r.height / 2) };
-    }, techId);
-    await page.mouse.move(slot.x, slot.y, { steps: 15 });
-    await page.mouse.up();
-    await expect(page.locator('.swal2-popup')).toBeVisible();
-}
-
-test.describe.serial('dispatch schedule dialog', () => {
-    let state;
+test.describe.serial('dispatch schedule window', () => {
+    let restore;
     const made = [];
     test.beforeAll(() => {
-        state = one(`SELECT value FROM mit_user_preferences WHERE user_id = 1 AND preference = 'dispatch.state'`);
-        sql(`INSERT INTO mit_user_preferences SET user_id = 1, preference = 'dispatch.state', value = '{"view":"day","hidden":[],"weekends":true,"board":"all","board_techs":false}' ON DUPLICATE KEY UPDATE value = VALUES(value)`);
+        restore = dispatchState(1);
     });
     test.afterAll(() => {
         deleteTickets(made);
-        if (state) {
-            sql(`UPDATE mit_user_preferences SET value = '${state.replace(/'/g, "''")}' WHERE user_id = 1 AND preference = 'dispatch.state'`);
+        if (restore) {
+            restore();
         }
     });
 
-    test('keep this one: the other is closed, its problems shown by the form', async ({ page }) => {
-        const errors = watch(page);
-        const a = makeTicket({ subject: `${tag} A`, client: 1, assigned: 0, contact: 3 });
-        const b = makeTicket({ subject: `${tag} B`, client: 1, assigned: 1, contact: 3 });
-        made.push(a, b);
-        const bRef = one(`SELECT CONCAT(ticket_prefix, ticket_number) FROM tickets WHERE ticket_id = ${b}`);
-        await openDialog(page, a);
-        const row = page.locator(`[data-md-other="${b}"]`);
-        await expect(row).toHaveCount(1, { timeout: 8000 });
-        await expect(row.locator('[data-md-merge="here"]')).toHaveText(`Keep this one, close ${bRef}`);
-        await expect(row.locator('[data-md-merge="there"]')).toHaveText(`Keep ${bRef}, close this one`);
-        await row.locator('[data-md-merge="here"]').click();
-        const form = row.locator('[data-md-merge-form]');
-        await expect(form).toBeVisible();
-        await expect(form.locator('[data-md-merge-what]')).toContainText(`${bRef} is closed`);
-        // No reason: said beside the button, nothing merged
-        await form.locator('[data-md-merge-go]').click();
-        await expect(form.locator('[data-md-merge-error]')).toBeVisible();
-        await expect(form.locator('[data-md-merge-error]')).toContainText('reason');
-        expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${b}`)).toBeNull();
-        // Enter in the reason merges (and does not schedule this one)
-        await form.locator('[data-md-merge-reason]').fill('same printer');
-        await form.locator('[data-md-merge-reason]').press('Enter');
-        await expect(row).toHaveCount(0, { timeout: 8000 });
-        await expect(page.locator('.swal2-popup')).toBeVisible();
-        expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${b}`)).not.toBeNull();
-        expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`)).toBeNull();
-        expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${a}`)).toBeNull();
-        expect(errors).toEqual([]);
-    });
-
-    test('keep the other: this one is closed and the window shuts', async ({ page }) => {
-        const errors = watch(page);
-        const a = makeTicket({ subject: `${tag} C`, client: 1, assigned: 0, contact: 3 });
-        const b = makeTicket({ subject: `${tag} D`, client: 1, assigned: 1, contact: 3 });
-        made.push(a, b);
-        sql(`UPDATE tickets SET ticket_status = 5, ticket_schedule = CONCAT(CURDATE(), ' 14:00:00'), ticket_schedule_end = CONCAT(CURDATE(), ' 15:00:00') WHERE ticket_id = ${b}`);
-        await openDialog(page, a);
-        const row = page.locator(`[data-md-other="${b}"]`);
-        await expect(row).toHaveCount(1, { timeout: 8000 });
-        await row.locator('[data-md-merge="there"]').click();
-        await expect(row.locator('[data-md-merge-what]')).toContainText('this window closes');
-        await row.locator('[data-md-merge-reason]').fill('same issue');
-        await row.locator('[data-md-merge-go]').click();
-        await expect(page.locator('.swal2-popup')).toHaveCount(0, { timeout: 8000 });
-        expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${a}`)).not.toBeNull();
-        expect(one(`SELECT ticket_closed_at FROM tickets WHERE ticket_id = ${b}`)).toBeNull();
-        expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${b}`)).not.toBeNull();
-        expect(errors).toEqual([]);
-    });
-
-    test('order of the dialog, and assets picked as it is scheduled', async ({ page }, info) => {
+    test('our details in the window, laid out to fit, and assets picked as it is scheduled', async ({ page }) => {
+        await page.setViewportSize({ width: 1366, height: 768 });
         const errors = watch(page);
         const a = makeTicket({ subject: `${tag} E`, client: 1, assigned: 0, contact: 3 });
-        const b = makeTicket({ subject: `${tag} F`, client: 1, assigned: 1, contact: 3 });
-        made.push(a, b);
-        sql(`UPDATE tickets SET ticket_asset_id = 0 WHERE ticket_id = ${a}`);
-        await openDialog(page, a);
-        await expect(page.locator(`[data-md-other="${b}"]`)).toHaveCount(1, { timeout: 8000 });
-        // Booking first, then details, then email, the other tickets last
-        const order = await page.evaluate(() => {
-            const at = (el) => (el ? el.getBoundingClientRect().top + document.querySelector('.swal2-html-container').scrollTop : -1);
-            return ['mdTech', 'mdClient', 'mdAsset', 'mdOtherAssets', 'mdSla', 'mdNotify', 'mdOther'].map((id) => at(document.getElementById(id)));
-        });
+        made.push(a);
+        const modal = await dragToAgent(page, { ticketId: a, agentId: userId('tech@test.test'), search: tag });
+        // Our fields in order down the Ticket column (on the right of the Booking column, which holds the agent and the email ticks)
+        const order = await modal.evaluate(() => ['mitDTitle', 'mitDClient', 'mitDAsset', 'mitDPriority', 'mitDSla']
+            .map((id) => { const el = document.getElementById(id); return el ? el.getBoundingClientRect().top : -1; }));
+        expect(order.every((t) => t >= 0), `every field there: ${order}`).toBe(true);
         for (let i = 1; i < order.length; i++) {
-            expect(order[i], `field ${i} below the one before`).toBeGreaterThanOrEqual(order[i - 1]);
+            expect(order[i], `field ${i} not above the one before`).toBeGreaterThanOrEqual(order[i - 1]);
         }
-        // One size that fits the window: the fields scroll inside it, the buttons stay on screen
-        await page.setViewportSize({ width: 1280, height: 720 });
-        await page.waitForTimeout(400);
-        const fit = await page.evaluate(() => {
-            const popup = document.querySelector('.swal2-popup').getBoundingClientRect();
-            const body = document.querySelector('.swal2-html-container');
-            const buttons = document.querySelector('.swal2-actions').getBoundingClientRect();
-            return { top: popup.top, bottom: popup.bottom, scrolls: body.scrollHeight > body.clientHeight + 10, buttons: buttons.bottom <= window.innerHeight };
+        const cols = await modal.evaluate(() => {
+            const m = document.getElementById('dispatchScheduleModal');
+            const booking = m.querySelector('.col-lg-5');
+            const ticket = m.querySelector('.mit-ds-right');
+            return { agent: booking.contains(m.querySelector('[name=agent_id]')), notify: booking.contains(m.querySelector('[data-mit-notify]')),
+                title: ticket.contains(m.querySelector('#mitDTitle')), side: ticket.getBoundingClientRect().left > booking.getBoundingClientRect().right - 1 };
         });
-        expect(fit.top).toBeGreaterThanOrEqual(0);
-        expect(fit.bottom).toBeLessThanOrEqual(720);
-        expect(fit.scrolls).toBe(true);
-        expect(fit.buttons).toBe(true);
-        await page.screenshot({ path: info.outputPath('dialog.png') });
-        // The main asset, and two others through ITFlow's picker
-        await page.locator('#mdAsset').selectOption('8');
-        await expect(page.locator('#mdOtherAssets option[value="8"]')).toHaveCount(0);
-        // ITFlow's own picker, clicked inside the dialog (its panel must sit above the dialog)
-        await page.locator('#mdOtherAssets').locator('xpath=..').click();
-        await page.locator('.itflow-select-option', { hasText: 'ACME-PC2' }).click();
-        await page.locator('.itflow-select-option', { hasText: 'Front Desk - Printer' }).click();
-        await page.keyboard.press('Escape');
-        await expect(page.locator('.swal2-popup')).toBeVisible();
-        await page.locator('.swal2-confirm').click();
-        await expect(page.locator('.swal2-popup')).toHaveCount(0, { timeout: 8000 });
+        expect(cols, 'Booking: agent and email ticks; Ticket: our fields, beside it').toEqual({ agent: true, notify: true, title: true, side: true });
+        await expect(modal.locator('.mit-ds-ticket'), "the ticket's line in the title bar").toContainText(`${tag} E`);
+        await expect(modal.locator('[data-dispatch-schedule-others]'), 'the other open tickets as a strip').toBeVisible();
+        await expect(modal.locator('[data-dispatch-schedule-others] > .text-body-secondary'), 'without its explanation').toBeHidden();
+        await expect(modal.locator('button[type=submit]'), 'Schedule It in view').toBeInViewport();
+        const fits = await modal.evaluate(() => { const d = document.querySelector('#dispatchScheduleModal .modal-dialog'); return d.getBoundingClientRect().bottom <= window.innerHeight; });
+        expect(fits, 'the window fits the screen').toBe(true);
+        await expect(modal.locator('.itflow-select.is-multiple > #mitDOtherAssets.itflow-select-native'), 'Other assets is the chip picker').toHaveCount(1);
+        expect(await modal.locator('#mitDClient').inputValue()).toBe('1');
+        expect(await modal.locator('#mitDContact').inputValue()).toBe('3');
+        // The main asset, then two others
+        await modal.locator('#mitDAsset').selectOption('8');
+        await expect(modal.locator('#mitDOtherAssets option[value="8"]'), 'the main one is not offered again').toHaveCount(0);
+        await modal.locator('#mitDOtherAssets').evaluate((select) => { // behind ITFlow's picker
+            Array.from(select.options).forEach((o) => { o.selected = ['9', '10'].includes(o.value); });
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        await modal.locator('button[type=submit]').click();
+        await expect(modal).toBeHidden({ timeout: 10000 });
         expect(one(`SELECT ticket_asset_id FROM tickets WHERE ticket_id = ${a}`)).toBe('8');
         expect(one(`SELECT GROUP_CONCAT(asset_id ORDER BY asset_id) FROM ticket_assets WHERE ticket_id = ${a}`)).toBe('9,10');
-        expect(one(`SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = ${a} AND ticket_history_description LIKE '%set the asset to ACME-PC1%'`)).toBe('1');
+        expect(one(`SELECT COUNT(*) FROM ticket_history WHERE ticket_history_ticket_id = ${a} AND ticket_history_description LIKE '%asset to ACME-PC1%'`)).toBe('1');
         expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`)).not.toBeNull();
         expect(errors).toEqual([]);
+    });
+
+    // Found in the full test (Nov 22): Enter in a merge's reason booked the ticket (the Schedule form); the ticket number showed twice; the
+    // strip's count stayed as it was after a merge; a move started from the visit's default email ticks, not the ones kept for the booking.
+    test('the strip merges on Enter, counts down, and a move keeps the email ticks', async ({ page }) => {
+        await page.setViewportSize({ width: 1366, height: 768 });
+        const errors = watch(page);
+        sql(`INSERT INTO contacts SET contact_name = '${tag} Contact', contact_email = '${tag.toLowerCase()}@example.invalid', contact_client_id = 1`);
+        const contact = Number(one(`SELECT contact_id FROM contacts WHERE contact_name = '${tag} Contact' ORDER BY contact_id DESC LIMIT 1`));
+        try {
+            const a = makeTicket({ subject: `${tag} Strip A`, client: 1, assigned: 0, contact });
+            const b = makeTicket({ subject: `${tag} Strip B`, client: 1, assigned: 1, contact });
+            const c = makeTicket({ subject: `${tag} Strip C`, client: 1, assigned: 1, contact });
+            made.push(a, b, c);
+            const modal = await dragToAgent(page, { ticketId: a, agentId: userId('tech@test.test'), search: `${tag} Strip A` });
+            await expect(modal.locator('.mit-ds-ticket a'), 'the subject only - the number is in the title').toHaveText(`${tag} Strip A`);
+            const strip = modal.locator('[data-dispatch-schedule-others]');
+            await expect(strip, 'two others').toContainText('2 other open tickets');
+            await strip.locator('> .fw-semibold').click();
+            const rowB = strip.locator(`[data-other="${b}"]`);
+            await rowB.locator('.dropdown-toggle').click();
+            await rowB.locator('[data-merge="keep-this"]').click();
+            await rowB.locator('[data-merge-reason]').fill('Same problem - smoke test');
+            await rowB.locator('[data-merge-reason]').press('Enter');
+            await expect(rowB, 'merged - its row goes').toHaveCount(0, { timeout: 10000 });
+            await expect(modal, 'the Schedule window stays open (nothing booked)').toBeVisible();
+            expect(one(`SELECT ticket_schedule FROM tickets WHERE ticket_id = ${a}`), 'Enter did not book this ticket').toBeNull();
+            expect(one(`SELECT ticket_closed_at IS NOT NULL FROM tickets WHERE ticket_id = ${b}`), 'the other was merged and closed').toBe('1');
+            await expect(strip, 'the count follows').toContainText('1 other open ticket for');
+
+            // Book it with the agent's email unticked, then the kept ticks come back for a move
+            await modal.locator('#mitN_tech').uncheck();
+            await modal.locator('button[type=submit]').click();
+            await expect(modal).toBeHidden({ timeout: 10000 });
+            const details = await page.evaluate(async (id) => (await fetch(`mit_dispatch_ajax.php?details=${id}`)).json(), a);
+            expect(details.notify_kept && details.notify_kept.tech, 'the booking\'s ticks kept - the agent unticked').toBe(false);
+            expect(errors).toEqual([]);
+        } finally {
+            sql(`DELETE FROM contacts WHERE contact_id = ${contact}`);
+        }
     });
 });

@@ -1,10 +1,10 @@
 // Ticket parts and invoice lines ordered, through the real windows and handlers, with the stock ledger checked underneath:
 //  - a Technician adds a part from stock in the Parts window (stock 5 -> 3), changes it (-> 2), bills it with a changed price
 //    (invoice total right), and a to-order part removed again cancels its item;
-//  - an invoice line that took stock is sent to procurement from the invoice ("Send to procurement" window): the quantity is
-//    capped at the line, a second send has nothing left; received on Receiving with "Fill in each asset's details" (ITFlow's
-//    asset window opens for the new asset); the stock goes back exactly once - not again when the line is removed or the invoice
-//    cancelled afterwards.
+//  - an invoice line that took stock is sent to procurement from the invoice ("Send to procurement" window - onto ITFlow 26.12's
+//    To Order): the quantity is capped at the line, a second send has nothing left; received on ITFlow's Receiving with our
+//    "Fill in each asset's details" (ITFlow's asset window opens for the new asset); the stock goes back exactly once - not again
+//    when the line is removed or the invoice cancelled afterwards.
 // Makes its own ticket / products / invoices and removes them.
 
 const { test, expect } = require('@playwright/test');
@@ -38,12 +38,13 @@ test.beforeAll(() => {
 });
 
 test.afterAll(() => {
-    db.exec(`DELETE FROM mit_procurement_items WHERE ticket_id = ${made.ticket} OR name LIKE 'Smoke 63%'`);
+    db.exec(`DELETE FROM order_items WHERE order_item_id IN (SELECT order_item_id FROM mit_order_item_links WHERE ticket_id = ${made.ticket}) OR order_item_name LIKE 'Smoke 63%'`);
     for (const id of made.pos) {
-        db.exec(`DELETE FROM mit_purchase_orders WHERE po_id = ${id}`);
+        db.exec(`DELETE FROM logs WHERE log_type = 'Purchase Order' AND log_entity_id = ${id}; DELETE FROM purchase_orders WHERE po_id = ${id}`);
     }
     for (const id of made.assets) {
-        db.exec(`DELETE FROM ticket_assets WHERE asset_id = ${id}; DELETE FROM assets WHERE asset_id = ${id}`);
+        db.exec(`DELETE FROM ticket_assets WHERE asset_id = ${id}; DELETE FROM asset_interfaces WHERE interface_asset_id = ${id}; DELETE FROM asset_history WHERE asset_history_asset_id = ${id};
+            DELETE FROM assets WHERE asset_id = ${id}`);
     }
     for (const id of made.invoices) {
         db.exec(`DELETE FROM invoice_items WHERE item_invoice_id = ${id}; DELETE FROM history WHERE history_invoice_id = ${id}; DELETE FROM invoices WHERE invoice_id = ${id}`);
@@ -93,10 +94,10 @@ test('Technician: part from stock, changed, billed; a to-order part removed', as
     await fillForm(modal, { product_id: '0', name: 'Smoke 63 dock', quantity: '1', unit_price: '200', unit_cost: '150', source: 'order', vendor_id: String(VENDOR) });
     await submit(modal, 'mit_part_save');
     const order = db.one(`SELECT part_id, proc_item_id FROM mit_ticket_parts WHERE ticket_id = ${made.ticket} AND name = 'Smoke 63 dock'`);
-    expect(db.val(`SELECT status FROM mit_procurement_items WHERE item_id = ${order.proc_item_id}`), 'on the list to order').toBe('waiting');
+    expect(db.val(`SELECT order_item_status FROM order_items WHERE order_item_id = ${order.proc_item_id}`), 'on To Order').toBe('waiting');
     const token = await csrf(page);
     await db.pageGet(page, `post.php?mit_part_remove=${order.part_id}&ticket_id=${made.ticket}&csrf_token=${encodeURIComponent(token)}`);
-    expect(db.val(`SELECT status FROM mit_procurement_items WHERE item_id = ${order.proc_item_id}`), 'removed part: item cancelled').toBe('cancelled');
+    expect(db.val(`SELECT order_item_status FROM order_items WHERE order_item_id = ${order.proc_item_id}`), 'removed part: item cancelled').toBe('cancelled');
     await expectClean(page, errors);
     await context.close();
 });
@@ -114,31 +115,34 @@ test('invoice line to procurement: capped, received with the asset window, stock
     let modal = await openModal(page, `modals/mit_procurement/from_invoice.php?invoice_id=${invoiceId}`, 'lg');
     await fillForm(modal, { [`lines[${lineId}][send]`]: true, [`lines[${lineId}][qty]`]: '5', [`lines[${lineId}][cost]`]: '80', [`lines[${lineId}][vendor_id]`]: String(VENDOR) });
     await submit(modal, 'mit_proc_from_invoice');
-    const item = db.one(`SELECT item_id, quantity, unit_cost, product_id, status FROM mit_procurement_items WHERE invoice_id = ${invoiceId}`);
+    const item = db.one(`SELECT o.order_item_id AS item_id, order_item_quantity AS quantity, order_item_cost AS unit_cost, order_item_product_id AS product_id, order_item_status AS status
+        FROM order_items o JOIN mit_order_item_links links ON links.order_item_id = o.order_item_id WHERE links.invoice_id = ${invoiceId}`);
     expect([Number(item.quantity), Number(item.unit_cost), Number(item.product_id), item.status], 'capped at the line (2)').toEqual([2, 80, nas, 'waiting']);
     const token = await csrf(page);
     await db.pagePost(page, 'post.php', { csrf_token: token, mit_proc_from_invoice: '1', invoice_id: String(invoiceId), [`lines[${lineId}][send]`]: '1', [`lines[${lineId}][qty]`]: '1', [`lines[${lineId}][cost]`]: '80' });
-    expect(Number(db.val(`SELECT COUNT(*) FROM mit_procurement_items WHERE invoice_id = ${invoiceId}`)), 'nothing left to send').toBe(1);
+    expect(Number(db.val(`SELECT COUNT(*) FROM mit_order_item_links WHERE invoice_id = ${invoiceId}`)), 'nothing left to send').toBe(1);
 
-    // PO, ordered, received on Receiving with the asset window
-    let r = await db.pagePost(page, 'post.php', { csrf_token: token, mit_po_create: '1', vendor_id: String(VENDOR), 'item_ids[]': [item.item_id] });
+    // ITFlow's PO, ordered, received on ITFlow's Receiving with our asset window
+    const r = await db.pagePost(page, 'post.php', { csrf_token: token, po_create: '1', vendor: String(VENDOR), 'order_item_ids[]': [item.item_id] });
     const po = Number(new URL(r.url).searchParams.get('po_id'));
+    expect(po, 'PO made').toBeGreaterThan(0);
     made.pos.push(po);
-    db.exec(`UPDATE mit_purchase_orders SET status = 'ordered', order_date = CURDATE() WHERE po_id = ${po}`);
-    await visit(page, `agent/mit_receiving.php?po_id=${po}`, errors);
-    const row = page.locator('#mitReceiveForm tr', { hasText: 'Smoke 63 NAS' });
+    db.exec(`UPDATE purchase_orders SET po_status = 'ordered', po_order_date = CURDATE() WHERE po_id = ${po}`);
+    await visit(page, `agent/receiving.php?po_id=${po}`, errors);
+    const row = page.locator('form[data-receiving] tr[data-receiving-line]', { hasText: 'Smoke 63 NAS' });
     await row.locator('input[name$="[qty]"]').fill('2');
-    await row.locator('textarea[name$="[serials]"], input[name$="[serials]"]').first().fill('NAS-1\nNAS-2');
-    const form = page.locator('#mitReceiveForm');
-    await form.locator('#mitOptAssets').check();
-    await form.locator('#mitOptReview').check();
-    await submit(form, 'mit_po_receive');
-    expect(page.url(), 'back on Receiving with the assets to review').toMatch(/mit_review_assets=\d+(,\d+)*/);
-    const assets = db.rows(`SELECT asset_id, asset_serial FROM assets WHERE asset_purchase_reference = (SELECT CONCAT(po_prefix, po_number) FROM mit_purchase_orders WHERE po_id = ${po})`);
+    await row.locator('textarea[name$="[serials]"]').fill('NAS-1\nNAS-2');
+    await row.locator('select[name$="[asset_type]"]').selectOption({ index: 1 });
+    const form = page.locator('form[data-receiving]');
+    await expect(form.locator('[data-mit-review]'), 'our "Fill in each asset\'s details", ticked').toBeChecked();
+    await submit(form, 'po_receive');
+    expect(page.url(), 'back on Receiving with the assets to review').toMatch(/receiving\.php\?.*mit_review_assets=\d+(,\d+)*/);
+    const assets = db.rows(`SELECT asset_id, asset_serial FROM assets WHERE asset_purchase_reference = (SELECT CONCAT(po_prefix, po_number) FROM purchase_orders WHERE po_id = ${po})`);
     made.assets.push(...assets.map((a) => a.asset_id));
     expect(assets.map((a) => a.asset_serial).sort(), 'two assets with serials').toEqual(['NAS-1', 'NAS-2']);
     await expect(page.locator('.modal.show form'), "ITFlow's asset window opens for the first one").toHaveCount(1, { timeout: 10000 });
     await expect(page.locator('.modal.show')).toContainText('Smoke 63 NAS');
+    await expect(page.locator('.modal.show [data-mit-review-step]'), 'says which of the new assets').toContainText('1 of 2');
     expect(Number(db.val(`SELECT asset_invoice_id FROM assets WHERE asset_id = ${assets[0].asset_id}`)), 'asset tied to the invoice it was sold on').toBe(invoiceId);
 
     expect(onHand(nas), 'received for the invoice: the 2 it took go back').toBe(5);
@@ -176,22 +180,24 @@ test('deleting a ticket puts its unbilled stock parts back on the shelf', async 
 });
 
 
-test('the Procurement menu, and a project page shows what is ordered for it', async ({ page }) => {
+test('the Purchasing menu (ITFlow\'s), and a project page shows what is ordered for it', async ({ page }) => {
     const errors = watch(page);
     const project = db.insert(`INSERT INTO projects SET project_name = 'Smoke 63 project', project_client_id = ${CLIENT}, project_due = DATE_ADD(CURDATE(), INTERVAL 30 DAY)`);
-    const item = db.insert(`INSERT INTO mit_procurement_items SET source = 'manual', client_id = ${CLIENT}, project_id = ${project}, name = 'Smoke 63 project switch',
-        quantity = 2, unit_cost = 150, vendor_id = ${VENDOR}, created_by = 1`);
+    const item = db.insert(`INSERT INTO order_items SET order_item_source = 'manual', order_item_client_id = ${CLIENT}, order_item_name = 'Smoke 63 project switch',
+        order_item_quantity = 2, order_item_cost = 150, order_item_vendor_id = ${VENDOR}, order_item_status = 'waiting', order_item_created_by = 1`);
+    db.exec(`INSERT INTO mit_order_item_links SET order_item_id = ${item}, source = 'manual', project_id = ${project}`);
     try {
         await visit(page, `agent/project.php?project_id=${project}`, errors);
+        await expect(page.locator('.app-sidebar a[href="/agent/to_order.php"]'), 'side menu: Purchasing').toHaveCount(1);
         for (const file of ['mit_procurement.php', 'mit_purchase_orders.php', 'mit_receiving.php']) {
-            await expect(page.locator(`.app-sidebar a[href="/agent/${file}"]`), `side menu: ${file}`).toHaveCount(1);
+            await expect(page.locator(`.app-sidebar a[href="/agent/${file}"]`), `our old ${file} is gone from the menu`).toHaveCount(0);
         }
         const card = page.locator('.card:has(.card-title i.fa-file-signature)');
         await expect(card, "the project's Purchase orders card").toHaveCount(1);
         await expect(card).toContainText('300.00');
         await expectClean(page, errors);
     } finally {
-        db.exec(`DELETE FROM mit_procurement_items WHERE item_id = ${item}; DELETE FROM projects WHERE project_id = ${project}`);
+        db.exec(`DELETE FROM order_items WHERE order_item_id = ${item}; DELETE FROM projects WHERE project_id = ${project}`);
     }
 });
 

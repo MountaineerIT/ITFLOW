@@ -20,6 +20,8 @@ model: see DEPLOYMENT.md.
   "## <version> - <date>" entry with "- " lines at the top of `MIT_CHANGELOG.md` (ours - ITFlow's own is `CHANGELOG.md`,
   never edit that). After merging an ITFlow release (APP_VERSION changes), start again at <new>.1. Tell the user the new
   version when asking to push. Shown in the admin footer and on Admin > Update with the release notes.
+  The user's choice (Nov 22, 26.12.1): after an ITFlow release merge, everything stays under <new>.1 until it is promoted to production -
+  no bump per push; add its lines to the <new>.1 entry of MIT_CHANGELOG.md. Number again (<new>.2 ...) only after that promotion.
 - Explain the plan before big changes or anything touching the schema.
 - **Our database changes go in `admin/database_updates/mountaineerit/` as M001.php, M002.php …**
   (agreed scheme). Never add files to ITFlow's numbered `admin/database_updates/*.php` and
@@ -94,6 +96,9 @@ model: see DEPLOYMENT.md.
   refreshes itflow_tN, /var/www/itflow_tN, itflow-tN.test; config follows the copy's address): baseline tests first, then per site switch
   off (php -l checked), run the owning features' scenarios + smoke specs from `tests/.smoke_tN` (its own .auth - git ignores it), put the
   line back (also on Ctrl-C / kill). NOT NOTICED = a hook no test covers - write a test that fails without it. Never on production (.test only).
+  `--baseline-from=<earlier.jsonl>` (Nov 23) reuses an earlier run's passing baselines on the same code - the container restarted every
+  20-30 min and each start spent ~10 min on baselines. Tests skip only when the feature is off (`featureOn('mitX')` in smoke helpers.js),
+  never because our element is missing - that hid lost hooks (the 06 quote step skipped from 26.12 until Nov 23).
 - Rebuilding the test install (Nov 17, 26.11.8.5 - the container lost it): `scripts/setup_cli.php` (admin admin@mountaineerit.test,
   base URL itflow-beta.test, America/Los_Angeles), then `php scripts/mit_test_fixture.php` (ours - every row / setting the tests take for
   granted; refuses a non-.test install), the server clock + PHP / MariaDB on the company zone and PHP limits as `scripts/install.sh` sets them,
@@ -227,6 +232,22 @@ model: see DEPLOYMENT.md.
   - the normal end of paging: MSP Align's hourly ticket read always ends on one (production had 3,500+ such Errors). An empty first page or a missing
   id is still logged; the answer is unchanged. In ITFlow's master too. `scenario-api-paging-end.php`.
   M046 (26.10.174): installs made from ITFlow's November 2025 db.sql (production among them) have a leftover `contract_templates.company_id` int NOT NULL with no default (in that db.sql a few days, never in ITFlow's updates) - ITFlow's own Add contract template failed. M046 gives it DEFAULT 0 when it is there without one (column and values kept; other installs untouched). Smoke `83-contracts.spec.js` uses ITFlow's contracts end to end (template, contract, recurring invoice, prepaid hours).
+  26.12.1 (full test, Nov 22): `agent/post/ticket.php` edit_ticket works the SLA out again only when the priority or the project changed, and keeps an
+  SLA picked by hand (not the one getTicketSlaId gives) - ITFlow 26.12 re-applied it on every edit, so any edit dropped a hand-picked SLA (our
+  26.10.95 fix, lost when ITFlow's file was taken); smoke: the edit step of 15. `functions/trips.php` tripDrivers and `functions/expenses.php` expensePayers
+  leave disabled agents out (user_status 1; the record's own driver / payer kept). Both also in ITFlow's master.
+  Role crawl (Nov 22): `agent/includes/inc_all_client.php` answers a missing / 0 client_id with ITFlow's own "Nothing to see here" (as for a
+  client that isn't there) - client_overview, files, document, document_edit, rack were PHP fatals; smoke: last test of 01. In ITFlow's master too.
+  Client delete (Nov 23, the user's go-ahead): `clientDeleteForGood($client_id)` (functions/client.php) is the one delete behind Clients > Delete
+  (`agent/post/client.php`) and `api/v1/clients/delete.php` - each carried its own shorter list and left rows behind (ticket watchers / history /
+  attachments / tasks / SLA history, invoice / quote / recurring lines' history, recurring payments, document versions, DNS records, links between
+  records, rack places, credits, SLA choices, access rules, portal announcements, texts ...). Tickets go through ticketDeleteForGood; every table of
+  clientMergeTables() is deleted, except the company's own records that only named the client (expenses, recurring expenses, purchasing lines, import
+  rules, RMM, managed instances, AI usage), which keep their row with client 0; stock is not put back (what was invoiced went out). Scenario
+  `scenario-client-delete.php`. Receipts: a payment receipt's history line records the invoice's status after the payment (Paid / Partial), not
+  "Sent" (`billingPaymentReceiptSend`, Add Payment's bulk receipt, invoiceBulkRun Mark Paid); `scenario-receipt-history.php`. Left as ITFlow's on
+  purpose: saving Microsoft 365 / Google mail empties the SMTP / IMAP server fields - those providers always use their own fixed servers
+  (cron/mail_queue.php), and old values left there once sent the token to the old server.
   These fixes carry no "Mountaineer IT" marker (they are plain bug fixes, meant to match upstream's
   eventual fix) - find them with `git log`.
   When an upstream release fixes the same thing, resolve conflicts in favour of upstream.
@@ -464,10 +485,10 @@ model: see DEPLOYMENT.md.
   nothing was ordered yet. Daily cron job `mit_procurement_tidy` (`cron/mit_procurement_tidy.php`,
   `mitProcTidy`) cancels waiting items of deleted tickets/clients and frees parts whose invoice line went;
   a deleted ticket's unbilled stock parts go back on the shelf through `mitTicketPartsDeleting` (one line in
-  `functions/ticket.php` ticketDeleteForGood and in `agent/post/client.php` client delete) before the
+  `functions/ticket.php` ticketDeleteForGood, which a client delete now uses for each ticket) before the
   `mit_ticket_parts` FK cascade removes them.
   Part 2: `functions/mit_procurement_parts.php` (ours, required from mit_procurement.php), M010
-  (`mit_ticket_parts`, `products.product_vendor_id`). Quote -> invoice ticks: `mitProcQuoteConvertFields`
+  (`mit_ticket_parts`, `products.product_vendor_id`). Quote -> invoice ticks: `mitProcQuoteConvertFields` (26.12.1: a stock-tracked product starts ticked only when productOnHand is short, `[data-mit-proc-on-hand]` column; smoke 60)
   in `agent/modals/quote/quote_to_invoice.php` (+ data-modal-size="lg" on the Invoice button in
   `agent/quote.php`), `mitProcFromQuoteLine` in `agent/post/quote.php` add_quote_to_invoice loop.
   Invoice: `mitProcInvoiceMenuItem` in the `agent/invoice.php` ⋮ menu -> modal
@@ -1059,8 +1080,8 @@ model: see DEPLOYMENT.md.
   200 OK / 503 PROBLEM for an outside uptime monitor - the only alert when cron itself stops. Settings card
   `admin/includes/mit_cron_card.php` (one require at the end of `admin/cron.php`), handlers `admin/post/mit_cron_health.php`.
 - Audit fixes (Oct 20, 26.10.72) in our code: Graph mail listing pages on past flagged mail and fails the job on errors
-  other than throttling (`functions/mit_m365_mailbox.php`); `api/v1/clients/delete.php` calls `mitQuoteImagesDelete` /
-  `mitTicketPartsDeleting` (hooks, like agent/post/client.php); reimbursed purchases keep their expense in step
+  other than throttling (`functions/mit_m365_mailbox.php`); `api/v1/clients/delete.php` puts ticket parts back (now through
+  clientDeleteForGood -> ticketDeleteForGood); reimbursed purchases keep their expense in step
   (`mitReimbSyncExpense`, delete removes it) and become expenses from cron when approval is off (`mitReimbRecordEnded`);
   `mitLock` / `mitUnlock` (mit_common) around timesheet decide / reopen, PO create / add items, vendor bill, receiving and
   billing parts (`mitProcLock` now refuses when busy); NinjaOne: an asset deleted in ITFlow is reported, not re-created
@@ -1677,7 +1698,7 @@ model: see DEPLOYMENT.md.
   reload - one line before it). Conflicts: admin/backup.php (theirs; `mitRestoreRowButton` before Download in each row's actions, and the Restoring
   box shows our `mit_restore_card.php` instead of ITFlow's "not from this page" sentence), admin/cron.php (our card, then their auto_reload
   script), includes/billing_paper.php (theirs + `mitPaperLineImage` before the editable name). Smoke 60 adds a line through the new field.
-  Functional pass (26.11.8.1): a line billed from ticket parts keeps the parts' quantity - `mitPartLineQtyProblem` (functions/mit_procurement_parts.php)
+  Functional pass (26.11.8.1): a line billed from ticket parts keeps the parts' quantity - `mitPartLineQtyProblem` (functions/mit_procurement_parts.php; its message says to delete the line - since 26.12.1 `mitTicketPartsLineGone`, one line in ITFlow's billingItemDelete, frees the line's parts at once, not at the daily tidy)
   refuses another one in `agent/ajax.php` billing_item_set (field qty) and `agent/post/billing.php` billing_item_save (one line each), and
   `mitConsistencyParts` warns about lines that already differ (`scenario-part-line-qty.php`); the QuickBooks strip + procurement summary in
   `agent/invoice.php` sit in `<div data-billing-live="mit-invoice">` so ITFlow's refetch redraws them; `mitQboInvoiceBar` sets
@@ -1696,6 +1717,108 @@ model: see DEPLOYMENT.md.
   (js/mit_quote_pricing.js fills a quote's cost through window.mitProductPricing). `js/mit_billing_add.js` posts to ITFlow's ajax.php billing_item_add
   (our hook there passes `$_FILES` to mitQuoteItemSave) and redraws through `window.mitBillingRefresh` - one line in `js/billing_items.js` exposing its
   refresh() - no reload. Pictures stay in the Edit Line window. Smoke: first and last tests of 60, the quote step of 06.
+- ITFlow 26.12 (Nov 22, 26.12.1 - tag `v26.12`, 163 commits; database 3.6.6 -> 4.1.1): ITFlow took in about 35 features of ours as
+  its own code (credited "From Mountaineer IT's build"). The user chose ITFlow's versions (Nov 22) - our extras stay as hooks on
+  theirs, our duplicate code is retired. THIS SUPERSEDES the per-feature notes above wherever they differ. Data moved by M067 (helpers,
+  To-line choices, note work times - converted from the person's clock to the company's -, no-response, status rules, service
+  accounts, offices, labor costs, recurring plans, project SLA starts, calendar colour / state / zone, settings incl. the cron
+  health key and config_api_key_in_address = 1 for MSP Align, retired cron rows, the dev-mode config) and M068 (procurement, same
+  ids; our links in `mit_order_item_links` / `mit_po_item_projects` / `mit_po_receipt_extras`); M069 indexes
+  ticket_replies(by, work_start). Our old tables stay one release, unread. The user's choices: service bookings keep one colour with
+  the agent's bar; helpers need Support edit; config_ticket_reply_assigns stays on (ITFlow's default); Profitability opens on Invoiced.
+  What is ITFlow's now and what of ours sits on it:
+  - Calendar (functions/calendar.php, ticket.php ticketSchedule*, by_day.php, user_timezone.php): ours in `functions/mit_calendar.php`
+    - `mitCalendarTicketItems` (one line at the end of ITFlow's tickets source: boards by role, the project split, service colour +
+    `tech_color` -> `data-mit-agent` bar in agent/js/calendar.js eventDidMount, CSS in agent/calendar.php), Outlook busy source (+= in
+    calendarSources, early return in calendarSourceItems) and clashes (one line in ticketScheduleConflicts), `mitUserPreference`.
+    Gone: mit_zones, mit_left_behind, mit_event_agents, mit_recurring, our colour / zone fields.
+  - Helpers (functions/ticket_helpers.php): ours in `functions/mit_ticket_techs.php` - Support-edit guard (ticketHelperSave),
+    `mitTicketHelperUid` (ticketHelperUid keeps "-tech-" UIDs of helpers migrated from mit_ticket_techs), no .ics for Outlook-synced
+    agents (ticketHelperMail), helpers in the reply To line (ticketReplyRecipients -> `mitReplyRecipientsHelpers`), `mitTicketClientMoved`
+    (change_client_ticket: helpers who can't see the client off, procurement follows), `mitAgentCanSeeClient` / `SupportLevel` /
+    `CanWorkTicket`, Outlook helper bookings.
+  - Dispatch (functions/dispatch.php, agent/dispatch.php, agent/js/dispatch.js): ours in `functions/mit_dispatch.php`,
+    `agent/includes/mit_dispatch_extras.php` (board picker; one require in the toolbar), `agent/js/mit_dispatch.js`,
+    `agent/mit_dispatch_ajax.php` (details / contacts / assets / board_state). Hooks: dispatchCan / CanEdit (`mitDispatchLevel`, M035
+    permission), dispatchQueue (board WHERE + `mitDispatchQueueBoards`), dispatchItems (`mitDispatchOutlookItems` - given ITFlow's company-clock `$q_from` / `$q_to`, not the bare dates, which lost the last day; scenario-sched-sources), View only badge + refusal text (`mitDispatchEditNeeds`), dispatchWorkload /
+    dispatchWeekStats (board), agent/dispatch.php (data-business-hours via `mitDispatchViewerHours`, `mitDispatchScheduleFields` in the
+    Schedule window), agent/ajax.php dispatch_book (`mitDispatchBeforeBook`: check, then `mitDispatchSaveDetails`, then the email
+    ticks), dispatch.js (request() -> window.itflowDispatchExtra, shownAgents() -> window.itflowDispatchAgents, queue card ->
+    window.itflowDispatchCardExtra, schedule() fires "dispatch:schedule"), side_nav Dispatch entry (our permission + `mitDispatchNavCount`).
+    The Schedule window laid out to fit (Nov 22, the user's choice - a hybrid of ITFlow's window and ours): `layout()` in agent/js/mit_dispatch.js moves
+    ITFlow's own elements (no hook) - modal-xl + modal-dialog-scrollable, `[data-mit-ds]`; Booking column (`.col-lg-5`: ITFlow's agent / date / how long /
+    visit, our email ticks `[data-mit-dispatch-notify]`) and Ticket column (`.mit-ds-right`: our fields); ITFlow's `[data-dispatch-schedule-ticket]` line in
+    the title bar (`.mit-ds-ticket`); `[data-dispatch-schedule-others]` a slim strip (explanation hidden; several = `.mit-many`, Show / Hide); Other assets is
+    ITFlow's chip picker (class select2). Smoke 92 checks columns, fit at 1366 x 768 and the strip. Full test (Nov 22): Enter in `[data-merge-reason]` clicks `[data-merge-go]` (the merge form sits inside
+    the Schedule form, which would book); the title-bar line drops the reference; the strip's count follows merges; `mitDispatchKeptNotify` ->
+    details `notify_kept` (a booked ticket's `mit_ticket_schedule_notify` choice) starts a move's ticks; smoke: second test of 92.
+  - Quick ticket (functions/quick_ticket.php): the board it lands on - `mitQuickTicketBoardInput` / `Field` / `Save` (functions/mit_boards.php;
+    hooks in agent/modals/ticket/ticket_quick.php, admin/settings_ticket.php, admin/post/settings_ticket.php) - used even when the maker's role can't see that board
+    (the user's choice, Nov 22: `mitBoardAfterCreate` accepts exactly the quick_ticket_board when `quick_ticket` is posted). Boards by role, also
+    Nov 22: ITFlow's side-menu Tickets count (`agent/includes/get_side_nav_counts.php`) and the client pages' count (`agent/includes/inc_all_client.php`)
+    append `mitBoardVisibleSql('tickets')` (one guarded line each); `mitBoardVisibleSql` reads ITFlow's `ticket_helpers` (was our old table).
+    Helper picker (`agent/modals/ticket/ticket_helper.php`): only `mitAgentCanWorkTicket` agents offered (one condition). Smoke: 13 (count, quick
+    board), 42 (picker).
+  - Project tickets apart (functions/project_tickets.php): ours `functions/mit_projects.php` - the calendar split only, `mitServiceTicketsAnd`.
+  - Reply To line, Resolve - no response, status first response / reply status, timers, New Ticket status / schedule, recurring made
+    ahead, offices, invoice bulk, service accounts, labor costs: ITFlow's. Ours left: invoice bulk's QuickBooks rules (invoiceBulkCan
+    'email', invoiceBulkWhyNot), Customer Thermometer skips `ticket_no_response_at`, `mitServiceUserSql` shim (functions/mit_service_users.php)
+    for our lists, `mitProfitDefaultBasis` / `mitProfitPartsAdd` (functions/mit_profit.php - laborProfitBasis, laborProfitAdd).
+  - Note work times (ticket_replies.ticket_reply_work_*): `functions/mit_reply_times.php` - timesheets read them on the person's own
+    clock (`mitReplyPersonClock`) - one zone per entry, the one in force at its start (end converted with the start as anchor); the quick fix stores with that zone (`mitReplyCompanyClock(..., $anchor)`) - scenario-ts-zone-entry; the reply box itself on the agent's own clock (the user's choice, Nov 22 - ITFlow takes company time): `mitReplyViewNow` (#workTimes data-now), `mitReplyWorkFromView` (add / edit_ticket_reply after ticketWorkRange), `mitReplyWorkToView` (note header, edit window), `mitReplyViewZoneHint` (`[data-mit-reply-zone]`) - ITFlow's viewer zone (timezoneToView / FromView); smoke: last test of 95, `mitReplyWorkGuardAdd` / `Edit` (one line each in add / edit_ticket_reply), quick fix from the day panel.
+  - Time zone: ITFlow's Preferences field (the user confirmed Nov 23: ticket time lands on a timesheet in the zone in force when the work was
+    done, not the zone it was typed in later); timezoneSave calls `mitTsSaveZone` (history in mit_ts_zone_changes) and mitTsSaveZone writes
+    ITFlow's user_config_timezone - kept in step both ways.
+  - Microsoft 365 mail: ITFlow's Graph send / mailbox (functions/mail_graph.php); mailGraphToken's token request is signed with our
+    certificate (`mitMicrosoftTokenFields`, one line); `mitM365MailGraphScopes` reads config_mail_graph_scopes. Our app, certificate,
+    calendar app and Outlook stay. Test stand-in: MAIL_MICROSOFT_LOGIN_URL / MAIL_GRAPH_URL in tests/mocks/ms/constants.php.
+  - Cron health (functions/cron_health.php, Cron Watch, /health.php): `mitCronExtraProblems` (the Microsoft 365 certificate - one line at
+    the end of cronHealthProblems), `mitCronNavHtml` (top-bar warning), `/mit_health.php` = require of health.php. mitUpgradeSecrets
+    runs daily from cron/mit_consistency.php.
+  - Dev mode (functions/dev_mode.php): `functions/mit_dev_mode.php` bridges `$config_mit_dev_mode` -> `$config_dev_mode` at load - on if either says so; ITFlow's devModeConfigSet sets ours off (`mitDevRetireOldLines`, one line), so after the first switch in Admin > Backup ITFlow's lines alone decide (M067
+    writes ITFlow's names), keeps `mitDevAllows` for our integrations and the custom-action hook.
+  - Restore (functions/backup_restore.php, queued, cron): `mitRestoreUseTempDir` at the start of backupRestoreRunQueued; setup /
+    restore_cli keep `mitRestoreItflowUpdates`.
+  - Quotes (functions/quote_pricing.php, quote_images.php): ours `mitPaperAddRow` (posts pricing / cost / price_method / price_percent to
+    billing_item_add), `mitQuoteProfitBox`, `mitPaperLineExtras`, `mitApiHideCost` (one line in api/v1/read_output.php - no cost in any
+    API read), `mitProductApiColumns`. API keys: `Authorization: Bearer` again (one line in apiKeyFromRequest).
+  - Module switches: Purchasing and Dispatch are ITFlow's (moduleOn); ours keeps Timesheets. AI wall: password_history, the Graph token
+    and RMM keys are forbidden names.
+  - Purchasing (functions/purchase_orders.php, agent/to_order.php / purchase_orders.php / purchase_order.php / receiving.php, settings
+    config_po_*, switch moduleOn('purchasing'); "Procurement" above is superseded where it names our pages - those are gone). Ours:
+    `functions/mit_procurement.php` (helpers, `mitProcAddItem` = order_items + `mit_order_item_links`, approval and notice hooks),
+    `mit_procurement_parts.php` (ticket Parts box, billing parts / To Bill, quote and invoice ordering, `MIT_PART_PROC_STATUS_SQL` - an
+    order item ITFlow deleted counts as cancelled, tidy), `mit_procurement_extras.php` (client move, receiving / undo extras, invoice and
+    project status, PO line projects - `COALESCE(mit_po_item_projects, the item's own)`), `agent/modals/mit_procurement/po_project.php`
+    (Link to a project; handler `mit_po_set_project` in agent/post/mit_procurement_parts.php). Hooks, one guarded line each:
+    poMayApprove (`mitPoMayApproveOwn` - whoever shaped it, from ITFlow's audit log), poTell (`mitPoTellSwitches` - po_app / po_email),
+    poDecide approve (`mitPoSeenTotalProblem`) + agent/modals/purchasing/po_decide.php (`mitPoSeenTotalField`), poReceive
+    (`!mitProcReceiveNoShelf($line)` on the stock condition - ticket parts never go on the shelf; `mitProcAfterReceive` after the
+    po_receipts INSERT, inside its transaction: ticket note, ticket_assets, invoice line stock given back, recorded in
+    mit_po_receipt_extras), poUndoReceipt (`mitProcUndoReceiptExtras` at the start - throws to refuse), agent/post/purchase_order.php
+    po_receive (`mitProcLock('receive')`, `mitProcReceiveReview`), agent/purchase_order.php (`mitPoProjectMenuItem`, `mitPoItemFor` under
+    each line), agent/receiving.php (`mitProcReceivingExtras`). Now ITFlow's rules: receiving always shelves own stock and makes assets
+    where a type is picked; undoing a receipt needs Full Procurement; draft POs are cancelled, not deleted.
+- ITFlow 26.12.1 (Nov 23, 26.12.1.1 - master, 18 commits; database 4.1.1 -> 4.1.7): phone systems (functions/phone.php - FusionPBX, desk phones,
+  screen pops, `phone_*` tables), network platforms (functions/rmm_unifi.php, rmm_network.php - UniFi, `rmm_networks` / `rmm_seen`, interface
+  links from the platform), rack holders (4.1.3 rack_units slot / holder / position), P&L by quarter, RMM fixes. No name clashes; the report's
+  overlaps were word matches (ITFlow's RMM is Tactical + UniFi - our NinjaOne stays). The user chose 26.12.1.1 (ITFlow's version + ours) for it.
+  Conflicts: admin/includes/side_nav.php (our Integrations line, then theirs), agent/user/user_preferences.php (our Timesheet section, then
+  their My desk phone), agent/post/client.php (our clientDeleteForGood kept - their new phone step moved into it: clientMergeTables now lists
+  the phone / rmm tables, and clientDeleteForGood keeps phone_domains, rmm_networks, rmm_seen with client 0, deletes calls / phones / events).
+- AI helper and ITFlow's Knowledge Base (Nov 22, 26.12.1 - the user's request: Ask Bob reads the new Knowledge Base; Write up can save to it,
+  published or draft). Library: M070 `mit_ai_sources.kb_article_id` (UNIQUE, FK kb_articles CASCADE); `mitAiKbColumn` / `mitAiKbReady` (kbOn() + the
+  column), `mitAiKbSource` - published (`kb_article_published_at` set), unarchived articles only (the user's choice), client 0 (any agent with Support view
+  reads every article in ITFlow), head "Knowledge Base article ..."; `mitAiSourceKind` / `mitAiReadSource` read any kind (ticket | document | kb) for the
+  index, explain, the write-up's cited sources; the index pass has a third cursor (`ai_helper_cursor_kb`), and every run drops sources of articles archived or
+  back to drafts (bulk actions can keep the updated time) or all of them with the Knowledge Base off (only when ITFlow's settings are loaded - `cron/mit_ai_index.php` requires load_global_settings.php, else kbOn() read false and every run dropped the articles; scenario-ai-kb runs the real job); search treats articles like documents (kept places,
+  weight), kind 'kb', link `/agent/kb_article.php?kb_article_id=`; `mitAiIndexVersion` carries 'k'; admin page "Knowledge Base N of M published";
+  consistency check covers them; `kb_articles` is on the wall check's table list (MIT_AI_READS). Write up: a second panel button `[data-mit-ai-writeup-kb]`
+  (only when `kbClosedText(2) === ''`) opens `agent/modals/mit_ai/kb_article.php` - ITFlow's `modals/kb/kb_article_form.php` posting ITFlow's
+  `add_kb_article` (`from_ticket_id` for the ticket's history), filled by `mitAiDocumentDraft($conversation_id, 0, true)` (general: no client, people or
+  system names; ajax `draft` with `kb=1`); footer Save as draft / Publish (`[data-mit-ai-kb-save]`) set ITFlow's Published switch; who reads it stays ITFlow's
+  field (agents only to start). The AI stand-in answers a write-up for "You write knowledge base articles". Scenario `scenario-ai-kb.php`, smoke: last two
+  tests of `34-ai-document.spec.js`.
 - Logo in emails (26.10.165): ITFlow's `emailHtml` links the logo as https://<base url>/uploads/settings/<file> - broken wherever the reader can't
   reach the server. `mitMailInlineImages($mail)` (functions/mit_common.php, one guarded line in `cron/mail_queue.php` before the development-mode
   redirect) swaps any `<img src>` of uploads/settings (real images only, inside the folder) for `cid:mit-img-<n>@itflow` + `addEmbeddedImage`
@@ -1902,6 +2025,20 @@ model: see DEPLOYMENT.md.
   labels plain text, scrubbed; `mitAiDiagramStyle` drops image / link / tooltip / html and any address, adds html=0; ids checked, MIT_AI_DIAGRAM_CELLS).
   POST `build_ai` (multipart; the session is closed before the call). The AI stand-in answers "draw.io diagrams" with an outside image, a link, HTML and a
   password on purpose. Scenario `scenario-diagram-build.php`, second test of smoke 58.
+- API for our features (Nov 23, 26.12.1.1 - the user's request; the user chose boards, timesheets / payroll, ticket parts + billing extras, writes
+  with the pages' rules): `functions/mit_api.php` (ours, required from mit_common.php) - `mitApiFail` / `mitApiList` (page by limit / offset, empty =
+  success True, count 0, `total`) / `mitApiDone`, `mitApiTicket` (client limits via the enforcer's apiUserCanAccessClient). Endpoints: `api/v1/mit_boards/`
+  read (boards + members + open counts; `?ticket_id=` its board + mit_board_moves) / move (`mitBoardMove`, open tickets, escalate needs a reason);
+  `mit_timesheets/` (per person per pay period: sheet + `mitApiTsHours` of mitTsTotals), `mit_payroll/` (the report's summary + leave balances +
+  mitReimbTotals; module_timesheets View), `mit_charge_codes/`, `mit_leave/` (mitLeaveBalancesAt), `mit_reimbursements/` (mitReimbItems) - read only,
+  people via `mitApiTsPeople` (own, reports, everyone with Timesheets view - as mitTsVisibleUsers); `mit_ticket_parts/` read / create / update /
+  remove (mitTicketPartSave / mitTicketPartRemove; `remove.php` because the enforcer holds delete.php to level 3 and the Parts box needs Support
+  edit; never unit_cost - `mitApiPart`). Our fields on ITFlow's reads: `mitApiExtras($rows, $resource)` - one line in `api/v1/read_output.php`
+  (enforcer's `$resource`) and in the four reads that echo their own JSON (`invoices`, `quotes`, `recurring_invoices`, `contracts` read.php):
+  tickets mit_board_id / _name, billing mit_discount_percent / _product_id / mit_minimum_lines, invoices mit_quickbooks, contracts mit_unlimited_hours.
+  Enforcer (`api/v1/enforce_api_rbac.php`): the resource map lines and `move.php` / `remove.php` at level 2. Never in the API: costs, the AI helper,
+  integration secrets, per-agent look / layout. Docs `MIT_API.md` (the reference), README. Scenario `scenario-api-features.php` (real HTTP, an admin
+  key and a client-limited Support-edit key).
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

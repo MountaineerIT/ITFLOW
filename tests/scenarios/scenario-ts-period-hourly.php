@@ -52,7 +52,7 @@ try {
     $reply('2026-08-11 11:00:00', '03:00:00', 'Internal'); // internal note: not counted (ticket_internal 0)
     $reply('2026-08-11 16:00:00', '02:07:00');             // 2:07 -> rounded to 2:00
     $r_late = $reply('2026-08-13 10:00:00', '01:00:00');   // posted Thu, worked Wed evening
-    mysqli_query($mysqli, "INSERT INTO mit_reply_times SET reply_id = $r_late, work_start = '2026-08-12 20:00:00', work_end = '2026-08-12 21:00:00'");
+    mysqli_query($mysqli, "UPDATE ticket_replies SET ticket_reply_work_start = '2026-08-12 20:00:00', ticket_reply_work_end = '2026-08-12 21:00:00' WHERE ticket_reply_id = $r_late"); // ITFlow keeps them since 26.12
     // Leave to spend: a 10 h adjustment
     mitLeavePost($U, $pto_bank['bank_id'], '2026-07-01', 600, 'adjust', null, 'ZZ scenario');
 
@@ -161,7 +161,6 @@ try {
     $sheet_ids = [];
     $res = mysqli_query($mysqli, "SELECT sheet_id FROM mit_timesheets WHERE user_id = $U");
     while ($row = mysqli_fetch_row($res)) { $sheet_ids[] = intval($row[0]); }
-    mysqli_query($mysqli, "DELETE FROM mit_reply_times WHERE reply_id IN (SELECT ticket_reply_id FROM ticket_replies WHERE ticket_reply_ticket_id = $T)");
     mysqli_query($mysqli, "DELETE FROM ticket_replies WHERE ticket_reply_ticket_id = $T");
     mysqli_query($mysqli, "DELETE FROM tickets WHERE ticket_id = $T");
     foreach (['mit_time_entries', 'mit_timesheets', 'mit_leave_ledger', 'mit_timesheet_people', 'mit_ts_days', 'mit_ts_work_periods'] as $table) {

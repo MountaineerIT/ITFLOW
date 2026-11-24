@@ -18,7 +18,7 @@
  *
  * Besides events, the calendar shows what other modules have dated: scheduled
  * tickets, project starts and due dates, service reviews, recurring tickets,
- * renewals and invoices falling due (calendarSources()). Each agent can also
+ * renewals, invoices falling due and holidays (calendarSources()). Each agent can also
  * subscribe to their own schedule - their scheduled tickets, the events they
  * are on, the projects they manage - from a phone, Nextcloud or Google.
  *
@@ -33,7 +33,7 @@ const CALENDAR_REPEATS = [
     'Year' => ['YEARLY', 'year', 'years'],
 ];
 
-/** How long a scheduled ticket is taken to last on the calendar, in feeds and in its invitation - tickets store only the start. */
+/** How long booked work on a ticket lasts when it was booked without an end (tickets.ticket_schedule_end - ticketScheduleEnd()). */
 const CALENDAR_TICKET_MINUTES = 60;
 
 /** How far a subscription link reaches, back and forward. Repeating events are always included. */
@@ -218,9 +218,9 @@ function calendarWhenText($row, $start = null, $end = null) {
         return date('D, M j', $s) . ' - ' . date('D, M j, Y', $e) . ' (all day)';
     }
     if (date('Y-m-d', $s) === date('Y-m-d', $e)) {
-        return date('D, M j, Y, g:i A', $s) . ($e > $s ? ' - ' . date('g:i A', $e) : '');
+        return date('D, M j, Y g:i A', $s) . ($e > $s ? ' - ' . date('g:i A', $e) : '');
     }
-    return date('D, M j, g:i A', $s) . ' - ' . date('D, M j, Y, g:i A', $e);
+    return date('D, M j, g:i A', $s) . ' - ' . date('D, M j, Y g:i A', $e);
 }
 
 /** Where an event is as one line - the site's name and address - or the location typed in. */
@@ -257,7 +257,7 @@ function calendarEventRepeats($row) {
     return isset(CALENDAR_REPEATS[(string) ($row['event_repeat'] ?? '')]);
 }
 
-/** "Every week", "Every 2 weeks until Mar 3, 2027", or '' for an event that does not repeat. */
+/** "Every week", "Every month on the third Wednesday", "Every 2 weeks until Mar 3, 2027", or '' for an event that does not repeat. */
 function calendarRepeatText($row) {
     if (!calendarEventRepeats($row)) {
         return '';
@@ -265,13 +265,19 @@ function calendarRepeatText($row) {
     $interval = max(1, intval($row['event_repeat_interval'] ?? 1));
     [, $one, $many] = CALENDAR_REPEATS[(string) $row['event_repeat']];
     $text = $interval === 1 ? "Every $one" : "Every $interval $many";
-    if (function_exists('mitByDayRule') && in_array($row['event_repeat'], ['Month', 'Year'], true) && mitByDayRule($row['event_repeat_by_day'] ?? '') !== '') {
-        $text .= ' on ' . mitByDayText($row['event_repeat_by_day']) . ($row['event_repeat'] === 'Year' && !empty($row['event_start']) ? ' of ' . date('F', strtotime($row['event_start'])) : '');  // Mountaineer IT
+    $by_day = calendarEventByDay($row);
+    if ($by_day !== '') {
+        $text .= ' on ' . byDayText($by_day) . ($row['event_repeat'] === 'Year' ? ' of ' . date('F', strtotime($row['event_start'])) : '');
     }
     if (!empty($row['event_repeat_until'])) {
         $text .= ' until ' . date('M j, Y', strtotime($row['event_repeat_until']));
     }
     return $text;
+}
+
+/** The weekday a monthly or yearly event repeats on ("3WE", functions/by_day.php) - '' for the same date each time. */
+function calendarEventByDay($row) {
+    return in_array($row['event_repeat'] ?? '', ['Month', 'Year'], true) ? byDayRule($row['event_repeat_by_day'] ?? '') : '';
 }
 
 /** The dates of occurrences that have been skipped - ['Y-m-d', ...]. */
@@ -294,6 +300,7 @@ function calendarSkippedDates($row) {
  * running date, so a long series cannot drift and a 9:00 meeting stays at 9:00
  * either side of a DST change. Monthly on the 31st and yearly on Feb 29 skip the
  * months without that day, as RFC 5545 does, rather than rolling into the next.
+ * One on a weekday of the month (event_repeat_by_day) is on that day of each one.
  *
  * An occurrence still under way at the start of the window is included. The
  * bundled FullCalendar build has no rrule plugin, so the page gets the
@@ -328,23 +335,21 @@ function expandRecurringEvent(array $event, $window_start, $window_end, $limit =
     $until = !empty($event['event_repeat_until']) ? substr($event['event_repeat_until'], 0, 10) . ' 23:59:59' : null;
     $skip = array_flip(calendarSkippedDates($event));
     $step = ['Day' => 'day', 'Week' => 'week', 'Month' => 'month', 'Year' => 'year'][$repeat];
-    $base_day = (int) $base->format('j');
-    // Mountaineer IT: monthly / yearly on a weekday ("the third Wednesday") - functions/mit_recurring.php
-    $by_day = ($step === 'month' || $step === 'year') && function_exists('mitByDayRule') ? mitByDayRule($event['event_repeat_by_day'] ?? '') : '';
+    $base_day = intval($base->format('j'));
+    $by_day = calendarEventByDay($event);
 
     $occurrences = [];
     for ($i = 0; count($occurrences) < $limit && $i < 50000; $i++) {
 
         $candidate = clone $base;
         if ($i > 0 && $by_day !== '') {
-            $months = $i * $interval * ($step === 'year' ? 12 : 1);
-            $month = (int) $base->format('n') + $months;
-            $year = (int) $base->format('Y') + intdiv($month - 1, 12);
-            [$y, $m, $d] = explode('-', mitByDayDate($year, ($month - 1) % 12 + 1, $by_day));
-            $candidate->setDate((int) $y, (int) $m, (int) $d);
+            // Stepped from the 1st, so no month is passed over, then put on the rule's day - at the same time
+            $candidate->setDate(intval($base->format('Y')), intval($base->format('n')), 1);
+            $candidate->modify('+' . ($i * $interval) . " $step");
+            $candidate->setDate(intval($candidate->format('Y')), intval($candidate->format('n')), intval(substr(byDayDate(intval($candidate->format('Y')), intval($candidate->format('n')), $by_day), 8, 2)));
         } elseif ($i > 0) {
             $candidate->modify('+' . ($i * $interval) . " $step");
-            if (($step === 'month' || $step === 'year') && (int) $candidate->format('j') !== $base_day) {
+            if (($step === 'month' || $step === 'year') && intval($candidate->format('j')) !== $base_day) {
                 if ($candidate > $to) {
                     break;
                 }
@@ -418,7 +423,7 @@ function calendarSetAttendees($event_id, $client_id, array $user_ids, array $con
     $user_ids = array_values(array_unique(array_filter(array_map('intval', $user_ids))));
     if ($user_ids) {
         $valid = [];
-        $sql = mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_id IN (" . implode(',', $user_ids) . ") AND user_type = 1 AND user_archived_at IS NULL");
+        $sql = mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_id IN (" . implode(',', $user_ids) . ") AND user_type = 1" . serviceAccountsOutSql() . " AND user_archived_at IS NULL");
         while ($row = mysqli_fetch_row($sql)) {
             $valid[] = intval($row[0]);
         }
@@ -557,12 +562,30 @@ function calendarEventFormSet($post, $client_id, &$error = '') {
         $location_id = intval(assetClientOwnedId('location', $post['location_id'], $client_id));
     }
 
+    // The weekday a monthly or yearly one repeats on (functions/by_day.php) - the one picked, when the
+    // start falls on it; from a form without the field, the one it had ('repeat_on_current') follows the start
+    $by_day_sql = '';
+    if (byDayReady()) {
+        $by_day = '';
+        if ($repeat === 'Month' || $repeat === 'Year') {
+            $by_day = isset($post['repeat_on_field']) || array_key_exists('repeat_on', $post)
+                ? byDayForDate($post['repeat_on'] ?? '', $start_date)
+                : byDayFollow($post['repeat_on_current'] ?? '', $start_date);
+        }
+        $by_day_sql = ", event_repeat_by_day = " . ($by_day !== '' ? "'$by_day'" : 'NULL');
+    }
+
+    // The reminder - only from a form that showed it (functions/calendar_reminders.php)
+    if (calendarRemindersReady() && !empty($post['reminder_field'])) {
+        $reminder = calendarReminderFromInput($post['reminder'] ?? '');
+        $by_day_sql .= ", event_reminder = " . ($reminder === null ? 'NULL' : $reminder);
+    }
+
     return "event_title = '" . escapeSql(mb_substr($title, 0, 200)) . "',
         event_location = '" . escapeSql(mb_substr(trim((string) ($post['location'] ?? '')), 0, 500)) . "',
         event_description = '" . escapeSql(trim((string) ($post['description'] ?? ''))) . "',
         event_start = '$start', event_end = '$end', event_all_day = $all_day,
-        event_repeat = '$repeat', event_repeat_interval = $interval, event_repeat_until = " . ($until !== '' ? "'$until'" : 'NULL') . ","
-        . (function_exists('mitEventByDaySql') /* Mountaineer IT: the third Wednesday */ ? mitEventByDaySql($repeat, $post['repeat_on'] ?? '', $start_date) : '') . "
+        event_repeat = '$repeat', event_repeat_interval = $interval, event_repeat_until = " . ($until !== '' ? "'$until'" : 'NULL') . "$by_day_sql,
         event_calendar_id = $calendar_id, event_client_id = " . intval($client_id) . ", event_location_id = $location_id";
 }
 
@@ -595,9 +618,10 @@ function calendarSources() {
             'title' => 'Domains, certificates, licenses and warranties expiring'],
         'invoices' => ['label' => 'Invoices due', 'icon' => 'fa-file-invoice-dollar', 'color' => '#15803d', 'module' => 'module_sales', 'default' => false,
             'title' => 'Unpaid invoices on the day they fall due'],
+        'holidays' => ['label' => 'Holidays', 'icon' => 'fa-calendar-times', 'color' => '#dc3545', 'module' => 'module_support', 'default' => true,
+            'title' => 'Days the office is closed - the closure days in Admin > SLA'],
     ];
     $sources += function_exists('mitOutlookCalendarSources') ? mitOutlookCalendarSources() : []; // Mountaineer IT: Outlook busy times
-    $sources += function_exists('mitHolidayCalendarSources') ? mitHolidayCalendarSources() : []; // Mountaineer IT: holidays (closure days)
     return array_filter($sources, function ($source) {
         return lookupUserPermission($source['module']) >= 1;
     });
@@ -621,11 +645,8 @@ function calendarSourceItems($key, $from, $to, array $opts = []) {
         return [];
     }
     $source = $sources[$key];
-    if ($key === 'outlook_busy') {
-        return mitOutlookBusyItems($from, $to, $opts); // Mountaineer IT
-    }
-    if ($key === 'holidays' && function_exists('mitHolidayCalendarItems')) {
-        return mitHolidayCalendarItems($from, $to); // Mountaineer IT
+    if ($key === 'outlook_busy' && function_exists('mitOutlookBusyItems')) {
+        return mitOutlookBusyItems($from, $to, $opts); // Mountaineer IT: Outlook busy times (functions/mit_outlook.php)
     }
     $client_id = intval($opts['client_id'] ?? 0);
     $user_id = intval($opts['user_id'] ?? 0);
@@ -641,38 +662,50 @@ function calendarSourceItems($key, $from, $to, array $opts = []) {
 
     if ($key === 'tickets') {
         $can_move = calendarCanScheduleTickets();
-        $sql = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_schedule, ticket_schedule_end, ticket_onsite, ticket_client_id,
+        // Each booking at its length (ticketScheduleEnd()) - one running into the range from the day before shows too
+        $sql = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_schedule, ticket_onsite, ticket_client_id,
+                " . (ticketScheduleEndReady() ? 'ticket_schedule_end' : 'NULL AS ticket_schedule_end') . ",
                 ticket_resolved_at, ticket_closed_at, ticket_assigned_to, client_name, user_name, ticket_status_name
             FROM tickets
             LEFT JOIN clients ON client_id = ticket_client_id
             LEFT JOIN users ON user_id = ticket_assigned_to
             LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
-            WHERE " . (function_exists('mitScheduleOverlapSql') ? mitScheduleOverlapSql($from, $to) : "ticket_schedule BETWEEN '$from' AND '$to'") . " AND ticket_archived_at IS NULL
+            WHERE " . ticketScheduleOverlapSql($from, $to) . " AND ticket_archived_at IS NULL
             " . ($client_id ? "AND ticket_client_id = $client_id" : '') . "
             " . ($user_id ? "AND ticket_assigned_to = $user_id" : '') . "
             " . clientScopeSql('ticket_client_id'));
+        $today = date('Y-m-d 00:00:00');
         while ($row = mysqli_fetch_assoc($sql)) {
             $open = ticketIsOpen($row);
+            $end = ticketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']);
+            $agent = intval($row['ticket_assigned_to']) && $row['user_name'] !== null ? $row['user_name'] : '';
+            // Booked on a day gone by and still open - it was left behind (calendarLeftBehindSql())
+            $left_behind = $open && $end < $today;
             $items[] = [
                 'id' => 'ticket-' . intval($row['ticket_id']),
                 'title' => calendarTicketTitle($row, !$client_id),
                 'start' => $row['ticket_schedule'],
-                'end' => mitTicketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']), // Mountaineer IT: its end (M001)
+                'end' => $end,
                 'allDay' => false,
                 'editable' => $can_move && $open,
-                'durationEditable' => $can_move && $open, // Mountaineer IT: resize to change the end
-                // Mountaineer IT: each agent's scheduled work in their own color
-                'color' => intval($row['ticket_assigned_to']) ? mitAgentColor($row['ticket_assigned_to']) : $source['color'],
-                'className' => $open ? '' : 'itflow-cal-done',
+                // Dragging its end changes how long it takes - once bookings have an end
+                'durationEditable' => $can_move && $open && ticketScheduleEndReady(),
+                'className' => trim(($open ? '' : 'itflow-cal-done') . ($left_behind ? ' itflow-cal-left-behind' : '')),
+                // In its agent's colour, their first name beside the time
+                'color' => $agent !== '' ? calendarAgentColor($row['ticket_assigned_to']) : $source['color'],
                 'extendedProps' => ['kind' => 'ticket', 'ticket_id' => intval($row['ticket_id']), 'client_id' => intval($row['ticket_client_id']),
                     'icon' => intval($row['ticket_onsite']) ? 'fa-car' : 'fa-headset',
                     'modal' => 'modals/ticket/ticket.php?id=' . intval($row['ticket_id']),
-                    'detail' => implode(' · ', array_filter([$row['user_name'] ?: 'Unassigned', $row['ticket_status_name']]))],
+                    'agent_name' => calendarFirstName($agent), 'agent_full' => $agent,
+                    'detail' => implode(' · ', array_filter([$left_behind ? 'Left behind' : '', $agent === '' ? 'Unassigned' : '', $row['ticket_status_name']]))],
             ] + $base;
         }
-        // Mountaineer IT: agents helping on a ticket, at their own time or the lead's
-        $items = array_merge($items, mitTicketTechCalendarItems($from, $to, $client_id, $user_id, $can_move));
-        $items = function_exists('mitCalendarTicketItems') ? mitCalendarTicketItems($items, $opts) : $items; // Mountaineer IT: left behind, project bookings in their color
+        // The agents helping, at the lead's time or their own (functions/ticket_helpers.php)
+        $items = array_merge($items, ticketHelperCalendarItems($from, $to, $client_id, $user_id, $can_move));
+        // A project's tickets in the project colour, while they are kept apart (functions/project_tickets.php)
+        $items = projectTicketsCalendarItems($items);
+        // Mountaineer IT: boards this role sees, service bookings in one colour with the agent's as a bar, project bookings under Projects (functions/mit_calendar.php)
+        if (function_exists('mitCalendarTicketItems')) { $items = mitCalendarTicketItems($items, $opts); }
     } elseif ($key === 'projects') {
         $sql = mysqli_query($mysqli, "SELECT project_id, project_prefix, project_number, project_name, project_start, project_due, project_client_id, client_name
             FROM projects LEFT JOIN clients ON client_id = project_client_id
@@ -752,6 +785,16 @@ function calendarSourceItems($key, $from, $to, array $opts = []) {
                 ] + $base;
             }
         }
+    } elseif ($key === 'holidays') {
+        $sql = mysqli_query($mysqli, "SELECT holiday_id, holiday_date, holiday_name FROM business_holidays WHERE holiday_date BETWEEN '$from_date' AND '$to_date' ORDER BY holiday_date");
+        while ($row = mysqli_fetch_assoc($sql)) {
+            $items[] = [
+                'id' => 'holiday-' . intval($row['holiday_id']),
+                'title' => $row['holiday_name'],
+                'start' => $row['holiday_date'], 'allDay' => true,
+                'extendedProps' => ['kind' => 'holiday', 'icon' => 'fa-calendar-times', 'detail' => 'The office is closed'],
+            ] + $base;
+        }
     } elseif ($key === 'invoices') {
         $sql = mysqli_query($mysqli, "SELECT invoice_id, invoice_prefix, invoice_number, invoice_due, invoice_client_id, client_name
             FROM invoices LEFT JOIN clients ON client_id = invoice_client_id
@@ -776,7 +819,8 @@ function calendarSourceItems($key, $from, $to, array $opts = []) {
  * The events on some calendars between two datetimes, repeats expanded, ready
  * for FullCalendar. $opts: client_id (one client's, or every client this agent
  * can reach plus the events with no client), user_id (only the events that
- * agent is on or organised).
+ * agent is on or organised - not one they added that is assigned to others).
+ * Each is drawn for its agents (calendarEventItemsAgents()).
  */
 function calendarEventItems(array $calendar_ids, $from, $to, array $opts = []) {
     global $mysqli;
@@ -790,7 +834,7 @@ function calendarEventItems(array $calendar_ids, $from, $to, array $opts = []) {
     $user_id = intval($opts['user_id'] ?? 0);
     $user_query = $user_id ? "AND (event_created_by = $user_id OR EXISTS (SELECT 1 FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id AND a.attendee_user_id = $user_id))" : '';
 
-    $sql = mysqli_query($mysqli, "SELECT event_id, event_title, event_start, event_end, event_all_day, event_repeat, event_repeat_interval, event_repeat_until, event_repeat_skip," . (function_exists('mitEventByDayColumn') ? mitEventByDayColumn() : '') /* Mountaineer IT */ . "
+    $sql = mysqli_query($mysqli, "SELECT event_id, event_title, event_start, event_end, event_all_day, event_repeat, event_repeat_interval, event_repeat_until, event_repeat_skip," . (byDayReady() ? " event_repeat_by_day," : "") . "
             event_location, event_client_id, event_calendar_id, event_created_by, calendar_color, client_name, location_name,
             (SELECT COUNT(*) FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id) AS attendee_count,
             (SELECT COUNT(*) FROM calendar_event_attendees a WHERE a.attendee_event_id = event_id AND a.attendee_invited_at IS NOT NULL) AS invited_count
@@ -834,8 +878,8 @@ function calendarEventItems(array $calendar_ids, $from, $to, array $opts = []) {
             ];
         }
     }
-    if (function_exists('mitEventItemsAgents')) { $items = mitEventItemsAgents($items, $opts); } // Mountaineer IT: who each entry is assigned to
-    return $items;
+    // Who each is assigned to - in their colour, with their name
+    return calendarEventItemsAgents($items, $user_id);
 }
 
 /*
@@ -994,9 +1038,8 @@ function icsVtimezone($timezone, $from, $to) {
  * more than one, then UNTIL. A timed event's UNTIL is the end of that day in
  * UTC (RFC 5545 requires UTC when DTSTART carries a TZID); an all-day event's
  * is the date itself.
- * Mountaineer IT: $by_day ("3WE") and $start (for a yearly one's month) - functions/mit_recurring.php.
  */
-function icsRepeatToRrule($repeat, $interval = 1, $until = null, $all_day = false, $timezone = 'UTC', $by_day = '', $start = '') {
+function icsRepeatToRrule($repeat, $interval = 1, $until = null, $all_day = false, $timezone = 'UTC', $by_day = '', $start = null) {
 
     if (!isset(CALENDAR_REPEATS[(string) $repeat])) {
         return null;
@@ -1006,10 +1049,10 @@ function icsRepeatToRrule($repeat, $interval = 1, $until = null, $all_day = fals
     if (intval($interval) > 1) {
         $rule .= ';INTERVAL=' . intval($interval);
     }
-    // Mountaineer IT: "the third Wednesday" (BYDAY=3WE); a yearly one also says which month
-    $by_day = function_exists('mitByDayRule') && in_array((string) $repeat, ['Month', 'Year'], true) ? mitByDayRule($by_day) : '';
+    // On a weekday of the month - yearly ones in the month they start in
+    $by_day = in_array($repeat, ['Month', 'Year'], true) ? byDayRule($by_day) : '';
     if ($by_day !== '') {
-        $rule .= ((string) $repeat === 'Year' && $start ? ';BYMONTH=' . intval(date('n', strtotime($start))) : '') . ";BYDAY=$by_day";
+        $rule .= ';BYDAY=' . $by_day . ($repeat === 'Year' && $start ? ';BYMONTH=' . date('n', strtotime($start)) : '');
     }
     if (!empty($until)) {
         $rule .= ';UNTIL=' . ($all_day ? date('Ymd', strtotime($until)) : icsFormatUtc(substr($until, 0, 10) . ' 23:59:59', $timezone));
@@ -1074,7 +1117,7 @@ function icsEventLines(array $item, $timezone, $tzid) {
         }
     }
 
-    $rrule = icsRepeatToRrule($item['repeat'] ?? '', $item['repeat_interval'] ?? 1, $item['repeat_until'] ?? null, $all_day, $timezone, $item['repeat_by_day'] ?? '', $start); // Mountaineer IT: + weekday rule
+    $rrule = icsRepeatToRrule($item['repeat'] ?? '', $item['repeat_interval'] ?? 1, $item['repeat_until'] ?? null, $all_day, $timezone, $item['repeat_by_day'] ?? '', $item['start'] ?? null);
     if ($rrule) {
         $lines[] = "RRULE:$rrule";
         foreach ($item['skip'] ?? [] as $date) {
@@ -1222,6 +1265,7 @@ function calendarEventIcsItem(array $event, $busy = false) {
         'repeat_by_day' => $event['event_repeat_by_day'] ?? '', // Mountaineer IT
         'repeat_interval' => $event['event_repeat_interval'] ?? 1,
         'repeat_until' => $event['event_repeat_until'] ?? null,
+        'repeat_by_day' => calendarEventByDay($event),
         'skip' => calendarSkippedDates($event),
         'busy' => $busy,
     ];
@@ -1305,7 +1349,8 @@ function calendarUserFeedItems(array $feed, $from, $to) {
     $items = [];
 
     if (!empty($feed['feed_tickets']) && lookupUserPermission('module_support') >= 1) {
-        $sql = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_schedule, ticket_schedule_end, ticket_onsite, ticket_client_id,
+        $sql = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_schedule, ticket_onsite, ticket_client_id,
+                " . (ticketScheduleEndReady() ? 'ticket_schedule_end' : 'NULL AS ticket_schedule_end') . ",
                 ticket_created_at, ticket_updated_at, ticket_resolved_at, ticket_closed_at, client_name, user_name,
                 contact_name, contact_phone, contact_phone_country_code, contact_extension, contact_mobile, contact_mobile_country_code,
                 location_name, location_address, location_city, location_state, location_zip
@@ -1314,7 +1359,7 @@ function calendarUserFeedItems(array $feed, $from, $to) {
             LEFT JOIN users ON user_id = ticket_assigned_to
             LEFT JOIN contacts ON contact_id = ticket_contact_id AND ticket_contact_id > 0
             LEFT JOIN locations ON location_id = IF(ticket_location_id > 0, ticket_location_id, contacts.contact_location_id)
-            WHERE ticket_schedule BETWEEN '$from' AND '$to' AND ticket_archived_at IS NULL
+            WHERE " . ticketScheduleOverlapSql($from, $to) . " AND ticket_archived_at IS NULL
             " . ($everyone ? '' : "AND ticket_assigned_to = $user_id") . "
             " . clientScopeSql('ticket_client_id'));
         while ($row = mysqli_fetch_assoc($sql)) {
@@ -1325,7 +1370,7 @@ function calendarUserFeedItems(array $feed, $from, $to) {
             $items[] = [
                 'uid' => "itflow-ticket-$ticket_id@$host",
                 'start' => $row['ticket_schedule'],
-                'end' => mitTicketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']), // Mountaineer IT: its end (M001)
+                'end' => ticketScheduleEnd($row['ticket_schedule'], $row['ticket_schedule_end']),
                 'summary' => calendarTicketTitle($row) . ($everyone && $row['user_name'] ? ' (' . $row['user_name'] . ')' : '') . (ticketIsOpen($row) ? '' : ' [done]'),
                 'location' => implode(', ', array_filter([$row['location_address'], $row['location_city'], trim($row['location_state'] . ' ' . $row['location_zip'])])),
                 'description' => implode("\n", array_filter([
@@ -1341,10 +1386,9 @@ function calendarUserFeedItems(array $feed, $from, $to) {
                 'busy' => $busy,
             ];
         }
+        // And the tickets they are helping on (functions/ticket_helpers.php)
+        $items = array_merge($items, ticketHelperFeedItems($feed, $from, $to));
     }
-
-    // Mountaineer IT: tickets they are helping on (functions/mit_ticket_techs.php)
-    $items = array_merge($items, mitTicketTechFeedItems($feed, $from, $to));
 
     if (!empty($feed['feed_events'])) {
         $sql = mysqli_query($mysqli, "SELECT calendar_events.*, location_name, location_address, location_city, location_state, location_zip
@@ -1476,4 +1520,339 @@ function calendarInvitedAttendees($event_id) {
     return array_values(array_filter(calendarEventAttendees($event_id), function ($attendee) {
         return !empty($attendee['attendee_invited_at']);
     }));
+}
+
+/*
+ * ---------- agents on the calendar ----------
+ *
+ * Each agent has a colour - picked in Account > Preferences or Admin > Users,
+ * or worked out from their user id until they pick one - that their booked
+ * tickets and the events assigned to them are drawn in, with their first name
+ * beside the time. An event's agents (its attendee agents) are who it is
+ * assigned to. Colours and what the calendar page last showed are kept in
+ * user_settings (database 3.8.4).
+ */
+
+/** Twelve colours that read on light and dark and are easy to tell apart - the first twelve agents get one each. */
+const CALENDAR_AGENT_COLORS = [
+    '#2563eb', '#16a34a', '#d97706', '#9333ea', '#dc2626', '#0891b2',
+    '#db2777', '#65a30d', '#7c3aed', '#ea580c', '#0d9488', '#4f46e5',
+];
+
+/** Whether the 3.8.4 update has run. */
+function calendarAgentSettingsReady() {
+    global $mysqli;
+    static $ready = null;
+    if ($ready === null) {
+        if (defined('CURRENT_DATABASE_VERSION')) {
+            $version = CURRENT_DATABASE_VERSION;
+        } else {
+            $result = mysqli_query($mysqli, "SELECT config_current_database_version FROM settings WHERE company_id = 1");
+            $version = $result && ($row = mysqli_fetch_row($result)) ? (string) $row[0] : '0';
+        }
+        $ready = version_compare($version, '3.8.4', '>=');
+    }
+    return $ready;
+}
+
+/** The colour an agent has until they pick one - the same every time. */
+function calendarAgentDefaultColor($user_id) {
+    return CALENDAR_AGENT_COLORS[(max(1, intval($user_id)) - 1) % count(CALENDAR_AGENT_COLORS)];
+}
+
+/** Every agent's picked colour, user_id => '#rrggbb' - read once a request; true after saving one. */
+function calendarAgentColors($reload = false) {
+    global $mysqli;
+    static $colors = null;
+    if ($colors === null || $reload) {
+        $colors = [];
+        $result = calendarAgentSettingsReady() ? mysqli_query($mysqli, "SELECT user_id, user_config_calendar_color FROM user_settings WHERE user_config_calendar_color IS NOT NULL") : false;
+        while ($result && $row = mysqli_fetch_row($result)) {
+            if (preg_match('/^#[0-9a-f]{6}$/i', (string) $row[1])) {
+                $colors[intval($row[0])] = strtolower($row[1]);
+            }
+        }
+    }
+    return $colors;
+}
+
+/** An agent's calendar colour - the one they picked, or their own default. Grey for nobody. */
+function calendarAgentColor($user_id) {
+    $user_id = intval($user_id);
+    if ($user_id <= 0) {
+        return '#6c757d';
+    }
+    return calendarAgentColors()[$user_id] ?? calendarAgentDefaultColor($user_id);
+}
+
+/** "Chris" from "Chris Thompson" - what the calendar shows beside a booking's time. */
+function calendarFirstName($name) {
+    $name = trim((string) $name);
+    return $name === '' ? '' : preg_split('/\s+/', $name)[0];
+}
+
+/*
+ * The Calendar color field - Account > Preferences (your own, $own) and Admin >
+ * Users (anyone's). Posts calendar_color and calendar_color_auto, which
+ * calendarAgentColorSave() reads. Nothing before the update.
+ */
+function calendarAgentColorField($user_id, $col = 'col-md-6', $own = false) {
+    if (!calendarAgentSettingsReady()) {
+        return '';
+    }
+    $user_id = intval($user_id);
+    $picked = $user_id ? (calendarAgentColors()[$user_id] ?? '') : '';
+    $id = 'calendarColor' . ($user_id ?: 'New');
+    $html = '<div class="' . escapeHtml($col) . '" data-cal-color-field>'
+        . '<label class="form-label" for="' . $id . '">Calendar color</label>'
+        . '<div class="d-flex flex-wrap align-items-center gap-2">'
+        . '<div class="input-group w-auto"><span class="input-group-text"><i class="fas fa-fw fa-palette"></i></span>'
+        . '<input type="color" class="form-control form-control-color" id="' . $id . '" name="calendar_color" value="' . ($user_id ? calendarAgentColor($user_id) : CALENDAR_AGENT_COLORS[0]) . '" title="Pick any color"></div>';
+    foreach (CALENDAR_AGENT_COLORS as $preset) {
+        $html .= '<button type="button" class="btn p-0 rounded-circle border itflow-cal-swatch" style="background: ' . $preset . '" data-cal-color="' . $preset . '" title="' . $preset . '" aria-label="' . $preset . '"></button>';
+    }
+    $html .= '</div>'
+        . '<div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" name="calendar_color_auto" value="1" id="' . $id . 'Auto"' . ($picked === '' ? ' checked' : '') . '>'
+        . '<label class="form-check-label" for="' . $id . 'Auto">Automatic' . ($user_id ? ' <span class="text-body-secondary">(' . calendarAgentDefaultColor($user_id) . ')</span>' : '') . '</label></div>'
+        . '<div class="form-text">' . ($own ? 'Your' : 'Their') . ' booked tickets and the events assigned to ' . ($own ? 'you' : 'them') . ' are drawn in it on the calendar.</div>'
+        . "<script>if (!window.itflowCalColorBound) { window.itflowCalColorBound = true;"
+        . " document.addEventListener('click', function (e) { var b = e.target.closest('[data-cal-color]'); if (!b) { return; } var f = b.closest('[data-cal-color-field]');"
+        . " f.querySelector('input[type=color]').value = b.dataset.calColor; f.querySelector('[name=calendar_color_auto]').checked = false; });"
+        . " document.addEventListener('input', function (e) { if (e.target.matches && e.target.matches('[data-cal-color-field] input[type=color]')) {"
+        . " e.target.closest('[data-cal-color-field]').querySelector('[name=calendar_color_auto]').checked = false; } }); }</script>"
+        . '</div>';
+    return $html;
+}
+
+/** Save the Calendar colour field for an agent - nothing when the form didn't have it. */
+function calendarAgentColorSave($user_id, array $post) {
+    global $mysqli;
+    $user_id = intval($user_id);
+    if (!$user_id || !calendarAgentSettingsReady() || !isset($post['calendar_color'])) {
+        return;
+    }
+    $color = strtolower(trim((string) $post['calendar_color']));
+    if (empty($post['calendar_color_auto']) && preg_match('/^#[0-9a-f]{6}$/', $color)) {
+        $value = "'$color'";
+    } else {
+        $value = 'NULL';
+    }
+    mysqli_query($mysqli, "INSERT INTO user_settings SET user_id = $user_id, user_config_calendar_color = $value ON DUPLICATE KEY UPDATE user_config_calendar_color = $value");
+    calendarAgentColors(true);
+}
+
+/*
+ * The agents on these events - who each is assigned to: event_id => [user_id => name], by name.
+ */
+function calendarEventAgents(array $event_ids) {
+    global $mysqli;
+    $event_ids = array_values(array_unique(array_filter(array_map('intval', $event_ids))));
+    $agents = [];
+    if ($event_ids) {
+        $sql = mysqli_query($mysqli, "SELECT attendee_event_id, user_id, user_name FROM calendar_event_attendees JOIN users ON user_id = attendee_user_id
+            WHERE attendee_event_id IN (" . implode(',', $event_ids) . ") AND attendee_archived_at IS NULL AND attendee_user_id > 0 ORDER BY user_name");
+        while ($row = mysqli_fetch_assoc($sql)) {
+            $agents[intval($row['attendee_event_id'])][intval($row['user_id'])] = $row['user_name'];
+        }
+    }
+    return $agents;
+}
+
+/** The agents an event can be assigned to: active agents, and any already on it - user_id => row. */
+function calendarEventAgentChoices(array $keep = []) {
+    global $mysqli;
+    $keep = array_map('intval', $keep);
+    $rows = [];
+    $sql = mysqli_query($mysqli, "SELECT user_id, user_name, user_avatar FROM users WHERE user_type = 1" . serviceAccountsOutSql() . " AND user_archived_at IS NULL
+        AND (user_status = 1 OR user_id IN (0" . ($keep ? ',' . implode(',', $keep) : '') . ")) ORDER BY user_name");
+    while ($row = mysqli_fetch_assoc($sql)) {
+        $rows[intval($row['user_id'])] = $row;
+    }
+    return $rows;
+}
+
+/*
+ * New Event's agents to start with: the agent whose calendar it was opened from
+ * (Whose - ?agent_id, an active agent), else the one making it.
+ */
+function calendarEventDefaultAgents($agent_id) {
+    global $session_user_id;
+    $agent_id = intval($agent_id);
+    if ($agent_id && isset(calendarEventAgentChoices()[$agent_id])) {
+        return [$agent_id];
+    }
+    return [intval($session_user_id)];
+}
+
+/*
+ * Put these agents on an event in place of the ones on it - its contacts and
+ * the others by email stay. With $notify, an agent taken off who had the
+ * invitation is sent the cancellation, and a new one the invitation when
+ * anyone on it has been sent it. [added names, removed names, emails sent].
+ */
+function calendarEventSetAgents(array $event, array $agent_ids, $notify = true) {
+    $event_id = intval($event['event_id']);
+    $contacts = [];
+    $emails = [];
+    $had_invites = false;
+    foreach (calendarEventAttendees($event_id) as $attendee) {
+        if ($attendee['kind'] === 'contact') {
+            $contacts[] = intval($attendee['attendee_contact_id']);
+        } elseif ($attendee['kind'] === 'guest') {
+            $emails[] = $attendee['email'];
+        }
+        $had_invites = $had_invites || !empty($attendee['attendee_invited_at']);
+    }
+    $before = calendarEventAgents([$event_id])[$event_id] ?? [];
+    $result = calendarSetAttendees($event_id, intval($event['event_client_id']), $agent_ids, $contacts, $emails);
+    $after = calendarEventAgents([$event_id])[$event_id] ?? [];
+    $sent = 0;
+    if ($notify && calendarCanEmail()) {
+        $sent += calendarSendInvites($event, 'cancel', array_values(array_filter($result['removed'], function ($attendee) {
+            return $attendee['kind'] === 'agent' && !empty($attendee['attendee_invited_at']);
+        })));
+        if ($had_invites && $result['new']) {
+            $sent += calendarSendInvites($event, 'invite', array_values(array_filter(calendarEventAttendees($event_id), function ($attendee) use ($result) {
+                return in_array(intval($attendee['attendee_id']), $result['new'], true);
+            })));
+        }
+    }
+    return [array_values(array_diff_key($after, $before)), array_values(array_diff_key($before, $after)), $sent];
+}
+
+/** "assigned to Bob, Ann; taken off Sam" - for the message and the audit log. */
+function calendarEventAgentsText(array $added, array $removed) {
+    return implode('; ', array_filter([$added ? 'assigned to ' . implode(', ', $added) : '', $removed ? 'taken off ' . implode(', ', $removed) : '']));
+}
+
+/*
+ * Events drawn for their agents (from calendarEventItems()): in the colour of the
+ * agent whose calendar is shown, or the first, with their first name beside the
+ * time ("Bob", "Bob +1") and everyone's in the tooltip. On one agent's calendar
+ * ($shown) an event assigned to others is left out, even one they added.
+ */
+function calendarEventItemsAgents(array $items, $shown = 0) {
+    $agents = calendarEventAgents(array_map(function ($item) {
+        return $item['extendedProps']['event_id'] ?? 0;
+    }, $items));
+    $shown = intval($shown);
+    foreach ($items as $key => &$item) {
+        $on = $agents[intval($item['extendedProps']['event_id'] ?? 0)] ?? [];
+        $item['extendedProps']['agents'] = array_keys($on);
+        if (!$on) {
+            continue;
+        }
+        if ($shown && !isset($on[$shown])) {
+            unset($items[$key]);
+            continue;
+        }
+        $first = isset($on[$shown]) ? $shown : array_key_first($on);
+        $item['color'] = calendarAgentColor($first);
+        $item['extendedProps']['agent_name'] = calendarFirstName($on[$first]) . (count($on) > 1 ? ' +' . (count($on) - 1) : '');
+        $item['extendedProps']['agent_full'] = implode(', ', $on);
+    }
+    unset($item);
+    return array_values($items);
+}
+
+/*
+ * ---------- the calendar page ----------
+ */
+
+/** The 7 days view's name - "timeGrid..." so it is drawn as a time grid. */
+const CALENDAR_VIEWS = ['dayGridMonth', 'timeGridWeek', 'timeGridSevenDays', 'timeGridDay', 'listWeek'];
+
+/** What the calendar page ('all', or 'client' inside a client) last showed for an agent - cleaned, [] for nothing kept. */
+function calendarUserState($user_id, $page) {
+    global $mysqli;
+    $user_id = intval($user_id);
+    if (!$user_id || !calendarAgentSettingsReady()) {
+        return [];
+    }
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_config_calendar_state FROM user_settings WHERE user_id = $user_id"));
+    $saved = json_decode((string) ($row[0] ?? ''), true);
+    $page = $page === 'client' ? 'client' : 'all';
+    return is_array($saved) && is_array($saved[$page] ?? null) ? calendarCleanState($saved[$page]) : [];
+}
+
+/** Keep what the calendar page showed, for every device. */
+function calendarUserStateSave($user_id, $page, array $state) {
+    global $mysqli;
+    $user_id = intval($user_id);
+    if (!$user_id || !calendarAgentSettingsReady()) {
+        return false;
+    }
+    $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_config_calendar_state FROM user_settings WHERE user_id = $user_id"));
+    $saved = json_decode((string) ($row[0] ?? ''), true);
+    $saved = is_array($saved) ? array_intersect_key($saved, ['all' => 1, 'client' => 1, 'dispatch' => 1]) : [];
+    $saved[$page === 'client' ? 'client' : 'all'] = calendarCleanState($state);
+    $json = mysqli_real_escape_string($mysqli, json_encode($saved));
+    return (bool) mysqli_query($mysqli, "INSERT INTO user_settings SET user_id = $user_id, user_config_calendar_state = '$json' ON DUPLICATE KEY UPDATE user_config_calendar_state = '$json'");
+}
+
+/** Only what the calendar page keeps, in the shapes it reads. */
+function calendarCleanState(array $state) {
+    $clean = [];
+    if (in_array($state['view'] ?? '', CALENDAR_VIEWS, true)) {
+        $clean['view'] = $state['view'];
+    }
+    if (isset($state['agent'])) {
+        $clean['agent'] = max(0, intval($state['agent']));
+    }
+    if (isset($state['hidden']) && is_array($state['hidden'])) {
+        $clean['hidden'] = array_values(array_slice(array_map('strval', array_map('intval', $state['hidden'])), 0, 200));
+    }
+    if (isset($state['sources']) && is_array($state['sources'])) {
+        // An object, even empty - the page sets keys on it
+        $clean['sources'] = new stdClass();
+        foreach ($state['sources'] as $key => $on) {
+            if (preg_match('/^[a-z_]{1,40}$/', (string) $key)) {
+                $clean['sources']->$key = (bool) $on;
+            }
+        }
+    }
+    return $clean;
+}
+
+/*
+ * Left behind: open tickets whose booked work ended on a day before today - it
+ * wasn't done and nobody moved it on. SQL for one (tickets as $t).
+ */
+function calendarLeftBehindSql($t = 'tickets') {
+    $end = ticketScheduleEndReady() ? "COALESCE(IF($t.ticket_schedule_end > $t.ticket_schedule, $t.ticket_schedule_end, NULL), $t.ticket_schedule + INTERVAL " . intval(CALENDAR_TICKET_MINUTES) . " MINUTE)"
+        : "$t.ticket_schedule + INTERVAL " . intval(CALENDAR_TICKET_MINUTES) . " MINUTE";
+    return "$t.ticket_schedule IS NOT NULL AND $t.ticket_resolved_at IS NULL AND $t.ticket_closed_at IS NULL AND $t.ticket_archived_at IS NULL AND $end < CURDATE()";
+}
+
+/** The tickets left behind - an agent's (0 for everyone's), in one client or all this agent can reach - longest left first. */
+function calendarLeftBehindTickets($user_id = 0, $client_id = 0, $limit = 50) {
+    global $mysqli;
+    $user_id = intval($user_id);
+    $client_id = intval($client_id);
+    $sql = mysqli_query($mysqli, "SELECT tickets.ticket_id, ticket_prefix, ticket_number, ticket_subject, ticket_priority, ticket_onsite, ticket_schedule,
+            ticket_client_id, client_name, user_name
+        FROM tickets
+        LEFT JOIN clients ON client_id = ticket_client_id
+        LEFT JOIN users ON user_id = ticket_assigned_to
+        WHERE " . calendarLeftBehindSql() . "
+        " . ($user_id ? "AND ticket_assigned_to = $user_id" : '') . "
+        " . ($client_id ? "AND ticket_client_id = $client_id" : '') . "
+        " . clientScopeSql('ticket_client_id') . "
+        ORDER BY ticket_schedule ASC
+        LIMIT " . intval($limit));
+    $tickets = [];
+    while ($row = mysqli_fetch_assoc($sql)) {
+        $tickets[] = [
+            'id' => intval($row['ticket_id']),
+            'reference' => ticketReference($row),
+            'subject' => $row['ticket_subject'],
+            'client' => $row['client_name'] ?: 'Internal',
+            'priority' => $row['ticket_priority'],
+            'onsite' => intval($row['ticket_onsite']),
+            'agent' => $row['user_name'] ?: 'Unassigned',
+            'booked' => date('D, M j', strtotime($row['ticket_schedule'])),
+            'days' => intval((strtotime(date('Y-m-d')) - strtotime(substr($row['ticket_schedule'], 0, 10))) / 86400),
+        ];
+    }
+    return $tickets;
 }

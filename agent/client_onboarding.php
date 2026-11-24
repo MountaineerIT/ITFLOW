@@ -98,6 +98,8 @@ define('FROM_CLIENT_ONBOARDING', true);
     <link rel="stylesheet" href="<?= staticFileUrl('/libs/sweetalert2/css/sweetalert2.min.css') ?>">
     <link rel="stylesheet" href="<?= staticFileUrl('/libs/intl-tel-input/css/intlTelInput.min.css') ?>">
     <link rel="stylesheet" href="<?= staticFileUrl('/css/itflow_custom.css') ?>">
+    <!-- "- Anyone -" choices without their dashes from the first paint (js/itflow_select_early.js) -->
+    <script src="<?= staticFileUrl('/js/itflow_select_early.js') ?>"></script>
 </head>
 
 <body class="itflow-setup itflow-gs itflow-co bg-body-tertiary" data-itflow-phone-country="<?= escapeHtml($country_iso2_array[$session_company_country] ?? '') ?>">
@@ -177,7 +179,7 @@ define('FROM_CLIENT_ONBOARDING', true);
                             <form action="post.php" method="post" class="m-0">
                                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
                                 <input type="hidden" name="client_id" value="<?= $client_id ?>">
-                                <button type="submit" name="client_onboarding_skip" value="<?= escapeHtml($co_step) ?>" class="btn btn-outline-secondary" data-co-skip>Skip for now</button>
+                                <button type="submit" name="client_onboarding_skip" value="<?= escapeHtml($co_step) ?>" class="btn btn-outline-secondary" data-co-skip>Skip for Now</button>
                             </form>
                         <?php } ?>
                     </div>

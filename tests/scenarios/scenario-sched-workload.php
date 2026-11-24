@@ -1,85 +1,98 @@
 <?php
 /*
- * Dispatch's Workload view and "This week" numbers (functions/mit_dispatch_workload.php) move by exactly what was done:
- * open / lead / helping / not booked / quiet / booked today and this week per tech, Move to (unbooked = assign, booked =
- * refused), and the week's inbound / closed per day and per agent (made for them, or reassigned to them this week).
+ * Dispatch's queue, Workload and "This week" are ITFlow's own since 26.12 (functions/dispatch.php). Ours on them: the service-board
+ * picker (?board= - mitDispatchBoardSql, one line each in dispatchQueue / dispatchWorkload / dispatchWeekStats): All shows every board,
+ * one board only its tickets, "My boards" the boards the agent is on - and each queue card carries its board's tag (mitDispatchQueueBoards).
+ * Two of the tech's tickets: one on the admin's board, one on the default board.
  */
 require __DIR__ . '/bootstrap.php';
-
-$tech = intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT user_id FROM users WHERE user_email = 'tech@test.test'"))[0] ?? 0);
+if (!function_exists('dispatchWorkload') || !function_exists('mitBoardsReady') || !mitBoardsReady()) {
+    echo "  FAIL ITFlow's Dispatch or our boards are not here\n";
+    exit(1);
+}
+$tech = intval(scenarioValue("SELECT user_id FROM users WHERE user_email = 'tech@test.test'"));
 $admin = $session_user_id;
 $client = scenarioClient();
 $tag = 'ZZwl' . date('His');
+$mine = array_keys(array_intersect_key(mitBoardsOfUser($admin), mitBoardsVisible()));
+$default = mitBoardDefaultId();
+if (!$mine || in_array($default, $mine, true)) {
+    echo "  FAIL the admin should be on a board other than the default (the test install's Sales)\n";
+    exit(1);
+}
+$board = intval($mine[0]);
 $tickets = [];
-$new_ticket = function ($subject, $assigned, $created = null) use (&$tickets, $mysqli, $client, $session_user_id) {
+$new_ticket = function ($subject, $assigned) use (&$tickets, $mysqli, $client, $session_user_id) {
     $n = 700000 + count($tickets) + intval(date('s')) * 100;
     mysqli_query($mysqli, "INSERT INTO tickets SET ticket_prefix = 'ZZ-', ticket_number = $n, ticket_subject = '$subject', ticket_details = 'scenario', ticket_priority = 'Low',
-        ticket_status = 2, ticket_created_by = $session_user_id, ticket_assigned_to = $assigned, ticket_client_id = $client, ticket_url_key = 'zw$n'"
-        . ($created ? ", ticket_created_at = '$created'" : ''));
+        ticket_status = 2, ticket_created_by = $session_user_id, ticket_assigned_to = $assigned, ticket_client_id = $client, ticket_url_key = 'zw$n'");
     return $tickets[] = mysqli_insert_id($mysqli);
 };
-$row_for = function ($user_id) {
-    foreach (mitDispatchWorkload([$GLOBALS['admin_id'], $GLOBALS['tech_id']], 1, 'all')['techs'] as $r) {
-        if ($r['id'] === $user_id) {
-            return $r;
+$with_board = function ($choice, callable $read) {
+    $_GET['board'] = $choice;
+    try {
+        return $read();
+    } finally {
+        unset($_GET['board']);
+    }
+};
+$open_for = function ($choice) use ($with_board, $tech, $admin) {
+    return $with_board($choice, function () use ($tech, $admin) {
+        foreach (dispatchWorkload([$admin, $tech])['agents'] as $r) {
+            if ($r['id'] === $tech) {
+                return $r['open'];
+            }
         }
-    }
-    return null;
+        return null;
+    });
 };
-$GLOBALS['admin_id'] = $admin;
-$GLOBALS['tech_id'] = $tech;
-$pick = function ($r) {
-    return ['open' => $r['open'], 'lead' => $r['lead'], 'helping' => $r['helping'], 'unbooked' => $r['unbooked'], 'quiet' => $r['quiet'], 'booked_today' => $r['booked_today'], 'booked_week' => $r['booked_week']];
+$inbound_for = function ($choice) use ($with_board, $tech, $admin) {
+    return $with_board($choice, function () use ($tech, $admin) {
+        $today = date('Y-m-d');
+        foreach (dispatchWeekStats([$admin, $tech])['days'] as $d) {
+            if ($d['date'] === $today) {
+                return $d['inbound'];
+            }
+        }
+        return null;
+    });
 };
-$diff = function ($a, $b) {
-    $out = [];
-    foreach ($a as $k => $v) {
-        $out[$k] = $b[$k] - $v;
-    }
-    return $out;
+$queue = function ($choice) use ($with_board, $tag) {
+    return $with_board($choice, function () use ($tag) {
+        return dispatchQueue('unbooked', ['q' => $tag])['tickets'];
+    });
 };
-$stats_for = function ($user_id) {
-    $s = mitDispatchWeekStats([$GLOBALS['admin_id'], $GLOBALS['tech_id']], 1, 'all');
-    $today = date('Y-m-d');
-    $day = array_values(array_filter($s['days'], function ($d) use ($today) { return $d['date'] === $today; }))[0];
-    $t = array_values(array_filter($s['techs'], function ($t) use ($user_id) { return $t['id'] === $user_id; }))[0];
-    return ['inbound_today' => $day['inbound'], 'closed_today' => $day['closed'], 'assigned' => $t['assigned'], 'closed' => $t['closed'], 'open' => $t['open']];
-};
-
 try {
-    $before = $pick($row_for($tech));
-    $stats_before = $stats_for($tech);
-    $old_day = date('Y-m-d H:i:s', strtotime('-10 days'));
-    $quiet = $new_ticket("$tag quiet", $tech, $old_day);                 // open, not booked, nothing said for 10 days
-    $booked = $new_ticket("$tag booked", $tech);                         // booked today for 90 minutes
-    $start = date('Y-m-d H:i:00', strtotime('today 23:00'));
-    ticketSetSchedule(ticketRow($booked), date('Y-m-d') . ' 06:00:00', 0, date('Y-m-d') . ' 07:30:00');
-    $helped = $new_ticket("$tag helped", $admin);                        // the tech helps, at their own time today
-    mitTicketTechSave(ticketRow($helped), $tech, 'own', date('Y-m-d') . ' 05:00:00', date('Y-m-d') . ' 05:30:00');
-    $after = $pick($row_for($tech));
-    $d = $diff($before, $after);
-    scenarioCheck('workload moves by what was added: 3 open (2 lead, 1 helping), 1 not booked, 1 quiet, 120 min today',
-        $d, ['open' => 3, 'lead' => 2, 'helping' => 1, 'unbooked' => 1, 'quiet' => 1, 'booked_today' => 120,
-            'booked_week' => 120]);
-    // Move to: unbooked goes; booked is refused
-    [$ok] = mitDispatchAssign($quiet, $admin);
-    scenarioCheck('Move to: an unbooked ticket is given to the other agent', [$ok, intval(ticketRow($quiet)['ticket_assigned_to'])], [true, $admin]);
-    [$ok] = mitDispatchAssign($booked, $admin);
-    scenarioCheck('Move to: a booked ticket is refused (goes through Schedule)', [$ok, intval(ticketRow($booked)['ticket_assigned_to'])], [false, $tech]);
-    // Back to the tech: counted as assigned to them this week
-    [$ok] = mitDispatchAssign($quiet, $tech);
-    // Resolve the booked one today
-    mysqli_query($mysqli, "UPDATE tickets SET ticket_resolved_at = NOW() WHERE ticket_id = $booked");
-    $stats_after = $stats_for($tech);
-    scenarioCheck('this week: inbound today +2 (created today counts, the old one not)', $stats_after['inbound_today'] - $stats_before['inbound_today'], 2);
-    scenarioCheck('this week: closed today +1', $stats_after['closed_today'] - $stats_before['closed_today'], 1);
-    scenarioCheck("this week: the tech's assigned +2 (made for them, and handed back to them)", $stats_after['assigned'] - $stats_before['assigned'], 2);
-    scenarioCheck("this week: the tech's closed +1", $stats_after['closed'] - $stats_before['closed'], 1);
-    $after2 = $pick($row_for($tech));
-    scenarioCheck('resolved: off the open count', $after2['open'] - $before['open'], 2);
+    $before = ['all' => $open_for('all'), 'one' => $open_for((string) $board), 'mine' => $open_for('mine')];
+    $before_in = ['all' => $inbound_for('all'), 'one' => $inbound_for((string) $board)];
+    $on_board = $new_ticket("$tag on board", $tech);
+    $on_default = $new_ticket("$tag on default", $tech);
+    mitBoardMove($on_board, $board);
+
+    $ids = function ($rows) {
+        $ids = array_column($rows, 'id');
+        sort($ids);
+        return $ids;
+    };
+    $both = [$on_board, $on_default];
+    sort($both);
+    scenarioCheck('queue: All shows both', $ids($queue('all')), $both);
+    scenarioCheck('queue: one board shows its ticket only', $ids($queue((string) $board)), [$on_board]);
+    scenarioCheck('queue: My boards shows the ticket on my board only', $ids($queue('mine')), [$on_board]);
+    $card = array_values(array_filter($queue('all'), function ($t) use ($on_board) { return $t['id'] === $on_board; }))[0] ?? [];
+    scenarioCheck("queue card carries its board's tag", $card['mit_board']['name'] ?? '', mitBoards()[$board]['board_name'] ?? 'x');
+    scenarioCheck('with nothing picked, a board member gets My boards', mitDispatchBoardChoice(null), 'mine');
+
+    scenarioCheck('Workload: All counts both of the tech\'s tickets', $open_for('all') - $before['all'], 2);
+    scenarioCheck('Workload: one board counts its ticket only', $open_for((string) $board) - $before['one'], 1);
+    scenarioCheck('Workload: My boards likewise', $open_for('mine') - $before['mine'], 1);
+    scenarioCheck('This week: inbound today, All +2', $inbound_for('all') - $before_in['all'], 2);
+    scenarioCheck('This week: inbound today, one board +1', $inbound_for((string) $board) - $before_in['one'], 1);
 } finally {
+    unset($_GET['board']);
     foreach ($tickets as $id) {
-        mysqli_query($mysqli, "DELETE FROM mit_ticket_techs WHERE ticket_id = $id");
+        mysqli_query($mysqli, "DELETE FROM mit_ticket_boards WHERE ticket_id = $id");
+        mysqli_query($mysqli, "DELETE FROM mit_board_moves WHERE ticket_id = $id");
         ticketDeleteForGood($id);
     }
     mysqli_query($mysqli, "DELETE FROM email_queue WHERE email_subject LIKE '%$tag%'");

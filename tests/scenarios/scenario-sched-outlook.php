@@ -2,8 +2,8 @@
 /*
  * Outlook calendar per tech (functions/mit_outlook.php) against the Microsoft stand-in (MIT_M365_GRAPH): a booking becomes an
  * Outlook event at the right UTC time on both sides of the DST change, a move PATCHes it, an edit / delete in Outlook is put
- * back, a cancel or a resolve removes it, a helper's booking is added, a personal appointment comes back as a busy time
- * (with a clash) and ITFlow's own invites do not; the cron job runs clean.
+ * back, a cancel or a resolve removes it, a helper's booking (ITFlow's ticket_helpers since 26.12) is added, a personal appointment comes back as a busy time
+ * (a clash in ITFlow's ticketScheduleConflicts, through our hook) and ITFlow's own invites do not; the cron job runs clean.
  */
 require __DIR__ . '/bootstrap.php';
 
@@ -124,12 +124,13 @@ try {
         scenarioCheck('given to another agent: off the old lead\'s Outlook', $st, 404);
 
         // 8. Helping on the tech's ticket at the lead's time: on this person's Outlook
-        mitTicketTechSave(ticketRow($t3), $user, 'lead');
+        [$helper_ok, $helper_msg] = ticketHelperSave(ticketRow($t3), $user, 'lead');
+        scenarioCheck("added as a helper ($helper_msg)", $helper_ok, true);
         $sync();
         $id4 = $event_of($t3);
         [$st, $ev] = $graph('GET', '/me/events/' . rawurlencode((string) $id4));
         scenarioCheck('helper booking added to the helper\'s Outlook', [$st, substr((string) ($ev['start']['dateTime'] ?? ''), 0, 19)], [200, $utc("$after 15:00:00")]);
-        mitTicketTechRemove(ticketRow($t3), $user);
+        ticketHelperRemove(ticketRow($t3), $user);
         $sync();
         [$st] = $graph('GET', '/me/events/' . rawurlencode((string) $id4));
         scenarioCheck('helper taken off: removed from Outlook', $st, 404);
@@ -162,16 +163,16 @@ try {
     scenarioCheck('all-day events copied (a free 3-day one, and one given as another zone\'s midnight in UTC)', $days, [
         ['starts_at' => "$soon 00:00:00", 'ends_at' => "$soon3 00:00:00", 'is_all_day' => '1', 'show_as' => 'free'],
         ['starts_at' => "$soon2 00:00:00", 'ends_at' => date('Y-m-d', strtotime("$soon2 +1 day")) . ' 00:00:00', 'is_all_day' => '1', 'show_as' => 'oof']]);
-    $c = mitScheduleConflicts($user, date('Y-m-d', strtotime("$soon +1 day")) . ' 10:00:00', date('Y-m-d', strtotime("$soon +1 day")) . ' 11:00:00');
+    $c = ticketScheduleConflicts($user, date('Y-m-d', strtotime("$soon +1 day")) . ' 10:00:00', date('Y-m-d', strtotime("$soon +1 day")) . ' 11:00:00');
     scenarioCheck('a free all-day event is not a clash', count(array_filter($c, function ($x) { return strpos($x, 'Outlook:') === 0; })), 0);
-    $c = mitScheduleConflicts($user, "$soon2 10:00:00", "$soon2 11:00:00");
+    $c = ticketScheduleConflicts($user, "$soon2 10:00:00", "$soon2 11:00:00");
     scenarioCheck('an out-of-office all-day event is', count(array_filter($c, function ($x) use ($tag) { return strpos($x, 'Outlook: Out of office') === 0 || strpos($x, "Outlook: $tag zz tokyo") === 0; })), 1);
     $items = array_values(array_filter(mitOutlookBusyItems("$soon 00:00:00", "$soon3 00:00:00", ['user_id' => $user]), function ($i) use ($tag) { return $i['title'] === "$tag trip"; }));
     scenarioCheck('on the calendar as an all-day block over its days', [$items[0]['allDay'] ?? null, $items[0]['start'] ?? '', $items[0]['end'] ?? ''], [true, $soon, $soon3]);
     mysqli_query($mysqli, "DELETE FROM mit_outlook_busy WHERE user_id = $user AND subject IN ('$tag trip', '$tag zz tokyo')");
     $busy = mysqli_fetch_all(mysqli_query($mysqli, "SELECT starts_at, ends_at, subject FROM mit_outlook_busy WHERE user_id = $user AND subject LIKE '$tag%'"), MYSQLI_ASSOC);
     scenarioCheck('personal appointment copied in local time; invite copy and free time left out', $busy, [['starts_at' => "$soon 12:00:00", 'ends_at' => "$soon 12:45:00", 'subject' => "$tag dentist"]]);
-    $c = mitScheduleConflicts($user, "$soon 12:30:00", "$soon 13:30:00");
+    $c = ticketScheduleConflicts($user, "$soon 12:30:00", "$soon 13:30:00");
     scenarioCheck('busy time is a clash for a booking', count(array_filter($c, function ($x) { return strpos($x, 'Outlook:') === 0; })) >= 1, true);
     $items = mitOutlookBusyItems("$soon 00:00:00", "$soon 23:59:59", ['user_id' => $user]);
     $titles = array_column($items, 'title');
@@ -199,7 +200,7 @@ try {
         }
     }
     foreach ($tickets as $id) {
-        mysqli_query($mysqli, "DELETE FROM mit_ticket_techs WHERE ticket_id = $id");
+        mysqli_query($mysqli, "DELETE FROM ticket_helpers WHERE ticket_id = $id");
         mysqli_query($mysqli, "UPDATE tickets SET ticket_schedule = NULL, ticket_schedule_end = NULL WHERE ticket_id = $id");
     }
     $sync(); // takes their events out of Outlook

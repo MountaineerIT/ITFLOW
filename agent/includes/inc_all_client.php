@@ -8,6 +8,13 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/page_title.php';
 // Perms
 enforceUserPermission('module_client');
 
+// A client page opened without a client (an address typed or cut short) - as for a client that isn't there, not a page of warnings
+if (intval($_GET['client_id'] ?? 0) <= 0) {
+    require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/header.php';
+    echo "<center><h1 class='text-secondary mt-5'>Nothing to see here</h1><a class='btn btn-lg btn-secondary mt-3' href='javascript:history.back()'><i class='fas fa-fw fa-arrow-left'></i> Go Back</a></center>";
+    exit;
+}
+
 if (isset($_GET['client_id'])) {
     $client_id = intval($_GET['client_id']);
 
@@ -33,7 +40,7 @@ if (isset($_GET['client_id'])) {
     if (mysqli_num_rows($sql) == 0) {
         require_once $_SERVER['DOCUMENT_ROOT'] . '/includes/header.php';
 
-        echo "<center><h1 class='text-secondary mt-5'>Nothing to see here</h1><a class='btn btn-lg btn-secondary mt-3' href='javascript:history.back()'><i class='fa fa-fw fa-arrow-left'></i> Go Back</a></center>";
+        echo "<center><h1 class='text-secondary mt-5'>Nothing to see here</h1><a class='btn btn-lg btn-secondary mt-3' href='javascript:history.back()'><i class='fas fa-fw fa-arrow-left'></i> Go Back</a></center>";
         exit;
     } else {
 
@@ -182,7 +189,7 @@ if (isset($_GET['client_id'])) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT
             COALESCE(SUM(ticket_closed_at IS NULL AND ticket_status != 4), 0) AS num_active_tickets,
             COALESCE(SUM(ticket_closed_at IS NOT NULL), 0) AS num_closed_tickets
-            FROM tickets WHERE ticket_archived_at IS NULL AND ticket_client_id = $client_id"));
+            FROM tickets WHERE ticket_archived_at IS NULL AND ticket_client_id = $client_id" . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : ''))); // Mountaineer IT: only the boards this role sees
 
         $num_active_tickets = intval($row['num_active_tickets']);
         $num_closed_tickets = intval($row['num_closed_tickets']);
@@ -272,9 +279,15 @@ if (isset($_GET['client_id'])) {
         $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT(event_id) AS num FROM calendar_events WHERE event_client_id = $client_id AND event_archived_at IS NULL
             AND (COALESCE(event_end, event_start) >= CURDATE() OR (event_repeat <> '' AND (event_repeat_until IS NULL OR event_repeat_until >= CURDATE())))"));
         $num_calendar_events = intval($row['num']);
+        // ...and work booked ahead for them, which their calendar shows too - only asked for when no event is (the side nav hides an empty Calendar)
+        $num_calendar_bookings = $num_calendar_events ? 0 : intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM tickets WHERE ticket_client_id = $client_id
+            AND ticket_schedule >= CURDATE() AND ticket_resolved_at IS NULL AND ticket_closed_at IS NULL AND ticket_archived_at IS NULL"))[0]);
 
         // The trips this agent may see - all of them with Financial access, else their own
         [$num_trips] = tripTotalsFor('trip_client_id', $client_id);
+
+        // Calls from the phone systems in the last 30 days (functions/phone.php) - the menu shows Calls once there are any
+        $num_phone_calls = phoneSystemsExist() ? intval(mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM phone_calls WHERE phone_call_client_id = $client_id AND phone_call_started_at >= NOW() - INTERVAL 30 DAY"))[0]) : 0;
 
     }
 }

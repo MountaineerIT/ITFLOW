@@ -560,6 +560,8 @@ $setup_title = ['restore' => 'Restore a backup', 'restored' => 'Backup restored'
         <link rel="stylesheet" href="<?= staticFileUrl('/libs/intl-tel-input/css/intlTelInput.min.css') ?>">
     <?php } ?>
     <link rel="stylesheet" href="<?= staticFileUrl('/css/itflow_custom.css') ?>">
+    <!-- "- Anyone -" choices without their dashes from the first paint (js/itflow_select_early.js) -->
+    <script src="<?= staticFileUrl('/js/itflow_select_early.js') ?>"></script>
 </head>
 
 <body class="itflow-setup bg-body-tertiary">
@@ -639,6 +641,7 @@ $setup_title = ['restore' => 'Restore a backup', 'restored' => 'Backup restored'
     <script src="<?= staticFileUrl('/js/phone_inputs.js') ?>"></script>
 <?php } ?>
 <script src="<?= staticFileUrl('/js/app.js') ?>"></script>
+<script src="<?= staticFileUrl('/js/picture_field.js') ?>"></script>
 <script src="<?= staticFileUrl('/js/setup.js') ?>"></script>
 
 </body>

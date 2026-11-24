@@ -1,8 +1,10 @@
 <?php
 /*
- * The calendar's sources as the page asks for them (calendar_items: mit_split_projects): a project ticket's booking is
- * under Projects only, in the project colour with the agent's colour as the bar, and still on Dispatch; the holidays source
- * lists closure days as red all-day items; saved calendar state is cleaned (7 days view's old name mapped).
+ * The calendar's ticket sources as the page asks for them (agent/ajax.php calendar_items passes mit_split_projects) - ours on ITFlow's
+ * calendar (functions/mit_calendar.php mitCalendarTicketItems, functions/mit_projects.php): a project ticket's booking is under Projects only
+ * (the tickets source leaves it out, the projects source adds it - mitProjectCalendarItems / mitProjectBookingItems), keeping ITFlow's
+ * project colour; a service booking is filled with our service colour with the agent's colour as the bar (tech_color); without the split
+ * (Dispatch, the dashboard) the tickets source has both, and Dispatch's board shows both.
  */
 require __DIR__ . '/bootstrap.php';
 
@@ -12,7 +14,10 @@ $tag = 'ZZsrc' . date('His');
 $day = date('Y-m-d', strtotime('next friday +7 days'));
 $tickets = [];
 $project = 0;
-$holiday = 0;
+if (!function_exists('mitProjectTicketsApart') || !mitProjectTicketsApart()) {
+    echo "  FAIL project tickets are not kept apart here (ITFlow's setting, on by default for us)\n";
+    exit(1);
+}
 try {
     mysqli_query($mysqli, "INSERT INTO projects SET project_name = '$tag project', project_prefix = 'PRJ-', project_number = 9" . date('His') . ", project_client_id = $client, project_manager = $tech");
     $project = mysqli_insert_id($mysqli);
@@ -35,57 +40,36 @@ try {
     scenarioCheck('Scheduled tickets source: the service ticket, not the project one', [in_array($tickets['service'], $t, true), in_array($tickets['project'], $t, true)], [true, false]);
     scenarioCheck('Projects source: the project ticket\'s booking', in_array($tickets['project'], $ids($p), true), true);
     $pi = array_values(array_filter($p, function ($i) use ($tickets) { return intval($i['extendedProps']['ticket_id'] ?? 0) === $tickets['project']; }))[0] ?? [];
-    scenarioCheck('project booking: project colour, agent colour as the bar', [$pi['color'] ?? '', $pi['extendedProps']['tech_color'] ?? ''], [mitProjectTicketColor(), mitAgentColor($tech)]);
+    scenarioCheck("project booking: ITFlow's project colour, not the service colour", [isset($pi['extendedProps']['project']), ($pi['color'] ?? '') !== mitServiceTicketColor()], [true, true]);
     $p_tech = calendarSourceItems('projects', $from, $to, ['user_id' => $tech] + $opts);
     scenarioCheck("Projects source on the tech's calendar has it too", in_array($tickets['project'], $ids($p_tech), true), true);
-    $d = $ids(array_filter(mitDispatchItems($day, $day, [$tech]), function ($i) { return true; }));
+    $si = array_values(array_filter(calendarSourceItems('tickets', $from, $to, $opts), function ($i) use ($tickets) { return intval($i['extendedProps']['ticket_id'] ?? 0) === $tickets['service']; }))[0] ?? [];
+    scenarioCheck('service booking: filled with the service colour, the agent\'s colour as the bar', [$si['color'] ?? '', $si['extendedProps']['tech_color'] ?? ''], [mitServiceTicketColor(), mitAgentColor($tech)]);
+    $saved_color = mitSetting('service_ticket_color');
+    mitSetSetting('service_ticket_color', '#123abc');
+    $si = array_values(array_filter(calendarSourceItems('tickets', $from, $to, $opts), function ($i) use ($tickets) { return intval($i['extendedProps']['ticket_id'] ?? 0) === $tickets['service']; }))[0] ?? [];
+    $saved_color === null ? mitDeleteSetting('service_ticket_color') : mitSetSetting('service_ticket_color', $saved_color);
+    scenarioCheck('... the colour set in Admin > Settings > Tickets', $si['color'] ?? '', '#123abc');
+    $all = $ids(calendarSourceItems('tickets', $from, $to, ['client_id' => 0, 'user_id' => 0]));
+    scenarioCheck('without the split (Dispatch, dashboard) the tickets source has both', [in_array($tickets['service'], $all, true), in_array($tickets['project'], $all, true)], [true, true]);
+    $d = $ids(dispatchItems($day, $day, [$tech]));
     scenarioCheck('Dispatch still shows both', [in_array($tickets['service'], $d, true), in_array($tickets['project'], $d, true)], [true, true]);
-    // A project booking is not in Dispatch's queues (booked or not)
-    mysqli_query($mysqli, "UPDATE tickets SET ticket_schedule = NULL, ticket_schedule_end = NULL WHERE ticket_id = " . $tickets['project']);
-    scenarioCheck("an unbooked project ticket stays off Dispatch's Not booked queue", in_array($tickets['project'], array_column(mitDispatchQueue('unbooked', ['board' => 'all', 'q' => $tag])['tickets'], 'id'), true), false);
-
-    // Dispatch's board picker: a ticket on Tier 2 (a board the admin is on) shows under that board and "My boards",
-    // the service ticket on the default board does not; All shows both
-    $boards = mitBoards();
-    $mine = array_keys(array_intersect_key(mitBoardsOfUser($session_user_id), mitBoardsVisible()));
-    if ($mine) {
-        mysqli_query($mysqli, "UPDATE tickets SET ticket_schedule = NULL, ticket_schedule_end = NULL, ticket_project_id = 0 WHERE ticket_id IN (" . implode(',', $tickets) . ")");
-        mitBoardMove($tickets['project'], $mine[0]);
-        $in = function ($board) use ($tag) {
-            return array_column(mitDispatchQueue('unbooked', ['board' => $board, 'q' => $tag])['tickets'], 'id');
-        };
-        $both = array_values($tickets);
-        sort($both);
-        $all = $in('all');
-        sort($all);
-        scenarioCheck('Dispatch board picker: All shows both', $all, $both);
-        scenarioCheck('Dispatch board picker: My boards shows the ticket on my board only', $in('mine'), [$tickets['project']]);
-        scenarioCheck('Dispatch board picker: one board', $in((string) $mine[0]), [$tickets['project']]);
-        scenarioCheck('Dispatch board picker: default when unsaved is My boards for a board member', mitDispatchBoardChoice(null), 'mine');
-    }
-
-    // Holidays
-    mysqli_query($mysqli, "INSERT INTO business_holidays SET holiday_date = '$day', holiday_name = '$tag holiday'");
-    $holiday = mysqli_insert_id($mysqli);
-    $h = array_values(array_filter(calendarSourceItems('holidays', $from, $to, $opts), function ($i) use ($tag) { return $i['title'] === "$tag holiday"; }));
-    scenarioCheck('holiday: red all-day item on its day', [count($h), $h[0]['start'] ?? '', $h[0]['allDay'] ?? null, $h[0]['color'] ?? ''], [1, $day, true, '#dc3545']);
-    $sources = calendarSources();
-    scenarioCheck('holidays source listed, on by default', !empty($sources['holidays']['default']), true);
-
-    // Saved state cleaning
-    scenarioCheck('saved state: old 7-days name mapped, bad values dropped',
-        json_encode(mitCleanCalendarState(['view' => 'mitTimeGrid7', 'agent' => '-5', 'hidden' => ['3', 'x'], 'sources' => ['holidays' => 0, 'Bad Key!' => 1], 'evil' => 1])),
-        json_encode(['view' => 'timeGridMit7', 'agent' => 0, 'hidden' => ['3', '0'], 'sources' => (object) ['holidays' => false]]));
-    scenarioCheck('saved state: unknown view dropped', mitCleanCalendarState(['view' => 'resourceTimeline']), []);
+    // Outlook busy times on Dispatch: a one-day range (the day view) and a week ending that day both carry the busy block (ITFlow's
+    // dispatchItems passes our hook its company-clock range - with bare dates the last day was cut off)
+    mysqli_query($mysqli, "INSERT INTO mit_outlook_busy SET user_id = $tech, starts_at = '$day 14:00:00', ends_at = '$day 15:00:00', is_all_day = 0, subject = '$tag busy', is_private = 0, show_as = 'busy'");
+    $busy_id = mysqli_insert_id($mysqli);
+    $busy = function ($items) {
+        return count(array_filter($items, function ($i) { return ($i['extendedProps']['kind'] ?? '') === 'outlook_busy' && preg_match('/[ T]14:00/', (string) ($i['start'] ?? '')); }));
+    };
+    scenarioCheck("Dispatch's day view: the agent's Outlook busy time", $busy(dispatchItems($day, $day, [$tech])), 1);
+    scenarioCheck('... and a week that ends on that day', $busy(dispatchItems(date('Y-m-d', strtotime("$day -6 days")), $day, [$tech])), 1);
 } finally {
+    mysqli_query($mysqli, "DELETE FROM mit_outlook_busy WHERE subject LIKE '$tag%'");
     foreach ($tickets as $id) {
         ticketDeleteForGood($id);
     }
     if ($project) {
         mysqli_query($mysqli, "DELETE FROM projects WHERE project_id = $project");
-    }
-    if ($holiday) {
-        mysqli_query($mysqli, "DELETE FROM business_holidays WHERE holiday_id = $holiday");
     }
     mysqli_query($mysqli, "DELETE FROM email_queue WHERE email_subject LIKE '%$tag%'");
 }

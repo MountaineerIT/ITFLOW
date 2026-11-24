@@ -2,7 +2,7 @@
 
 /*
  * Mountaineer IT - our New User fields on ITFlow's agent invites (ITFlow 3.5.1, functions/user_invite.php). An invited agent's login is
- * made only when they accept the invite (join.php -> userInviteAccept), so Employment (mitTsPayTypeField) and Office (mitOfficeUserField)
+ * made only when they accept the invite (join.php -> userInviteAccept), so Employment (mitTsPayTypeField)
  * picked in New User are kept with the invite (M049 `mit_invite_extras`) and put on the new login then:
  *  - mitInviteExtrasSave($invite_id, $_POST) - one line in admin/post/users.php add_user's invite branch (after userInviteSave);
  *  - mitInviteExtrasApply($invite_id, $user_id) - one line in userInviteAccept, before it returns the new agent.
@@ -10,7 +10,7 @@
  */
 
 /** The posted fields of ours an invite keeps. */
-const MIT_INVITE_EXTRA_FIELDS = ['mit_pay_type', 'mit_office_id', 'mit_service_present', 'mit_service_user'];
+const MIT_INVITE_EXTRA_FIELDS = ['mit_pay_type']; // ITFlow keeps the office on the invite itself (26.12) and won't invite an API / service account
 
 /** Has database update M049 run (it needs ITFlow's user_invites)? */
 function mitInvitesReady() {
@@ -68,12 +68,6 @@ function mitInviteExtrasApply($invite_id, $user_id) {
     }
     if (function_exists('mitTsSavePayType')) {
         mitTsSavePayType($user_id, $extras);
-    }
-    if (function_exists('mitOfficeUserSave')) {
-        mitOfficeUserSave($user_id, $extras);
-    }
-    if (function_exists('mitServiceUserSave')) {
-        mitServiceUserSave($user_id, $extras);
     }
     mysqli_query($mysqli, "DELETE FROM mit_invite_extras WHERE invite_id = " . intval($invite_id));
 }

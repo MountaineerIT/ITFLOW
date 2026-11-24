@@ -7,45 +7,41 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 76 | 15 | 9 | 32 | 77 | 39 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 213 | 2 | 2 | 15 | 41 | 5 |
-| [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 1 | 1 | 0 | 11 |
-| [Restore from Admin > Backup](#backup_restore) | 4 | 2 | 21 | 7 | 13 | 7 |
-| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 6 | 2 | 9 | 4 | 21 | 7 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 45 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 200 | 2 | 2 | 16 | 45 | 7 |
+| [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
+| [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
+| [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
 | [Modern look, logo options, sign-in screen, client tiles, time fields, portal tables](#theme) | 13 | 7 | 12 | 13 | 23 | 15 |
-| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 7 |
-| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 10 | 19 | 28 | 10 | 40 | 30 |
-| [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 13 | 6 | 11 | 9 | 41 | 15 |
-| [Additional techs (helpers) on tickets](#ticket_techs) | 3 | 4 | 31 | 13 | 63 | 19 |
-| [Dispatch board, Workload, This week](#dispatch) | 6 | 5 | 42 | 17 | 71 | 15 |
-| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 50 | 11 | 51 | 23 |
-| [Project tickets kept apart](#projects) | 4 | 2 | 10 | 3 | 9 | 10 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 10 | 5 | 21 | 10 | 18 | 12 |
-| [Statuses that meet the SLA response target ("ticket assigned" email)](#status_response) | 1 | 2 | 14 | 5 | 24 | 7 |
-| [Where a client's reply moves a ticket ("Move it to <status>", e.g. Client responded)](#reply_status) | 1 | 2 | 6 | 1 | 4 | 4 |
-| [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 2 | 1 | 9 | 5 | 19 | 7 |
-| [Times on ticket notes (start / end)](#reply_times) | 2 | 3 | 8 | 4 | 18 | 6 |
-| [Quote pricing (cost, markup / margin) and line images](#quotes) | 5 | 4 | 12 | 9 | 16 | 17 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 22 | 11 | 30 | 27 | 150 | 21 |
-| [Offices (other offices, who works where, trips From, ticket email foot, PO ship-to)](#offices) | 4 | 1 | 14 | 5 | 17 | 8 |
-| [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 3 | 1 | 25 | 5 | 36 | 5 |
-| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 4 | 2 | 31 | 11 | 31 | 1 |
-| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 27 | 25 | 56 | 20 | 89 | 18 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 11 | 16 | 15 | 71 | 25 |
-| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 13 | 4 | 18 | 15 | 53 | 7 |
+| [Email look: logo inside the message, resolved wording, notification switches](#emails) | 2 | 4 | 8 | 7 | 18 | 6 |
+| [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
+| [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 7 | 13 | 9 | 43 | 14 |
+| [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
+| [Dispatch board, Workload, This week](#dispatch) | 4 | 7 | 30 | 12 | 47 | 11 |
+| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 28 |
+| [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 9 |
+| [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
+| [Times on ticket notes (start / end)](#reply_times) | 1 | 5 | 13 | 4 | 20 | 8 |
+| [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 22 |
+| [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
+| [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
+| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 27 | 57 | 21 | 92 | 21 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 13 | 16 | 15 | 72 | 27 |
+| [Usage billing (counts on recurring lines, connectors, API)](#usage) | 13 | 4 | 18 | 15 | 53 | 8 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 10 | 1 | 11 | 8 | 26 | 4 |
-| [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 15 | 7 | 24 | 4 |
+| [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 16 | 7 | 25 | 4 |
 | [MSP Align (read only)](#align) | 5 | 1 | 10 | 7 | 11 | 9 |
-| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 15 | 13 | 24 | 13 | 43 | 3 |
+| [AI helper (library, Ask panel, write-up, local embeddings) - behind the password wall](#ai_helper) | 16 | 14 | 26 | 14 | 53 | 3 |
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
-| [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 3 | 4 | 9 | 41 |
-| [Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule](#recurring_lead) | 1 | 2 | 5 | 3 | 10 | 9 |
+| [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 2 | 1 | 2 | 0 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
-| [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 2 | 5 | 1 | 10 | 9 |
-| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 79 | 6 |
+| [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 3 | 5 | 1 | 10 | 11 |
+| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 82 | 6 |
 | [Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it](#minimum_commit) | 2 | 2 | 9 | 0 | 11 | 6 |
-| [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 3 | 2 | 16 | 10 | 30 | 2 |
-| [New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time](#ticket_add) | 1 | 1 | 9 | 0 | 4 | 8 |
+| [Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow's ticket / invoice / quote / recurring / contract reads](#api) | 13 | 1 | 6 | 6 | 26 | 11 |
+| [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 1 | 2 | 2 | 3 | 11 | 4 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -57,7 +53,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Module rows (module_*) and roleModuleInfo() are how permissions work; Admin > Settings > Modules form posts to settings_module.php.
 - Our menus hang off ITFlow's side_nav.php sections (INTEGRATIONS, BILLING, SUPPORT); our settings pages join settingsPages() / settingsFields() / the overview's $summaries (functions/settings.php, admin/settings.php), which feed the Settings menu, overview and Find a setting.
 
-**Tests** `tests/scenarios/scenario-collation-columns.php`, `tests/smoke/01-pages.spec.js`, `tests/smoke/90-asset-stamps.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-pager-many-pages.php`, `tests/scenarios/scenario-api-key-ways.php`, `tests/scenarios/scenario-api-paging-end.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
+**Tests** `tests/scenarios/scenario-collation-columns.php`, `tests/smoke/01-pages.spec.js`, `tests/smoke/90-asset-stamps.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/30-checks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/smoke/88-settings-overview.spec.js`, `tests/scenarios/scenario-mail-logo.php`, `tests/scenarios/scenario-api-key-ways.php`, `tests/scenarios/scenario-api-paging-end.php`, `tests/smoke/83-contracts.spec.js`, `tests/smoke/99-php-log.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -68,52 +64,61 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `admin/settings.php`: mitSettingsSummaries
 - `admin/settings_module.php`: mit_modules_fields
 - `admin/update.php`: MIT_CHANGELOG, mitVersion, mit_changelog_card, data-mit-itflow-version, data-mit-version, MountaineerIT
-- `agent/calendar.php`: mit_zones
 - `agent/includes/get_side_nav_counts.php`: mitNavCachedCount, mit_to_bill
 - `agent/includes/side_nav.php`: mit_billing_nav, mit_to_bill
-- `agent/js/calendar.js`: mit_zones
-- `agent/modals/calendar/calendar_event_add.php`: mit_zones
-- `agent/modals/calendar/calendar_event_form.php`: mit_zones
-- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
-- `agent/post/payment.php`: mitLock, mitUnlock
-- `agent/post/ticket.php`: mit_zones
 - `agent/unbilled_time.php`: mit_to_bill
 - `agent/user/post/profile.php`: mitSessionRestamp
-- `api/v1/enforce_api_rbac.php`: mit_usage
+- `api/v1/contracts/read.php`: mit_api
+- `api/v1/enforce_api_rbac.php`: mit_api, mit_boards, mit_timesheets, mit_usage
+- `api/v1/invoices/read.php`: mit_api
+- `api/v1/quotes/read.php`: mit_api
+- `api/v1/read_output.php`: mit_api
+- `api/v1/recurring_invoices/read.php`: mit_api
 - `client/includes/check_login.php`: mitSessionCheck
 - `client/login_microsoft.php`: mitPortalEntraTenant, mitPortalEntraTenantOk
 - `client/post.php`: mitSessionRestamp
-- `cron/mail_queue.php`: mitMailInlineImages, mit_common, mit_dev_mode
-- `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_offices, mit_procurement, mit_qbo, mit_timesheets, mit_usage
+- `cron/mail_queue.php`: mitMailInlineImages, mit_common
+- `functions.php`: mit_ai_helper, mit_align, mit_boards, mit_common, mit_ninjaone, mit_qbo, mit_timesheets, mit_usage
 - `functions/backup.php`: mit_feedback
+- `functions/backup_restore.php`: mit_backup_restore
 - `functions/contract_hours.php`: mit_label
+- `functions/invoice_actions.php`: mit_qbo, mit_qbo_billing
 - `functions/reports.php`: mit_boards, mit_timesheets
 - `functions/roles.php`: mitRoleModuleInfo
 - `functions/settings.php`: mitSettingsFields, mitSettingsPages, mit_settings_index
 - `functions/user.php`: mitSessionRestamp
+- `functions/user_timezone.php`: mit_timesheets
 - `includes/cron_jobs.php`: mit_ai_helper, mit_align, mit_boards, mit_customer_thermometer, mit_ninjaone, mit_qbo_billing, mit_timesheets, mit_usage
 - `includes/footer.php`: mitVersion
-- `includes/load_user_session.php`: mitSessionCheck, mit_service_users
+- `includes/load_user_session.php`: mitSessionCheck
 - `js/unbilled_time.js`: mit_to_bill, MountaineerIT
-- `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_updates_applied
-- `setup/index.php`: mitRestoreItflowUpdates, MountaineerIT, mit_message
+- `scripts/restore_cli.php`: mitRestoreItflowUpdates, mit_itflow_error, mit_updates_applied, mit_updates_error
+- `setup/index.php`: mitRestoreItflowUpdates, mit_itflow_error, MountaineerIT, mit_message, mit_updates_error
+- `admin/database_updates/3.8.7.php`: MountaineerIT
+- `admin/database_updates/3.8.8.php`: MountaineerIT
+- `agent/js/calendar.js`: mitAgent
 - `functions/app.php`: MountaineerIT
-- `scripts/setup_cli.php`: MountaineerIT
-- `scripts/update_cli.php`: mit_updates_applied
+- `functions/quote_images.php`: MountaineerIT
+- `functions/quote_pricing.php`: MountaineerIT
+- `scripts/setup_cli.php`: MountaineerIT, mit_updates_error
+- `scripts/update_cli.php`: mit_updates_applied, mit_updates_error
 
 **ITFlow functions it calls**
 
 - `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql
 - `functions/database_collation.php`: databaseCollationRepair
+- `functions/dev_mode.php`: devModeConfigSet
 - `functions/logging.php`: logApp
+- `functions/offices.php`: offices
 - `functions/products.php`: productStockMove
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/settings.php`: moduleOn
 
-**ITFlow tables** assets, calendar_events, categories, clients, contacts, contract_templates, documents, files, invoice_items, invoices, logs, modules, networks, payments, product_stock, products, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_history, ticket_replies, ticket_statuses, tickets, user_invites, user_role_permissions, user_roles, users
+**ITFlow tables** assets, calendar_events, categories, clients, companies, contacts, contract_templates, cron_jobs, documents, files, history, invoice_items, invoices, kb_articles, logs, modules, networks, offices, order_items, payments, po_items, po_receipts, po_tracking, product_stock, products, purchase_orders, quote_items, recurring_invoice_items, recurring_invoices, recurring_tickets, settings, software, taxes, ticket_attachments, ticket_helpers, ticket_history, ticket_mail_choices, ticket_replies, ticket_statuses, tickets, user_cost_rates, user_invites, user_role_permissions, user_roles, user_settings, users
 
-**ITFlow columns** account_name, asset_id, category_id, client_id, company_id, config_current_database_version, config_mail_from_email, config_mail_from_name, contact_id, document_id, event_id, event_repeat_interval, expense_id, file_id, file_name, file_size, history_id, invite_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_id, item_price, item_seat_filter, item_seat_minimum, item_seat_source, log_action, log_client_id, log_id, log_type, log_user_id, module_description, module_id, module_name, payment_id, product_cost, product_id, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_id, recurring_ticket_frequency, recurring_ticket_id, role_id, round_trip, software_id, stock_note, stock_product_id, stock_qty, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_resolved_at, ticket_schedule, ticket_status_id, trip_id, user_id, user_role_id, user_role_permission_level, user_token, vendor_id
+**ITFlow columns** account_name, added_at, added_by, asset_id, category_id, client_id, company_currency, company_id, config_api_key_in_address, config_cron_alert_email, config_cron_alert_state, config_cron_alert_to, config_cron_health_key, config_current_database_version, config_labor_cost_default, config_mail_from_email, config_mail_from_name, config_module_enable_dispatch, config_module_enable_purchasing, config_notify_assigned_app, config_notify_assigned_email, config_notify_helper_replies, config_po_approval, config_po_approval_over, config_po_next_number, config_po_prefix, config_project_ticket_color, config_project_tickets_apart, config_quick_ticket_billable, config_quick_ticket_on, config_quote_price_method, config_quote_price_percent, config_quote_price_presets, config_quote_show_images, config_ticket_assigned_message, config_ticket_no_response_message, config_timezone, contact_id, cron_job_name, document_id, event_id, event_repeat_by_day, event_repeat_interval, expense_id, file_id, file_name, file_size, follows_lead, history_id, invite_id, invite_office_id, invoice_archived_at, invoice_client_id, invoice_id, invoice_status, item_cost, item_id, item_image, item_price, item_price_method, item_price_percent, item_seat_filter, item_seat_minimum, item_seat_source, kb_article_id, log_action, log_client_id, log_created_at, log_description, log_entity_id, log_id, log_ip, log_type, log_user_agent, log_user_id, mail_choice_by, mail_choice_email, mail_choice_send, mail_choice_ticket_id, mail_choice_updated_at, module_description, module_id, module_name, office_address, office_archived_at, office_city, office_country, office_created_at, office_email, office_id, office_name, office_phone, office_phone_country_code, office_state, office_updated_at, office_zip, order_item_client_id, order_item_cost, order_item_created_at, order_item_created_by, order_item_description, order_item_id, order_item_name, order_item_note, order_item_product_id, order_item_quantity, order_item_source, order_item_status, order_item_updated_at, order_item_vendor_id, payment_id, po_approval_note, po_approved_at, po_approved_by, po_cancelled_at, po_created_at, po_created_by, po_currency_code, po_expense_id, po_id, po_item_client_id, po_item_cost, po_item_description, po_item_id, po_item_name, po_item_order, po_item_order_item_id, po_item_po_id, po_item_product_id, po_item_quantity, po_item_received, po_note, po_number, po_order_date, po_ordered_at, po_ordered_by, po_prefix, po_receipt_asset_ids, po_receipt_at, po_receipt_by, po_receipt_id, po_receipt_item_id, po_receipt_po_id, po_receipt_quantity, po_receipt_serials, po_receipt_stock_id, po_received_at, po_ship_to, po_ship_to_office_id, po_shipping, po_status, po_submitted_at, po_total, po_tracking_carrier, po_tracking_created_at, po_tracking_eta, po_tracking_id, po_tracking_number, po_tracking_po_id, po_updated_at, po_vendor_id, po_vendor_reference, product_cost, product_id, product_image, product_price, product_track_stock, product_type, product_vendor_id, project_id, recurring_invoice_due_mode, recurring_invoice_id, recurring_invoice_lead_days, recurring_ticket_by_day, recurring_ticket_frequency, recurring_ticket_id, recurring_ticket_lead_days, recurring_ticket_lead_mode, recurring_ticket_schedule_minutes, recurring_ticket_schedule_onsite, recurring_ticket_schedule_time, role_id, round_trip, schedule_end, schedule_start, software_id, stock_created_at, stock_id, stock_note, stock_product_id, stock_qty, stock_type, tax_id, ticket_archived_at, ticket_attachment_ticket_id, ticket_billable, ticket_category, ticket_closed_at, ticket_created_at, ticket_history_created_at, ticket_id, ticket_invoice_id, ticket_no_response_at, ticket_number, ticket_project_id, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_time_worked, ticket_reply_work_end, ticket_reply_work_start, ticket_resolved_at, ticket_schedule, ticket_schedule_end, ticket_sla_from, ticket_status_first_response, ticket_status_id, ticket_status_reply_status_id, trip_id, user_config_calendar_color, user_config_calendar_state, user_config_timezone, user_cost_rate_created_at, user_cost_rate_created_by, user_cost_rate_from, user_cost_rate_hourly, user_cost_rate_user_id, user_id, user_office_id, user_role_id, user_role_permission_level, user_service_account, user_token, vendor_id
 
 **Watched in ITFlow's code** `FROM_DB_UPDATER` `CURRENT_DATABASE_VERSION` `roleModuleInfo` `settingsSave` `settingsPages` `settingsFields` `settingsSearchIndex` `data-settings-tile`
 
@@ -133,9 +138,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `.htaccess`: MIT_API, MIT_FEATURES
+- `api/v1/enforce_api_rbac.php`: mit_boards, mit_reimbursements, mit_ticket_parts, mit_timesheets
 - `functions.php`: mit_boards, mit_timesheets
 - `functions/contract_signature.php`: mit_line
 - `functions/reports.php`: mit_boards, mit_timesheets
+- `functions/user_timezone.php`: mit_timesheets
 - `includes/cron_jobs.php`: mit_boards, mit_consistency, mit_timesheets
 
 **ITFlow functions it calls**
@@ -143,9 +150,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/includes/cron_lock.php`: cronJobStop
 - `functions/app.php`: getFieldById
 
-**ITFlow tables** assets, clients, contacts, documents, expenses, invoice_items, invoices, payments, products, records, reimbursements, settings, tickets, trips, users
+**ITFlow tables** assets, clients, contacts, documents, expenses, invoice_items, invoices, kb_articles, payments, products, records, reimbursements, settings, tickets, trips, users
 
-**ITFlow columns** account_id, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_invoice_id, item_name, item_quantity, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
+**ITFlow columns** account_id, added_at, asset_id, client_id, company_id, config_enable_cron, contact_id, document_archived_at, document_client_id, document_id, expense_amount, expense_reimbursement_id, invoice_id, invoice_number, invoice_prefix, invoice_status, item_id, item_invoice_id, item_name, item_quantity, kb_article_archived_at, kb_article_id, kb_article_published_at, payment_amount, payment_created_at, payment_date, payment_id, payment_invoice_id, payment_method, product_id, reimbursement_amount, reimbursement_id, reimbursement_reference, reimbursement_user_id, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, trip_id, user_archived_at, user_id, user_name
 
 **Our files** `scripts/mit_ai_embed_worker.php`, `scripts/mit_ai_wall_check.php`, `scripts/mit_consistency_check.php`, `scripts/mit_feature_lib.php`, `scripts/mit_feature_map.php`, `scripts/mit_features.php`, `scripts/mit_hook_check.php`, `scripts/mit_hook_proof.php`, `scripts/mit_portability_check.php`, `scripts/mit_test_fixture.php`, `scripts/mit_upstream_impact.php`, `scripts/mit_drawio_update.sh`, `scripts/mit_test_copy.sh`, `scripts/mit_verify.sh`, `scripts/mit_hooks.txt`, `scripts/mit_hook_proof_accepted.txt`, `scripts/mit_hook_proof_switch.txt`, `functions/mit_consistency.php`, `cron/mit_consistency.php`, `MIT_FEATURES.md`, `MIT_API.md`
 
@@ -162,23 +169,15 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/oauth_microsoft_mail_callback.php`: mit_m365
-- `admin/post/settings_mail.php`: mit_m365
-- `cron/ai_triage.php`: mitDevMode
-- `cron/mail_queue.php`: mitDevMailRedirect, mit_common, mit_dev_mode, mit_graph
-- `cron/ticket_email_parser.php`: mitDevMode
-- `functions.php`: mit_common, mit_m365
-- `functions/log_forward.php`: mitDevMode
+- `cron/mail_queue.php`: mit_common
+- `functions.php`: mit_common, mit_ct
+- `functions/dev_mode.php`: mitDevRetireOldLines
 - `functions/logging.php`: mitDevMode
-- `functions/request.php`: mit_m365
-- `includes/stripe_init.php`: mitDevBlockStripe
-- `includes/top_nav.php`: mit_timers_nav
+- `includes/cron_jobs.php`: mit_ct
 
 **ITFlow functions it calls**
 
-- `functions/sanitize.php`: escapeHtml
-
-**ITFlow tables** payments
+- `functions/dev_mode.php`: devModeMailTo, devModeOn
 
 **Watched in ITFlow's code** `cronJobStop` `triggerCustomAction` `logForwardSend`
 
@@ -194,35 +193,23 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow's backupInspectArchive / backupRestoreArchive / backupAssertUploadsGuards and the backups table.
 - load_global_settings.php fixes CURRENT_DATABASE_VERSION for the request (so a restore walks the updates itself).
 
-**Tests** `tests/smoke/16-backup-restore.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`
+**Tests** `tests/scenarios/scenario-restore-tempdir.php`
 
 **Hooks in ITFlow's files**
 
-- `admin/backup.php`: mitRestoreRowButton, mit_restore_card
 - `cron/mail_queue.php`: mit_common
 - `functions.php`: mit_common
-- `scripts/restore_cli.php`: mit_itflow_error, mit_updates_error
-- `scripts/setup_cli.php`: mit_updates_error
-- `scripts/update_cli.php`: mit_updates_error
-- `setup/index.php`: mit_itflow_error, mit_updates_error
+- `functions/backup_restore.php`: mitRestoreUseTempDir, mit_backup_restore
 
 **ITFlow functions it calls**
 
-- `functions/backup.php`: backupAllTypes, backupBuildFileName, backupCreate, backupCurrentDatabaseVersion, backupDbEnsure, backupDeleteDirectory, backupEncryptionKey, backupFormatBytes, backupInspectArchive, backupMaxUploadBytes, backupResolvePath, backupRestoreArchive, backupStorageDir, backupTypeLabel
-- `functions/logging.php`: logAudit
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: randomString, validateCSRFToken
-
-**ITFlow tables** accounts, backups, clients, credentials, files, payments, users
-
-**ITFlow columns** backup_completed_at, backup_created_at, backup_created_by, backup_error, backup_file_name, backup_id, backup_sha256, backup_size, backup_source, backup_status, backup_type, user_id, user_password
+- `functions/backup.php`: backupDeleteDirectory, backupStorageDir
 
 **Watched in ITFlow's code** `backupRestoreArchive` `backupInspectArchive` `backupAssertUploadsGuards`
 
 **"ITFlow does this too" words** backupRestore, restore_archive, restoreArchive, steps/restore, restore_upload
 
-**Our files** `functions/mit_backup_restore.php`, `admin/includes/mit_restore_card.php`, `admin/modals/mit_backup/restore.php`, `admin/post/mit_backup_restore.php`
+**Our files** `functions/mit_backup_restore.php`
 
 <a id="cron_health"></a>
 ## Cron health (warning, emails, /mit_health.php) (`cron_health`)
@@ -235,33 +222,24 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/cron.php`: mit_cron_card
 - `admin/oauth_microsoft_mail_callback.php`: mit_m365
 - `admin/post/settings_mail.php`: mit_m365
 - `functions.php`: mit_cron_health, mit_m365
+- `functions/cron_health.php`: mitCronExtraProblems, mit_cron_health
+- `functions/mail_graph.php`: mit_m365
 - `functions/request.php`: mit_m365
-- `includes/cron_jobs.php`: mit_cron_health, mit_cron_watch
 - `includes/top_nav.php`: mit_cron_nav
 
 **ITFlow functions it calls**
 
-- `cron/includes/cron_lock.php`: cronJobStop
-- `functions/app.php`: addToMailQueue
-- `functions/logging.php`: logAudit
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: validateCSRFToken
-- `includes/cron_jobs.php`: cronJobRegistry
-
-**ITFlow tables** cron_jobs, settings, user_roles, users
-
-**ITFlow columns** company_id, config_cron_last_dispatch_at, config_enable_cron, cron_job_daily_at, cron_job_enabled, cron_job_interval_minutes, cron_job_last_error, cron_job_last_error_at, cron_job_last_run_at, cron_job_last_status, cron_job_name, cron_job_schedule, role_id, role_is_admin, user_archived_at, user_email, user_id, user_name, user_role_id, user_status, user_type
+- `functions/cron_health.php`: cronHealthProblems
+- `functions/sanitize.php`: escapeHtml
 
 **Watched in ITFlow's code** `config_cron_last_dispatch_at`
 
 **"ITFlow does this too" words** cron_alert, health, heartbeat, cron_fail, cronWatch
 
-**Our files** `functions/mit_cron_health.php`, `includes/mit_cron_nav.php`, `admin/includes/mit_cron_card.php`, `admin/post/mit_cron_health.php`, `cron/mit_cron_watch.php`, `mit_health.php`
+**Our files** `functions/mit_cron_health.php`, `includes/mit_cron_nav.php`, `mit_health.php`
 
 <a id="theme"></a>
 ## Modern look, logo options, sign-in screen, client tiles, time fields, portal tables (`theme`)
@@ -326,17 +304,16 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Each recipient is greeted by emailQueue ("Hello <name>,") - our wording must not greet again.
 - ticketMailSchedule / ticketMailAssigned / recurringTicketMailAssigned are where schedule and assignment mail is built.
 
-**Tests** `tests/scenarios/scenario-mail-logo.php`, `tests/smoke/25-notifications.spec.js`, `tests/smoke/47-assign-switches.spec.js`, `tests/scenarios/scenario-assign-switches.php`
+**Tests** `tests/scenarios/scenario-mail-logo.php`, `tests/smoke/25-notifications.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-gaps.php`
 
 **Hooks in ITFlow's files**
 
 - `admin/post/settings_notification.php`: mitNotificationsSave, mit_changed
 - `admin/settings_notification.php`: mitNotificationSections
 - `agent/modals/ticket/ticket_edit_schedule.php`: mitScheduleNotifyField
-- `agent/post/ticket.php`: mitNotifyOn, mitScheduleNotifyFromPost
+- `agent/post/ticket.php`: mitScheduleNotifyFromPost
 - `functions.php`: mit_notifications
-- `functions/ticket.php`: mitNotifyOn, mitScheduleExtraRecipients, mitScheduleNotify, mit_schedule_skip_contact, mit_contact, mit_extra, mit_watchers
-- `functions/ticket_fields.php`: mitNotifyOn
+- `functions/ticket.php`: mitScheduleExtraRecipients, mitScheduleNotify, mit_notifications, mit_contact, mit_extra, mit_watchers
 
 **ITFlow functions it calls**
 
@@ -367,64 +344,41 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Attendee agents (calendar_event_attendees.attendee_user_id) are an entry's assignment.
 - Holidays are business_holidays (Admin > SLA closure days).
 
-**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/68-onsite-strip.spec.js`, `tests/smoke/20-event-agents.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-byday-pages.php`, `tests/scenarios/scenario-sched-byday.php`, `tests/scenarios/scenario-sched-end.php`, `tests/scenarios/scenario-sched-event-agents.php`, `tests/scenarios/scenario-sched-feeds.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-zones.php`
+**Tests** `tests/smoke/08-calendar.spec.js`, `tests/smoke/50-sched-window.spec.js`, `tests/smoke/52-calendar-state-moves.spec.js`, `tests/smoke/53-event-repeat-weekday.spec.js`, `tests/smoke/54-recurring-ticket-weekday.spec.js`, `tests/scenarios/scenario-sched-booking.php`, `tests/scenarios/scenario-sched-gaps.php`, `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/scenarios/scenario-sched-workload.php`, `tests/smoke/95-time-zones.spec.js`
 
 **Hooks in ITFlow's files**
 
-- `admin/modals/user/user_form.php`: mitCalendarColorField
-- `admin/post/users.php`: mitSaveAgentColor
 - `admin/settings_ticket.php`: mitServiceTicketColor, mit_calendar_card
-- `agent/ajax.php`: mitCleanCalendarState, mitLeftBehindAjax, mitSetUserPreference, mitTicketScheduleMinutes, mitViewShifted, mitZoneItems, mitZoneMovePost, mitZoneRange, mitZoneWhen, mitZoneWhenText, mit_calendar, mit_calendar_state, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: mit-cal-agent, mit-cal-when, mit-tech-dot, mitAgentColor, mitCalendarState, mitLeftBehindCard, mitViewShifted, mitViewZone, mitZoneNote, mit_calendar, mit_outlook, mit_ticket_techs, mit_zones
-- `agent/js/calendar.js`: MountaineerIT, mit-cal-agent, mit-cal-when, mit-tech-dot, mitStriped, mitZoneNow, mit_calendar, mit_calendar_state, mit_event_agents, mit_zones
-- `agent/js/ticket_schedule_modal.js`: mit_calendar
-- `agent/modals/calendar/calendar_event.php`: mitEventQuickAssign, mitZoneWhenText, mit_assign, mit_who
-- `agent/modals/calendar/calendar_event_add.php`: mitEventDefaultAgents, mitFromView, mit_zones
-- `agent/modals/calendar/calendar_event_form.php`: mitEventAssignField, mitRepeatOnField, mitToView, mitViewShifted, mitZoneFormHint, mit_zones, mit_assign
-- `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitRecurringTicketRepeatOnField
-- `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitRecurringTicketRepeatOnField
-- `agent/modals/ticket/ticket.php`: mitZoneWhen
-- `agent/modals/ticket/ticket_edit_schedule.php`: mitScheduleLengths, mitTicketScheduleMinutes, mitToView, mitZoneFormHint, mitZoneNow, mit_zones
-- `agent/post/event.php`: mitZoneEventPost
-- `agent/post/recurring_ticket.php`: mitByDayFollow, mitRecurringTicketSaveByDay
-- `agent/post/ticket.php`: mitFromView, mit_zones
-- `agent/ticket.php`: mitScheduleShortText
+- `agent/calendar.php`: data-mit-agent, mit_calendar, mit_outlook
+- `agent/js/calendar.js`: data-mit-agent, mitStriped
 - `agent/user/includes/user_side_nav.php`: mit_outlook
-- `agent/user/post/profile.php`: mitSaveAgentColor
-- `agent/user/user_preferences.php`: mitCalendarColorField
-- `cron/nightly_tasks.php`: mitRecurringTicketByDayColumn
-- `functions.php`: mit_calendar, mit_timesheets
-- `functions/app.php`: mitTicketScheduleEnd
-- `functions/calendar.php`: mitAgentColor, mitByDayDate, mitByDayRule, mitByDayText, mitCalendarTicketItems, mitEventByDayColumn, mitEventByDaySql, mitEventItemsAgents, mitHolidayCalendarItems, mitHolidayCalendarSources, mitScheduleOverlapSql, mitTicketScheduleEnd, mit_recurring, mit_ticket_techs
-- `functions/client_overview.php`: mitEventByDayColumn
-- `functions/dashboard.php`: mitEventByDayColumn
-- `functions/reports.php`: mit_timesheets
-- `functions/ticket.php`: mitByDayDate, mitByDayRule, mitByDayText, mitRecurringTicketByDay, mitScheduleConflicts, mitScheduleWhenText, mitTicketScheduleEnd, mitZoneAgentOpts, mit_recurring, mit_ticket_techs
-- `includes/cron_jobs.php`: mit_outlook, mit_timesheets
+- `cron/ticket_email_parser.php`: mit_ticket_techs
+- `functions.php`: mit_calendar, mit_projects
+- `functions/calendar.php`: mitCalendarTicketItems, mit_calendar, mit_outlook
+- `functions/ticket.php`: mit_outlook
+- `functions/ticket_helpers.php`: mit_outlook, mit_ticket_techs
+- `functions/ticket_reply_recipients.php`: mit_ticket_techs
+- `includes/cron_jobs.php`: mit_outlook
 
 **ITFlow functions it calls**
 
-- `agent/post/event.php`: calendarSentText
-- `functions/auth.php`: clientScopeSql, hasClientAccess, lookupUserPermission, permissionRefusedText
-- `functions/calendar.php`: calendarCanScheduleTickets, calendarColor, calendarEventAttendees, calendarEventCan, calendarEventForRequest, calendarEventItems, calendarEventRepeats, calendarEventRow, calendarInvitedAttendees, calendarList, calendarSendInvites, calendarSetAttendees, calendarWhenText
-- `functions/format.php`: selectOptionColor, selectOptionUser
+- `functions/auth.php`: hasClientAccess
+- `functions/calendar.php`: calendarAgentColor, calendarColor
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
-- `functions/ticket.php`: ticketReference, ticketScheduleValue
+- `functions/ticket.php`: ticketReference, ticketScheduleConflicts, ticketScheduleEnd
 
-**ITFlow tables** business_holidays, calendar_event_attendees, calendar_events, clients, credentials, history, recurring_tickets, settings, tickets, users
+**ITFlow tables** settings, tickets
 
-**ITFlow columns** attendee_archived_at, attendee_contact_id, attendee_event_id, attendee_id, attendee_invited_at, attendee_user_id, calendar_color, calendar_name, client_id, client_name, event_all_day, event_archived_at, event_client_id, event_end, event_id, event_sequence, event_start, event_title, holiday_date, holiday_id, holiday_name, recurring_ticket_id, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_onsite, ticket_prefix, ticket_priority, ticket_resolved_at, ticket_schedule, ticket_subject, user_archived_at, user_avatar, user_id, user_name, user_status, user_type
-
-**ITFlow page ids / classes its scripts and styles use** `#calendar` `#calendarAgent` `#itflowCalendar`
+**ITFlow columns** ticket_client_id, ticket_subject, user_id
 
 **Watched in ITFlow's code** `ticket_schedule` `calendarSourceItems` `calendarEventItems` `eventContent` `eventDidMount` `headerToolbar` `business_holidays`
 
 **"ITFlow does this too" words** schedule_end, calendar_color, agent_color, by_day, byday
 
-**Our files** `functions/mit_calendar.php`, `functions/mit_left_behind.php`, `functions/mit_recurring.php`, `functions/mit_event_agents.php`, `functions/mit_zones.php`, `agent/js/mit_left_behind.js`, `js/mit_repeat_on.js`, `admin/includes/mit_calendar_card.php`, `admin/post/mit_calendar_settings.php`, `agent/post/mit_event_agents.php`
+**Our files** `functions/mit_calendar.php`, `js/mit_repeat_on.js`, `admin/includes/mit_calendar_card.php`, `admin/post/mit_calendar_settings.php`
 
 <a id="outlook_m365"></a>
 ## Microsoft 365 app, Graph mail, Outlook calendar per tech (`outlook_m365`)
@@ -435,24 +389,23 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - cron/mail_queue.php sends one PHPMailer message per email; cron/ticket_email_parser.php reads mail through ImapEngine's Mailbox.
 - Ticket invites are iCal with UID ticket-<id>@ (createiCalStr).
 
-**Tests** `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-dev-mode-mail.php`, `tests/scenarios/scenario-m365-hooks.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/smoke/82-m365-mail-settings.spec.js`, `tests/smoke/79-platform-pages.spec.js`
+**Tests** `tests/scenarios/scenario-sched-outlook.php`, `tests/scenarios/scenario-dev-mode-mail.php`, `tests/scenarios/scenario-m365-hooks.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/smoke/82-m365-mail-settings.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-sched-booking.php`
 
 **Hooks in ITFlow's files**
 
 - `admin/oauth_microsoft_mail_callback.php`: mitMicrosoftTokenFields, mit_m365
-- `admin/post/settings_mail.php`: mitM365ConnectPrompt, mitM365GraphMailboxTest, mitM365KeepCertificateSecret, mitMicrosoftTokenFields, mit_m365, mit_test
+- `admin/post/settings_mail.php`: mitM365ConnectPrompt, mitM365KeepCertificateSecret, mitMicrosoftTokenFields, mit_m365
 - `admin/settings_mail.php`: mit_m365_card
-- `agent/ajax.php`: mit_calendar, mit_ticket_techs
-- `agent/calendar.php`: mit_calendar, mit_outlook, mit_ticket_techs
-- `agent/js/calendar.js`: mit_calendar
-- `agent/js/ticket_schedule_modal.js`: mit_calendar
+- `agent/calendar.php`: mit_calendar, mit_outlook
 - `agent/user/includes/user_side_nav.php`: mit_outlook
-- `cron/mail_queue.php`: mitM365GraphSendMail, mitM365GraphSendReady, mit_graph
-- `cron/ticket_email_parser.php`: mitM365GraphMailbox, mitM365GraphMailboxReady
+- `cron/ticket_email_parser.php`: mit_ticket_techs
 - `functions.php`: mit_calendar, mit_m365
-- `functions/calendar.php`: mitOutlookBusyItems, mitOutlookCalendarSources, mit_ticket_techs
+- `functions/calendar.php`: mitOutlookBusyItems, mitOutlookCalendarSources, mit_calendar, mit_outlook
+- `functions/mail_graph.php`: mitMicrosoftTokenFields, mit_m365
 - `functions/request.php`: mitMicrosoftTokenFields, mit_m365
-- `functions/ticket.php`: mitOutlookSyncsEmail, mit_ticket_techs
+- `functions/ticket.php`: mitOutlookBusyConflicts, mitOutlookSyncsEmail, mit_outlook
+- `functions/ticket_helpers.php`: mitOutlookSyncsEmail, mit_outlook, mit_ticket_techs
+- `functions/ticket_reply_recipients.php`: mit_ticket_techs
 - `includes/cron_jobs.php`: mit_outlook, mit_outlook_sync
 
 **ITFlow functions it calls**
@@ -460,6 +413,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/includes/cron_lock.php`: cronJobStop
 - `functions/format.php`: timeAgo
 - `functions/logging.php`: logApp, logAudit
+- `functions/mail_graph.php`: mailGraphForget, mailGraphScopesOf
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: randomString, validateCSRFToken
@@ -467,13 +421,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** calendars, categories, clients, contacts, credentials, locations, settings, tickets, users
 
-**ITFlow columns** account_name, client_id, client_name, company_id, config_enable_cron, config_mail_oauth_access_token, config_mail_oauth_access_token_expires_at, config_mail_oauth_client_id, config_mail_oauth_client_secret, config_mail_oauth_refresh_token, config_mail_oauth_tenant_id, contact_id, contact_location_id, contact_mobile, contact_name, contact_phone, event_id, location_address, location_city, location_id, location_name, location_state, location_zip, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_resolved_at, ticket_schedule, ticket_subject, user_archived_at, user_email, user_id, user_name, user_status
+**ITFlow columns** account_name, client_id, client_name, company_id, config_enable_cron, config_mail_graph_scopes, config_mail_oauth_access_token, config_mail_oauth_access_token_expires_at, config_mail_oauth_client_id, config_mail_oauth_client_secret, config_mail_oauth_refresh_token, config_mail_oauth_tenant_id, contact_id, contact_location_id, contact_mobile, contact_name, contact_phone, event_id, location_address, location_city, location_id, location_name, location_state, location_zip, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_resolved_at, ticket_schedule, ticket_schedule_end, ticket_subject, user_archived_at, user_email, user_id, user_name, user_status
 
 **Watched in ITFlow's code** `httpFormPost` `XOAUTH2` `new Mailbox(` `createiCalStr` `config_mail_oauth_client_secret` `'oauth-app'` `ms_connect_group` `mailOauthRedirect` `tab-oauth` `oauth_connect_microsoft_mail` `settings:reset`
 
 **"ITFlow does this too" words** graph, outlook, m365, microsoft
 
-**Our files** `functions/mit_m365.php`, `functions/mit_m365_mailbox.php`, `functions/mit_outlook.php`, `admin/includes/mit_m365_card.php`, `admin/post/mit_m365.php`, `agent/user/mit_outlook.php`, `agent/user/mit_outlook_callback.php`, `agent/user/post/mit_outlook.php`, `cron/mit_outlook_sync.php`
+**Our files** `functions/mit_m365.php`, `functions/mit_outlook.php`, `admin/includes/mit_m365_card.php`, `admin/post/mit_m365.php`, `agent/user/mit_outlook.php`, `agent/user/mit_outlook_callback.php`, `agent/user/post/mit_outlook.php`, `cron/mit_outlook_sync.php`
 
 <a id="ticket_techs"></a>
 ## Additional techs (helpers) on tickets (`ticket_techs`)
@@ -483,52 +437,37 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - tickets.ticket_assigned_to is the one lead; ticketChangeAssignee changes it (four paths, none hooked - mitTicketTechsTidy on read).
 - Assignee reply copies hang off ticketMailAssigneeReplied (parser, client/post.php).
 
-**Tests** `tests/smoke/42-helpers.spec.js`, `tests/scenarios/scenario-helpers.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/scenarios/scenario-helper-views.php`
+**Tests** `tests/smoke/42-helpers.spec.js`, `tests/scenarios/scenario-helpers.php`, `tests/scenarios/scenario-parser-boards.php`
 
 **Hooks in ITFlow's files**
 
-- `agent/ajax.php`: mitTicketTechCalendarMove, mit_ticket_techs
-- `agent/calendar.php`: mit_outlook, mit_ticket_techs, mit_zones
-- `agent/js/calendar.js`: mit_zones
-- `agent/js/ticket_schedule_modal.js`: mit_ticket_tech
-- `agent/modals/calendar/calendar_event_add.php`: mit_zones
-- `agent/modals/calendar/calendar_event_form.php`: mit_zones
-- `agent/modals/ticket/ticket_edit_schedule.php`: mitAgentCanSeeClient, mit_zones
-- `agent/post/ticket.php`: mitAgentCanSeeClient, mitScheduleLeadChanging, mit_zones
-- `agent/ticket.php`: mitTicketTechsProp
-- `agent/ticket_kanban.php`: mitTicketTechsListBadge
-- `agent/ticket_list.php`: mitTicketTechsListBadge
-- `agent/tickets.php`: mitAssignedSql
+- `agent/calendar.php`: mit_outlook
+- `agent/modals/ticket/ticket_helper.php`: mitAgentCanWorkTicket
+- `agent/post/ticket.php`: mitTicketClientMoved
 - `agent/user/includes/user_side_nav.php`: mit_outlook
-- `client/post.php`: mitTicketTechsCopyReply
-- `cron/ticket_email_parser.php`: mitAgentCanWorkTicket, mitTicketTechsCopyReply
-- `functions/calendar.php`: mitTicketTechCalendarItems, mitTicketTechFeedItems, mit_ticket_techs
-- `functions/dashboard.php`: mitAssignedSql, mitTicketTechDashboardItems
-- `functions/ticket.php`: mitTicketTechsLeadCancelled, mitTicketTechsLeadMoved, mit_schedule_skip_contact, mit_ticket_techs
+- `cron/ticket_email_parser.php`: mitAgentCanWorkTicket, mit_ticket_techs
+- `functions/calendar.php`: mit_outlook
+- `functions/ticket.php`: mit_outlook
+- `functions/ticket_helpers.php`: mitAgentCanWorkTicket, mitTicketHelperUid, mit_outlook, mit_ticket_techs, mit_uid
+- `functions/ticket_reply_recipients.php`: mitReplyRecipientsHelpers, mit_ticket_techs
 - `includes/cron_jobs.php`: mit_outlook
 
 **ITFlow functions it calls**
 
-- `functions/app.php`: addToMailQueue, createiCalStr, createiCalStrCancel, getTicketCalendarUid
-- `functions/auth.php`: clientScopeSql, enforceUserPermission, hasClientAccess, lookupUserPermission
-- `functions/calendar.php`: calendarCanScheduleTickets, calendarHost, calendarTicketTitle
-- `functions/format.php`: selectOptionColor
-- `functions/logging.php`: logAudit, logTicketHistory
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: validateCSRFToken
-- `functions/ticket.php`: ticketAgentEmailContent, ticketForModal, ticketForRequest, ticketIsOpen, ticketMailAgent, ticketMailAgents, ticketMailSchedule, ticketReference, ticketRow, ticketScheduleValue, ticketUrl
+- `functions/format.php`: selectOptionUser
+- `functions/ticket.php`: ticketRow
+- `functions/ticket_helpers.php`: ticketAssignedSql, ticketHelperRemove, ticketHelpers, ticketHelpersReady
 - `functions/user.php`: userClientAccess
 
-**ITFlow tables** categories, clients, contacts, email_queue, locations, modules, notifications, ticket_replies, ticket_statuses, tickets, user_role_permissions, user_roles, users
+**ITFlow tables** clients, contacts, locations, modules, ticket_helpers, tickets, user_role_permissions, user_roles, users
 
-**ITFlow columns** client_id, client_name, contact_id, contact_location_id, contact_mobile, contact_name, contact_phone, email_cal_str, email_queued_at, email_recipient, email_subject, feed_busy_only, feed_scope, feed_tickets, feed_user_id, location_address, location_city, location_id, location_name, location_state, location_zip, module_id, module_name, notification_action, notification_client_id, notification_type, notification_user_id, role_archived_at, role_id, role_is_admin, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_details, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_schedule, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, ticket_updated_at, user_archived_at, user_avatar, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type
+**ITFlow columns** client_id, client_name, contact_id, contact_location_id, contact_mobile, contact_name, contact_phone, location_address, location_city, location_id, location_name, location_state, location_zip, module_id, module_name, role_archived_at, role_id, role_is_admin, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_resolved_at, ticket_schedule, ticket_schedule_end, ticket_subject, user_avatar, user_email, user_id, user_name, user_role_id, user_role_permission_level
 
 **Watched in ITFlow's code** `ticket_assigned_to` `ticketMailAssigneeReplied` `ticketChangeAssignee`
 
 **"ITFlow does this too" words** collaborator, additional_tech, helper, ticket_users, ticket_assignees
 
-**Our files** `functions/mit_ticket_techs.php`, `agent/modals/ticket/mit_ticket_tech.php`, `agent/post/mit_ticket_techs.php`
+**Our files** `functions/mit_ticket_techs.php`
 
 <a id="dispatch"></a>
 ## Dispatch board, Workload, This week (`dispatch`)
@@ -538,50 +477,49 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Booking = ticketChangeAssignee + ticketSetSchedule; the Schedule dialog repeats Edit ticket / Change client / SLA rules (change_client_ticket, ticketMergeInto in agent/post/ticket.php).
 - ticketSlaState for SLA counts; Admin > SLA working hours.
 
-**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`, `tests/scenarios/scenario-dispatch-hours.php`
+**Tests** `tests/smoke/14-dispatch-role.spec.js`, `tests/smoke/51-dispatch-flow.spec.js`, `tests/smoke/92-dispatch-dialog.spec.js`, `tests/scenarios/scenario-sched-workload.php`, `tests/scenarios/scenario-dispatch-hours.php`, `tests/scenarios/scenario-sched-sources.php`, `tests/smoke/95-time-zones.spec.js`
 
 **Hooks in ITFlow's files**
 
-- `agent/ajax.php`: mit_calendar, mit_left_behind, mit_ticket_techs
-- `agent/calendar.php`: data-mit-agent, data-mit-onsite, data-mit-zone, mit_calendar, mit_ticket_techs, mit_zones
-- `agent/includes/side_nav.php`: mit_dispatch_nav
-- `agent/js/calendar.js`: data-mit-agent, data-mit-onsite, data-mit-zone, mitAgent, mitOnsite, mitZone, mit_calendar, mit_event_agents, mit_zones
-- `agent/js/ticket_schedule_modal.js`: mit_calendar
-- `agent/modals/calendar/calendar_event_add.php`: mit_zones
-- `agent/modals/calendar/calendar_event_form.php`: mit_zones
-- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
-- `agent/post/ticket.php`: mit_zones
-- `functions.php`: mit_boards, mit_calendar, mit_dispatch, mit_notifications, mit_projects, mit_ticket_add
-- `functions/calendar.php`: mit_ticket_techs
+- `agent/ajax.php`: mitDispatchBeforeBook, mitDispatchEditNeeds, mit_dispatch, mit_dispatch_details_message, mit_why
+- `agent/dispatch.php`: mitDispatchEditNeeds, mitDispatchLevel, mitDispatchScheduleFields, mitDispatchViewerHours, mit_dispatch, mit_dispatch_extras
+- `agent/includes/side_nav.php`: mitDispatchLevel, mitDispatchNavCount, mit_dispatch_count
+- `agent/js/dispatch.js`: mit_dispatch
+- `agent/post/ticket.php`: mit_board
+- `api/v1/enforce_api_rbac.php`: mit_boards
+- `functions.php`: mit_boards, mit_dispatch, mit_notifications, mit_projects
+- `functions/dispatch.php`: mitDispatchBoardSql, mitDispatchLevel, mitDispatchOutlookItems, mitDispatchQueueBoards, mit_dispatch
 - `functions/reports.php`: mit_boards
-- `functions/sla.php`: mit_projects
-- `functions/ticket.php`: mit_schedule_skip_contact, mit_ticket_techs
-- `includes/cron_jobs.php`: mit_boards, mit_projects
+- `functions/ticket.php`: mit_notifications
+- `includes/cron_jobs.php`: mit_boards
 
 **ITFlow functions it calls**
 
-- `agent/post/ticket.php`: ticketMergeInto
 - `functions/app.php`: getFieldById
-- `functions/auth.php`: clientScopeSql, enforceUserPermission, hasClientAccess, lookupUserPermission
-- `functions/calendar.php`: calendarCanScheduleTickets, calendarEventItems, calendarIsDate, calendarList, calendarSourceItems, calendarSources
-- `functions/format.php`: timeAgo
+- `functions/auth.php`: clientScopeSql, hasClientAccess, lookupUserPermission
+- `functions/calendar.php`: calendarCanScheduleTickets, calendarSources
+- `functions/dispatch.php`: dispatchAgents, dispatchCan
 - `functions/logging.php`: logAudit, logTicketHistory, triggerCustomAction
-- `functions/request.php`: flashAlert, redirect
+- `functions/project_tickets.php`: projectTicketsServiceSql
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
-- `functions/sla.php`: applyTicketSla, getSlaSettings
-- `functions/ticket.php`: ticketCancelSchedule, ticketCategoryId, ticketClientOwnedAssetIds, ticketClientOwnedId, ticketDuePill, ticketDueState, ticketIsOpen, ticketReference, ticketRow, ticketScheduleValue, ticketSetOtherAssets, ticketSetSchedule, ticketSlaPill, ticketSlaState, ticketUrl
-- `functions/ticket_fields.php`: ticketChangeAssignee, ticketChangePriority, ticketChangeStatus, ticketPickableStatuses
+- `functions/settings.php`: moduleOn
+- `functions/sla.php`: applyTicketSla
+- `functions/ticket.php`: ticketCategoryId, ticketClientOwnedAssetIds, ticketClientOwnedId, ticketIsOpen, ticketReference, ticketRow, ticketScheduleValue, ticketSetOtherAssets
+- `functions/ticket_fields.php`: ticketChangePriority, ticketChangeStatus, ticketPickableStatuses
+- `functions/user_timezone.php`: timezoneShifted, timezoneView
 
-**ITFlow tables** assets, calendars, categories, clients, contacts, credentials, modules, notifications, slas, ticket_assets, ticket_history, ticket_replies, ticket_statuses, tickets, trips, user_settings, users
+**ITFlow tables** assets, categories, clients, contacts, credentials, modules, notifications, slas, ticket_assets, ticket_replies, tickets, trips
 
-**ITFlow columns** asset_archived_at, asset_client_id, asset_contact_id, asset_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, event_id, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_due_at, ticket_first_response_at, ticket_history_created_at, ticket_history_description, ticket_history_ticket_id, ticket_id, ticket_location_id, ticket_number, ticket_onsite, ticket_prefix, ticket_priority, ticket_project_id, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_type, ticket_resolution_due_at, ticket_resolution_sla_alert_stage, ticket_resolution_sla_met, ticket_resolved_at, ticket_response_due_at, ticket_response_sla_alert_stage, ticket_response_sla_met, ticket_schedule, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_status_pauses_sla, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_archived_at, user_config_calendar_first_day, user_id, user_name, user_status, user_type
+**ITFlow columns** asset_archived_at, asset_client_id, asset_contact_id, asset_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, contact_archived_at, contact_client_id, contact_id, contact_name, contact_primary, contact_title, module_name, sla_archived_at, sla_id, sla_name, ticket_archived_at, ticket_asset_id, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_id, ticket_location_id, ticket_priority, ticket_project_id, ticket_reply_ticket_id, ticket_reply_type, ticket_schedule, ticket_sla_id, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, ticket_vendor_id, trip_client_id, trip_location_id, trip_ticket_id, user_id
 
-**Watched in ITFlow's code** `ticketMergeInto` `ticketSlaState` `change_client_ticket`
+**ITFlow page ids / classes its scripts and styles use** `#dispatchScheduleModal`
+
+**Watched in ITFlow's code** `ticketMergeInto` `ticketSlaState` `change_client_ticket` `dispatchScheduleModal` `data-dispatch-schedule-ticket` `data-dispatch-schedule-others` `data-dispatch-schedule-error` `data-other`
 
 **"ITFlow does this too" words** dispatch, workload
 
-**Our files** `functions/mit_dispatch.php`, `functions/mit_dispatch_workload.php`, `agent/mit_dispatch.php`, `agent/mit_dispatch_ajax.php`, `agent/js/mit_dispatch.js`, `agent/includes/mit_dispatch_nav.php`
+**Our files** `agent/includes/mit_dispatch_extras.php`, `functions/mit_dispatch.php`, `agent/mit_dispatch_ajax.php`, `agent/js/mit_dispatch.js`
 
 <a id="boards"></a>
 ## Service boards (routing, escalation, round-robin, by role, pickers, report) (`boards`)
@@ -599,25 +537,30 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `admin/modals/role/role_add.php`: mitBoardRoleField
 - `admin/modals/role/role_edit.php`: mitBoardRoleField
 - `admin/post/roles.php`: mitBoardRoleSave, mit_boards_changed
-- `agent/ajax.php`: mitBoardVisibleSql, mitTicketPickOptions, mitTicketPickSet, mit_ticket_techs, mit_options, mit_set
-- `agent/calendar.php`: mit_ticket_techs
+- `admin/post/settings_ticket.php`: mitQuickTicketBoardSave, mit_changed
+- `admin/settings_ticket.php`: mitQuickTicketBoardField
+- `agent/ajax.php`: mitBoardVisibleSql, mitTicketPickOptions, mitTicketPickSet, mit_dispatch, mit_options, mit_set
 - `agent/dashboard.php`: mitBoardDashCard, mitBoardDashLinks, mitBoardDashPicker
+- `agent/dispatch.php`: mit_dispatch
+- `agent/includes/get_side_nav_counts.php`: mitBoardVisibleSql
+- `agent/includes/inc_all_client.php`: mitBoardVisibleSql
+- `agent/js/dispatch.js`: mit_dispatch
 - `agent/modals/ticket/ticket_add.php`: mitBoardNewTicketField
+- `agent/modals/ticket/ticket_quick.php`: mitQuickTicketBoardInput
 - `agent/post/ticket.php`: mitBoardAfterCreate, mitBoardRoute, mit_board
 - `agent/ticket.php`: mitBoardEscalateMenuItem, mitBoardTicketProp, mitTicketPickButton, mit_category, mit_sla
 - `agent/ticket_kanban.php`: mitBoardListTag
 - `agent/ticket_list.php`: mitBoardListTag
 - `agent/tickets.php`: mitBoardHiddenInput, mitBoardSwitcher, mitBoardTicketsFilter
+- `api/v1/enforce_api_rbac.php`: mit_boards, mit_charge_codes
 - `cron/ticket_email_parser.php`: mitBoardMessageAddresses, mitBoardRoute, mit_board_addresses
 - `functions.php`: mit_boards, mit_dispatch, mit_projects
-- `functions/calendar.php`: mit_ticket_techs
 - `functions/client_overview.php`: mitBoardVisibleSql
 - `functions/dashboard.php`: mitBoardDashAnd
+- `functions/dispatch.php`: mit_dispatch
 - `functions/reports.php`: mitBoardReportEntry, mit_boards
 - `functions/search.php`: mitBoardVisibleSql
-- `functions/sla.php`: mit_projects
-- `functions/ticket.php`: mit_ticket_techs
-- `includes/cron_jobs.php`: mit_boards, mit_projects
+- `includes/cron_jobs.php`: mit_boards
 - `js/quick_pick.js`: mit_ticket_picks
 
 **ITFlow functions it calls**
@@ -633,11 +576,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
+- `functions/settings.php`: settingsSelect
 - `functions/sla.php`: applyTicketSla, getBusinessHolidays, getSlaSettings
 - `functions/ticket.php`: ticketCategoryId, ticketForModal, ticketForRequest, ticketIsOpen, ticketReference, ticketUrl
 - `functions/ticket_fields.php`: ticketChangeAssignee
 
-**ITFlow tables** categories, clients, notifications, projects, records, settings, slas, ticket_replies, tickets, user_roles, users
+**ITFlow tables** categories, clients, notifications, projects, records, settings, slas, ticket_helpers, ticket_replies, tickets, user_roles, users
 
 **ITFlow columns** category_archived_at, category_color, category_icon, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_id, config_enable_cron, config_smtp_host, config_smtp_provider, notification_action, notification_client_id, notification_entity_id, notification_type, notification_user_id, role_archived_at, role_id, role_is_admin, role_name, sla_archived_at, sla_id, sla_name, ticket_assigned_to, ticket_category, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_first_response_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolution_sla_met, ticket_resolved_at, ticket_sla_id, ticket_subject, user_archived_at, user_avatar, user_email, user_id, user_name, user_status, user_type
 
@@ -658,37 +602,24 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/settings_project.php`: mit_project_card
 - `agent/ajax.php`: mit_split_projects
-- `agent/post/ticket.php`: mitProjectTicketMoved
-- `agent/tickets.php`: mitProjectTicketsShows
 - `functions.php`: mit_projects
 - `functions/calendar.php`: mitProjectBookingItems
-- `functions/dashboard.php`: mitServiceTicketsAnd
-- `functions/project.php`: mitProjectTicketMoved
-- `functions/sla.php`: mitProjectSlaOff, mitProjectSlaStart, mit_projects
-- `includes/cron_jobs.php`: mit_project_tickets, mit_projects
 
 **ITFlow functions it calls**
 
-- `cron/includes/cron_lock.php`: cronJobStop
-- `functions/calendar.php`: calendarColor, calendarSourceItems
-- `functions/logging.php`: logAudit
-- `functions/project.php`: projectReference
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml
-- `functions/security.php`: validateCSRFToken
-- `functions/sla.php`: applyTicketSla
+- `functions/calendar.php`: calendarSourceItems
+- `functions/project_tickets.php`: projectTicketsApart, projectTicketsServiceSql
 
-**ITFlow tables** projects, settings, tickets
+**ITFlow tables** tickets
 
-**ITFlow columns** company_id, config_enable_cron, project_id, project_name, project_number, project_prefix, ticket_id, ticket_project_id, ticket_sla_id
+**ITFlow columns** ticket_project_id
 
 **Watched in ITFlow's code** `ticket_project_id` `projectAddTicket` `projectRemoveTicket`
 
 **"ITFlow does this too" words** project_ticket
 
-**Our files** `functions/mit_projects.php`, `admin/includes/mit_project_card.php`, `admin/post/mit_project_settings.php`, `cron/mit_project_tickets.php`
+**Our files** `functions/mit_projects.php`
 
 <a id="ticket_page"></a>
 ## Ticket page: layout, Read tick, timers, list views, Resolve - no response (`ticket_page`)
@@ -704,115 +635,34 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/modals/ticket_status/ticket_status_form.php`: mit_reply_status
-- `admin/settings_ticket.php`: mitNoResponseReady, mit_no_response_card
-- `agent/ajax.php`: mitTicketLayoutAjax, mit_ticket_layout, mit_timer_tickets, mit_timers
-- `agent/ticket.php`: mitNoResponseButton, mitTicketLayoutHtml, mit_ticket_layout
+- `agent/ajax.php`: mitTicketLayoutAjax, mit_ticket_layout
+- `agent/ticket.php`: mitTicketLayoutHtml, mit_ticket_layout
 - `agent/tickets.php`: mitListViewResetButton, mitListViewRestore
-- `cron/mail_queue.php`: mit_dev_mode
-- `functions.php`: mit_diagrams, mit_list_views, mit_ninjaone, mit_no_response, mit_quick_ticket, mit_ticket_layout
+- `api/v1/enforce_api_rbac.php`: mit_reimbursements
+- `functions.php`: mit_diagrams, mit_list_views, mit_ninjaone, mit_ticket_layout
 - `functions/backup.php`: mit_diagrams, mit_feedback
-- `functions/ticket_status.php`: mit_reply_status
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
 - `includes/top_nav.php`: mit_timers_nav
 - `js/app.js`: mit_diagrams
 
 **ITFlow functions it calls**
 
-- `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
+- `functions/auth.php`: hasClientAccess, lookupUserPermission
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
-- `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketForModal, ticketForRequest, ticketIsOpen, ticketMailSend, ticketOpenTaskCount, ticketReference, ticketReplyEmailed, ticketResolve, ticketRow
-- `functions/ticket_status.php`: ticketStatusRow
 
-**ITFlow tables** clients, credentials, history, tags, tasks, ticket_replies, ticket_watchers, tickets, trips, users
+**ITFlow tables** credentials, history, tags, tasks, tickets, trips, users
 
-**ITFlow columns** client_id, client_name, contact_email, contact_name, ticket_client_id, ticket_details, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status_name, ticket_subject, user_id, watcher_ticket_id
+**ITFlow columns** client_id, ticket_client_id, ticket_details, ticket_id, user_id
 
-**ITFlow page ids / classes its scripts and styles use** `#public_reply_type_opt1` `#replyAudience` `#replyComposer` `#replySubmitLabel` `#startStopTimer` `#ticket_add_reply` `.itflow-ticket-trips`
+**ITFlow page ids / classes its scripts and styles use** `#public_reply_type_opt1` `#replyAudience` `#replyComposer` `#replySubmitLabel` `.itflow-ticket-trips`
 
 **Watched in ITFlow's code** `replyComposer` `public_reply_type_opt1` `replyAudience` `replySubmitLabel` `ticket_add_reply` `return ticketID + "-" + suffix` `getLocalStorageKey("startTime")` `getLocalStorageKey("pausedTime")` `ticket-timer-running-` `fa-sliders-h` `fa-layer-group` `fa-map-marker-alt` `ticket-actions` `bulkActionButton` `itflow-ticket-trips`
 
 **"ITFlow does this too" words** ticket_layout, no_response, ticket_timer, time_tracking, list_view, saved_view
 
-**Our files** `functions/mit_ticket_layout.php`, `agent/js/mit_ticket_layout.js`, `includes/mit_timers_nav.php`, `js/mit_timers.js`, `functions/mit_list_views.php`, `functions/mit_no_response.php`, `agent/modals/mit_no_response/no_response.php`, `agent/post/mit_no_response.php`, `admin/includes/mit_no_response_card.php`, `admin/post/mit_no_response_settings.php`
-
-<a id="status_response"></a>
-## Statuses that meet the SLA response target ("ticket assigned" email) (`status_response`)
-
-**Takes for granted**
-
-- ITFlow calls syncTicketSlaClock after a status change (our check runs at its start); a few paths (API replies, texts, the parser's reopen) do not - cron mit_boards sweeps for them.
-- setTicketFirstResponse records the first response once and judges it against ticket_response_due_at.
-- New / Resolved / Closed are statuses 1 / 4 / 5 (TICKET_STATUS_*); the status form sets $s_id; add_ticket_status / edit_ticket_status save it.
-- ticketMailSend / ticketEmailContent build the client email; config_ticket_client_general_notifications switches client emails.
-
-**Tests** `tests/scenarios/scenario-status-response.php`, `tests/smoke/38-status-response.spec.js`
-
-**Hooks in ITFlow's files**
-
-- `admin/modals/ticket_status/ticket_status_form.php`: mitStatusResponseField, mit_reply_field
-- `admin/post/ticket_status.php`: mitStatusResponseSave, mit_reply_change
-- `admin/settings_ticket.php`: mit_no_response_card
-- `functions.php`: mit_boards
-- `functions/reports.php`: mit_boards
-- `functions/sla.php`: mitStatusResponseCheck
-- `includes/cron_jobs.php`: mit_boards
-
-**ITFlow functions it calls**
-
-- `functions/billing.php`: billingCompany
-- `functions/email.php`: emailReady
-- `functions/logging.php`: logAudit, logTicketHistory
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/sla.php`: setTicketFirstResponse
-- `functions/ticket.php`: ticketEmailContent, ticketEmailPreview, ticketMailSend, ticketReference, ticketReplyEmailed, ticketRow
-- `functions/ticket_status.php`: ticketStatusRow
-
-**ITFlow tables** clients, history, settings, ticket_replies, tickets
-
-**ITFlow columns** client_name, company_id, company_name, config_ticket_client_general_notifications, contact_email, contact_name, ticket_archived_at, ticket_assigned_to, ticket_closed_at, ticket_created_at, ticket_first_response_at, ticket_id, ticket_reply, ticket_reply_by, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_status, ticket_status_id, ticket_status_name, ticket_subject, user_name
-
-**Watched in ITFlow's code** `syncTicketSlaClock` `setTicketFirstResponse` `ticket_first_response_at` `ticketStatusCreate` `ticketStatusUpdate` `config_ticket_client_general_notifications`
-
-**"ITFlow does this too" words** first_response, response_target, status_response, assigned_email, ticket_assigned
-
-**Our files** `functions/mit_status_response.php`
-
-<a id="reply_status"></a>
-## Where a client's reply moves a ticket ("Move it to <status>", e.g. Client responded) (`reply_status`)
-
-**Takes for granted**
-
-- ITFlow's ticketStatusAfterClientReply decides the status for every client reply - the email parser, the portal and texts (our line is its first).
-- The status window posts client_reply, which ITFlow reads with intval (our "1:<id>" reads as 1 - back to Open); New / Open / On Hold / Resolved / Closed are 1-5.
-
-**Tests** `tests/scenarios/scenario-reply-status.php`, `tests/smoke/39-reply-status.spec.js`
-
-**Hooks in ITFlow's files**
-
-- `admin/modals/ticket_status/ticket_status_form.php`: mitReplyStatusField, mit_reply_status, mit_reply_field
-- `admin/post/ticket_status.php`: mitReplyStatusSave, mit_reply_change
-- `admin/ticket_statuses.php`: mitReplyStatusListText, mit_reply_text
-- `functions/ticket_status.php`: mitReplyStatusFor, mit_reply_status, mit_reply_to
-
-**ITFlow functions it calls**
-
-- `functions/logging.php`: logAudit
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket_status.php`: ticketStatusBadgeHtml, ticketStatusIsBuiltIn, ticketStatusesAll
-
-**ITFlow tables** tickets
-
-**ITFlow columns** ticket_status_active, ticket_status_color, ticket_status_id, ticket_status_name
-
-**Watched in ITFlow's code** `ticketStatusAfterClientReply` `ticket_status_client_reply` `TICKET_STATUS_CLIENT_REPLY` `ticketStatusesAll`
-
-**"ITFlow does this too" words** client_reply, reply_status, status_after_reply
-
-**Our files** `functions/mit_reply_status.php`
+**Our files** `functions/mit_ticket_layout.php`, `agent/js/mit_ticket_layout.js`, `includes/mit_timers_nav.php`, `functions/mit_list_views.php`, `admin/post/mit_no_response_settings.php`
 
 <a id="reply_recipients"></a>
 ## Email reply "To" line (internal notes use ITFlow's @mentions) (`reply_recipients`)
@@ -825,36 +675,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Tests** `tests/smoke/40-reply-recipients.spec.js`
 
-**Hooks in ITFlow's files**
-
-- `agent/ajax.php`: mit_ticket_techs
-- `agent/calendar.php`: mit_ticket_techs
-- `agent/post/ticket.php`: mitReplyRecipientsMail, mitReplyRecipientsReady, mitTicketClientMoved, mit_send_to_present, mit_content, mit_resolved, mit_row, mit_subject
-- `agent/ticket.php`: mitReplyRecipientsField
-- `functions.php`: mit_reply_recipients
-- `functions/calendar.php`: mit_ticket_techs
-- `functions/ticket.php`: mit_ticket_techs
-
-**ITFlow functions it calls**
-
-- `functions/app.php`: addToMailQueue
-- `functions/billing.php`: billingCompany
-- `functions/email.php`: emailQueue
-- `functions/logging.php`: logTicketHistory
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket.php`: ticketColleagueRecipients, ticketEmailFrom, ticketReplyEmailed
-
-**ITFlow tables** contacts, tags, ticket_watchers, tickets, users
-
-**ITFlow columns** company_name, contact_archived_at, contact_client_id, contact_email, contact_id, contact_name, contact_primary, ticket_assigned_to, ticket_client_id, ticket_contact_id, ticket_id, ticket_reply_id, user_archived_at, user_email, user_id, user_name, user_type, watcher_email, watcher_ticket_id
-
-**ITFlow page ids / classes its scripts and styles use** `#replyAudience` `#ticket_add_reply`
-
 **Watched in ITFlow's code** `ticketMailReply` `ticketReplyEmailed` `ticketColleagueRecipients` `itflowDismissPopups` `data-tags`
 
 **"ITFlow does this too" words** reply_recipient, ticket_recipient, collaborator, ticket_cc, reply_to, internal_notify
 
-**Our files** `functions/mit_reply_recipients.php`, `agent/js/mit_reply_recipients.js`
+**Our files** 
 
 <a id="reply_times"></a>
 ## Times on ticket notes (start / end) (`reply_times`)
@@ -864,15 +689,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ticket_replies.ticket_reply_time_worked holds the length; the timer fields are #hours / #minutes / #seconds.
 - flashAlert keeps one message (mitReplyTimesFlash adds the time warning back).
 
-**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`
+**Tests** `tests/smoke/09-note-times.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/95-time-zones.spec.js`, `tests/scenarios/scenario-ts-zone-entry.php`
 
 **Hooks in ITFlow's files**
 
-- `agent/modals/ticket/ticket_reply_edit.php`: mitReplyTimesEditField
-- `agent/post/ticket.php`: mitReplyTimesFlash, mitReplyTimesFromEdit, mitReplyTimesFromPost, mitReplyTimesSavePending, mitTsKeepPublicNotes
-- `agent/ticket.php`: mitReplyTimesField, mitReplyTimesText
+- `agent/modals/ticket/ticket_reply_edit.php`: mitReplyViewZoneHint, mitReplyWorkToView
+- `agent/post/ticket.php`: mitReplyTimesFlash, mitReplyWorkFromView, mitReplyWorkGuardAdd, mitReplyWorkGuardEdit, mitTsKeepPublicNotes, mit_reply_times
+- `agent/ticket.php`: mitReplyViewNow, mitReplyViewZoneHint, mitReplyWorkToView
+- `api/v1/enforce_api_rbac.php`: mit_timesheets
 - `functions.php`: mit_timesheets
 - `functions/reports.php`: mit_timesheets
+- `functions/user_timezone.php`: mit_timesheets
 - `includes/cron_jobs.php`: mit_timesheets
 
 **ITFlow functions it calls**
@@ -881,19 +708,18 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket.php`: ticketReference
+- `functions/ticket.php`: ticketReference, ticketWorkTimesReady
+- `functions/user_timezone.php`: timezoneFromView, timezoneShifted, timezoneToView, timezoneView
 
 **ITFlow tables** clients, notifications, ticket_replies, tickets
 
-**ITFlow columns** client_id, client_name, notification_timestamp, notification_type, notification_user_id, ticket_client_id, ticket_id, ticket_number, ticket_prefix, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_subject, user_id
-
-**ITFlow page ids / classes its scripts and styles use** `#hours` `#minutes` `#seconds` `#startStopTimer` `#ticket_add_reply` `#ticket_reply_status`
+**ITFlow columns** client_id, client_name, notification_timestamp, notification_type, notification_user_id, ticket_client_id, ticket_id, ticket_number, ticket_prefix, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_reply_work_end, ticket_reply_work_start, ticket_subject, user_id
 
 **Watched in ITFlow's code** `ticket_reply_time_worked` `#hours` `#minutes` `#seconds` `flashAlert`
 
 **"ITFlow does this too" words** work_start, work_end, time_start, started_at
 
-**Our files** `functions/mit_reply_times.php`, `agent/js/mit_reply_times.js`
+**Our files** `functions/mit_reply_times.php`
 
 <a id="quotes"></a>
 ## Quote pricing (cost, markup / margin) and line images (`quotes`)
@@ -908,37 +734,27 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `admin/settings_quote.php`: mit_quote_card
-- `agent/ajax.php`: mitQuoteItemSave
 - `agent/invoice.php`: mitPaperLineExtras, mit_quotes, mit_staff
-- `agent/modals/billing/billing_item.php`: mitQuoteLineFields
-- `agent/modals/product/product_form.php`: mitProductImageField, MountaineerIT
-- `agent/post/billing.php`: mitImageErrorFlash, mitQuoteItemDelete, mitQuoteItemSave, mit_why
-- `agent/post/client.php`: mitQuoteImagesDelete
-- `agent/post/product.php`: mitImageErrorFlash, mitProductDelete, mitProductSave
-- `agent/post/quote.php`: mitQuoteItemCopy, mitQuoteItemDelete, MountaineerIT
 - `agent/quote.php`: mitPaperLineExtras, mitQuoteProfitBox, mit_quotes, mit_staff
-- `api/v1/clients/delete.php`: mitQuoteImagesDelete
 - `api/v1/products/read.php`: mitProductApiColumns
-- `functions.php`: mit_discount, mit_quotes
+- `api/v1/read_output.php`: mitApiHideCost, mit_quotes
+- `functions.php`: mit_quotes
 - `functions/backup.php`: mit_feedback
-- `functions/billing_pdf.php`: mitQuotePdfImage
-- `includes/billing_paper.php`: mitPaperAddRow, mitPaperLineExtras, mitPaperLineImage, mit_quotes, mit_add_row
+- `functions/quote_images.php`: mit_images
+- `includes/billing_paper.php`: mitPaperAddRow, mitPaperLineExtras, mit_quotes, mit_add_row
 - `js/billing_items.js`: mitBillingRefresh, mit_billing_add
 
 **ITFlow functions it calls**
 
-- `functions/app.php`: getFieldById
 - `functions/billing.php`: billingMoney, billingType, quoteFrequencies, quoteFrequency
-- `functions/logging.php`: logAudit
-- `functions/request.php`: flashAlert, redirect
+- `functions/quote_images.php`: quoteImagesShown
+- `functions/quote_pricing.php`: quotePricingSettings
 - `functions/sanitize.php`: escapeHtml
-- `functions/security.php`: validateCSRFToken
 - `functions/tax.php`: taxDefaultFor, taxOptionsHtml
 
-**ITFlow tables** assets, contacts, credentials, files, products, quote_items, quotes, settings, taxes
+**ITFlow tables** assets, contacts, credentials, files, products, quote_items, quotes, taxes
 
-**ITFlow columns** client_id, invoice_id, item_frequency, item_id, item_price, item_product_id, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, product_name, quote_currency_code, quote_discount_amount, quote_id, tax_id
+**ITFlow columns** client_id, invoice_id, item_cost, item_frequency, item_id, item_image, item_price, item_price_method, item_price_percent, item_quantity, item_quote_id, product_archived_at, product_cost, product_id, product_image, product_name, quote_currency_code, quote_discount_amount, quote_id, tax_id
 
 **ITFlow page ids / classes its scripts and styles use** `#add-line`
 
@@ -946,7 +762,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **"ITFlow does this too" words** margin, markup, item_cost, product_cost, item_image, product_image, price_method
 
-**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `js/mit_billing_add.js`, `admin/includes/mit_quote_card.php`, `admin/post/mit_quote_settings.php`
+**Our files** `functions/mit_quotes.php`, `js/mit_quote_pricing.js`, `js/mit_billing_add.js`
 
 <a id="procurement"></a>
 ## Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills) (`procurement`)
@@ -966,95 +782,51 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ajax.php`: mitPartLineQtyProblem, mit_why
 - `agent/includes/client_side_nav.php`: mitToBillPartsCount, mit_client_parts
 - `agent/includes/get_side_nav_counts.php`: mitToBillPartsCount, mit_to_bill
-- `agent/includes/side_nav.php`: mit_procurement_nav, mit_to_bill
-- `agent/invoice.php`: mitProcInvoiceMenuItem, mitProcInvoiceSummary, mit_quotes, mit-invoice
+- `agent/includes/side_nav.php`: mit_to_bill
+- `agent/invoice.php`: mitProcInvoiceMenuItem, mitProcInvoiceSummary, mit-invoice
+- `agent/modals/purchasing/po_decide.php`: mitPoSeenTotalField
 - `agent/modals/quote/quote_to_invoice.php`: mitProcQuoteConvertFields
 - `agent/post/billing.php`: mitPartLineQtyProblem, mitToBillAfter, mitToBillFlash, mitToBillMerge, mit_why
-- `agent/post/client.php`: mitTicketPartsDeleting
+- `agent/post/purchase_order.php`: mitProcLock, mitProcReceiveReview
 - `agent/post/quote.php`: mitProcAfterQuoteConvert
 - `agent/project.php`: mitProcProjectCard
-- `agent/quote.php`: mit_quotes
+- `agent/purchase_order.php`: mitPoItemFor, mitPoProjectMenuItem
+- `agent/receiving.php`: mitProcReceivingExtras
 - `agent/ticket.php`: mitTicketPartsCard
 - `agent/unbilled_time.php`: mitToBillCard, mitToBillCell, mitToBillHead, mitToBillMerge, mitToBillRowAttrs, mitToBillScript, mitToBillStatNote, mitToBillTotals, mit_part_value, mit_to_bill
-- `api/v1/clients/delete.php`: mitTicketPartsDeleting
-- `functions.php`: mit_offices, mit_procurement, mit_quotes
-- `functions/billing.php`: mitProcQuoteConvertGroups
-- `functions/contract_hours.php`: mit_label
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
+- `functions.php`: mit_procurement
+- `functions/billing.php`: mitProcQuoteConvertGroups, mitTicketPartsLineGone
+- `functions/purchase_orders.php`: mitPoMayApproveOwn, mitPoSeenTotalProblem, mitPoTellSwitches, mitProcAfterReceive, mitProcReceiveNoShelf, mitProcUndoReceiptExtras, mit_po_receipt_extras, mit_bell, mit_own
 - `functions/ticket.php`: mitTicketPartsDeleting
-- `includes/billing_paper.php`: mit_quotes
 - `includes/cron_jobs.php`: mit_procurement_parts, mit_procurement_tidy
 - `js/unbilled_time.js`: mitToBillParts, mit_to_bill
 
 **ITFlow functions it calls**
 
 - `cron/includes/cron_lock.php`: cronJobStop
-- `functions/app.php`: addToMailQueue, getFieldById
+- `functions/app.php`: getFieldById
 - `functions/auth.php`: clientScopeSql, enforceUserPermission, hasClientAccess, lookupUserPermission
 - `functions/billing.php`: billingInvoiceCreate, billingItems, billingLineTax, billingMoney, billingRecalc
 - `functions/contract_billing.php`: contractClientRate, contractNetTerms
-- `functions/credential.php`: credentialsForget
-- `functions/expenses.php`: expenseSave
-- `functions/format.php`: formatPhoneNumber, timeAgo
 - `functions/logging.php`: logAudit, logTicketHistory
-- `functions/products.php`: productStockMove
+- `functions/products.php`: productOnHand
+- `functions/purchase_orders.php`: poAccessible, poApprovers, poForRequest, poLevel, poNumber, poReady, poRequireLevel, poRow, poScopeSql, poStatusBadge, poTrackingFor, poTrackingHtml
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: randomString, validateCSRFToken
+- `functions/settings.php`: moduleOn
 - `functions/ticket.php`: ticketForModal, ticketForRequest, ticketReference
 
-**ITFlow tables** accounts, asset_notes, assets, categories, clients, companies, expenses, history, invoice_items, invoices, modules, notifications, product_stock, products, projects, quote_items, rack_units, settings, taxes, ticket_assets, ticket_replies, tickets, trips, user_role_permissions, user_roles, users, vendors
+**ITFlow tables** assets, categories, clients, expenses, history, invoice_items, invoices, logs, order_items, po_items, product_stock, products, projects, purchase_orders, quote_items, settings, taxes, ticket_assets, ticket_replies, tickets, trips, vendors
 
-**ITFlow columns** account_archived_at, account_id, account_name, asset_archived_at, asset_client_id, asset_id, asset_invoice_id, asset_invoice_item_id, asset_make, asset_model, asset_name, asset_notes, asset_product_id, asset_purchase_date, asset_purchase_reference, asset_serial, asset_status, asset_type, asset_vendor_id, category_archived_at, category_id, category_name, category_type, client_abbreviation, client_archived_at, client_id, client_name, company_address, company_city, company_email, company_id, company_logo, company_name, company_phone, company_phone_country_code, company_state, company_zip, config_enable_cron, config_invoice_next_number, expense_account_id, expense_amount, expense_archived_at, expense_category_id, expense_client_id, expense_currency_code, expense_date, expense_description, expense_id, expense_reference, expense_vendor_id, history_description, history_id, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, invoice_url_key, item_description, item_frequency, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_quote_id, item_subtotal, item_tax, item_tax_id, item_total, module_id, module_name, notification_action, notification_entity_id, notification_type, notification_user_id, product_archived_at, product_cost, product_description, product_id, product_name, product_price, product_tax_id, product_track_stock, product_type, product_vendor_id, project_archived_at, project_client_id, project_completed_at, project_id, project_name, project_number, project_prefix, rack_units, role_id, role_is_admin, stock_expense_id, stock_invoice_id, stock_item_id, stock_note, stock_product_id, stock_qty, stock_type, tax_archived_at, tax_id, tax_name, tax_percent, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, unit_asset_id, user_archived_at, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type, vendor_account_number, vendor_archived_at, vendor_client_id, vendor_contact_email, vendor_contact_name, vendor_email, vendor_id, vendor_name, vendor_phone
+**ITFlow columns** asset_archived_at, asset_client_id, asset_id, asset_invoice_id, asset_invoice_item_id, asset_name, asset_type, category_archived_at, category_id, category_name, category_type, client_abbreviation, client_id, client_name, company_id, config_enable_cron, config_invoice_next_number, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, invoice_url_key, item_cost, item_description, item_frequency, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_quote_id, item_subtotal, item_tax, item_tax_id, item_total, log_action, log_description, log_entity_id, log_type, log_user_id, order_item_client_id, order_item_cost, order_item_created_by, order_item_description, order_item_id, order_item_name, order_item_note, order_item_product_id, order_item_quantity, order_item_source, order_item_status, order_item_vendor_id, po_created_by, po_id, po_item_client_id, po_item_cost, po_item_id, po_item_name, po_item_order, po_item_order_item_id, po_item_po_id, po_item_product_id, po_item_quantity, po_item_received, po_number, po_prefix, po_receipt_asset_ids, po_receipt_id, po_receipt_item_id, po_receipt_quantity, po_status, po_total, po_vendor_id, po_vendor_reference, product_archived_at, product_cost, product_description, product_id, product_name, product_price, product_tax_id, product_track_stock, product_type, product_vendor_id, project_archived_at, project_client_id, project_completed_at, project_id, project_name, project_number, project_prefix, stock_invoice_id, stock_item_id, stock_note, stock_product_id, stock_qty, tax_archived_at, tax_id, tax_name, tax_percent, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_project_id, ticket_reply, ticket_reply_by, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_resolved_at, ticket_subject, vendor_archived_at, vendor_client_id, vendor_id, vendor_name
 
 **Watched in ITFlow's code** `productStockMove` `quoteConvert` `quoteLineGroups` `billingInvoiceCreate` `expenseSave` `productStockShortfall` `expenseUnbilledMerge` `tripUnbilledMerge` `expenseBillWithTime` `data-unbilled-expense-pick` `itflowUnbilledTime`
 
 **"ITFlow does this too" words** purchase_order, purchase, procure, receiv, po_, stock, vendor, reorder, unbilled
 
-**Our files** `functions/mit_procurement.php`, `functions/mit_procurement_extras.php`, `functions/mit_procurement_parts.php`, `agent/mit_procurement.php`, `agent/mit_purchase_order.php`, `agent/mit_purchase_orders.php`, `agent/mit_receiving.php`, `agent/mit_unbilled_parts.php`, `agent/modals/mit_procurement/from_invoice.php`, `agent/modals/mit_procurement/item.php`, `agent/modals/mit_procurement/part.php`, `agent/modals/mit_procurement/parts_bill.php`, `agent/modals/mit_procurement/po_action.php`, `agent/post/mit_procurement.php`, `agent/post/mit_procurement_parts.php`, `agent/includes/mit_procurement_nav.php`, `admin/mit_procurement_settings.php`, `admin/includes/mit_procurement_card.php`, `admin/post/mit_procurement_settings.php`, `cron/mit_procurement_tidy.php`, `functions/mit_to_bill.php`, `js/mit_to_bill.js`
-
-<a id="offices"></a>
-## Offices (other offices, who works where, trips From, ticket email foot, PO ship-to) (`offices`)
-
-**Takes for granted**
-
-- The company is ITFlow's companies row 1, read by billingCompany(); Admin > Settings > Company Details is ITFlow's settings frame (settingsSectionStart / settingsSectionEnd).
-- Ticket emails are built by ticketEmailContent and friends with a 'contact' line from ticketEmailContactLine(); emailHtml draws the foot from billingCompany().
-- The trip form (agent/modals/trip/trip_form.php) has [data-trip-driver], [data-trip-from] and the <form_id>Places datalist; tripLastStart / tripOfficeAddress make the default.
-- ITFlow 3.5.1 agent invites: add_user's invite branch saves the invite (userInviteSave) and the login is made in userInviteAccept (join.php) - our New User fields (Office, Employment) ride on the invite (functions/mit_invites.php, M049).
-
-**Tests** `tests/smoke/86-offices.spec.js`
-
-**Hooks in ITFlow's files**
-
-- `admin/modals/user/user_form.php`: mitOfficeUserField
-- `admin/post/users.php`: mitInviteExtrasSave, mitOfficeUserSave
-- `admin/settings_company.php`: mitOfficesSection
-- `agent/modals/trip/trip_form.php`: mitOfficeTripScript, mitOfficeTripStart
-- `functions.php`: mit_invites, mit_offices, mit_procurement
-- `functions/email.php`: mitOfficeEmailCompany
-- `functions/ticket.php`: mitOfficeForTicket, mit_office
-- `functions/user_invite.php`: mitInviteExtrasApply
-
-**ITFlow functions it calls**
-
-- `functions/billing.php`: billingCompany
-- `functions/format.php`: formatAddress, formatPhoneNumber, selectOptionUser
-- `functions/logging.php`: logAudit
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: validateCSRFToken
-- `functions/settings.php`: settingsLocalizationArrays, settingsSectionEnd, settingsSectionStart
-- `functions/ticket.php`: ticketEmailFrom
-
-**ITFlow tables** contracts, quotes, tickets, trips, users
-
-**ITFlow columns** company_address, company_city, company_country, company_email, company_name, company_phone, company_phone_country_code, company_state, company_website, company_zip, invite_id, ticket_assigned_to, user_archived_at, user_avatar, user_id, user_name, user_type
-
-**Watched in ITFlow's code** `billingCompany` `ticketEmailContactLine` `tripLastStart` `tripOfficeAddress` `data-trip-from` `data-trip-driver` `userInviteSave` `userInviteAccept`
-
-**"ITFlow does this too" words** office, branch, site_location, company_location
-
-**Our files** `functions/mit_offices.php`, `admin/modals/mit_offices/office.php`, `admin/post/mit_offices.php`, `functions/mit_invites.php`
+**Our files** `functions/mit_procurement.php`, `functions/mit_procurement_extras.php`, `functions/mit_procurement_parts.php`, `agent/mit_unbilled_parts.php`, `agent/modals/mit_procurement/from_invoice.php`, `agent/modals/mit_procurement/part.php`, `agent/modals/mit_procurement/parts_bill.php`, `agent/modals/mit_procurement/po_project.php`, `agent/post/mit_procurement_parts.php`, `cron/mit_procurement_tidy.php`, `functions/mit_to_bill.php`, `js/mit_to_bill.js`
 
 <a id="quick_ticket"></a>
 ## Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started) (`quick_ticket`)
@@ -1068,35 +840,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Tests** `tests/smoke/89-quick-ticket.spec.js`
 
-**Hooks in ITFlow's files**
-
-- `admin/post/settings_ticket.php`: mitQuickTicketSettingsSave, mit_changed
-- `admin/settings_ticket.php`: mitQuickTicketSection
-- `agent/post/ticket.php`: mitQuickTicketAfterCreate, mitQuickTicketMailsClient, mit_board
-- `functions.php`: mit_quick_ticket
-- `includes/top_nav.php`: mit_timers_nav
-
-**ITFlow functions it calls**
-
-- `functions/app.php`: getFieldById
-- `functions/auth.php`: clientScopeSql, hasClientAccess, lookupUserPermission
-- `functions/categories.php`: categoryOptionsHtml
-- `functions/format.php`: selectOptionClient, selectOptionContact, timeAgo
-- `functions/logging.php`: logTicketHistory
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/settings.php`: settingsSectionEnd, settingsSectionStart, settingsSelect, settingsSwitch
-- `functions/ticket.php`: ticketAgentId, ticketCategoryId, ticketClientOwnedId, ticketReference, ticketRow, ticketRows, ticketUrl
-- `functions/ticket_fields.php`: ticketChangeStatus, ticketPickableStatuses, ticketStatusHtml
-
-**ITFlow tables** clients, contacts, credentials, tickets, users
-
-**ITFlow columns** category_id, client_abbreviation, client_archived_at, client_id, client_lead, client_name, config_module_enable_ticketing, config_ticket_client_general_notifications, config_ticket_default_billable, contact_archived_at, contact_client_id, contact_email, contact_id, contact_mobile, contact_name, contact_phone, contact_photo, contact_primary, contact_title, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_created_at, ticket_id, ticket_resolved_at, ticket_status, ticket_status_color, ticket_status_name, ticket_subject, ticket_updated_at, user_archived_at, user_id, user_name, user_status, user_type
-
 **Watched in ITFlow's code** `ticket_time_tracking.js` `getLocalStorageKey("startTime")` `ticket-timer-running-` `ticketPickableStatuses` `ticketChangeStatus` `edit_ticket_settings` `selectOptionContact`
 
 **"ITFlow does this too" words** quick_ticket, quickticket, quick_add, fast_ticket
 
-**Our files** `functions/mit_quick_ticket.php`, `agent/mit_quick_ticket_ajax.php`, `agent/js/mit_quick_ticket.js`
+**Our files** 
 
 <a id="invoice_bulk"></a>
 ## More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete) (`invoice_bulk`)
@@ -1107,37 +855,13 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Each action copies ITFlow's own single-invoice handler (agent/post/invoice.php mark_invoice_sent / email_invoice quick send / cancel_invoice / delete_invoice, agent/post/payment.php add_payment) - re-check ours when those change (new rows to clear on delete, new history wording).
 - Mark Sent is for Draft, payments for invoiceOpenStatuses() with a balance, Cancel not for Cancelled / Paid / Non-Billable - the same rules agent/invoice.php shows its buttons by.
 
-**Tests** `tests/scenarios/scenario-invoice-bulk.php`, `tests/smoke/67-invoice-bulk.spec.js`
-
-**Hooks in ITFlow's files**
-
-- `agent/invoices.php`: mitInvoiceBulkMenu
-
-**ITFlow functions it calls**
-
-- `functions/app.php`: getSentMethods
-- `functions/auth.php`: enforceUserPermission, hasClientAccess, lookupUserPermission
-- `functions/billing.php`: billingLog, billingMoney, billingMoneyCan, billingPdf, billingRow, enforceBillingMoney, invoiceOpenStatuses, paymentAccounts
-- `functions/billing_email.php`: billingEmailPdf, billingEmailQueue, billingEmailRecipients, billingInvoiceEmail, billingPaymentEmail, billingReminderRules
-- `functions/logging.php`: logAudit, logHistory, triggerCustomAction
-- `functions/payment_method.php`: paymentMethods
-- `functions/payments.php`: updateInvoiceStatusFromPayments
-- `functions/products.php`: productStockReturnInvoice
-- `functions/reconcile.php`: reconcileInvoiceLock
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: validateCSRFToken
-- `functions/sms.php`: smsInvoiceNotify
-
-**ITFlow tables** assets, clients, contacts, credentials, expenses, history, invoice_items, invoices, payments, tickets, trips
-
-**ITFlow columns** account_archived_at, account_name, asset_invoice_id, asset_invoice_item_id, client_id, client_name, config_smtp_provider, expense_invoice_id, expense_invoice_item_id, history_description, history_invoice_id, history_status, invoice_amount, invoice_client_id, invoice_currency_code, invoice_id, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_invoice_id, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_invoice_id, payment_method, payment_reference, ticket_invoice_id, trip_invoice_id, trip_invoice_item_id
+**Tests** `tests/scenarios/scenario-invoice-bulk.php`
 
 **Watched in ITFlow's code** `bulkActionButton` `data-bulk="true"` `invoice_ids[]` `mark_invoice_sent` `productStockReturnInvoice` `reconcileInvoiceLock` `updateInvoiceStatusFromPayments` `billingPaymentEmail`
 
 **"ITFlow does this too" words** bulk_mark_paid, bulk_delete_invoice, bulk_cancel_invoice, bulk_mark_sent, bulk_email_invoice, invoice_bulk
 
-**Our files** `functions/mit_invoice_bulk.php`, `agent/modals/mit_invoice/bulk.php`, `agent/post/mit_invoice_bulk.php`, `agent/mit_invoice_bulk_ajax.php`
+**Our files** 
 
 <a id="timesheets"></a>
 ## Timesheets, payroll, leave, California rules, holidays, reimbursements (`timesheets`)
@@ -1149,27 +873,30 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Closure days are business_holidays (getBusinessHolidays, restampOpenSlaTickets).
 - change_client_ticket turns public replies internal (mitTsKeepPublicNotes runs first).
 
-**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/73-restore-roundtrip.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-rate-missing.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
+**Tests** `tests/smoke/04-permissions.spec.js`, `tests/smoke/05-california.spec.js`, `tests/smoke/19-own-employment.spec.js`, `tests/smoke/29-payroll-payback.spec.js`, `tests/smoke/41-admin-employment.spec.js`, `tests/smoke/45-note-time-locks.spec.js`, `tests/smoke/31-rest-breaks.spec.js`, `tests/smoke/70-ts-permissions.spec.js`, `tests/smoke/71-payroll-numbers.spec.js`, `tests/smoke/72-module-switches.spec.js`, `tests/smoke/74-ts-ticket-moves.spec.js`, `tests/smoke/75-ts-admin-screens.spec.js`, `tests/smoke/76-trip-locks.spec.js`, `tests/smoke/77-sign-in-security.spec.js`, `tests/smoke/78-portal-sessions.spec.js`, `tests/smoke/79-platform-pages.spec.js`, `tests/scenarios/scenario-ts-approval-off.php`, `tests/scenarios/scenario-ts-california.php`, `tests/scenarios/scenario-ts-holidays.php`, `tests/scenarios/scenario-ts-leave.php`, `tests/scenarios/scenario-ts-misc.php`, `tests/scenarios/scenario-ts-payroll-payback.php`, `tests/scenarios/scenario-ts-period-hourly.php`, `tests/scenarios/scenario-ts-rate-missing.php`, `tests/scenarios/scenario-ts-zone-entry.php`, `tests/scenarios/scenario-ts-zone-switch-back.php`, `tests/scenarios/fixture-hourly.php`
 
 **Hooks in ITFlow's files**
 
 - `admin/modals/user/user_form.php`: mitTsPayTypeField
-- `admin/post/users.php`: mitTsSavePayType
+- `admin/post/users.php`: mitInviteExtrasSave, mitTsSavePayType
 - `agent/ajax.php`: mit_ticket_layout
 - `agent/includes/side_nav.php`: mit_timesheet_nav
 - `agent/modals/trip/trip_form.php`: mitReimbTripRateNote
 - `agent/post/client.php`: mitTsDeleteGuard
-- `agent/post/ticket.php`: mitTsReplyTimeGuard
+- `agent/post/ticket.php`: mitTsReplyTimeGuard, mit_reply_times
 - `agent/post/trip.php`: mitReimbTripLocked, mitReimbTripWhyLocked, mit_why
 - `agent/ticket.php`: mitReimbMenuItem, mitReimbTicketCard, mit_ticket_layout
 - `agent/user/post/profile.php`: mitTsSavePreferences
 - `agent/user/user_preferences.php`: mitTsPreferenceFields
 - `api/v1/clients/delete.php`: mitTsDeleteBlocked
-- `functions.php`: mit_ticket_layout, mit_timesheets
+- `api/v1/enforce_api_rbac.php`: mit_charge_codes, mit_leave, mit_payroll, mit_reimbursements, mit_ticket_parts, mit_timesheets
+- `functions.php`: mit_invites, mit_ticket_layout, mit_timesheets
 - `functions/backup.php`: mit_receipts
 - `functions/expenses.php`: mitReimbExpenseWhyLocked, mitReimbReimbursementWhyLocked
 - `functions/reports.php`: mitTsReportEntry, mit_payroll, mit_timesheets
 - `functions/ticket.php`: mitTsDeleteGuard
+- `functions/user_invite.php`: mitInviteExtrasApply
+- `functions/user_timezone.php`: mitTsSaveZone, mit_timesheets
 - `includes/cron_jobs.php`: mit_timesheets
 
 **ITFlow functions it calls**
@@ -1190,16 +917,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/sla.php`: getBusinessHolidays, getSlaSettings, restampOpenSlaTickets, usFederalHolidays
 - `functions/ticket.php`: ticketForModal, ticketForRequest, ticketLink, ticketReference, ticketRow
 - `functions/trips.php`: tripClaim, tripRules
+- `functions/user_timezone.php`: timezoneUsersReady
 
-**ITFlow tables** accounts, business_holidays, categories, clients, companies, credentials, expenses, history, modules, notifications, reimbursements, settings, tags, ticket_replies, tickets, trips, user_role_permissions, user_roles, users, vendors
+**ITFlow tables** accounts, business_holidays, categories, clients, companies, credentials, expenses, history, modules, notifications, reimbursements, settings, tags, ticket_replies, tickets, trips, user_role_permissions, user_roles, user_settings, users, vendors
 
-**ITFlow columns** account_archived_at, account_id, account_name, category_archived_at, category_id, category_name, category_type, client_id, client_name, company_currency, company_id, config_enable_cron, config_mileage_rate, expense_account_id, expense_amount, expense_archived_at, expense_category_id, expense_client_id, expense_currency_code, expense_date, expense_description, expense_id, expense_paid_by, expense_receipt, expense_reference, expense_reimbursement_id, expense_vendor_id, holiday_date, holiday_id, holiday_name, invoice_id, module_id, module_name, notification_action, notification_entity_id, notification_timestamp, notification_type, notification_user_id, reimbursement_date, reimbursement_expense_id, reimbursement_id, reimbursement_reference, reimbursement_user_id, role_archived_at, role_id, role_is_admin, role_name, round_trip, ticket_billable, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_subject, trip_archived_at, trip_client_id, trip_date, trip_destination, trip_expense_id, trip_id, trip_miles, trip_own_vehicle, trip_purpose, trip_source, trip_ticket_id, trip_user_id, user_archived_at, user_avatar, user_created_at, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type, vendor_archived_at, vendor_client_id, vendor_description, vendor_id, vendor_name
+**ITFlow columns** account_archived_at, account_id, account_name, category_archived_at, category_id, category_name, category_type, client_id, client_name, company_currency, company_id, config_enable_cron, config_mileage_rate, expense_account_id, expense_amount, expense_archived_at, expense_category_id, expense_client_id, expense_currency_code, expense_date, expense_description, expense_id, expense_paid_by, expense_receipt, expense_reference, expense_reimbursement_id, expense_vendor_id, holiday_date, holiday_id, holiday_name, invite_id, invoice_id, module_id, module_name, notification_action, notification_entity_id, notification_timestamp, notification_type, notification_user_id, reimbursement_date, reimbursement_expense_id, reimbursement_id, reimbursement_reference, reimbursement_user_id, role_archived_at, role_id, role_is_admin, role_name, round_trip, ticket_billable, ticket_client_id, ticket_closed_at, ticket_id, ticket_number, ticket_prefix, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_time_worked, ticket_reply_type, ticket_reply_work_start, ticket_subject, trip_archived_at, trip_client_id, trip_date, trip_destination, trip_expense_id, trip_id, trip_miles, trip_own_vehicle, trip_purpose, trip_source, trip_ticket_id, trip_user_id, user_archived_at, user_avatar, user_config_timezone, user_created_at, user_email, user_id, user_name, user_role_id, user_role_permission_level, user_status, user_type, vendor_archived_at, vendor_client_id, vendor_description, vendor_id, vendor_name
 
 **Watched in ITFlow's code** `ticket_reply_time_worked` `trip_own_vehicle` `tripClaim` `expenseReimburse` `reimbursementDelete` `expense_paid_by` `config_mileage_rate` `getBusinessHolidays`
 
 **"ITFlow does this too" words** timesheet, payroll, leave, pto, overtime, time_entr, clock, reimburse, mileage, trip, holiday, pay_period
 
-**Our files** `functions/mit_timesheet_view.php`, `functions/mit_timesheets.php`, `functions/mit_ts_california.php`, `functions/mit_ts_holidays.php`, `functions/mit_leave.php`, `functions/mit_reimbursements.php`, `agent/mit_timesheet.php`, `agent/mit_timesheet_ajax.php`, `agent/mit_timesheets.php`, `agent/js/mit_timesheet.js`, `agent/modals/mit_timesheet/day.php`, `agent/modals/mit_timesheet/decide.php`, `agent/modals/mit_timesheet/leave.php`, `agent/modals/mit_reimburse/reimburse.php`, `agent/post/mit_timesheets.php`, `agent/post/mit_reimbursements.php`, `agent/mit_receipt.php`, `agent/reports/mit_payroll.php`, `agent/includes/mit_timesheet_nav.php`, `admin/mit_timesheets.php`, `admin/modals/mit_timesheets/charge_code.php`, `admin/modals/mit_timesheets/holiday.php`, `admin/modals/mit_timesheets/leave_bank.php`, `admin/modals/mit_timesheets/person.php`, `admin/modals/mit_timesheets/person_leave.php`, `admin/post/mit_timesheets.php`, `cron/mit_timesheets.php`
+**Our files** `functions/mit_timesheet_view.php`, `functions/mit_timesheets.php`, `functions/mit_ts_california.php`, `functions/mit_ts_holidays.php`, `functions/mit_leave.php`, `functions/mit_invites.php`, `functions/mit_reimbursements.php`, `agent/mit_timesheet.php`, `agent/mit_timesheet_ajax.php`, `agent/mit_timesheets.php`, `agent/js/mit_timesheet.js`, `agent/modals/mit_timesheet/day.php`, `agent/modals/mit_timesheet/decide.php`, `agent/modals/mit_timesheet/leave.php`, `agent/modals/mit_reimburse/reimburse.php`, `agent/post/mit_timesheets.php`, `agent/post/mit_reimbursements.php`, `agent/mit_receipt.php`, `agent/reports/mit_payroll.php`, `agent/includes/mit_timesheet_nav.php`, `admin/mit_timesheets.php`, `admin/modals/mit_timesheets/charge_code.php`, `admin/modals/mit_timesheets/holiday.php`, `admin/modals/mit_timesheets/leave_bank.php`, `admin/modals/mit_timesheets/person.php`, `admin/modals/mit_timesheets/person_leave.php`, `admin/post/mit_timesheets.php`, `cron/mit_timesheets.php`
 
 <a id="qbo"></a>
 ## QuickBooks Online (approvals, batches, locks, payments back) (`qbo`)
@@ -1211,7 +939,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 - Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-discount-account.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-discount-account.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`, `tests/scenarios/scenario-invoice-bulk.php`, `tests/scenarios/scenario-billing-chain.php`
 
 **Hooks in ITFlow's files**
 
@@ -1224,18 +952,20 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/post/expense.php`: mitQboGuardInvoice
 - `agent/post/invoice.php`: mitQboGuardEmail, mitQboGuardInvoice
 - `agent/post/payment.php`: mitQboGuardInvoice, mitQboGuardPayment, mitQboGuardPaymentEdit, mitQboTakesPayments
+- `agent/post/product.php`: mit_discount
 - `agent/post/ticket.php`: mitQboGuardInvoice
 - `agent/post/trip.php`: mitQboGuardInvoice
 - `api/v1/clients/delete.php`: mitQboClientLock
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `api/v1/invoice_items/create.php`: mitQboInvoiceLock
 - `client/pay.php`: mitQboTakesPayments
 - `client/post.php`: mitQboGuardPayment, mit_invoice_id
-- `cron/mail_queue.php`: mit_dev_mode
 - `cron/nightly_tasks.php`: mitQboSendsReminders, mitQboTakesPayments
 - `functions.php`: mit_discount, mit_qbo
 - `functions/billing.php`: mitQboHandlesInvoiceMail, mitQboTagTimeLines, MountaineerIT, mit_hold
 - `functions/billing_pay.php`: mitQboCardPaymentBooked
 - `functions/income_import.php`: mitQboTakesPayments
+- `functions/invoice_actions.php`: mitQboConnected, mitQboInvoiceLock, mit_qbo, mit_qbo_billing
 - `functions/products.php`: mitQboInvoiceLock
 - `guest/guest_ajax.php`: mitQboTakesPayments
 - `guest/guest_pay_invoice_stripe.php`: mitQboCardPaymentBooked
@@ -1257,7 +987,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** accounts, categories, clients, companies, contacts, expenses, history, invoice_items, invoices, payments, products, settings, taxes, tickets, users
 
-**ITFlow columns** account_archived_at, account_id, account_name, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_currency, company_id, company_name, config_enable_cron, contact_archived_at, contact_billing, contact_client_id, contact_email, contact_name, contact_primary, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_credit_amount, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_note, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_archived_at, item_description, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_tax_id, item_total, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_deposit_transfer_id, payment_id, payment_invoice_id, payment_method, payment_reconciliation_id, payment_reference, product_archived_at, product_category_id, product_id, product_name, product_price, product_type, tax_archived_at, tax_id, tax_name, tax_percent, user_id, user_name
+**ITFlow columns** account_archived_at, account_id, account_name, added_by, category_archived_at, category_id, category_name, category_type, client_archived_at, client_id, client_name, company_currency, company_id, company_name, config_enable_cron, contact_archived_at, contact_billing, contact_client_id, contact_email, contact_name, contact_primary, history_description, history_invoice_id, history_status, invoice_amount, invoice_archived_at, invoice_category_id, invoice_client_id, invoice_credit_amount, invoice_currency_code, invoice_date, invoice_discount_amount, invoice_due, invoice_id, invoice_note, invoice_number, invoice_prefix, invoice_scope, invoice_status, item_archived_at, item_description, item_id, item_invoice_id, item_name, item_order, item_price, item_product_id, item_quantity, item_tax_id, item_total, payment_account_id, payment_amount, payment_currency_code, payment_date, payment_deposit_transfer_id, payment_id, payment_invoice_id, payment_method, payment_reconciliation_id, payment_reference, product_archived_at, product_category_id, product_id, product_name, product_price, product_type, tax_archived_at, tax_id, tax_name, tax_percent, user_id, user_name
 
 **Watched in ITFlow's code** `updateInvoiceStatusFromPayments` `billingStripeBook` `recurringInvoiceGenerate` `productRepriceApply` `income_import` `billingTimeInvoice` `product_category_id` `invoice_category_id`
 
@@ -1284,6 +1014,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `api/v1/enforce_api_rbac.php`: mit_usage
 - `functions.php`: mit_usage
 - `functions/billing.php`: mitSeatNotTagDescribe, mitSeatNotTagFilter, mitSeatNotTagSql, mitUsageApply, mitUsageSeatCount, mitUsageSeatDescribe, mitUsageSeatFilter, mitUsageSeatSources, MountaineerIT, mit_hold, mit_not
+- `functions/invoice_actions.php`: mit_qbo_billing
 - `includes/cron_jobs.php`: mit_qbo_billing, mit_usage
 
 **ITFlow functions it calls**
@@ -1372,11 +1103,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
-- `functions/ticket.php`: ticketReference
+- `functions/ticket.php`: ticketNoResponseReady, ticketReference
 
 **ITFlow tables** clients, contacts, credits, settings, ticket_history, tickets, users
 
-**ITFlow columns** client_abbreviation, client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_email, contact_id, contact_name, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_history_description, ticket_history_ticket_id, ticket_id, ticket_number, ticket_prefix, ticket_resolved_at, ticket_subject, user_id, user_name
+**ITFlow columns** client_abbreviation, client_archived_at, client_id, client_name, company_id, config_enable_cron, contact_archived_at, contact_email, contact_id, contact_name, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_contact_id, ticket_history_description, ticket_history_ticket_id, ticket_id, ticket_no_response_at, ticket_number, ticket_prefix, ticket_resolved_at, ticket_subject, user_id, user_name
 
 **Watched in ITFlow's code** `merged this ticket into`
 
@@ -1434,8 +1165,9 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow's AI providers (ai_providers, aiProviderRow, aiProviderHeaders, callAiApi, getAiModel, aiCan, aiReady, aiRedact, aiCleanHtml, aiDocumentSplit).
 - callAiApi posts messages as given (OpenAI chat format) - a user message made of parts (text + image_url, pictures with an Ask AI question) passes through; our one line in its redaction loop redacts the text parts.
 - Documents: add_document handler and modals/document/document_form.php; archived = *_archived_at.
+- Knowledge Base (26.12.1, M070): kb_articles - published = kb_article_published_at set, archived = kb_article_archived_at; kbOn() / kbClosedText(2); the add_kb_article handler and modals/kb/kb_article_form.php with its Published switch (checkbox name="published"); kb_article.php?kb_article_id= is the article page.
 
-**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/smoke/69-ai-pictures.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-pictures.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
+**Tests** `tests/smoke/32-ai-helper.spec.js`, `tests/smoke/33-ai-panel.spec.js`, `tests/smoke/34-ai-document.spec.js`, `tests/smoke/35-ai-local.spec.js`, `tests/smoke/69-ai-pictures.spec.js`, `tests/scenarios/scenario-ai-ask.php`, `tests/scenarios/scenario-ai-document.php`, `tests/scenarios/scenario-ai-documents.php`, `tests/scenarios/scenario-ai-kb.php`, `tests/scenarios/scenario-ai-library.php`, `tests/scenarios/scenario-ai-local.php`, `tests/scenarios/scenario-ai-pictures.php`, `tests/scenarios/scenario-ai-scrub.php`, `tests/scenarios/scenario-ai-wall.php`
 
 **Hooks in ITFlow's files**
 
@@ -1450,21 +1182,22 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `functions/ai_document.php`: aiDocumentSplit
 - `functions/ai_ticket.php`: aiHtmlToText
 - `functions/auth.php`: clientScopeSql, hasClientAccess, lookupUserPermission, permissionRefuse
+- `functions/kb.php`: kbClosedText, kbOn
 - `functions/logging.php`: logAudit
 - `functions/request.php`: flashAlert, redirect
 - `functions/sanitize.php`: escapeHtml, escapeSql
 - `functions/security.php`: validateCSRFToken
 - `functions/ticket.php`: ticketUrl
 
-**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, networks, settings, tags, ticket_replies, tickets
+**ITFlow tables** ai_models, ai_providers, ai_usage, clients, documents, files, folders, history, kb_articles, networks, settings, tags, ticket_replies, tickets
 
-**ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
+**ITFlow columns** ai_model_name, ai_provider_api_key, ai_provider_api_url, ai_provider_id, ai_provider_kind, ai_provider_name, ai_provider_redact, ai_usage_created_at, ai_usage_feature, ai_usage_tokens_in, ai_usage_tokens_out, client_archived_at, client_id, client_name, company_id, config_enable_cron, config_module_enable_kb, document_archived_at, document_client_id, document_content, document_created_at, document_description, document_id, document_name, document_updated_at, kb_article_archived_at, kb_article_content, kb_article_created_at, kb_article_id, kb_article_published_at, kb_article_review_months, kb_article_summary, kb_article_title, kb_article_updated_at, ticket_archived_at, ticket_client_id, ticket_closed_at, ticket_created_at, ticket_details, ticket_id, ticket_number, ticket_prefix, ticket_reply, ticket_reply_archived_at, ticket_reply_created_at, ticket_reply_id, ticket_reply_ticket_id, ticket_reply_type, ticket_reply_updated_at, ticket_resolved_at, ticket_subject, ticket_updated_at, user_id
 
-**Watched in ITFlow's code** `callAiApi` `aiRedact` `getAiModel` `aiCleanHtml` `aiDocumentSplit` `document_form.php`
+**Watched in ITFlow's code** `callAiApi` `aiRedact` `getAiModel` `aiCleanHtml` `aiDocumentSplit` `document_form.php` `kbClosedText` `kb_article_form.php` `add_kb_article` `kb_article_published_at`
 
 **"ITFlow does this too" words** embedding, knowledge, assistant, copilot, ai_search, ai_chat, ai_ask, ai_answer
 
-**Our files** `functions/mit_ai_ask.php`, `functions/mit_ai_diagram.php`, `functions/mit_ai_docs.php`, `functions/mit_ai_helper.php`, `functions/mit_ai_local.php`, `admin/mit_ai_helper.php`, `admin/post/mit_ai_helper.php`, `agent/mit_ai_ajax.php`, `agent/js/mit_ai_helper.js`, `agent/modals/mit_ai/document.php`, `cron/mit_ai_index.php`
+**Our files** `functions/mit_ai_ask.php`, `functions/mit_ai_diagram.php`, `functions/mit_ai_docs.php`, `functions/mit_ai_helper.php`, `functions/mit_ai_local.php`, `admin/mit_ai_helper.php`, `admin/post/mit_ai_helper.php`, `agent/mit_ai_ajax.php`, `agent/js/mit_ai_helper.js`, `agent/modals/mit_ai/document.php`, `agent/modals/mit_ai/kb_article.php`, `cron/mit_ai_index.php`
 
 <a id="feedback"></a>
 ## Bugs & ideas (bug reports and feature requests in the top bar) (`feedback`)
@@ -1514,103 +1247,19 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Tests** `tests/smoke/96-service-users.spec.js`, `tests/scenarios/scenario-service-users.php`
 
-**Hooks in ITFlow's files**
-
-- `admin/getting_started/team.php`: mitServiceUserSql
-- `admin/modals/ticket_template/ticket_template_form.php`: mitServiceUserSql
-- `admin/modals/user/user_form.php`: mitServiceUserField
-- `admin/post/users.php`: mitServiceUserSave
-- `admin/users.php`: mitServiceUserListSql, mitServiceUsersSection
-- `agent/ajax.php`: mitServiceUserSql
-- `agent/calendar.php`: mitServiceUserSql
-- `agent/client_onboarding/agreement.php`: mitServiceUserSql
-- `agent/client_onboarding/kickoff.php`: mitServiceUserSql
-- `agent/modals/asset/asset_bulk_add_ticket.php`: mitServiceUserSql
-- `agent/modals/calendar/calendar_event_form.php`: mitServiceUserSql
-- `agent/modals/client/client_bulk_add_ticket.php`: mitServiceUserSql
-- `agent/modals/contract/contract_form.php`: mitServiceUserSql
-- `agent/modals/project/project_bulk_manager.php`: mitServiceUserSql
-- `agent/modals/project/project_export.php`: mitServiceUserSql
-- `agent/modals/project/project_form.php`: mitServiceUserSql
-- `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitServiceUserSql
-- `agent/modals/recurring_ticket/recurring_ticket_bulk_agent_edit.php`: mitServiceUserSql
-- `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitServiceUserSql
-- `agent/modals/ticket/ticket_add.php`: mitServiceUserSql
-- `agent/modals/ticket/ticket_bulk_assign.php`: mitServiceUserSql
-- `agent/modals/ticket/ticket_edit.php`: mitServiceUserSql
-- `agent/modals/ticket/ticket_edit_schedule.php`: mitServiceUserSql
-- `agent/modals/ticket/ticket_export.php`: mitServiceUserSql
-- `agent/projects.php`: mitServiceUserSql
-- `agent/recurring_tickets.php`: mitServiceUserSql
-- `agent/reports/satisfaction.php`: mitServiceUserSql
-- `agent/reports/sla_summary.php`: mitServiceUserSql
-- `agent/reports/ticket_aging.php`: mitServiceUserSql
-- `agent/reports/time_by_tech.php`: mitServiceUserSql
-- `agent/tickets.php`: mitServiceUserSql
-- `functions/expenses.php`: mitServiceUserSql
-- `functions/getting_started.php`: mitServiceUserSql
-- `functions/logging.php`: mitServiceUserSql
-- `functions/reports.php`: mitServiceUserSql
-- `functions/sign_in.php`: mitServiceUserSql
-- `functions/ticket_fields.php`: mitServiceUserSql
-- `functions/ticket_mention.php`: mitServiceUserSql
-- `functions/trips.php`: mitServiceUserSql
-- `includes/load_user_session.php`: mitIsServiceUser, mit_service_users
-- `login.php`: mitIsServiceUser
-
 **ITFlow functions it calls**
 
-- `functions/logging.php`: logAudit
-- `functions/sanitize.php`: escapeHtml, escapeSql
+- `functions/service_account.php`: serviceAccountIs, serviceAccountsReady
 
-**ITFlow tables** accounts, api_keys, user_roles, users
+**ITFlow tables** users
 
-**ITFlow columns** api_key_user_id, role_id, role_name, user_archived_at, user_email, user_id, user_name, user_role_id, user_status
+**ITFlow columns** user_id, user_service_account
 
 **Watched in ITFlow's code** `api_key_user_id` `apiKeyAgentProblem` `quickPickAgents` `ticketMentionAgents` `signInAdmins`
 
 **"ITFlow does this too" words** service_account, api_user, user_is_api, bot_user
 
 **Our files** `functions/mit_service_users.php`
-
-<a id="recurring_lead"></a>
-## Recurring tickets booked at a time and made days ahead; recurring invoices made days ahead with a due rule (`recurring_lead`)
-
-**Takes for granted**
-
-- The nightly job (cron/nightly_tasks.php) raises recurring tickets whose recurring_ticket_next_run is due through recurringTicketRunNow, and makes recurring invoices through recurringInvoiceGenerate($id, $by, $early, $run) - $early dates the invoice today.
-- recurringInvoiceGenerate inserts the invoice with invoice_due = date + contractNetTerms and keeps $invoice_id / $due / $date in scope after billingRecalc.
-- ticketSetSchedule($row, $start, $onsite, $end) books a ticket (emails, note, history); recurring windows are agent/modals/recurring_ticket/recurring_ticket_add.php / _edit.php, recurring invoices use agent/modals/billing/billing_form.php.
-
-**Tests** `tests/smoke/98-recurring-lead.spec.js`, `tests/scenarios/scenario-recurring-lead.php`
-
-**Hooks in ITFlow's files**
-
-- `agent/modals/billing/billing_form.php`: mitRecurringInvoicePlanField
-- `agent/modals/recurring_ticket/recurring_ticket_add.php`: mitRecurringTicketPlanField
-- `agent/modals/recurring_ticket/recurring_ticket_edit.php`: mitRecurringTicketPlanField
-- `agent/post/recurring_invoice.php`: mitRecurringInvoicePlanSave, MountaineerIT
-- `agent/post/recurring_ticket.php`: mitRecurringTicketPlanSave
-- `cron/nightly_tasks.php`: mitRecurringInvoiceDueSql, mitRecurringTicketDueSql
-- `functions.php`: mit_recurring_lead
-- `functions/billing.php`: mitRecurringInvoiceDue, mit_hold
-- `functions/ticket.php`: mitRecurringTicketBook
-
-**ITFlow functions it calls**
-
-- `functions/contract_billing.php`: contractNetTerms
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/ticket.php`: ticketRow, ticketSetSchedule
-
-**ITFlow tables** invoices, recurring_invoices, recurring_tickets
-
-**ITFlow columns** config_timezone, invoice_client_id, invoice_due, invoice_id, recurring_invoice_frequency, recurring_invoice_id, recurring_invoice_next_date, recurring_ticket_frequency, recurring_ticket_id, recurring_ticket_next_run
-
-**Watched in ITFlow's code** `recurringTicketRunNow` `recurringInvoiceGenerate` `RECURRING_INVOICE_GRACE_DAYS` `contractNetTerms` `ticketSetSchedule`
-
-**"ITFlow does this too" words** lead_days, invoice_lead, days_before, create_ahead, recurring_ticket_time
-
-**Our files** `functions/mit_recurring_lead.php`
 
 <a id="contract_unlimited"></a>
 ## Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited" (`contract_unlimited`)
@@ -1658,15 +1307,17 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - recurringInvoiceGenerate and quoteConvert copy the discount dollars and call billingRecalc on the new document; billingItems gives item_subtotal / item_product_id / item_name.
 - agent/modals/billing/billing_form.php has the Discount box named invoice_discount / quote_discount / recurring_invoice_discount, posted to the six add / edit handlers.
 
-**Tests** `tests/smoke/56-discount-percent.spec.js`, `tests/scenarios/scenario-discount-percent.php`
+**Tests** `tests/smoke/56-discount-percent.spec.js`, `tests/scenarios/scenario-discount-percent.php`, `tests/scenarios/scenario-discount-pdf.php`
 
 **Hooks in ITFlow's files**
 
 - `agent/modals/billing/billing_form.php`: mitDiscountField
 - `agent/modals/product/product_form.php`: mitDiscountProductField, MountaineerIT
 - `agent/post/invoice.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `agent/post/product.php`: mitDiscountProductSave, mit_discount
 - `agent/post/quote.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
 - `agent/post/recurring_invoice.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `functions.php`: mit_discount, mit_minimum
 - `functions/billing.php`: mitDiscountBeforeRecalc, mitDiscountCopy, MountaineerIT, mit_hold
 - `functions/billing_pdf.php`: mitDiscountLabel
@@ -1722,11 +1373,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** asset_interface_links, asset_interfaces, assets, clients, credentials, document_versions, documents, files, history, locations, networks, rack_units, racks, users
 
-**ITFlow columns** ai_provider_redact, asset_archived_at, asset_client_id, asset_id, asset_location_id, asset_make, asset_model, asset_name, asset_type, client_id, document_archived_at, document_client_id, document_content, document_content_raw, document_created_at, document_created_by, document_description, document_id, document_name, document_updated_at, document_updated_by, document_version_content, document_version_created_at, document_version_created_by, document_version_description, document_version_document_id, document_version_name, file_archived_at, file_client_id, file_created_at, file_created_by, file_description, file_ext, file_folder_id, file_id, file_mime_type, file_name, file_reference_name, file_size, file_updated_at, folder_id, interface_a_id, interface_archived_at, interface_asset_id, interface_b_id, interface_id, interface_ip, interface_link_id, interface_name, interface_network_id, interface_primary, location_archived_at, location_client_id, location_id, location_name, network_archived_at, network_client_id, network_gateway, network_id, network_name, network_subnet, network_vlan, rack_archived_at, rack_client_id, rack_id, rack_location_id, rack_name, rack_units, rack_units_descending, unit_archived_at, unit_asset_id, unit_device, unit_end_number, unit_face, unit_rack_id, unit_start_number, unit_type, user_id, user_name
+**ITFlow columns** ai_provider_redact, asset_archived_at, asset_client_id, asset_id, asset_location_id, asset_make, asset_model, asset_name, asset_type, client_id, document_archived_at, document_client_id, document_content, document_content_raw, document_created_at, document_created_by, document_description, document_id, document_name, document_updated_at, document_updated_by, document_version_content, document_version_created_at, document_version_created_by, document_version_description, document_version_document_id, document_version_name, file_archived_at, file_client_id, file_created_at, file_created_by, file_description, file_ext, file_folder_id, file_id, file_mime_type, file_name, file_reference_name, file_size, file_updated_at, folder_id, interface_a_id, interface_archived_at, interface_asset_id, interface_b_id, interface_id, interface_ip, interface_link_id, interface_name, interface_network_id, interface_primary, location_archived_at, location_client_id, location_id, location_name, network_archived_at, network_client_id, network_gateway, network_id, network_name, network_subnet, network_vlan, rack_archived_at, rack_client_id, rack_id, rack_location_id, rack_name, rack_units, rack_units_descending, unit_archived_at, unit_asset_id, unit_device, unit_end_number, unit_face, unit_id, unit_parent_id, unit_position, unit_rack_id, unit_start_number, unit_type, user_id, user_name
 
 **ITFlow page ids / classes its scripts and styles use** `#mitDiagrams` `.itflow-document-body`
 
-**Watched in ITFlow's code** `function saveBase64Images(` `function documentContentRaw(` `function documentHtmlPurify(` `function filesItemMenu(` `itflow-document-body` `Document from template` `selector: '.tinymce',` `asset_interface_links` `rack_units_descending` `function assetTypeName(`
+**Watched in ITFlow's code** `function saveBase64Images(` `function documentContentRaw(` `function documentHtmlPurify(` `function filesItemMenu(` `itflow-document-body` `Document from template` `itflowDocumentEditor` `asset_interface_links` `rack_units_descending` `function assetTypeName(`
 
 **"ITFlow does this too" words** drawio, diagram, network_map, networkMap, topology, mxgraph, diagrams.net
 
@@ -1766,6 +1417,49 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Our files** `functions/mit_minimum.php`
 
+<a id="api"></a>
+## Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow's ticket / invoice / quote / recurring / contract reads (`api`)
+
+**Takes for granted**
+
+- api/v1/validate_api_key.php requires api/v1/enforce_api_rbac.php at global scope: $resource (the endpoint's folder), $resource_module / $operation_level (fail closed on an unmapped folder), apiUserCanAccessClient(), apiClientScopeSql(), $limit / $offset, $session_* of the key's user.
+- Reads answer through api/v1/read_output.php, except invoices / quotes / recurring_invoices / contracts read.php, which echo their own JSON (our mitApiExtras line is in each).
+- Delete operations need level 3 in the enforcer, so ours that the pages allow at Edit are named remove.php / move.php (level 2).
+
+**Tests** `tests/scenarios/scenario-api-features.php`
+
+**Hooks in ITFlow's files**
+
+- `.htaccess`: MIT_API
+- `api/v1/contracts/read.php`: mitApiExtras, mit_api
+- `api/v1/enforce_api_rbac.php`: mitApiTsPeople, mit_api, mit_boards, mit_charge_codes, mit_leave, mit_payroll, mit_reimbursements, mit_ticket_parts, mit_timesheets, mit_usage
+- `api/v1/invoices/read.php`: mitApiExtras, mit_api
+- `api/v1/quotes/read.php`: mitApiExtras, mit_api
+- `api/v1/read_output.php`: mitApiExtras, mit_api
+- `api/v1/recurring_invoices/read.php`: mitApiExtras, mit_api
+- `functions.php`: mit_boards, mit_timesheets, mit_usage
+- `functions/reports.php`: mit_boards, mit_payroll, mit_timesheets
+- `functions/user_timezone.php`: mit_timesheets
+- `includes/cron_jobs.php`: mit_boards, mit_procurement_parts, mit_timesheets, mit_usage
+
+**ITFlow functions it calls**
+
+- `api/v1/enforce_api_rbac.php`: apiClientScopeSql, apiUserCanAccessClient
+- `functions/app.php`: getFieldById
+- `functions/auth.php`: clientScopeSql
+- `functions/sanitize.php`: escapeSql
+- `functions/ticket.php`: ticketIsOpen
+
+**ITFlow tables** contracts, invoices, quotes, recurring_invoices, tickets, users
+
+**ITFlow columns** asset_id, client_id, contract_monthly_hours, expense_id, invoice_id, invoice_number, invoice_prefix, item_id, order_item_id, po_id, po_number, po_prefix, product_id, quote_id, recurring_invoice_id, tax_id, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_id, ticket_resolved_at, trip_id, user_email, user_id, user_name
+
+**Watched in ITFlow's code** `enforce_api_rbac.php` `function apiUserCanAccessClient(` `function apiClientScopeSql(` `$resource_module` `$operation_level` `billingApiTaxFields`
+
+**"ITFlow does this too" words** api/v1/boards, api/v1/timesheets, api/v1/payroll, api/v1/parts, service_board
+
+**Our files** `functions/mit_api.php`, `api/v1/mit_boards/move.php`, `api/v1/mit_boards/read.php`, `api/v1/mit_timesheets/read.php`, `api/v1/mit_payroll/read.php`, `api/v1/mit_charge_codes/read.php`, `api/v1/mit_leave/read.php`, `api/v1/mit_reimbursements/read.php`, `api/v1/mit_ticket_parts/create.php`, `api/v1/mit_ticket_parts/read.php`, `api/v1/mit_ticket_parts/remove.php`, `api/v1/mit_ticket_parts/update.php`, `MIT_API.md`
+
 <a id="client_profit"></a>
 ## Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report (`client_profit`)
 
@@ -1779,62 +1473,22 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `agent/reports/client_profitability.php`: mitProfitAdd, mitProfitColumns, mitProfitControls, mitProfitSummary, mitProfitTotals
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `functions.php`: mit_profit
+- `functions/labor_cost.php`: mitProfitDefaultBasis, mitProfitPartsAdd, mit_profit
+- `includes/cron_jobs.php`: mit_procurement_parts
 
 **ITFlow functions it calls**
 
 - `functions/auth.php`: clientScopeSql
-- `functions/dashboard.php`: dashboardRevenueSql
-- `functions/logging.php`: logAudit
-- `functions/reports.php`: reportCount, reportHours, reportMoney, reportPercent, reportRangeSql, reportSegmentControl, reportShare, reportStats
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml, escapeSql
-- `functions/security.php`: validateCSRFToken
+- `functions/reports.php`: reportRangeSql
 
-**ITFlow tables** clients, invoice_items, invoices, payments, products, revenues, taxes, ticket_replies, tickets, users
+**ITFlow tables** clients, invoice_items, invoices
 
-**ITFlow columns** client_abbreviation, client_id, client_name, invoice_client_id, invoice_date, invoice_discount_amount, invoice_id, invoice_status, item_archived_at, item_id, item_invoice_id, item_product_id, item_quantity, item_subtotal, product_cost, product_id, revenue_amount, revenue_client_id, revenue_date, ticket_client_id, ticket_id, ticket_reply_archived_at, ticket_reply_by, ticket_reply_created_at, ticket_reply_ticket_id, ticket_reply_time_worked, user_archived_at, user_id, user_name, user_type
+**ITFlow columns** client_abbreviation, client_id, client_name, invoice_client_id, invoice_date, invoice_id, invoice_status, item_archived_at, item_id, item_invoice_id, item_product_id
 
 **Watched in ITFlow's code** `client_profitability` `reportRangeSql` `reportSegmentControl` `dashboardRevenueSql` `product_cost`
 
 **"ITFlow does this too" words** labor_cost, cost_rate, hourly_cost, profit_margin, user_cost
 
-**Our files** `functions/mit_profit.php`, `admin/mit_labor_costs.php`, `admin/post/mit_labor_costs.php`
-
-<a id="ticket_add"></a>
-## New Ticket: Status and Schedule; Dispatch drag on empty time opens it for that agent and time (`ticket_add`)
-
-**Takes for granted**
-
-- ITFlow's New Ticket window is agent/modals/ticket/ticket_add.php (Assign to select name="assigned_to", then Due, then tags); add_ticket in agent/post/ticket.php inserts the ticket, flashes "created" and redirects to ticket.php.
-- ticketPickableStatuses / ticketChangeStatus set a status other than New / Resolved / Closed; ticketScheduleValue + ticketSetSchedule book the work (emails, note, history).
-- Dispatch's day view is one FullCalendar v7 timeGridDay per agent (agent/js/mit_dispatch.js renderDay); select gives the picked range on the viewer's clock.
-
-**Tests** `tests/smoke/97-ticket-add.spec.js`
-
-**Hooks in ITFlow's files**
-
-- `agent/calendar.php`: mit_zones
-- `agent/js/calendar.js`: mit_zones
-- `agent/modals/calendar/calendar_event_add.php`: mit_zones
-- `agent/modals/calendar/calendar_event_form.php`: mit_zones
-- `agent/modals/ticket/ticket_add.php`: mitTicketAddAssignee, mitTicketAddFields
-- `agent/modals/ticket/ticket_edit_schedule.php`: mit_zones
-- `agent/post/ticket.php`: mitTicketAddAfterCreate, mitTicketAddFlash, mitTicketAddRedirect, mit_zones
-- `functions.php`: mit_dispatch, mit_quick_ticket, mit_ticket_add
-
-**ITFlow functions it calls**
-
-- `functions/request.php`: flashAlert, redirect
-- `functions/sanitize.php`: escapeHtml
-- `functions/ticket.php`: ticketForRequest, ticketRow, ticketScheduleValue, ticketSetSchedule
-- `functions/ticket_fields.php`: ticketChangeStatus, ticketPickableStatuses
-
-**ITFlow columns** ticket_schedule, ticket_status, ticket_status_name, user_name
-
-**Watched in ITFlow's code** `ticketPickableStatuses` `ticketChangeStatus` `ticketScheduleValue` `name="assigned_to"` `add_ticket`
-
-**"ITFlow does this too" words** ticket_add_schedule, new_ticket_schedule, schedule_on_create
-
-**Our files** `functions/mit_ticket_add.php`
+**Our files** `functions/mit_profit.php`

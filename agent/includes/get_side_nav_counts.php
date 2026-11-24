@@ -6,7 +6,7 @@ $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT('client_id') AS nu
 $num_active_clients = $row['num'];
 
 // Active Ticket Count
-$row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT('ticket_id') AS num FROM tickets WHERE ticket_archived_at IS NULL AND ticket_closed_at IS NULL AND ticket_status != 4 " . clientScopeSql('ticket_client_id') . ""));
+$row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT('ticket_id') AS num FROM tickets WHERE ticket_archived_at IS NULL AND ticket_closed_at IS NULL AND ticket_status != 4 " . clientScopeSql('ticket_client_id') . projectTicketsServiceSql() . (function_exists('mitBoardVisibleSql') ? mitBoardVisibleSql('tickets') : ''))); // Mountaineer IT: only the boards this role sees, as the list
 $num_active_tickets = $row['num'];
 
 // Recurring Ticket Count
@@ -40,13 +40,15 @@ $num_unbilled_trips = $config_module_enable_accounting == 1 && lookupUserPermiss
 $num_unbilled_parts = $config_module_enable_accounting == 1 && function_exists('mitToBillPartsCount') && function_exists('mitNavCachedCount')
     ? mitNavCachedCount('unbilled_parts:' . clientScopeSql('client_id'), 'mitToBillPartsCount', basename($_SERVER['PHP_SELF']) === 'unbilled_time.php') : 0;
 
+// Purchasing - items waiting to be ordered, purchase orders waiting for this agent's approval, lines still to come in
+$num_purchasing = poNavCounts();
+
 // Products whose stock is at or under the reorder level, or out
 $num_products_reorder = $config_module_enable_accounting == 1 && lookupUserPermission('module_sales') >= 1 ? productReorderCount() : 0;
 
+// Knowledge Base articles due for review, or said not to help by readers
+$num_kb_attention = kbCan(1) ? kbAttentionCount() : 0;
 // Open Quotes Count
 $row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT('quote_id') AS num FROM quotes WHERE (quote_status = 'Sent' OR quote_status = 'Viewed') AND quote_archived_at IS NULL " . clientScopeSql('quote_client_id') . ""));
 $num_open_quotes = $row['num'];
 
-// Recurring Expenses Count
-$row = mysqli_fetch_assoc(mysqli_query($mysqli, "SELECT COUNT('recurring_expense_id') AS num FROM recurring_expenses WHERE recurring_expense_archived_at IS NULL"));
-$num_recurring_expenses = $row['num'];

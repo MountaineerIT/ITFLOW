@@ -1,5 +1,5 @@
-// Development mode (functions/mit_dev_mode.php): switched on in Admin > Backup (a test inbox required) it is kept in
-// config.php and shows the DEVELOPMENT badge in the top bar with the inbox; switched off the badge goes away. While on,
+// Development mode is ITFlow's own since 26.12 (functions/dev_mode.php - its card on Maintenance > Backup, $config_dev_mode, the
+// DEVELOPMENT badge - built from ours). Switched on there (a test inbox required), ours on top (functions/mit_dev_mode.php): our
 // integrations only read: NinjaOne's organizations can still be read (sign-in token + GET pass mitDevAllows); writes are refused
 // before they leave (checked by hand - there is no button here that writes to another system on the test install).
 // QuickBooks Online works only with a sandbox company connected while development mode is on (production's is refused).
@@ -12,22 +12,22 @@ test.describe.configure({ mode: 'serial' });
 
 async function setDevMode(page, on, mailTo = 'dev-inbox@mountaineerit.test') {
     await visit(page, 'admin/backup.php');
-    const form = page.locator('form:has(button[name=mit_dev_mode_save])');
+    const form = page.locator('form:has(button[name=edit_dev_mode])');
     await fillForm(form, { dev_mode: on, dev_mail_to: on ? mailTo : '' });
-    await submit(form, 'mit_dev_mode_save');
+    await submit(form, 'edit_dev_mode');
     return flash(page);
 }
 
-test('development mode: on shows the badge and keeps the test inbox, off takes it away', async ({ page }) => {
+test('development mode: ITFlow\'s switch, and NinjaOne still reads while it is on', async ({ page }) => {
     const errors = watch(page);
     await visit(page, 'admin/backup.php', errors);
-    test.skip(await page.locator('[data-mit-dev-card]').count() === 0, 'no development mode card');
+    test.skip(await page.locator('button[name=edit_dev_mode]').count() === 0, 'config.php can\'t be written here');
 
     expect(await setDevMode(page, true, ''), 'a test inbox is required').toContain('Give a test inbox');
     expect(await setDevMode(page, true), 'switched on').toContain('Development mode is on');
     await visit(page, 'agent/dashboard.php', errors);
-    await expect(page.locator('[data-mit-dev-mode]'), 'the badge in the top bar').toBeVisible();
-    await expect(page.locator('[data-mit-dev-mode]')).toHaveAttribute('title', /dev-inbox@mountaineerit\.test/);
+    await expect(page.locator('[data-dev-mode]'), 'the badge in the top bar').toBeVisible();
+    await expect(page.locator('[data-dev-mode]')).toHaveAttribute('title', /dev-inbox@mountaineerit\.test/);
 
     // Reads still work - only when NinjaOne is set up (the test install's stand-in)
     await visit(page, 'admin/mit_ninjaone.php?tab=mapping', errors);
@@ -39,7 +39,7 @@ test('development mode: on shows the badge and keeps the test inbox, off takes i
 
     expect(await setDevMode(page, false), 'switched off').toContain('Development mode is off');
     await visit(page, 'agent/dashboard.php', errors);
-    await expect(page.locator('[data-mit-dev-mode]'), 'no badge').toHaveCount(0);
+    await expect(page.locator('[data-dev-mode]'), 'no badge').toHaveCount(0);
     await expectClean(page, errors);
 });
 
@@ -58,7 +58,7 @@ test('development mode: QuickBooks Online only with a sandbox company connected 
     const stand_in = await page.request.get('http://127.0.0.1/qbo-mock/index.php/_reset').then((r) => r.ok()).catch(() => false);
     test.skip(!stand_in, 'the QuickBooks stand-in is not installed on this test install');
     await visit(page, 'admin/mit_qbo.php', errors);
-    test.skip(await page.locator('input[name=qbo_client_id]').count() === 0, 'needs database update M031');
+    await expect(page.locator('input[name=qbo_client_id]'), 'the QuickBooks settings form').toHaveCount(1);
 
     await qboDisconnect(page);
     expect(await setDevMode(page, true), 'switched on').toContain('Development mode is on');

@@ -7,7 +7,7 @@
  *   POST ask=1 conversation_id question ticket_id [images[]]  ask (a new conversation when conversation_id is 0; up to 3 pictures, not kept)
  *   POST feedback=1 message_id value (1 | -1 | 0)      thumbs up / down on an answer
  *   POST delete=1 conversation_id                      delete one of the agent's conversations
- *   POST draft=1 conversation_id client_id             a document drafted from it (functions/mit_ai_docs.php) - for the Write up window
+ *   POST draft=1 conversation_id client_id [kb=1]      a document (or, with kb, a general Knowledge Base article) drafted from it (functions/mit_ai_docs.php)
  * Every request needs the helper to be on and the agent's Use AI + Support view (mitAiAskCan); POSTs the CSRF token.
  */
 
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (isset($_POST['draft'])) {
         session_write_close();
-        $draft = mitAiDocumentDraft(intval($_POST['conversation_id'] ?? 0), intval($_POST['client_id'] ?? 0));
+        $draft = mitAiDocumentDraft(intval($_POST['conversation_id'] ?? 0), intval($_POST['client_id'] ?? 0), !empty($_POST['kb']));
         $reply($draft['ok'] ? 200 : 422, $draft);
     }
     if (isset($_POST['feedback'])) {

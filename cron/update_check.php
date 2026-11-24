@@ -72,11 +72,11 @@ if ($updates->result !== 0) {
 }
 
 $update_check_latest = escapeSql($updates->latest_version);
-
-// The list is kept in a TEXT column (64 KB): each subject cut to 200 characters and at most the newest 100 commits - a long
-// run of commits with long subjects ("Data too long for column 'config_update_pending_commits'") stopped the check
+// Kept in a TEXT column (64 KB): the newest 100 - all the Update page lists - each subject cut to 300 characters,
+// and fewer if that still doesn't fit. A long run of long subjects was "Data too long" and stopped the check.
+// The Update page counts them all from config_update_details (updateCheckDetails()).
 $update_check_list = array_map(function ($commit) {
-    $commit[2] = mb_strlen((string) $commit[2]) > 200 ? mb_substr((string) $commit[2], 0, 199) . '…' : (string) $commit[2];
+    $commit[2] = mb_strlen((string) $commit[2]) > 300 ? mb_substr((string) $commit[2], 0, 299) . '…' : (string) $commit[2];
     return $commit;
 }, array_slice($updates->pending_commits, 0, 100));
 $update_check_json = (string) json_encode($update_check_list);

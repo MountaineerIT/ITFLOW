@@ -1,6 +1,7 @@
 // The calendar page's own settings and moves (agent/calendar.php + agent/js/calendar.js + ajax.php):
-//  - "7 days", Whose = the tech and a source switched off are saved to the agent's account (mit_user_preferences calendar.all)
-//    and come back after a reload; the tech's booking is drawn with their first name beside the time and their colour bar;
+//  - "7 days", Whose = the tech and a source switched off are saved to the agent's account (ITFlow 26.12's
+//    user_settings.user_config_calendar_state "all") and come back after a reload; the tech's booking is drawn with their first name
+//    beside the time and - ours (functions/mit_calendar.php, agent/js/calendar.js) - their colour as a bar ([data-mit-agent]);
 //  - a booking dragged to another time keeps its length, a resize changes only its end, dropped on a whole day keeps its time
 //    of day, a resolved ticket refuses a move.
 // The agent's saved calendar settings are put back; rows made in the database are removed.
@@ -33,8 +34,10 @@ async function move(page, fields) {
 const booking = (id) => sql(`SELECT ticket_schedule s, ticket_schedule_end e FROM tickets WHERE ticket_id = ${id}`)[0];
 
 test.beforeAll(() => {
-    made.state = one(`SELECT value FROM mit_user_preferences WHERE user_id = 1 AND preference = 'calendar.all'`);
-    sql(`DELETE FROM mit_user_preferences WHERE user_id = 1 AND preference = 'calendar.all'`);
+    made.state = one('SELECT user_config_calendar_state FROM user_settings WHERE user_id = 1');
+    const state = JSON.parse(made.state || '{}') || {};
+    delete state.all;
+    sql(`UPDATE user_settings SET user_config_calendar_state = '${JSON.stringify(state).replace(/'/g, "''")}' WHERE user_id = 1`);
 });
 
 test('calendar: 7 days, Whose and a source are saved to the account and come back', async ({ page }) => {
@@ -56,8 +59,8 @@ test('calendar: 7 days, Whose and a source are saved to the account and come bac
         await holidays.click();
     }
     await page.waitForTimeout(1500);
-    const saved = JSON.parse(one(`SELECT value FROM mit_user_preferences WHERE user_id = 1 AND preference = 'calendar.all'`) || '{}');
-    expect([saved.view, Number(saved.agent), saved.sources && saved.sources.holidays], 'saved to the account').toEqual(['timeGridMit7', techId, false]);
+    const saved = (JSON.parse(one('SELECT user_config_calendar_state FROM user_settings WHERE user_id = 1') || '{}') || {}).all || {};
+    expect([saved.view, Number(saved.agent), saved.sources && saved.sources.holidays], 'saved to the account').toEqual(['timeGridSevenDays', techId, false]);
 
     await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* none */ } }); // the account copy, not this browser's
     await visit(page, 'agent/calendar.php', errors);
@@ -68,11 +71,9 @@ test('calendar: 7 days, Whose and a source are saved to the account and come bac
     // The tech's booking tomorrow: first name beside the time, the agent bar
     const ev = page.locator('[data-kind="ticket"]', { hasText: `${tag} drawn` });
     await expect(ev).toHaveCount(1);
-    await expect(ev.locator('.mit-cal-agent')).toHaveText(techFirst);
+    await expect(ev.locator('.itflow-cal-agent')).toHaveText(techFirst);
     expect(await ev.getAttribute('data-mit-agent'), 'agent colour bar').not.toBeNull();
     await expect(ev.locator('.mit-tech-dot'), 'a block has the bar, not a dot as well').toHaveCount(0);
-    // Whose: each agent with their calendar colour (functions/mit_calendar.php mitAgentColor)
-    expect(await page.locator(`#calendarAgent option[value="${techId}"]`).getAttribute('data-color'), 'the tech\'s colour in Whose').toMatch(/^#[0-9a-f]{3,8}$/i);
     expect(today).toBeTruthy();
     await expectClean(page, errors);
 });
@@ -102,9 +103,8 @@ test('calendar moves: length kept, resize changes the end, a whole-day drop keep
 
 test.afterAll(() => {
     deleteTickets(made.tickets);
-    sql(`DELETE FROM mit_user_preferences WHERE user_id = 1 AND preference = 'calendar.all'`);
-    if (made.state) {
-        sql(`INSERT INTO mit_user_preferences SET user_id = 1, preference = 'calendar.all', value = '${made.state.replace(/'/g, "''")}'`);
+    if (made.state !== undefined) {
+        sql(`UPDATE user_settings SET user_config_calendar_state = ${made.state === null ? 'NULL' : `'${made.state.replace(/'/g, "''")}'`} WHERE user_id = 1`);
     }
     sql(`DELETE FROM email_queue WHERE email_subject LIKE '%${tag}%'`);
 });

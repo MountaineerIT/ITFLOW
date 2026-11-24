@@ -84,6 +84,13 @@ test('an own-vehicle trip on a submitted timesheet day: no logging, changing or 
         expect(Number(trip(made.reimbTrip).trip_user_id), 'bulk driver change refused on a ticket\'s mileage').toBe(made.tech);
     }
 
+    // Bulk delete (Trips > tick > Delete) leaves both alone
+    await postTrip(page, { bulk_delete_trips: '1', 'trip_ids[]': [String(made.lockedTrip), String(made.reimbTrip)] });
+    for (const [id, why] of [[made.lockedTrip, 'the locked day\'s trip'], [made.reimbTrip, 'the ticket\'s mileage']]) {
+        const t = trip(id);
+        expect(t && !t.trip_archived_at, `bulk delete leaves ${why}`).toBeTruthy();
+    }
+
     // Nor can an open day's own-vehicle trip be moved onto the locked day
     await postTrip(page, { edit_trip: '1', trip_id: String(made.reimbTrip), ...tripFields({ date: DAY }) });
     expect(trip(made.reimbTrip).trip_date, 'not moved onto a submitted day').toBe(OPEN_DAY);

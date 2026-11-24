@@ -26,11 +26,12 @@ const MIT_AI_WALL_FORBIDDEN = [
     '/\bapi_keys\b|\bapi_key_secret\b|\bapi_key_decrypt/i' => 'ITFlow\'s API keys',
     '/\bdecrypt\w*\s*\(|\bencryption_ciphertext|\buser_specific_encryption|\bconfig_mit_secret_key\b|\bmitDecryptSecret\b|\bmitEncryptSecret\b|\$database_password|\$installation_id/i' => 'decryption or an encryption key',
     '/\bshared_items\b|\bitem_encrypted/i' => 'shared secret links',
+    '/\bpassword_history\b|\bconfig_mail_graph_token\b|\brmm_provider\w*_key\b|\brmm_providers\b/i' => 'a password history, mail token or RMM key (ITFlow 26.12)',
     '/\bSELECT\s+(?:\w+\.)?\*/i' => 'every column of a table (SELECT *) - name the columns, so no secret comes along',
     '/\bconfig_smtp_password|\bconfig_imap_password|\bconfig_mail_oauth|\bconfig_stripe|\bm365_cert|\bqbo_refresh|\bninja_secret|\bcontact_password\b/i' => 'a stored integration secret',
 ];
 
-const MIT_AI_WALL_TABLES = ['settings', 'tickets', 'ticket_replies', 'documents', 'clients', 'users', 'ai_providers', 'mit_ai_sources', 'mit_ai_chunks',
+const MIT_AI_WALL_TABLES = ['settings', 'tickets', 'ticket_replies', 'documents', 'kb_articles', 'clients', 'users', 'ai_providers', 'mit_ai_sources', 'mit_ai_chunks',
     'mit_ai_conversations', 'mit_ai_messages', 'ai_usage'];
 
 $root = dirname(__DIR__);

@@ -59,10 +59,14 @@ function mitAiDocumentClients() {
  * A document drafted from one of the agent's conversations, for $client_id's documentation (or the company's own) - ['ok', 'title',
  * 'description', 'html', 'removed'] or ['ok' => false, 'error'].
  */
-function mitAiDocumentDraft($conversation_id, $client_id) {
+function mitAiDocumentDraft($conversation_id, $client_id, $for_kb = false) {
     global $mysqli, $config_internal_client_id;
     if (!mitAiAskCan() || lookupUserPermission('module_support') < 2) {
         return ['ok' => false, 'error' => 'Writing documents needs the AI helper and Support edit.'];
+    }
+    // For ITFlow's Knowledge Base (agent/modals/mit_ai/kb_article.php): its own rule for writing, and always general - an article is for every client
+    if ($for_kb && function_exists('kbClosedText') && ($kb_closed = kbClosedText(2)) !== '') {
+        return ['ok' => false, 'error' => $kb_closed];
     }
     $limit = mitAiTokenLimit();
     if ($limit && mitAiTokensThisMonth() >= $limit) {
@@ -72,12 +76,12 @@ function mitAiDocumentDraft($conversation_id, $client_id) {
     if (!$conversation || !$conversation['messages']) {
         return ['ok' => false, 'error' => 'That conversation is not yours, or has nothing in it yet.'];
     }
-    $client_id = intval($client_id);
-    if (!$client_id || !hasClientAccess($client_id)) {
+    $client_id = $for_kb ? 0 : intval($client_id);
+    if (!$for_kb && (!$client_id || !hasClientAccess($client_id))) {
         return ['ok' => false, 'error' => 'Pick a client you can open to keep the document with.'];
     }
-    $own = $client_id === intval($config_internal_client_id ?? 0);
-    $client_name = (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT client_name FROM clients WHERE client_id = $client_id"))[0];
+    $own = $for_kb || $client_id === intval($config_internal_client_id ?? 0);
+    $client_name = $client_id ? (string) mysqli_fetch_row(mysqli_query($mysqli, "SELECT client_name FROM clients WHERE client_id = $client_id"))[0] : '';
 
     // The conversation, as it was kept (cleaned), then the full text of what its answers cited
     $text = "The conversation:\n";
@@ -97,10 +101,10 @@ function mitAiDocumentDraft($conversation_id, $client_id) {
         $read[] = mitAiTicketSource($conversation['ticket_id'], true);
     }
     if ($cited) {
-        $result = mysqli_query($mysqli, "SELECT ticket_id, document_id, client_id FROM mit_ai_sources WHERE source_id IN (" . implode(',', array_keys($cited)) . ")"
+        $result = mysqli_query($mysqli, "SELECT ticket_id, document_id, " . mitAiKbSelect('') . ", client_id FROM mit_ai_sources WHERE source_id IN (" . implode(',', array_keys($cited)) . ")"
             . clientScopeSql('client_id'));
         while ($row = mysqli_fetch_assoc($result)) {
-            $read[] = $row['ticket_id'] ? mitAiTicketSource($row['ticket_id']) : mitAiDocumentSource($row['document_id']);
+            $read[] = mitAiReadSource(...mitAiSourceKind($row)); // a ticket, document or Knowledge Base article
         }
     }
     $sources = '';
@@ -123,8 +127,10 @@ function mitAiDocumentDraft($conversation_id, $client_id) {
         return ['ok' => false, 'error' => 'No AI model is set up for Documentation or General (Admin > AI Providers).'];
     }
     $model['ai_provider_redact'] = 1; // a document is kept: secrets out whatever the provider is set to
-    $for = $own ? 'the company\'s own knowledge base - general, so any technician can follow it for any client; no client names'
-        : "the documentation of the client \"$client_name\" - keep to what applies to them";
+    $for = $for_kb ? 'the company\'s Knowledge Base, which every technician - and, once published, perhaps clients - can read; general, so it works for any client:'
+            . ' no client, company, people or system names, no addresses or internal hostnames'
+        : ($own ? 'the company\'s own knowledge base - general, so any technician can follow it for any client; no client names'
+        : "the documentation of the client \"$client_name\" - keep to what applies to them");
     $result = callAiApi($model, [
         ['role' => 'system', 'content' => 'You write knowledge base articles for an IT service company, from a technician\'s conversation with an assistant and the tickets and'
             . " documents it drew on. This one is for $for. Write what to do the next time this happens - not the story: no dates, no ticket numbers,"
