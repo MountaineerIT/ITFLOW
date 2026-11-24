@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 45 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 199 | 2 | 2 | 16 | 45 | 7 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 200 | 2 | 2 | 16 | 45 | 7 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
@@ -28,7 +28,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 27 | 57 | 21 | 92 | 21 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 12 | 16 | 15 | 72 | 27 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 13 | 16 | 15 | 72 | 27 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 13 | 4 | 18 | 15 | 53 | 8 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 10 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 16 | 7 | 25 | 4 |
@@ -939,7 +939,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - Recurring invoices by recurringInvoiceGenerate (auto-send condition).
 - Income accounts: products / invoices carry an Income category (product_category_id, invoice_category_id); ticket time is billed by billingTimeInvoice, its lines named by its item_name; the Edit Line window is agent/modals/billing/billing_item.php, saved by billing_item_save.
 
-**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-discount-account.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`, `tests/scenarios/scenario-invoice-bulk.php`
+**Tests** `tests/smoke/10-qbo.spec.js`, `tests/smoke/61-qbo-guards.spec.js`, `tests/smoke/66-qbo-more-doors.spec.js`, `tests/smoke/91-qbo-accounts.spec.js`, `tests/scenarios/scenario-qbo-accounts.php`, `tests/scenarios/scenario-qbo-billing-email.php`, `tests/scenarios/scenario-qbo-discount-account.php`, `tests/scenarios/scenario-qbo-flow.php`, `tests/scenarios/scenario-qbo-nightly.php`, `tests/scenarios/scenario-qbo-payments.php`, `tests/scenarios/scenario-qbo-terms.php`, `tests/scenarios/scenario-invoice-bulk.php`, `tests/scenarios/scenario-billing-chain.php`
 
 **Hooks in ITFlow's files**
 
