@@ -20,3 +20,19 @@ test('every local script and stylesheet carries a version stamp', async ({ page 
     expect(await page.evaluate(() => typeof window.itflowMentionAutocompleter), 'and the stamped app.js runs').toBe('function');
     await expectClean(page, errors);
 });
+
+// Since 26.12.1.3 (.htaccess): a versioned script / stylesheet may be kept a year without re-checking (its address changes with
+// each update), other static files a week, while pages, uploads and draw.io's own files keep no such header. Phones re-checked
+// every file on every page right after an update without it.
+test('browsers may keep versioned scripts and styles - pages and uploads are not cached', async ({ page, request }) => {
+    await visit(page, 'agent/dashboard.php', watch(page));
+    const script = await page.locator('script[src^="/js/app.js?v="]').getAttribute('src');
+    const style = await page.locator('link[href^="/css/itflow_custom.css?v="]').getAttribute('href');
+    for (const url of [script, style]) {
+        expect((await request.get(url)).headers()['cache-control'] || '', `kept a year: ${url}`).toContain('max-age=31536000');
+    }
+    expect((await request.get('/libs/fontawesome-free/webfonts/fa-solid-900.woff2')).headers()['cache-control'] || '', 'a font: a week').toContain('max-age=604800');
+    expect((await request.get('/js/app.js')).headers()['cache-control'] || '', 'no version: a week, not a year').not.toContain('31536000');
+    expect((await request.get('/agent/dashboard.php')).headers()['cache-control'] || '', 'a page is never kept').toContain('no-store');
+    expect((await request.get('/mit_drawio/js/app.min.js')).headers()['cache-control'] || '', 'draw.io\'s own files: no header of ours').toBe('');
+});
