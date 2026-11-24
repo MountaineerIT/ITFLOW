@@ -877,6 +877,23 @@ function mitProcTidy() {
     if (($n = mysqli_affected_rows($mysqli)) > 0) {
         $log[] = "Freed $n part(s) whose invoice line was deleted";
     }
+    // Links to an invoice / line that was deleted (after the cancel above has used them): cleared, so nothing points at a missing
+    // invoice - the consistency check's Leftovers warning. Also our pre-26.12 table, kept one release (M068 copied its links over).
+    $cleared = 0;
+    foreach (['mit_order_item_links', 'mit_procurement_items'] as $table) {
+        if (!mysqli_num_rows(mysqli_query($mysqli, "SHOW TABLES LIKE '$table'"))) {
+            continue;
+        }
+        mysqli_query($mysqli, "UPDATE `$table` x SET x.invoice_item_id = 0
+            WHERE x.invoice_item_id > 0 AND NOT EXISTS (SELECT 1 FROM invoice_items ii WHERE ii.item_id = x.invoice_item_id)");
+        $cleared += max(0, mysqli_affected_rows($mysqli));
+        mysqli_query($mysqli, "UPDATE `$table` x SET x.invoice_id = 0, x.invoice_item_id = 0
+            WHERE x.invoice_id > 0 AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.invoice_id = x.invoice_id)");
+        $cleared += max(0, mysqli_affected_rows($mysqli));
+    }
+    if ($cleared > 0) {
+        $log[] = "Cleared $cleared link(s) to deleted invoices or invoice lines";
+    }
     return $log;
 }
 

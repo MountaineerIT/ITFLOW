@@ -8,7 +8,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
 | [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 45 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 200 | 2 | 2 | 16 | 45 | 7 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 201 | 2 | 2 | 16 | 45 | 7 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
@@ -24,7 +24,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Times on ticket notes (start / end)](#reply_times) | 1 | 5 | 13 | 4 | 20 | 8 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 22 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 12 | 38 | 22 | 131 | 22 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 27 | 57 | 21 | 92 | 21 |
@@ -775,7 +775,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - ITFlow 3.5.0: rates and net terms come from the client's contract (contractTicketRate / contractClientRate / contractNetTerms) - clients.client_rate / client_net_terms are gone.
 - To Bill: ITFlow's Unbilled Time page builds its clients with billingUnbilledByClient / expenseUnbilledMerge / tripUnbilledMerge and bills them with expenseBillWithTime (agent/post/billing.php); js/unbilled_time.js's update() runs on changes to [data-unbilled-expense-pick] / [data-unbilled-expense-price].
 
-**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-procurement-undo-receipt.php`, `tests/scenarios/scenario-contract-terms.php`
+**Tests** `tests/smoke/62-procurement-roles.spec.js`, `tests/smoke/63-parts-and-invoice-orders.spec.js`, `tests/smoke/60-quote-pricing.spec.js`, `tests/scenarios/scenario-part-line-qty.php`, `tests/smoke/85-to-bill.spec.js`, `tests/smoke/37-po-project.spec.js`, `tests/scenarios/scenario-procurement-flow.php`, `tests/scenarios/scenario-procurement-project.php`, `tests/scenarios/scenario-procurement-stock.php`, `tests/scenarios/scenario-procurement-tidy-links.php`, `tests/scenarios/scenario-procurement-undo-receipt.php`, `tests/scenarios/scenario-contract-terms.php`
 
 **Hooks in ITFlow's files**
 

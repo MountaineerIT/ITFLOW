@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.12.1.2 - 2026-11-24
+- The daily purchasing tidy-up also clears links to invoices or invoice lines that were deleted, so the consistency check no longer warns about them (production's first check after 26.12.1.1 found 2, carried over from before the update). A link to an invoice that still exists is left alone.
+
 ## 26.12.1.1 - 2026-11-23
 - ITFlow 26.12.1 is in (database 4.1.1 -> 4.1.7). New in ITFlow: phone systems (FusionPBX calls matched to contacts, Add to Ticket with talk time, Yealink / Polycom desk phones as Phone assets, screen pops with "My desk phone" in Preferences), network platforms (UniFi device sync, sites' networks and VLANs, which switch port each asset plugs into, tickets when devices go offline), rack holders (devices side by side, e.g. server nodes in a chassis), Profit and Loss by quarter, and RMM sync fixes. Nothing of ours overlaps it - ITFlow's RMM is Tactical and UniFi; our NinjaOne sync stays.
 - Diagram from this client's assets: a rack holder (ITFlow 26.12.1's chassis with devices side by side) is drawn as one box naming what is in it - its devices were drawn as boxes of their own over it.
