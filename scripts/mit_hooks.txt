@@ -241,11 +241,30 @@ hook	agent/user/user_preferences.php	mitThemePreferenceField	1
 hook	agent/user/user_preferences.php	mitTsPreferenceFields	1
 hook	api/v1/clients/delete.php	mitQboClientLock	2
 hook	api/v1/clients/delete.php	mitTsDeleteBlocked	2
+hook	api/v1/contracts/read.php	mitApiExtras	2
+hook	api/v1/contracts/read.php	mit_api	1
+hook	api/v1/enforce_api_rbac.php	mitApiTsPeople	1
+hook	api/v1/enforce_api_rbac.php	mit_api	1
+hook	api/v1/enforce_api_rbac.php	mit_boards	2
+hook	api/v1/enforce_api_rbac.php	mit_charge_codes	1
+hook	api/v1/enforce_api_rbac.php	mit_leave	1
+hook	api/v1/enforce_api_rbac.php	mit_payroll	1
+hook	api/v1/enforce_api_rbac.php	mit_reimbursements	1
+hook	api/v1/enforce_api_rbac.php	mit_ticket_parts	2
+hook	api/v1/enforce_api_rbac.php	mit_timesheets	1
 hook	api/v1/enforce_api_rbac.php	mit_usage	2
 hook	api/v1/invoice_items/create.php	mitQboInvoiceLock	2
+hook	api/v1/invoices/read.php	mitApiExtras	2
+hook	api/v1/invoices/read.php	mit_api	1
 hook	api/v1/products/read.php	mitProductApiColumns	2
+hook	api/v1/quotes/read.php	mitApiExtras	2
+hook	api/v1/quotes/read.php	mit_api	1
+hook	api/v1/read_output.php	mitApiExtras	2
 hook	api/v1/read_output.php	mitApiHideCost	2
+hook	api/v1/read_output.php	mit_api	1
 hook	api/v1/read_output.php	mit_quotes	1
+hook	api/v1/recurring_invoices/read.php	mitApiExtras	2
+hook	api/v1/recurring_invoices/read.php	mit_api	1
 hook	client/contract.php	MountaineerIT	1
 hook	client/contract.php	mitContractUnlimitedPortalFigures	2
 hook	client/contract.php	mit_figures	2
@@ -613,6 +632,17 @@ ours	agent/reports/mit_payroll.php
 ours	agent/user/mit_outlook.php
 ours	agent/user/mit_outlook_callback.php
 ours	agent/user/post/mit_outlook.php
+ours	api/v1/mit_boards/move.php
+ours	api/v1/mit_boards/read.php
+ours	api/v1/mit_charge_codes/read.php
+ours	api/v1/mit_leave/read.php
+ours	api/v1/mit_payroll/read.php
+ours	api/v1/mit_reimbursements/read.php
+ours	api/v1/mit_ticket_parts/create.php
+ours	api/v1/mit_ticket_parts/read.php
+ours	api/v1/mit_ticket_parts/remove.php
+ours	api/v1/mit_ticket_parts/update.php
+ours	api/v1/mit_timesheets/read.php
 ours	api/v1/mit_usage/create.php
 ours	api/v1/mit_usage/read.php
 ours	cron/mit_ai_index.php
@@ -635,6 +665,7 @@ ours	functions/mit_ai_docs.php
 ours	functions/mit_ai_helper.php
 ours	functions/mit_ai_local.php
 ours	functions/mit_align.php
+ours	functions/mit_api.php
 ours	functions/mit_backup_restore.php
 ours	functions/mit_board_roles.php
 ours	functions/mit_boards.php

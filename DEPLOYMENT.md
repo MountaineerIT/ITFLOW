@@ -282,6 +282,9 @@ break stock ITFlow, and lists what stops working after a move.
   quantities. Systems reporting counts through the API get "resource not mapped" errors - switch them off. The usage
   connectors (NinjaOne, Bitwarden, Ingram Micro) stop too; their Bitwarden keys and Ingram login stay encrypted in
   `mit_usage_links` / `mit_settings` - delete those rows if you leave for good.
+- **Our API endpoints** – `api/v1/mit_boards/`, `mit_timesheets/`, `mit_payroll/`, `mit_charge_codes/`, `mit_leave/`, `mit_reimbursements/`
+  and `mit_ticket_parts/` go (callers get a 404), and ITFlow's ticket / invoice / quote / recurring invoice / contract reads lose their
+  `mit_...` fields. Nothing is stored for them - switch off whatever calls them.
 - **Modern look** – pages (and the sign-in screen) go back to ITFlow's own look, without the client count tiles and header contact line; the Look
   choice stays unused in `mit_user_preferences`.
 - **Version number** – the footer and Admin > Update show ITFlow's own release (26.10) again; `MIT_CHANGELOG.md` is ours.

@@ -35,7 +35,7 @@ if (isset($_GET['contract_id'])) {
             $row['signature'] = ['contract_signature_id' => intval($round['contract_signature_id']), 'state' => $state['key'] ?? null,
                 'sent_to_name' => $round['contract_signature_sent_to_name'], 'sent_to_email' => $round['contract_signature_sent_to_email'], 'sent_at' => $round['contract_signature_sent_at'] ?? null];
         }
-        echo json_encode(['success' => 'True', 'count' => 1, 'data' => [$row]]);
+        echo json_encode(['success' => 'True', 'count' => 1, 'data' => function_exists('mitApiExtras') ? mitApiExtras([$row], 'contracts') : [$row]]); // Mountaineer IT: our fields (functions/mit_api.php)
         exit();
     }
 } else {

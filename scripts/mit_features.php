@@ -417,6 +417,19 @@ return [
         'watch' => ['function billingRecalc(', 'function billingCopyLines(', 'billingLineTax', 'item_order', 'billing_item_save'],
         'overlap' => ['minimum_commit', 'item_minimum', 'commit_amount', 'minimum_charge'],
     ],
+    'api' => [
+        'name' => 'Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow\'s ticket / invoice / quote / recurring / contract reads',
+        'files' => ['functions/mit_api.php', 'api/v1/mit_boards/*.php', 'api/v1/mit_timesheets/*.php', 'api/v1/mit_payroll/*.php', 'api/v1/mit_charge_codes/*.php',
+            'api/v1/mit_leave/*.php', 'api/v1/mit_reimbursements/*.php', 'api/v1/mit_ticket_parts/*.php', 'MIT_API.md'],
+        'tests' => ['tests/scenarios/scenario-api-features.php'],
+        'assumes' => [
+            'api/v1/validate_api_key.php requires api/v1/enforce_api_rbac.php at global scope: $resource (the endpoint\'s folder), $resource_module / $operation_level (fail closed on an unmapped folder), apiUserCanAccessClient(), apiClientScopeSql(), $limit / $offset, $session_* of the key\'s user.',
+            'Reads answer through api/v1/read_output.php, except invoices / quotes / recurring_invoices / contracts read.php, which echo their own JSON (our mitApiExtras line is in each).',
+            'Delete operations need level 3 in the enforcer, so ours that the pages allow at Edit are named remove.php / move.php (level 2).',
+        ],
+        'watch' => ['enforce_api_rbac.php', 'function apiUserCanAccessClient(', 'function apiClientScopeSql(', '$resource_module', '$operation_level', 'billingApiTaxFields'],
+        'overlap' => ['api/v1/boards', 'api/v1/timesheets', 'api/v1/payroll', 'api/v1/parts', 'service_board'],
+    ],
     'client_profit' => [
         'name' => 'Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow\'s report',
         'files' => ['functions/mit_profit.php'],

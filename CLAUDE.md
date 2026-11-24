@@ -2025,6 +2025,20 @@ model: see DEPLOYMENT.md.
   labels plain text, scrubbed; `mitAiDiagramStyle` drops image / link / tooltip / html and any address, adds html=0; ids checked, MIT_AI_DIAGRAM_CELLS).
   POST `build_ai` (multipart; the session is closed before the call). The AI stand-in answers "draw.io diagrams" with an outside image, a link, HTML and a
   password on purpose. Scenario `scenario-diagram-build.php`, second test of smoke 58.
+- API for our features (Nov 23, 26.12.1.1 - the user's request; the user chose boards, timesheets / payroll, ticket parts + billing extras, writes
+  with the pages' rules): `functions/mit_api.php` (ours, required from mit_common.php) - `mitApiFail` / `mitApiList` (page by limit / offset, empty =
+  success True, count 0, `total`) / `mitApiDone`, `mitApiTicket` (client limits via the enforcer's apiUserCanAccessClient). Endpoints: `api/v1/mit_boards/`
+  read (boards + members + open counts; `?ticket_id=` its board + mit_board_moves) / move (`mitBoardMove`, open tickets, escalate needs a reason);
+  `mit_timesheets/` (per person per pay period: sheet + `mitApiTsHours` of mitTsTotals), `mit_payroll/` (the report's summary + leave balances +
+  mitReimbTotals; module_timesheets View), `mit_charge_codes/`, `mit_leave/` (mitLeaveBalancesAt), `mit_reimbursements/` (mitReimbItems) - read only,
+  people via `mitApiTsPeople` (own, reports, everyone with Timesheets view - as mitTsVisibleUsers); `mit_ticket_parts/` read / create / update /
+  remove (mitTicketPartSave / mitTicketPartRemove; `remove.php` because the enforcer holds delete.php to level 3 and the Parts box needs Support
+  edit; never unit_cost - `mitApiPart`). Our fields on ITFlow's reads: `mitApiExtras($rows, $resource)` - one line in `api/v1/read_output.php`
+  (enforcer's `$resource`) and in the four reads that echo their own JSON (`invoices`, `quotes`, `recurring_invoices`, `contracts` read.php):
+  tickets mit_board_id / _name, billing mit_discount_percent / _product_id / mit_minimum_lines, invoices mit_quickbooks, contracts mit_unlimited_hours.
+  Enforcer (`api/v1/enforce_api_rbac.php`): the resource map lines and `move.php` / `remove.php` at level 2. Never in the API: costs, the AI helper,
+  integration secrets, per-agent look / layout. Docs `MIT_API.md` (the reference), README. Scenario `scenario-api-features.php` (real HTTP, an admin
+  key and a client-limited Support-edit key).
 - Phase 2 recheck - done (Nov 6, on ITFlow 26.11.3): every finding left for after the release is fixed upstream or by us. Ticket move
   (`change_client_ticket` - `ticketForRequest` checks the current client), merge / bulk merge (`ticketMergeTarget` + `ticketsForBulk`, and a
   merge refuses another client's ticket), project links (`projectAddTicket`: reachable + same client), AI summary / document template

@@ -455,3 +455,4 @@ require_once __DIR__ . '/mit_dev_mode.php'; // development mode (config.php) - n
 require_once __DIR__ . '/mit_feedback.php'; // bug reports and feature requests (the top bar's Bugs & ideas)
 require_once __DIR__ . '/mit_settings_index.php'; // our settings pages and fields on ITFlow's Admin > Settings
 require_once __DIR__ . '/mit_service_users.php'; // API / service accounts - left out of every agent list
+require_once __DIR__ . '/mit_api.php'; // our features through ITFlow's REST API (api/v1/mit_*)

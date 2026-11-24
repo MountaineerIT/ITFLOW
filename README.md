@@ -151,9 +151,13 @@ Update shows both, with the release notes. This build is on ITFlow **26.11.8**.
 - AI helper - asks questions of past tickets and documents and drafts write-ups, with a hard wall around passwords and secrets
 
 **API**
-- The key in an `X-API-Key` or `Authorization: Bearer` header as well as ITFlow's ways, usage counts reported through
-  `/api/v1/mit_usage/`, and API / service accounts - logins an API key acts as, kept out of every list of people and unable to
-  sign in from a browser. Details in [MIT_API.md](MIT_API.md).
+- Endpoints for our features: service boards (list, a ticket's board and moves, move or escalate), timesheets and payroll
+  (timesheets per period, a payroll summary with overtime, premiums, leave balances and mileage, charge codes, leave balances,
+  mileage and purchases - read only), ticket parts (list, add, change, remove) and usage counts
+- Our fields on ITFlow's reads: a ticket's board, percentage discounts and minimum commits on invoices / quotes / recurring
+  invoices, an invoice's QuickBooks state, contracts with unlimited hours
+- The key in an `X-API-Key` or `Authorization: Bearer` header as well as ITFlow's ways, and API / service accounts - logins an
+  API key acts as, kept out of every list of people and unable to sign in from a browser. Details in [MIT_API.md](MIT_API.md).
 
 **Running it**
 - One-line Debian installer, restore from Admin > Backup (large backups too, also through a proxy or firewall that limits
@@ -167,8 +171,14 @@ version are in [MIT_CHANGELOG.md](MIT_CHANGELOG.md) (ITFlow's own are in [CHANGE
 
 ## API
 
-ITFlow's REST API works here as it does on stock ITFlow. What this build adds or changes - other ways to send the key, the usage
-counts endpoint, service accounts, and the few places where our features refuse a change - is in [MIT_API.md](MIT_API.md).
+ITFlow's REST API works here as it does on stock ITFlow, so tools written for stock ITFlow work unchanged. This build adds:
+- endpoints for its own features under `/api/v1/mit_*`: service boards, timesheets and payroll, ticket parts, usage counts;
+- a few `mit_...` fields on ITFlow's ticket, invoice, quote, recurring invoice and contract reads;
+- other ways to send the key, and service accounts.
+
+Every endpoint runs with the key's login's role and client limits, and does what its page does. What things cost you, the AI
+helper and integration secrets are never given out. The full reference, with every field and an example for each, is
+[MIT_API.md](MIT_API.md).
 
 ## Getting started
 

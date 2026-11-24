@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 40 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 198 | 2 | 2 | 16 | 45 | 6 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 45 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 199 | 2 | 2 | 16 | 45 | 7 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
@@ -17,18 +17,18 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Calendar (agent colours, booking ends, conflicts, Left behind, 7 days, weekday repeats, event agents, holidays, own time zone)](#calendar) | 4 | 11 | 12 | 2 | 3 | 11 |
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 7 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
-| [Dispatch board, Workload, This week](#dispatch) | 4 | 7 | 30 | 12 | 47 | 10 |
-| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 27 |
+| [Dispatch board, Workload, This week](#dispatch) | 4 | 7 | 30 | 12 | 47 | 11 |
+| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 28 |
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
-| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 8 |
+| [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 9 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
-| [Times on ticket notes (start / end)](#reply_times) | 1 | 5 | 13 | 4 | 20 | 7 |
+| [Times on ticket notes (start / end)](#reply_times) | 1 | 5 | 13 | 4 | 20 | 8 |
 | [Quote pricing (cost, markup / margin) and line images](#quotes) | 3 | 4 | 9 | 8 | 20 | 9 |
-| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 21 |
+| [Procurement (to order, POs, receiving, ticket parts, parts on To Bill, vendor bills)](#procurement) | 12 | 11 | 38 | 22 | 131 | 22 |
 | [Quick ticket (top-bar window: client, contact, issue; the contact's open tickets; timer started)](#quick_ticket) | 0 | 1 | 0 | 0 | 0 | 0 |
 | [More bulk actions on the invoices list (mark sent / paid, send by email, cancel, delete)](#invoice_bulk) | 0 | 1 | 0 | 0 | 0 | 0 |
-| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 27 | 57 | 21 | 92 | 20 |
-| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 12 | 16 | 15 | 72 | 26 |
+| [Timesheets, payroll, leave, California rules, holidays, reimbursements](#timesheets) | 28 | 27 | 57 | 21 | 92 | 21 |
+| [QuickBooks Online (approvals, batches, locks, payments back)](#qbo) | 14 | 12 | 16 | 15 | 72 | 27 |
 | [Usage billing (counts on recurring lines, connectors, API)](#usage) | 13 | 4 | 18 | 15 | 53 | 8 |
 | [NinjaOne RMM sync and live status](#ninjaone) | 10 | 1 | 11 | 8 | 26 | 4 |
 | [Customer Thermometer surveys](#customer_thermometer) | 7 | 2 | 16 | 7 | 25 | 4 |
@@ -37,10 +37,11 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Bugs & ideas (bug reports and feature requests in the top bar)](#feedback) | 5 | 1 | 5 | 4 | 12 | 5 |
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 2 | 1 | 2 | 0 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
-| [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 3 | 5 | 1 | 10 | 10 |
-| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 79 | 6 |
+| [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 3 | 5 | 1 | 10 | 11 |
+| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 82 | 6 |
 | [Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it](#minimum_commit) | 2 | 2 | 9 | 0 | 11 | 6 |
-| [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 1 | 2 | 2 | 3 | 11 | 3 |
+| [Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow's ticket / invoice / quote / recurring / contract reads](#api) | 13 | 1 | 6 | 6 | 26 | 11 |
+| [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 1 | 2 | 2 | 3 | 11 | 4 |
 
 <a id="platform"></a>
 ## Shared base (helpers, database updates, version, menus, module switches) (`platform`)
@@ -67,7 +68,12 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/includes/side_nav.php`: mit_billing_nav, mit_to_bill
 - `agent/unbilled_time.php`: mit_to_bill
 - `agent/user/post/profile.php`: mitSessionRestamp
-- `api/v1/enforce_api_rbac.php`: mit_usage
+- `api/v1/contracts/read.php`: mit_api
+- `api/v1/enforce_api_rbac.php`: mit_api, mit_boards, mit_timesheets, mit_usage
+- `api/v1/invoices/read.php`: mit_api
+- `api/v1/quotes/read.php`: mit_api
+- `api/v1/read_output.php`: mit_api
+- `api/v1/recurring_invoices/read.php`: mit_api
 - `client/includes/check_login.php`: mitSessionCheck
 - `client/login_microsoft.php`: mitPortalEntraTenant, mitPortalEntraTenantOk
 - `client/post.php`: mitSessionRestamp
@@ -132,6 +138,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 **Hooks in ITFlow's files**
 
 - `.htaccess`: MIT_API, MIT_FEATURES
+- `api/v1/enforce_api_rbac.php`: mit_boards, mit_reimbursements, mit_ticket_parts, mit_timesheets
 - `functions.php`: mit_boards, mit_timesheets
 - `functions/contract_signature.php`: mit_line
 - `functions/reports.php`: mit_boards, mit_timesheets
@@ -479,6 +486,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/includes/side_nav.php`: mitDispatchLevel, mitDispatchNavCount, mit_dispatch_count
 - `agent/js/dispatch.js`: mit_dispatch
 - `agent/post/ticket.php`: mit_board
+- `api/v1/enforce_api_rbac.php`: mit_boards
 - `functions.php`: mit_boards, mit_dispatch, mit_notifications, mit_projects
 - `functions/dispatch.php`: mitDispatchBoardSql, mitDispatchLevel, mitDispatchOutlookItems, mitDispatchQueueBoards, mit_dispatch
 - `functions/reports.php`: mit_boards
@@ -544,6 +552,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ticket_kanban.php`: mitBoardListTag
 - `agent/ticket_list.php`: mitBoardListTag
 - `agent/tickets.php`: mitBoardHiddenInput, mitBoardSwitcher, mitBoardTicketsFilter
+- `api/v1/enforce_api_rbac.php`: mit_boards, mit_charge_codes
 - `cron/ticket_email_parser.php`: mitBoardMessageAddresses, mitBoardRoute, mit_board_addresses
 - `functions.php`: mit_boards, mit_dispatch, mit_projects
 - `functions/client_overview.php`: mitBoardVisibleSql
@@ -629,6 +638,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/ajax.php`: mitTicketLayoutAjax, mit_ticket_layout
 - `agent/ticket.php`: mitTicketLayoutHtml, mit_ticket_layout
 - `agent/tickets.php`: mitListViewResetButton, mitListViewRestore
+- `api/v1/enforce_api_rbac.php`: mit_reimbursements
 - `functions.php`: mit_diagrams, mit_list_views, mit_ninjaone, mit_ticket_layout
 - `functions/backup.php`: mit_diagrams, mit_feedback
 - `includes/cron_jobs.php`: mit_ninjaone, mit_procurement_parts
@@ -686,6 +696,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/modals/ticket/ticket_reply_edit.php`: mitReplyViewZoneHint, mitReplyWorkToView
 - `agent/post/ticket.php`: mitReplyTimesFlash, mitReplyWorkFromView, mitReplyWorkGuardAdd, mitReplyWorkGuardEdit, mitTsKeepPublicNotes, mit_reply_times
 - `agent/ticket.php`: mitReplyViewNow, mitReplyViewZoneHint, mitReplyWorkToView
+- `api/v1/enforce_api_rbac.php`: mit_timesheets
 - `functions.php`: mit_timesheets
 - `functions/reports.php`: mit_timesheets
 - `functions/user_timezone.php`: mit_timesheets
@@ -783,6 +794,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/receiving.php`: mitProcReceivingExtras
 - `agent/ticket.php`: mitTicketPartsCard
 - `agent/unbilled_time.php`: mitToBillCard, mitToBillCell, mitToBillHead, mitToBillMerge, mitToBillRowAttrs, mitToBillScript, mitToBillStatNote, mitToBillTotals, mit_part_value, mit_to_bill
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `functions.php`: mit_procurement
 - `functions/billing.php`: mitProcQuoteConvertGroups, mitTicketPartsLineGone
 - `functions/purchase_orders.php`: mitPoMayApproveOwn, mitPoSeenTotalProblem, mitPoTellSwitches, mitProcAfterReceive, mitProcReceiveNoShelf, mitProcUndoReceiptExtras, mit_po_receipt_extras, mit_bell, mit_own
@@ -877,6 +889,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/user/post/profile.php`: mitTsSavePreferences
 - `agent/user/user_preferences.php`: mitTsPreferenceFields
 - `api/v1/clients/delete.php`: mitTsDeleteBlocked
+- `api/v1/enforce_api_rbac.php`: mit_charge_codes, mit_leave, mit_payroll, mit_reimbursements, mit_ticket_parts, mit_timesheets
 - `functions.php`: mit_invites, mit_ticket_layout, mit_timesheets
 - `functions/backup.php`: mit_receipts
 - `functions/expenses.php`: mitReimbExpenseWhyLocked, mitReimbReimbursementWhyLocked
@@ -943,6 +956,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/post/ticket.php`: mitQboGuardInvoice
 - `agent/post/trip.php`: mitQboGuardInvoice
 - `api/v1/clients/delete.php`: mitQboClientLock
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `api/v1/invoice_items/create.php`: mitQboInvoiceLock
 - `client/pay.php`: mitQboTakesPayments
 - `client/post.php`: mitQboGuardPayment, mit_invoice_id
@@ -1303,6 +1317,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `agent/post/product.php`: mitDiscountProductSave, mit_discount
 - `agent/post/quote.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
 - `agent/post/recurring_invoice.php`: mitDiscountCopy, mitDiscountSave, MountaineerIT
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `functions.php`: mit_discount, mit_minimum
 - `functions/billing.php`: mitDiscountBeforeRecalc, mitDiscountCopy, MountaineerIT, mit_hold
 - `functions/billing_pdf.php`: mitDiscountLabel
@@ -1358,7 +1373,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **ITFlow tables** asset_interface_links, asset_interfaces, assets, clients, credentials, document_versions, documents, files, history, locations, networks, rack_units, racks, users
 
-**ITFlow columns** ai_provider_redact, asset_archived_at, asset_client_id, asset_id, asset_location_id, asset_make, asset_model, asset_name, asset_type, client_id, document_archived_at, document_client_id, document_content, document_content_raw, document_created_at, document_created_by, document_description, document_id, document_name, document_updated_at, document_updated_by, document_version_content, document_version_created_at, document_version_created_by, document_version_description, document_version_document_id, document_version_name, file_archived_at, file_client_id, file_created_at, file_created_by, file_description, file_ext, file_folder_id, file_id, file_mime_type, file_name, file_reference_name, file_size, file_updated_at, folder_id, interface_a_id, interface_archived_at, interface_asset_id, interface_b_id, interface_id, interface_ip, interface_link_id, interface_name, interface_network_id, interface_primary, location_archived_at, location_client_id, location_id, location_name, network_archived_at, network_client_id, network_gateway, network_id, network_name, network_subnet, network_vlan, rack_archived_at, rack_client_id, rack_id, rack_location_id, rack_name, rack_units, rack_units_descending, unit_archived_at, unit_asset_id, unit_device, unit_end_number, unit_face, unit_rack_id, unit_start_number, unit_type, user_id, user_name
+**ITFlow columns** ai_provider_redact, asset_archived_at, asset_client_id, asset_id, asset_location_id, asset_make, asset_model, asset_name, asset_type, client_id, document_archived_at, document_client_id, document_content, document_content_raw, document_created_at, document_created_by, document_description, document_id, document_name, document_updated_at, document_updated_by, document_version_content, document_version_created_at, document_version_created_by, document_version_description, document_version_document_id, document_version_name, file_archived_at, file_client_id, file_created_at, file_created_by, file_description, file_ext, file_folder_id, file_id, file_mime_type, file_name, file_reference_name, file_size, file_updated_at, folder_id, interface_a_id, interface_archived_at, interface_asset_id, interface_b_id, interface_id, interface_ip, interface_link_id, interface_name, interface_network_id, interface_primary, location_archived_at, location_client_id, location_id, location_name, network_archived_at, network_client_id, network_gateway, network_id, network_name, network_subnet, network_vlan, rack_archived_at, rack_client_id, rack_id, rack_location_id, rack_name, rack_units, rack_units_descending, unit_archived_at, unit_asset_id, unit_device, unit_end_number, unit_face, unit_id, unit_parent_id, unit_position, unit_rack_id, unit_start_number, unit_type, user_id, user_name
 
 **ITFlow page ids / classes its scripts and styles use** `#mitDiagrams` `.itflow-document-body`
 
@@ -1402,6 +1417,49 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Our files** `functions/mit_minimum.php`
 
+<a id="api"></a>
+## Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow's ticket / invoice / quote / recurring / contract reads (`api`)
+
+**Takes for granted**
+
+- api/v1/validate_api_key.php requires api/v1/enforce_api_rbac.php at global scope: $resource (the endpoint's folder), $resource_module / $operation_level (fail closed on an unmapped folder), apiUserCanAccessClient(), apiClientScopeSql(), $limit / $offset, $session_* of the key's user.
+- Reads answer through api/v1/read_output.php, except invoices / quotes / recurring_invoices / contracts read.php, which echo their own JSON (our mitApiExtras line is in each).
+- Delete operations need level 3 in the enforcer, so ours that the pages allow at Edit are named remove.php / move.php (level 2).
+
+**Tests** `tests/scenarios/scenario-api-features.php`
+
+**Hooks in ITFlow's files**
+
+- `.htaccess`: MIT_API
+- `api/v1/contracts/read.php`: mitApiExtras, mit_api
+- `api/v1/enforce_api_rbac.php`: mitApiTsPeople, mit_api, mit_boards, mit_charge_codes, mit_leave, mit_payroll, mit_reimbursements, mit_ticket_parts, mit_timesheets, mit_usage
+- `api/v1/invoices/read.php`: mitApiExtras, mit_api
+- `api/v1/quotes/read.php`: mitApiExtras, mit_api
+- `api/v1/read_output.php`: mitApiExtras, mit_api
+- `api/v1/recurring_invoices/read.php`: mitApiExtras, mit_api
+- `functions.php`: mit_boards, mit_timesheets, mit_usage
+- `functions/reports.php`: mit_boards, mit_payroll, mit_timesheets
+- `functions/user_timezone.php`: mit_timesheets
+- `includes/cron_jobs.php`: mit_boards, mit_procurement_parts, mit_timesheets, mit_usage
+
+**ITFlow functions it calls**
+
+- `api/v1/enforce_api_rbac.php`: apiClientScopeSql, apiUserCanAccessClient
+- `functions/app.php`: getFieldById
+- `functions/auth.php`: clientScopeSql
+- `functions/sanitize.php`: escapeSql
+- `functions/ticket.php`: ticketIsOpen
+
+**ITFlow tables** contracts, invoices, quotes, recurring_invoices, tickets, users
+
+**ITFlow columns** asset_id, client_id, contract_monthly_hours, expense_id, invoice_id, invoice_number, invoice_prefix, item_id, order_item_id, po_id, po_number, po_prefix, product_id, quote_id, recurring_invoice_id, tax_id, ticket_archived_at, ticket_assigned_to, ticket_client_id, ticket_closed_at, ticket_id, ticket_resolved_at, trip_id, user_email, user_id, user_name
+
+**Watched in ITFlow's code** `enforce_api_rbac.php` `function apiUserCanAccessClient(` `function apiClientScopeSql(` `$resource_module` `$operation_level` `billingApiTaxFields`
+
+**"ITFlow does this too" words** api/v1/boards, api/v1/timesheets, api/v1/payroll, api/v1/parts, service_board
+
+**Our files** `functions/mit_api.php`, `api/v1/mit_boards/move.php`, `api/v1/mit_boards/read.php`, `api/v1/mit_timesheets/read.php`, `api/v1/mit_payroll/read.php`, `api/v1/mit_charge_codes/read.php`, `api/v1/mit_leave/read.php`, `api/v1/mit_reimbursements/read.php`, `api/v1/mit_ticket_parts/create.php`, `api/v1/mit_ticket_parts/read.php`, `api/v1/mit_ticket_parts/remove.php`, `api/v1/mit_ticket_parts/update.php`, `MIT_API.md`
+
 <a id="client_profit"></a>
 ## Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report (`client_profit`)
 
@@ -1415,6 +1473,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
+- `api/v1/enforce_api_rbac.php`: mit_ticket_parts
 - `functions.php`: mit_profit
 - `functions/labor_cost.php`: mitProfitDefaultBasis, mitProfitPartsAdd, mit_profit
 - `includes/cron_jobs.php`: mit_procurement_parts

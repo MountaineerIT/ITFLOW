@@ -18,7 +18,7 @@ if (isset($_GET['recurring_invoice_id'])) {
     $sql = mysqli_query($mysqli, "SELECT * FROM recurring_invoices WHERE recurring_invoice_id = $id " . apiClientScopeSql('recurring_invoice_client_id'));
     if ($sql && ($row = mysqli_fetch_assoc($sql))) {
         $row['items'] = billingItems('recurring', $id);
-        echo json_encode(['success' => 'True', 'count' => 1, 'data' => [$row]]);
+        echo json_encode(['success' => 'True', 'count' => 1, 'data' => function_exists('mitApiExtras') ? mitApiExtras([$row], 'recurring_invoices') : [$row]]); // Mountaineer IT: our fields (functions/mit_api.php)
         exit();
     }
 } else {

@@ -200,6 +200,16 @@ $resource_module = [
     // Trips: anyone logs and changes their own, someone else's needs Financial (tripCanEdit()) - api/v1/trips/ checks through tripSave()
     'trips'         => '',
     'mit_usage'     => 'module_sales', // Mountaineer IT: usage counts (functions/mit_usage.php)
+    // Mountaineer IT (functions/mit_api.php): service boards and ticket parts follow Support, as on the ticket page
+    'mit_boards'    => 'module_support',
+    'mit_ticket_parts' => 'module_support',
+    // Mountaineer IT timesheets: everyone reads their own and their reports' (each endpoint checks, mitApiTsPeople); the payroll
+    // summary needs Timesheets view, as its report does
+    'mit_timesheets' => '',
+    'mit_charge_codes' => '',
+    'mit_leave'     => '',
+    'mit_reimbursements' => '',
+    'mit_payroll'   => 'module_timesheets',
 ];
 
 // Operation -> required permission level (read = 1, create/update = 2, delete = 3).
@@ -240,6 +250,8 @@ $operation_level = [
     'put_back.php'  => 2,
     'recurring.php' => 2,
     'unlink.php'    => 2,
+    'move.php'      => 2, // Mountaineer IT: mit_boards/move.php
+    'remove.php'    => 2, // Mountaineer IT: mit_ticket_parts/remove.php
 ];
 
 if (!isset($resource_module[$resource])) {
