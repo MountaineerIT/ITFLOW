@@ -140,6 +140,10 @@ model: see DEPLOYMENT.md.
   Images (26.10.181): `.github/images/` - banner.svg and webp screenshots taken on a demo install (`/var/www/itflow_demo`, database
   itflow_demo, `itflow-demo.test`, sign-in jordan@summitridge.example - fictional company, clients and techs; never screenshot real data).
 - `.htaccess`: one extra line (404 for `CLAUDE.md` / `DEPLOYMENT.md` / `MIT_CHANGELOG.md`, which map our code). Keep it if upstream changes the file.
+  Caching (26.12.1.3 - the user found pages slow on phones after an update): an `<IfModule mod_headers.c>` block after the security headers -
+  a `?v=<digits>` .js / .css gets `public, max-age=31536000, immutable` (every tag is versioned by staticFileUrl / mitAsset), other static
+  files `max-age=604800`; `/uploads/` and `/mit_drawio/` (unversioned) left out, pages untouched (PHP's no-store). Without it browsers
+  guessed freshness from Last-Modified, which an update resets. Smoke: second test of `90-asset-stamps.spec.js`.
 - Version stamps on scripts / styles: ITFlow does it itself since 26.11.5 (`staticFileUrl()` in functions/app.php on every tag). Our output
   filter for it (26.10.197, `mitAssetStamp` / `mitAssetStampStart`, one line in each header) was retired in 26.11.5.1 - the user's choice. Our
   own tags keep `mitAsset()`; a hook line of ours in ITFlow's files that links a file uses `staticFileUrl()` like theirs. Smoke `90-asset-stamps.spec.js`
