@@ -607,7 +607,7 @@ function dashboardTimeThisWeek() {
 function dashboardTeamWorkload($limit = 8) {
     global $mysqli;
 
-    $scope = clientScopeSql('ticket_client_id') . (function_exists('mitBoardDashAnd') ? mitBoardDashAnd() : ''); // Mountaineer IT: the dashboard's board
+    $scope = clientScopeSql('ticket_client_id') . (function_exists('mitBoardDashAnd') ? mitBoardDashAnd('tickets', false) : ''); // Mountaineer IT: the dashboard's board (quiet boards kept - assigned work)
     $sql = mysqli_query($mysqli, "
         SELECT user_id, user_name, COUNT(ticket_id) AS open, SUM(" . dashboardSlaBreachedSql() . ") AS breached
         FROM tickets
@@ -625,7 +625,7 @@ function dashboardTeamWorkload($limit = 8) {
 
     return [
         'techs' => $techs,
-        'unassigned' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE ticket_resolved_at IS NULL AND ticket_assigned_to = 0 $scope" . projectTicketsServiceSql()),
+        'unassigned' => dashboardCount("SELECT COUNT(ticket_id) FROM tickets WHERE ticket_resolved_at IS NULL AND ticket_assigned_to = 0 $scope" . projectTicketsServiceSql() . (function_exists('mitBoardDashQuietSql') ? mitBoardDashQuietSql() : '')), // Mountaineer IT: quiet boards left out
     ];
 }
 

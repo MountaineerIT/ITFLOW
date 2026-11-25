@@ -145,6 +145,33 @@ function mitBoardWhere($choice, $user_id, $alias = 'tickets') {
     return ($ids === null ? '' : ' AND ' . mitBoardSql($alias) . ' IN (' . implode(',', array_map('intval', $ids)) . ')') . mitBoardVisibleSql($alias);
 }
 
+/**
+ * Quiet boards (M071, the user's request Nov 25 - an Alerts board whose tickets come and go by themselves): board ids switched to
+ * "Keep off Dispatch and the dashboard counts". Active boards only; never the default board (where unrouted tickets land).
+ */
+function mitBoardQuietIds() {
+    if (!mitBoardsReady() || !mitColumnReady('mit_boards', 'board_quiet')) {
+        return [];
+    }
+    return array_keys(array_filter(mitBoards(), function ($b) {
+        return intval($b['board_quiet'] ?? 0) && !intval($b['board_is_default']);
+    }));
+}
+
+/**
+ * " AND <the ticket is not on a quiet board>" for a board choice ('' / 'all' / 'mine' / a board id), or '' - picking a quiet board
+ * itself shows its tickets. For Dispatch's queues, its menu count and This week, and the dashboard's ticket counts; never for bookings,
+ * Workload (tickets assigned to an agent) or the Tickets list.
+ */
+function mitBoardQuietSql($choice, $alias = 'tickets') {
+    $choice = (string) $choice;
+    $quiet = mitBoardQuietIds();
+    if (!$quiet || (ctype_digit($choice) && intval($choice) > 0)) {
+        return '';
+    }
+    return ' AND ' . mitBoardSql($alias) . ' NOT IN (' . implode(',', array_map('intval', $quiet)) . ')';
+}
+
 /** A board's coloured tag. */
 function mitBoardBadge($board_id, $small = false) {
     $board = mitBoards(true)[intval($board_id)] ?? null;
@@ -833,10 +860,15 @@ function mitBoardDashChoice() {
 }
 
 /** " AND <ticket's board> IN (...)" for the dashboard's ticket figures, or ''. */
-function mitBoardDashAnd($alias = 'tickets') {
+function mitBoardDashAnd($alias = 'tickets', $quiet = true) {
     global $session_user_id;
     $choice = mitBoardDashChoice();
-    return $choice === '' ? mitBoardVisibleSql($alias) : mitBoardWhere($choice, $session_user_id, $alias);
+    return ($choice === '' ? mitBoardVisibleSql($alias) : mitBoardWhere($choice, $session_user_id, $alias)) . ($quiet ? mitBoardQuietSql($choice, $alias) : '');
+}
+
+/** The dashboard's quiet boards alone (" AND not on one", unless the dashboard shows one) - for counts whose scope keeps them (Team workload's Unassigned). */
+function mitBoardDashQuietSql($alias = 'tickets') {
+    return mitBoardQuietSql(mitBoardDashChoice(), $alias);
 }
 
 /** Needs attention: the ticket items open the Tickets list on the same board. */

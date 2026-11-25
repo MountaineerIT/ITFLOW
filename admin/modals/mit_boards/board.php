@@ -87,6 +87,24 @@ ob_start();
                 </select>
                 <div class="form-text">Anyone picked here is also made a member. Only tickets of clients they can see.</div>
             </div>
+            <?php if (mitColumnReady('mit_boards', 'board_quiet')) { $is_default = intval($board['board_is_default'] ?? 0); ?>
+                <div class="col-12" data-mit-board-quiet>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="mitBoardQuiet" name="quiet" value="1"
+                            <?= intval($board['board_quiet'] ?? 0) && !$is_default ? 'checked' : '' ?> <?= $is_default ? 'disabled' : '' ?>>
+                        <label class="form-check-label" for="mitBoardQuiet">Keep off Dispatch and the dashboard counts</label>
+                    </div>
+                    <div class="form-text">
+                        <?php if ($is_default) { ?>
+                            Not for the default board - tickets no rule places land there.
+                        <?php } else { ?>
+                            For boards whose tickets come and go by themselves, like alerts. They stay out of Dispatch's Not assigned, Not booked and
+                            Left behind queues, its menu count and This week, and the dashboard's ticket counts - unless this board is picked there.
+                            Bookings, tickets assigned to an agent (Workload) and the Tickets list still show them.
+                        <?php } ?>
+                    </div>
+                </div>
+            <?php } ?>
             <?php if ($part2) { $dealing = ($board['board_assign'] ?? 'off') === 'round_robin'; ?>
                 <div class="col-12"><hr class="my-1"><h6 class="mb-0"><i class="fas fa-sync-alt me-2"></i>Auto-assign</h6></div>
                 <div class="col-md-7">
