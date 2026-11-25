@@ -238,7 +238,7 @@ function contractHoursTicketUses($ticket_id, &$kept_out = false) {
         JOIN contracts ON contract_block_contract_id = contract_id
         WHERE contract_block_use_ticket_id = " . intval($ticket_id) . " ORDER BY contract_block_use_id ASC");
     while ($row = mysqli_fetch_assoc($sql)) {
-        if (floatval($row['contract_block_use_hours']) > 0) {
+        if (floatval($row['contract_block_use_hours']) > 0 || intval($row['contract_block_use_full'])) { // MountaineerIT: 0 h + full = covered, nothing to draw
             $uses[] = $row;
         } else {
             $kept_out = true;
@@ -259,7 +259,7 @@ function contractHoursUses($contract_id, $limit = 0) {
         FROM contract_block_uses
         JOIN contract_blocks ON contract_block_use_block_id = contract_block_id
         JOIN tickets ON contract_block_use_ticket_id = ticket_id
-        WHERE contract_block_contract_id = " . intval($contract_id) . " AND contract_block_use_hours > 0
+        WHERE contract_block_contract_id = " . intval($contract_id) . " AND (contract_block_use_hours > 0 OR contract_block_use_full = 1)
         GROUP BY ticket_id
         ORDER BY drawn_at DESC, ticket_id DESC" . ($limit ? ' LIMIT ' . intval($limit) : ''));
     while ($row = mysqli_fetch_assoc($sql)) {
@@ -315,17 +315,24 @@ function contractHoursDraw($client_id, array $ticket_ids = [], $by = 'ITFlow', $
                 <=> [$b['contract_block_expires'] === null ? 1 : 0, (string) $b['contract_block_expires'], $b['contract_block_bought'], $b['contract_block_id']];
         });
         $result['contracts'] = $contracts;
-        if (!$blocks) {
+        // MountaineerIT: every block, hours left or not - a ticket with no time to bill only needs one covering its day
+        $covering = [];
+        foreach ($contracts as $contract) {
+            foreach ($contract['blocks'] as $id => $block) {
+                $covering[$id] = $block + ['contract_name' => $contract['contract_name']];
+            }
+        }
+        if (!$blocks && !$covering) {
             return $result;
         }
 
         // Tickets put back stay out - unless an agent draws them by name
         if ($ticket_ids) {
-            mysqli_query($mysqli, "DELETE FROM contract_block_uses WHERE contract_block_use_hours = 0 AND contract_block_use_ticket_id IN (" . implode(',', array_map('intval', $ticket_ids)) . ")");
+            mysqli_query($mysqli, "DELETE FROM contract_block_uses WHERE contract_block_use_hours = 0 AND contract_block_use_full = 0 AND contract_block_use_ticket_id IN (" . implode(',', array_map('intval', $ticket_ids)) . ")");
         }
         $kept_out = [];
         $sql = mysqli_query($mysqli, "SELECT DISTINCT contract_block_use_ticket_id FROM contract_block_uses JOIN tickets ON contract_block_use_ticket_id = ticket_id
-            WHERE ticket_client_id = $client_id AND contract_block_use_hours = 0");
+            WHERE ticket_client_id = $client_id AND contract_block_use_hours = 0 AND contract_block_use_full = 0");
         while ($row = mysqli_fetch_row($sql)) {
             $kept_out[intval($row[0])] = true;
         }
@@ -336,10 +343,22 @@ function contractHoursDraw($client_id, array $ticket_ids = [], $by = 'ITFlow', $
         $touched = [];
         foreach ($tickets as $ticket_id => $ticket) {
             $need = round(floatval($ticket['hours']), 2);
+            $done = contractHoursDoneOn($ticket);
             if ($need <= 0) {
+                // MountaineerIT: no time to bill (none logged, or it rounds to 0) - a block covering the day it was done covers it, with nothing
+                // drawn (a use of 0 h marked full), so it leaves Unbilled Time instead of waiting there at 0.00 for good
+                foreach ($covering as $id => $block) {
+                    if ($done < $block['contract_block_bought'] || (!empty($block['contract_block_expires']) && $done > $block['contract_block_expires'])) {
+                        continue;
+                    }
+                    mysqli_query($mysqli, "INSERT INTO contract_block_uses SET contract_block_use_block_id = " . intval($id) . ", contract_block_use_ticket_id = " . intval($ticket_id) . ",
+                        contract_block_use_hours = 0, contract_block_use_full = 1, contract_block_use_created_by = " . intval($user_id));
+                    $result['drawn'][$ticket['ticket_prefix'] . $ticket['ticket_number']] = 0.0;
+                    logTicketHistory($ticket_id, escapeSql("Covered by prepaid hours ({$block['contract_name']}) by $by - no time to bill, nothing drawn"));
+                    break;
+                }
                 continue;
             }
-            $done = contractHoursDoneOn($ticket);
             $taken = [];
             foreach ($blocks as $id => $block) {
                 if ($need <= 0) {
@@ -414,11 +433,12 @@ function contractHoursRecheck($client_id) {
             COALESCE((SELECT SUM(TIME_TO_SEC(ticket_reply_time_worked)) FROM ticket_replies WHERE ticket_reply_ticket_id = ticket_id AND ticket_reply_archived_at IS NULL), 0) AS seconds
         FROM contract_block_uses
         JOIN tickets ON contract_block_use_ticket_id = ticket_id
-        WHERE ticket_client_id = " . intval($client_id) . " AND ticket_invoice_id = 0 AND contract_block_use_hours > 0
+        WHERE ticket_client_id = " . intval($client_id) . " AND ticket_invoice_id = 0 AND (contract_block_use_hours > 0 OR contract_block_use_full = 1)
         GROUP BY ticket_id
         HAVING MAX(contract_block_use_full) = 1");
     while ($row = mysqli_fetch_assoc($sql)) {
         if (billingTimeHours(intval($row['seconds']), $rules) > round(floatval($row['drawn']), 2)) {
+            mysqli_query($mysqli, "DELETE FROM contract_block_uses WHERE contract_block_use_hours = 0 AND contract_block_use_ticket_id = " . intval($row['ticket_id'])); // MountaineerIT: a 0 h cover
             mysqli_query($mysqli, "UPDATE contract_block_uses SET contract_block_use_full = 0 WHERE contract_block_use_ticket_id = " . intval($row['ticket_id']));
             $back++;
         }

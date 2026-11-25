@@ -349,7 +349,7 @@ hook	functions/calendar.php	mit_outlook	1
 hook	functions/client_overview.php	mitBoardVisibleSql	6
 hook	functions/contract.php	MountaineerIT	1
 hook	functions/contract.php	mitContractUnlimitedInput	2
-hook	functions/contract_hours.php	MountaineerIT	3
+hook	functions/contract_hours.php	MountaineerIT	7
 hook	functions/contract_hours.php	mitContractBlocksUnlimited	2
 hook	functions/contract_hours.php	mitContractHoursLabel	4
 hook	functions/contract_hours.php	mit_label	4
