@@ -35,6 +35,12 @@ if (isset($_POST['mit_board_save'])) {
         $board_id = mysqli_insert_id($mysqli);
     }
 
+    // Quiet (M071): kept off Dispatch and the dashboard counts - never the default board
+    if (mitColumnReady('mit_boards', 'board_quiet')) {
+        $quiet = !empty($_POST['quiet']) && !intval(mitBoards(true)[$board_id]['board_is_default'] ?? 0) ? 1 : 0;
+        mysqli_query($mysqli, "UPDATE mit_boards SET board_quiet = $quiet WHERE board_id = $board_id AND board_is_default = 0");
+    }
+
     // Auto-assign (M027): handing out starts with tickets placed from now on, never the backlog
     $part2 = mitBoardsPart2Ready();
     if ($part2) {
@@ -77,6 +83,9 @@ if (isset($_GET['mit_board_default'])) {
                 SELECT ticket_id, $old, 0, 'routed' FROM tickets");
         }
         mysqli_query($mysqli, "UPDATE mit_boards SET board_is_default = (board_id = $board_id)");
+        if (mitColumnReady('mit_boards', 'board_quiet')) {
+            mysqli_query($mysqli, "UPDATE mit_boards SET board_quiet = 0 WHERE board_id = $board_id"); // the default board is never quiet
+        }
         logAudit('Settings', 'Edit', "$session_name made " . escapeSql($board['board_name']) . " the default board");
         flashAlert('New tickets that match no rule now land on <strong>' . escapeHtml($board['board_name']) . '</strong>.');
     }

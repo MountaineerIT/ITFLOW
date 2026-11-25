@@ -993,6 +993,13 @@ model: see DEPLOYMENT.md.
   `agent/reports/mit_boards.php` (catalog line `'mit_boards' => mitBoardReportEntry()` in `functions/reports.php` reportCatalog
   before sla_by_client): per board new / moved in / escalated on / resolved / median first reply and resolve / SLA / open now;
   escalation flows; agents for one board; CSV.
+  Quiet boards (Nov 25, 26.12.1.4 - the user's request: an Alerts board's automatic tickets swamped Dispatch): M071 `mit_boards.board_quiet`; switch
+  "Keep off Dispatch and the dashboard counts" in `admin/modals/mit_boards/board.php` (`[data-mit-board-quiet]`, disabled on the default board - saving
+  and making a board the default clear it), "Quiet" badge in the list (`[data-mit-board-quiet-badge]`). `mitBoardQuietIds` (active, never the default)
+  / `mitBoardQuietSql($choice, $alias)` - " AND not on a quiet board" unless the choice is one board's id. Used by `mitDispatchBoardSql($alias, $quiet = true)`
+  (dispatchQueue - all three tabs - and dispatchWeekStats; ITFlow's dispatchWorkload line passes `false`: assigned work stays), `mitDispatchNavCount`,
+  `mitBoardDashAnd($alias, $quiet = true)` (dashboardAttention, dashboardTicketTrend; dashboardTeamWorkload passes `false` and its Unassigned count adds
+  `mitBoardDashQuietSql()`). Not the Tickets list, bookings / calendar, Workload, reports or the API. Scenario `scenario-board-quiet.php`, smoke `49-board-quiet.spec.js`.
   Details box pickers (26.10.106): `functions/mit_ticket_picks.php` (ours, required from mit_boards.php) - Board, SLA and Category on
   the ticket page change in place with ITFlow's own quick picker (`js/quick_pick.js`) instead of a window: fields `mit_board`
   (`mitBoardMove`), `mit_sla` (as edit_ticket_sla: applyTicketSla pinned, history, audit, custom action), `mit_category` (as

@@ -7,8 +7,8 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 | Feature | Our files | Tests | ITFlow functions | Tables | Columns | ITFlow files hooked |
 |---|---|---|---|---|---|---|
-| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 80 | 14 | 12 | 46 | 234 | 45 |
-| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 201 | 2 | 2 | 16 | 45 | 7 |
+| [Shared base (helpers, database updates, version, menus, module switches)](#platform) | 81 | 14 | 12 | 46 | 234 | 45 |
+| [Our checks (hooks, consistency, portability, AI wall, verify, feature map)](#checks) | 203 | 2 | 2 | 16 | 45 | 7 |
 | [Development mode (a production copy on a test server)](#dev_mode) | 1 | 2 | 2 | 0 | 0 | 5 |
 | [Restore from Admin > Backup](#backup_restore) | 1 | 1 | 2 | 0 | 0 | 3 |
 | [Cron health (warning, emails, /mit_health.php)](#cron_health) | 3 | 2 | 2 | 0 | 0 | 7 |
@@ -18,7 +18,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [Microsoft 365 app, Graph mail, Outlook calendar per tech](#outlook_m365) | 12 | 7 | 13 | 9 | 43 | 14 |
 | [Additional techs (helpers) on tickets](#ticket_techs) | 1 | 3 | 7 | 9 | 38 | 10 |
 | [Dispatch board, Workload, This week](#dispatch) | 4 | 7 | 30 | 12 | 47 | 11 |
-| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 8 | 51 | 12 | 51 | 28 |
+| [Service boards (routing, escalation, round-robin, by role, pickers, report)](#boards) | 10 | 10 | 51 | 12 | 51 | 28 |
 | [Project tickets kept apart](#projects) | 1 | 2 | 3 | 1 | 1 | 3 |
 | [Ticket page: layout, Read tick, timers, list views, Resolve - no response](#ticket_page) | 5 | 5 | 6 | 7 | 5 | 9 |
 | [Email reply "To" line (internal notes use ITFlow's @mentions)](#reply_recipients) | 0 | 1 | 0 | 0 | 0 | 0 |
@@ -38,7 +38,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 | [API / service accounts (logins API keys act as - out of every agent list, no browser sign-in)](#service_users) | 1 | 2 | 2 | 1 | 2 | 0 |
 | [Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow's prepaid hours, read as "Unlimited"](#contract_unlimited) | 1 | 2 | 2 | 2 | 4 | 8 |
 | [Percentage discounts: ITFlow's Discount as a % of discountable lines, products "Never discounted", kept up on recurring invoices, posted as a product in QuickBooks](#discount_percent) | 2 | 3 | 5 | 1 | 10 | 11 |
-| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 82 | 6 |
+| [Diagrams with draw.io: network and site maps edited inside ITFlow - in Files (editable PNGs, earlier versions kept) and in documents; new ones from the client's assets or drawn by AI](#diagrams) | 61 | 3 | 16 | 14 | 82 | 7 |
 | [Minimum commits: a line that tops an invoice / quote / recurring invoice up to a minimum, 0.00 once the other lines pass it, carried to invoices made from it](#minimum_commit) | 2 | 2 | 9 | 0 | 11 | 6 |
 | [Our features through the REST API: service boards, timesheets / payroll, ticket parts, and our fields on ITFlow's ticket / invoice / quote / recurring / contract reads](#api) | 13 | 1 | 6 | 6 | 26 | 11 |
 | [Client profitability: labor cost per agent (with history), parts cost, profit and margin, invoiced / paid basis in ITFlow's report](#client_profit) | 1 | 2 | 2 | 3 | 11 | 4 |
@@ -57,7 +57,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
-- `.htaccess`: MIT_CHANGELOG
+- `.htaccess`: MIT_CHANGELOG, mitAsset
 - `admin/database_updates.php`: mitBeforeItflowUpdate, mit_db_upgrade
 - `admin/includes/side_nav.php`: mit_integrations_nav
 - `admin/post/settings_module.php`: mitModulesSave, mit_lines
@@ -530,7 +530,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - quickPick() / js/quick_pick.js markup and quick_pick_options / quick_pick_set in agent/ajax.php.
 - Ticket lists are agent/tickets.php + ticket_list.php / ticket_kanban.php; dashboard counts in functions/dashboard.php.
 
-**Tests** `tests/smoke/07-boards.spec.js`, `tests/smoke/13-board-roles.spec.js`, `tests/smoke/15-ticket-picks.spec.js`, `tests/smoke/48-boards-ui.spec.js`, `tests/scenarios/scenario-boards.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/scenarios/scenario-picks-project.php`, `tests/scenarios/scenario-board-scope.php`
+**Tests** `tests/smoke/07-boards.spec.js`, `tests/smoke/13-board-roles.spec.js`, `tests/smoke/15-ticket-picks.spec.js`, `tests/smoke/48-boards-ui.spec.js`, `tests/scenarios/scenario-boards.php`, `tests/scenarios/scenario-parser-boards.php`, `tests/scenarios/scenario-picks-project.php`, `tests/scenarios/scenario-board-scope.php`, `tests/scenarios/scenario-board-quiet.php`, `tests/smoke/49-board-quiet.spec.js`
 
 **Hooks in ITFlow's files**
 
@@ -556,7 +556,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 - `cron/ticket_email_parser.php`: mitBoardMessageAddresses, mitBoardRoute, mit_board_addresses
 - `functions.php`: mit_boards, mit_dispatch, mit_projects
 - `functions/client_overview.php`: mitBoardVisibleSql
-- `functions/dashboard.php`: mitBoardDashAnd
+- `functions/dashboard.php`: mitBoardDashAnd, mitBoardDashQuietSql
 - `functions/dispatch.php`: mit_dispatch
 - `functions/reports.php`: mitBoardReportEntry, mit_boards
 - `functions/search.php`: mitBoardVisibleSql
@@ -1354,6 +1354,7 @@ Each feature of ours, the tests that prove it, what it takes for granted about I
 
 **Hooks in ITFlow's files**
 
+- `.htaccess`: mit_drawio
 - `agent/files.php`: mitDiagramFileMenu, mitDiagramNewMenuItem
 - `functions.php`: mit_ai_helper, mit_diagrams
 - `functions/backup.php`: mit_diagrams

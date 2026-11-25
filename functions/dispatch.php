@@ -534,7 +534,7 @@ function dispatchWorkload(array $agent_ids, $first_day = 0) {
         LEFT JOIN clients ON client_id = ticket_client_id
         LEFT JOIN ticket_statuses ON ticket_status_id = ticket_status
         " . ($helpers ? "LEFT JOIN ticket_helpers th ON th.ticket_id = tickets.ticket_id AND th.user_id IN ($in)" : '') . "
-        WHERE " . TICKET_OPEN_SQL . " AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . (function_exists('mitDispatchBoardSql') ? mitDispatchBoardSql() : '') /* Mountaineer IT: board */ . "
+        WHERE " . TICKET_OPEN_SQL . " AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . (function_exists('mitDispatchBoardSql') ? mitDispatchBoardSql('tickets', false) : '') /* Mountaineer IT: board (quiet ones kept - assigned work) */ . "
         AND (ticket_assigned_to IN ($in)" . ($helpers ? ' OR th.user_id IS NOT NULL' : '') . ")");
     $order = ['breached' => 0, 'at_risk' => 1, 'running' => 2, 'paused' => 3, 'none' => 4];
     $quiet_before = time() - DISPATCH_QUIET_DAYS * 86400;

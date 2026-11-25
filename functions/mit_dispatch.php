@@ -406,9 +406,14 @@ function mitDispatchBoardRequest() {
     return mitDispatchBoardChoice(isset($_GET['board']) || isset($_POST['board']) ? (string) ($_GET['board'] ?? $_POST['board']) : null);
 }
 
-/** " AND <the ticket is on the board(s) asked for>" - one line each in ITFlow's dispatchQueue, dispatchWorkload and dispatchWeekStats. */
-function mitDispatchBoardSql($alias = 'tickets') {
-    return mitDispatchBoardWhere(mitDispatchBoardRequest(), $alias);
+/**
+ * " AND <the ticket is on the board(s) asked for>" - one line each in ITFlow's dispatchQueue, dispatchWorkload and dispatchWeekStats.
+ * $quiet: quiet boards (Alerts - mitBoardQuietSql) left out unless one is picked itself - the queues and This week; Workload passes false
+ * (it only counts tickets an agent holds, which stay theirs to see).
+ */
+function mitDispatchBoardSql($alias = 'tickets', $quiet = true) {
+    $choice = mitDispatchBoardRequest();
+    return mitDispatchBoardWhere($choice, $alias) . ($quiet && function_exists('mitBoardQuietSql') ? mitBoardQuietSql($choice, $alias) : '');
 }
 
 /** What this agent last picked in the board picker (mit_user_preferences dispatch.board): board, board_techs. */
@@ -526,14 +531,15 @@ function mitDispatchQueueBoards(array $tickets) {
     return $tickets;
 }
 
-/** The side menu's count beside Dispatch: unassigned open service tickets on the agent's own boards (or all, when on none). Cached a minute. */
+/** The side menu's count beside Dispatch: unassigned open service tickets on the agent's own boards (or all, when on none) - quiet boards left out. Cached a minute. */
 function mitDispatchNavCount() {
     global $mysqli, $session_user_id;
     if (!function_exists('mitNavCachedCount') || !dispatchCan()) {
         return 0;
     }
     return mitNavCachedCount('dispatch', function () use ($mysqli, $session_user_id) {
-        $board = function_exists('mitBoardWhere') ? mitBoardWhere(mitDispatchBoardChoice(null), $session_user_id, 'tickets') : '';
+        $choice = mitDispatchBoardChoice(null);
+        $board = function_exists('mitBoardWhere') ? mitBoardWhere($choice, $session_user_id, 'tickets') . mitBoardQuietSql($choice, 'tickets') : '';
         $row = mysqli_fetch_row(mysqli_query($mysqli, "SELECT COUNT(*) FROM tickets WHERE ticket_assigned_to = 0 AND " . TICKET_OPEN_SQL . "
             AND ticket_archived_at IS NULL" . clientScopeSql('ticket_client_id') . (function_exists('projectTicketsServiceSql') ? projectTicketsServiceSql('tickets.ticket_project_id') : '') . $board));
         return intval($row[0] ?? 0);

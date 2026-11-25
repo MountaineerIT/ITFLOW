@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.12.1.4 - 2026-11-25
+- A service board can be kept off Dispatch and the dashboard counts (Admin > Settings > Boards, the board's window: "Keep off Dispatch and the dashboard counts") - for a board like Alerts, whose tickets open and close by themselves. Its tickets stay out of Dispatch's Not assigned, Not booked and Left behind queues, its menu count and This week, and the dashboard's ticket counts, whenever all boards or your boards are shown; picking that board in Dispatch or on the dashboard still shows them. Bookings, tickets assigned to someone (Workload) and the Tickets list are not affected. The default board can't be switched this way, and quiet boards are marked "Quiet" in the list.
+
 ## 26.12.1.3 - 2026-11-24
 - Pages load faster, mostly on phones: browsers now keep ITFlow's scripts and styles instead of re-checking each of the 40-60 files with the server on every page (the web server sent no caching instructions, so right after an update a phone re-checked them all). A file still changes the moment it is updated, as its address changes with it. Pages, uploads and the diagram editor's files are left as they were.
 

@@ -4,6 +4,8 @@
 hook	.htaccess	MIT_API	2
 hook	.htaccess	MIT_CHANGELOG	2
 hook	.htaccess	MIT_FEATURES	2
+hook	.htaccess	mitAsset	1
+hook	.htaccess	mit_drawio	1
 hook	admin/database_updates.php	mitBeforeItflowUpdate	2
 hook	admin/database_updates.php	mit_db_upgrade	3
 hook	admin/database_updates/3.8.7.php	MountaineerIT	1
@@ -357,6 +359,7 @@ hook	functions/contract_signature.php	mit_line	2
 hook	functions/cron_health.php	mitCronExtraProblems	4
 hook	functions/cron_health.php	mit_cron_health	1
 hook	functions/dashboard.php	mitBoardDashAnd	6
+hook	functions/dashboard.php	mitBoardDashQuietSql	2
 hook	functions/dev_mode.php	mitDevRetireOldLines	2
 hook	functions/dispatch.php	mitDispatchBoardSql	6
 hook	functions/dispatch.php	mitDispatchLevel	4
@@ -547,6 +550,7 @@ ours	admin/database_updates/mountaineerit/M067.php
 ours	admin/database_updates/mountaineerit/M068.php
 ours	admin/database_updates/mountaineerit/M069.php
 ours	admin/database_updates/mountaineerit/M070.php
+ours	admin/database_updates/mountaineerit/M071.php
 ours	admin/database_updates_mountaineerit.php
 ours	admin/includes/mit_calendar_card.php
 ours	admin/includes/mit_changelog_card.php

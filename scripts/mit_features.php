@@ -156,7 +156,7 @@ return [
     'boards' => [
         'name' => 'Service boards (routing, escalation, round-robin, by role, pickers, report)',
         'files' => ['functions/mit_boards.php', 'functions/mit_board_roles.php', 'functions/mit_ticket_picks.php', 'admin/mit_boards.php', 'admin/modals/mit_boards/*.php', 'admin/post/mit_boards.php', 'agent/modals/mit_board/*.php', 'agent/post/mit_boards.php', 'agent/reports/mit_boards.php', 'cron/mit_boards.php'],
-        'tests' => ['tests/smoke/07-boards.spec.js', 'tests/smoke/13-board-roles.spec.js', 'tests/smoke/15-ticket-picks.spec.js', 'tests/smoke/48-boards-ui.spec.js', 'tests/scenarios/scenario-boards.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/scenarios/scenario-picks-project.php', 'tests/scenarios/scenario-board-scope.php'],
+        'tests' => ['tests/smoke/07-boards.spec.js', 'tests/smoke/13-board-roles.spec.js', 'tests/smoke/15-ticket-picks.spec.js', 'tests/smoke/48-boards-ui.spec.js', 'tests/scenarios/scenario-boards.php', 'tests/scenarios/scenario-parser-boards.php', 'tests/scenarios/scenario-picks-project.php', 'tests/scenarios/scenario-board-scope.php', 'tests/scenarios/scenario-board-quiet.php', 'tests/smoke/49-board-quiet.spec.js'],
         'assumes' => [
             'New tickets come from add_ticket, the parser\'s addTicket, the portal, the API, recurring and projects (a sweep catches the rest).',
             'quickPick() / js/quick_pick.js markup and quick_pick_options / quick_pick_set in agent/ajax.php.',
