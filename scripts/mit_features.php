@@ -368,7 +368,7 @@ return [
     'contract_unlimited' => [
         'name' => 'Unlimited support hours on contracts: a switch beside Hours each month, every billable ticket drawn in full by ITFlow\'s prepaid hours, read as "Unlimited"',
         'files' => ['functions/mit_contract_unlimited.php'],
-        'tests' => ['tests/smoke/55-contract-unlimited.spec.js', 'tests/scenarios/scenario-contract-unlimited.php'],
+        'tests' => ['tests/smoke/55-contract-unlimited.spec.js', 'tests/scenarios/scenario-contract-unlimited.php', 'tests/scenarios/scenario-contract-zero-time.php'],
         'assumes' => [
             'ITFlow\'s prepaid hours (functions/contract_hours.php, database 3.4.4): contract_monthly_hours makes a block each month (contractHoursEnsureMonthly / contractHoursSync) and contractHoursDraw takes billable done tickets\' time from blocks with hours left, the rest left to bill.',
             'Every page prints hours through contractHoursText / contractHoursWords; contractBlocks gives each block\'s used / left / expired; contractFromInput checks the hours (under 1,000) for contracts and templates.',

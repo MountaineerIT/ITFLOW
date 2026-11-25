@@ -240,6 +240,11 @@ model: see DEPLOYMENT.md.
   SLA picked by hand (not the one getTicketSlaId gives) - ITFlow 26.12 re-applied it on every edit, so any edit dropped a hand-picked SLA (our
   26.10.95 fix, lost when ITFlow's file was taken); smoke: the edit step of 15. `functions/trips.php` tripDrivers and `functions/expenses.php` expensePayers
   leave disabled agents out (user_status 1; the record's own driver / payer kept). Both also in ITFlow's master.
+  26.12.1.5 (Nov 25, the user found $0.00 tickets stuck in To Bill): `functions/contract_hours.php` contractHoursDraw covers a billable done ticket with
+  no time to bill (none logged / rounds to 0 h) when a block of the client's covers its day - a use of 0 h with `contract_block_use_full = 1` (ITFlow skipped
+  it, so it waited in Unbilled Time for good). A 0 h use not full is still ITFlow's "put back" marker (kept out of draws); contractHoursTicketUses /
+  contractHoursUses count the covered ones, contractHoursRecheck sends one back (marker deleted) when time is added. In ITFlow's master too.
+  `scenario-contract-zero-time.php`.
   Role crawl (Nov 22): `agent/includes/inc_all_client.php` answers a missing / 0 client_id with ITFlow's own "Nothing to see here" (as for a
   client that isn't there) - client_overview, files, document, document_edit, rack were PHP fatals; smoke: last test of 01. In ITFlow's master too.
   Client delete (Nov 23, the user's go-ahead): `clientDeleteForGood($client_id)` (functions/client.php) is the one delete behind Clients > Delete

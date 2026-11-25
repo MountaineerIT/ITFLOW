@@ -4,6 +4,9 @@ Version = ITFlow's release + our iteration (26.10.1, 26.10.2 ...). It goes up wi
 again at .1 when an ITFlow release is merged. Newest first. Shown under Admin > Update. (ITFlow's own release notes are
 CHANGELOG.md.) Versions up to 26.10.62 were numbered afterwards, one per push to develop since 15 October 2026.
 
+## 26.12.1.5 - 2026-11-25
+- A billable ticket on a contract with prepaid or unlimited hours no longer gets stuck in To Bill at $0.00 when it has no time to bill - no time logged, or a few minutes that round to 0 h. If the contract's hours cover the day it was done, it now counts as covered with nothing drawn (its history says so) and leaves To Bill at the next draw - nightly, or Draw now. Time added to it later sends it back to bill as usual. Tickets for clients with no contract hours stay in To Bill as before.
+
 ## 26.12.1.4 - 2026-11-25
 - A service board can be kept off Dispatch and the dashboard counts (Admin > Settings > Boards, the board's window: "Keep off Dispatch and the dashboard counts") - for a board like Alerts, whose tickets open and close by themselves. Its tickets stay out of Dispatch's Not assigned, Not booked and Left behind queues, its menu count and This week, and the dashboard's ticket counts, whenever all boards or your boards are shown; picking that board in Dispatch or on the dashboard still shows them. Bookings, tickets assigned to someone (Workload) and the Tickets list are not affected. The default board can't be switched this way, and quiet boards are marked "Quiet" in the list.
 
